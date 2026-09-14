@@ -243,7 +243,7 @@
 
     const optionsData = {
       step1: ["조심스레 기지개를 켬", "깊은 숨을 크게 들이쉼", "새로운 바람이 궁금함", "굳었던 몸을 천천히 풂", "이제 막 시야가 트임", "온전히 나에게 집중함", "마음이 한결 가벼워짐", "천천히 날개를 말리는 중", "아무 방해 없이 평온함", "묵은 생각을 툭 털어냄", "나만의 속도를 찾는 중", "낯설지만 설레는 기분", "가만히 온기를 느끼는 중", "어디로든 갈 수 있을 듯함", "긴 잠에서 개운하게 깸", "내 안의 소리에 귀 기울임", "서두르지 않고 둘러봄", "담담하게 첫 발을 디딤", "그저 지금에 충실하고 싶음", "가볍게 날아오를 준비 중", "조용한 여유를 만끽함", "혼자만의 시간이 편안함"],
-      step2: ["남들의 시선과 평가", "억지로 쥐어짜는 긍정", "줄어드는 잔고 걱정", "밤마다 곱씹는 이불킥", "억지로 버티는 인간관계", "아무것도 안 할 때의 죄책감", "내일 출근·등교의 막막함", "잘해야 한다는 강박", "끝없는 타인과의 비교", "차마 못 뱉고 삼킨 말들", "이미 지나간 일에 대한 후회", "안 읽은 메신저 알림의 압박", "착한 사람이어야 한다는 부담", "손익을 따지는 계산적인 태도", "혼자 다 짊어지려는 버릇", "미래에 대한 막연한 공포", "나를 갉아먹는 자책", "눈치 보며 맞추는 습관", "쓸데없이 많아진 잡생각", "완벽하지 못했다는 찜찜함", "거절하지 못해 떠안은 일들", "억지로 웃어넘기던 버릇"],
+      step2: ["남들의 시선과 평가", "억지로 쥐어짜는 긍정", "줄어드는 잔고 걱정", "밤마다 곱씹는 이불킥", "억지로 버티는 인간관계", "아무것도 안 할 때의 죄책감", "내일 출근·등교의 막막함", "잘해야 한다는 강박", "끝없는 타인과의 비교", "차마 못 뱉고 삼킨 말들", "이미 지나간 일에 대한 후회", "안 읽은 메신저 알림의 압박", "착한 사람이어야 한다는 부담", "손익을 따지는 계산적인 태도", "혼자 다 짊어지려는 버릇", "미래에 대한 막연한 공포", "나를 갈아먹는 자책", "눈치 보며 맞추는 습관", "쓸데없이 많아진 잡생각", "완벽하지 못했다는 찜찜함", "거절하지 못해 떠안은 일들", "억지로 웃어넘기던 버릇"],
       step3: ["흔들려도 그냥 둠", "남 눈치 안 보고 멍때림", "망해도 별일 아니라고 넘김", "내 속도대로 천천히 감", "할 만큼 했다고 인정함", "억지로 애쓰지 않음", "싫은 건 싫다고 생각함", "오늘 하루만 버텨봄", "완벽하지 않아도 만족함", "혼자만의 침묵을 즐김", "남의 말 한 귀로 흘림", "당장 답을 찾지 않음", "아무 계획 없이 흘러감", "내 감정에 솔직해짐", "쉬는 것에 당당해짐", "안 되는 건 쿨하게 포기함", "넘어져도 급하게 안 일어남", "나를 가장 먼저 챙김", "작은 틈을 내어 숨을 쉼", "그때그때 마음 가는 대로 함", "타인의 기대에서 한 발 물러섬"],
       step4: ["연락이 아예 안 터지는 곳", "아무도 나를 모르는 낯선 길", "온종일 햇볕만 드는 창가", "파도 소리만 들리는 밤바다", "불 다 끄고 누운 내 방 침대", "시선이 닿지 않는 먼 수평선", "풀냄새 가득한 축축한 숲", "시원한 바람이 부는 언덕", "비 오는 날의 조용한 실내", "사람 발길이 끊긴 옥상", "멍하니 걷기 좋은 밤거리", "소음 하나 없는 눈 덮인 들판", "시간 감각이 사라진 공간", "달빛만 켜져 있는 방", "파란 물결 아래 고요한 물속", "알람 소리 없는 늦은 아침", "가로등만 깜빡이는 골목길", "구름 위 끝없이 펼쳐진 하늘", "누구도 재촉하지 않는 벤치", "끝없이 펼쳐진 모래사장", "책장 냄새 나는 한적한 도서관"]
     };
@@ -425,8 +425,8 @@
       } else if (e.touches.length === 2) {
         isDragging = false;
         startPinchDist = Math.hypot(
-          e.touches[0].clientX - e.touches[1].clientX,
-          e.touches[0].clientY - e.touches[1].clientY
+          e.touches[0].clientX - e.touches.clientX,
+          e.touches[0].clientY - e.touches.clientY
         );
         pinchStartScale = imgScale;
       }
@@ -445,8 +445,8 @@
         drawAlignCanvas();
       } else if (e.touches.length === 2 && startPinchDist > 0) {
         const currentDist = Math.hypot(
-          e.touches[0].clientX - e.touches[1].clientX,
-          e.touches[0].clientY - e.touches[1].clientY
+          e.touches[0].clientX - e.touches.clientX,
+          e.touches[0].clientY - e.touches.clientY
         );
         const factor = currentDist / startPinchDist;
         imgScale = pinchStartScale * factor;
@@ -480,7 +480,7 @@
     });
 
     /* ============================================================
-       부드러운 조각상 명암 & 일체형 단일 몸통 3D 나비 렌더러
+       강한 입체 명암 & 단절 없는 유기적 단일 몸통 3D 나비 렌더러
        ============================================================ */
     let scene, camera, renderer, butterflyGroup, leftWingMesh, rightWingMesh;
     let isFlyingAway = false, touchStartY = 0;
@@ -489,16 +489,11 @@
       const shape = new THREE.Shape();
       const s = isRight ? 1 : -1;
 
-      // 가슴 상단 밀착점에서 출발
       shape.moveTo(0, 0.45);
-
-      // 상단 큰 날개: 둥글고 넓게 솟구치는 호
       shape.bezierCurveTo(s * 0.45, 0.95, s * 1.15, 1.75, s * 1.9, 1.7);
-      shape.bezierCurveTo(s * 2.5, 1.65, s * 2.7, 1.1, s * 2.45, 0.6);
-      shape.bezierCurveTo(s * 2.2, 0.15, s * 1.8, -0.05, s * 1.35, -0.1);
-
-      // 하단 둥근 날개: 포근하게 엉덩이를 받치며 배 중간부로 회귀
-      shape.bezierCurveTo(s * 1.8, -0.4, s * 1.8, -1.1, s * 1.45, -1.5);
+      shape.bezierCurveTo(s * 2.5, 1.65, s * 2.7, 1.15, s * 2.45, 0.6);
+      shape.bezierCurveTo(s * 2.2, 0.2, s * 1.8, 0.0, s * 1.35, -0.1);
+      shape.bezierCurveTo(s * 1.8, -0.35, s * 1.8, -1.05, s * 1.45, -1.5);
       shape.bezierCurveTo(s * 1.05, -1.9, s * 0.55, -1.8, s * 0.35, -1.5);
       shape.bezierCurveTo(s * 0.18, -1.15, s * 0.08, -0.7, 0, -0.45);
       shape.closePath();
@@ -520,20 +515,18 @@
       return geom;
     }
 
-    // [핵심] 머리-가슴-배가 끊어짐 없이 이어진 단일 유기적 몸통 생성기
     function createSeamlessBodyGeometry() {
       const points = [];
-      // (반지름 r, 높이 y) 좌표 곡선 (LatheGeometry 회전체)
       points.push(new THREE.Vector2(0.001, 0.72));  // 머리 꼭대기
-      points.push(new THREE.Vector2(0.10, 0.62));   // 둥근 머리 볼륨
-      points.push(new THREE.Vector2(0.085, 0.50));  // 목 마디 (끊어지지 않고 자연스럽게 좁아짐)
-      points.push(new THREE.Vector2(0.14, 0.30));   // 가슴(Thorax) 중앙 볼록 볼륨
-      points.push(new THREE.Vector2(0.115, 0.05));  // 허리 결합부 (완만한 전이)
-      points.push(new THREE.Vector2(0.11, -0.25));  // 배(Abdomen) 상단
-      points.push(new THREE.Vector2(0.085, -0.55)); // 배 하단
-      points.push(new THREE.Vector2(0.001, -0.80)); // 꼬리 끝
+      points.push(new THREE.Vector2(0.11, 0.62));   // 둥근 머리 볼륨
+      points.push(new THREE.Vector2(0.09, 0.50));   // 목 (끊김 없음)
+      points.push(new THREE.Vector2(0.15, 0.28));   // 가슴(Thorax) 볼록 볼륨
+      points.push(new THREE.Vector2(0.12, 0.02));   // 허리 전이부
+      points.push(new THREE.Vector2(0.115, -0.28)); // 배 상단
+      points.push(new THREE.Vector2(0.08, -0.58));  // 배 하단
+      points.push(new THREE.Vector2(0.001, -0.82)); // 꼬리 끝
 
-      const geom = new THREE.LatheGeometry(points, 24);
+      const geom = new THREE.LatheGeometry(points, 28);
       geom.computeVertexNormals();
       return geom;
     }
@@ -553,20 +546,20 @@
       renderer = new THREE.WebGLRenderer({ alpha: true, antialias: true });
       renderer.setSize(width, height);
       renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+      renderer.toneMapping = THREE.ACESFilmicToneMapping;
+      renderer.toneMappingExposure = 1.15;
       container.appendChild(renderer.domElement);
 
-      // [조명 개선] 부드럽고 몽환적인 조각상 명암 구도
-      const ambLight = new THREE.AmbientLight(0xffffff, 0.85);
+      // [진한 명암비를 위한 고대비 조명 설정]
+      const ambLight = new THREE.AmbientLight(0xffffff, 0.45); // 환경광 낮추어 어두운 면 확보
       scene.add(ambLight);
 
-      // 정면 상단 주광 (Key Light: 날개 굴곡과 몸통의 둥근 하이라이트)
-      const keyLight = new THREE.DirectionalLight(0xfffaee, 0.95);
-      keyLight.position.set(3, 5, 6);
+      const keyLight = new THREE.DirectionalLight(0xfff8ee, 1.85); // 키 라이트 강화
+      keyLight.position.set(4, 5.5, 6.5);
       scene.add(keyLight);
 
-      // 측면 보조광 (Fill Light: 암부가 부드럽게 감싸지도록 연출)
-      const fillLight = new THREE.DirectionalLight(0xcfd8dc, 0.55);
-      fillLight.position.set(-3, -2, 4);
+      const fillLight = new THREE.DirectionalLight(0x93c5fd, 0.25); // 필 라이트 약화하여 음영 깊이 증대
+      fillLight.position.set(-4, -3, 3);
       scene.add(fillLight);
 
       const textureLoader = new THREE.TextureLoader();
@@ -580,36 +573,32 @@
       const wingMaterial = new THREE.MeshStandardMaterial({
         map: userTexture,
         side: THREE.DoubleSide,
-        roughness: 0.45,
+        roughness: 0.35,
         metalness: 0.05
       });
 
-      // 좌측 날개
       const leftGeo = createChubbyCuteWingShape(false);
       leftWingMesh = new THREE.Mesh(leftGeo, wingMaterial);
       leftWingMesh.position.set(-0.06, 0.02, 0);
       butterflyGroup.add(leftWingMesh);
 
-      // 우측 날개
       const rightGeo = createChubbyCuteWingShape(true);
       rightWingMesh = new THREE.Mesh(rightGeo, wingMaterial);
       rightWingMesh.position.set(0.06, 0.02, 0);
       butterflyGroup.add(rightWingMesh);
 
-      // ==========================================
-      // [핵심] 끊김 없이 하나로 이어진 단일 유기적 몸통
-      // ==========================================
+      // 단절 없는 단일 유기적 몸통
       const bodyMat = new THREE.MeshStandardMaterial({ 
         color: 0xf5f3ff, 
-        roughness: 0.35, 
-        metalness: 0.08 
+        roughness: 0.3, 
+        metalness: 0.12 
       });
 
       const bodyGeo = createSeamlessBodyGeometry();
       const bodyMesh = new THREE.Mesh(bodyGeo, bodyMat);
       butterflyGroup.add(bodyMesh);
 
-      // 우아한 곡선 더듬이 2개
+      // 더듬이 2개
       const antCurveL = new THREE.QuadraticBezierCurve3(
         new THREE.Vector3(-0.03, 0.68, 0.02),
         new THREE.Vector3(-0.16, 1.02, 0.1),
@@ -624,7 +613,6 @@
       );
       butterflyGroup.add(new THREE.Mesh(new THREE.TubeGeometry(antCurveR, 16, 0.012, 8, false), bodyMat));
 
-      // 알맞은 3D 스케일링 (0.58배)
       butterflyGroup.scale.set(0.58, 0.58, 0.58);
       scene.add(butterflyGroup);
 
