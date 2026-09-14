@@ -159,7 +159,7 @@
       <div class="relative w-[320px] h-[320px] mx-auto my-auto overflow-hidden bg-black/60 rounded-2xl flex items-center justify-center">
         <canvas id="align-canvas" width="640" height="640" class="w-full h-full"></canvas>
         
-        <!-- 도안 이미지(image_6c434e.png)와 100% 동일한 SVG 오버레이 -->
+        <!-- 도안 실루엣과 완벽 일치하는 통통한 나비 SVG 가이드 오버레이 -->
         <div class="absolute inset-0 pointer-events-none flex items-center justify-center p-3">
           <svg class="w-full h-full text-blue-400 drop-shadow-[0_0_12px_rgba(96,165,250,0.9)]" viewBox="0 0 100 100" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
             <path d="M 50,33 C 51.5,33 53,35 53,38 C 58,35 75,18 89,20 C 97,22 99,35 91,48 C 84,59 79,62 76,64 C 81,67 87,74 86,83 C 84,93 69,96 61,87 C 55,80 53,74 53,71 C 53,74 51.5,77 50,77 C 48.5,77 47,74 47,71 C 47,74 45,80 39,87 C 31,96 16,93 14,83 C 13,74 19,67 24,64 C 21,62 16,59 9,48 C 1,35 3,22 11,20 C 25,18 42,35 47,38 C 47,35 48.5,33 50,33 Z"/>
@@ -460,7 +460,7 @@
       startPinchDist = 0;
     });
 
-    // 1024 해상도의 불투명 JPEG 직접 추출 (바둑판 격자 노이즈 원천 차단)
+    // 고해상도 직접 추출
     document.getElementById('btn-confirm-align').addEventListener('click', () => {
       const exportCanvas = document.createElement('canvas');
       exportCanvas.width = 1024;
@@ -482,40 +482,38 @@
     });
 
     /* ============================================================
-       도안 실루엣 1:1 완벽 일치 3D 지오메트리 & 직교 UV 매핑
+       도안 실루엣 1:1 완벽 일치 통통하고 귀여운 3D 나비 지오메트리
        ============================================================ */
     let scene, camera, renderer, butterflyGroup, leftWingMesh, rightWingMesh;
     let isFlyingAway = false, touchStartY = 0;
 
-    // 첨부해주신 도안 실루엣과 완벽히 일치하는 단일 날개 메시 생성기
-    function createExactWingShape(isRight) {
+    // [핵심] 둥글고 볼륨감 있는 통통한 날개 Shape 생성
+    function createChubbyCuteWingShape(isRight) {
       const shape = new THREE.Shape();
       const s = isRight ? 1 : -1;
 
-      // 몸통 중앙 결합부에서 시작
       shape.moveTo(0, 0);
 
-      // 상단 큰 날개 (도안의 둥글고 넓게 위로 뻗은 호)
-      shape.bezierCurveTo(s * 0.25, 0.4, s * 0.9, 1.45, s * 1.6, 1.45);
-      shape.bezierCurveTo(s * 2.15, 1.4, s * 2.45, 0.85, s * 2.2, 0.35);
-      shape.bezierCurveTo(s * 1.95, -0.05, s * 1.6, -0.15, s * 1.15, -0.2);
+      // 상단 큰 날개: 뾰족함을 없애고 조약돌처럼 통통하고 둥글게 볼륨을 채운 베지어 곡선
+      shape.bezierCurveTo(s * 0.3, 0.5, s * 0.95, 1.45, s * 1.65, 1.45);
+      shape.bezierCurveTo(s * 2.2, 1.45, s * 2.5, 0.95, s * 2.3, 0.45);
+      shape.bezierCurveTo(s * 2.1, 0.05, s * 1.7, -0.05, s * 1.25, -0.15);
 
-      // 하단 둥근 날개 (도안의 완만하고 포근한 하단 곡선)
-      shape.bezierCurveTo(s * 1.45, -0.5, s * 1.5, -1.05, s * 1.15, -1.35);
-      shape.bezierCurveTo(s * 0.8, -1.65, s * 0.45, -1.55, s * 0.3, -1.3);
-      shape.bezierCurveTo(s * 0.18, -0.95, s * 0.12, -0.5, 0, -0.25);
+      // 하단 둥근 날개: 엉덩이처럼 완만하고 동글동글하게 받쳐주는 볼륨감
+      shape.bezierCurveTo(s * 1.6, -0.45, s * 1.6, -1.05, s * 1.25, -1.4);
+      shape.bezierCurveTo(s * 0.9, -1.7, s * 0.45, -1.6, s * 0.28, -1.35);
+      shape.bezierCurveTo(s * 0.15, -1.0, s * 0.1, -0.5, 0, -0.25);
       shape.closePath();
 
       const geom = new THREE.ShapeGeometry(shape, 48);
 
-      // [핵심] 직교 UV 매핑: 그림이 당겨지거나 늘어나지 않고 캔버스 좌표 그대로 투영
+      // [핵심] 왜곡 방지 직교 UV 매핑 (캔버스 좌표 1:1 대응)
       const pos = geom.attributes.position;
       const uvs = [];
-      const totalSpan = 5.2; // 3D 나비의 좌우 전체 폭
+      const totalSpan = 5.2;
       for (let i = 0; i < pos.count; i++) {
         const x = pos.getX(i);
         const y = pos.getY(i);
-        
         let u = 0.5 + (x / totalSpan);
         let v = 0.5 + (y / totalSpan);
         uvs.push(u, v);
@@ -541,7 +539,6 @@
       renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
       container.appendChild(renderer.domElement);
 
-      // 밝고 온화한 조명 설정
       const ambLight = new THREE.AmbientLight(0xffffff, 1.2);
       scene.add(ambLight);
       const dirLight = new THREE.DirectionalLight(0xffffff, 0.6);
@@ -556,7 +553,7 @@
 
       butterflyGroup = new THREE.Group();
 
-      // [핵심] 투명도 충돌 및 바둑판 격자를 완벽히 없앤 불투명 양면 재질
+      // 모자이크 노이즈 없는 불투명 표준 재질
       const wingMaterial = new THREE.MeshStandardMaterial({
         map: userTexture,
         side: THREE.DoubleSide,
@@ -564,44 +561,44 @@
         metalness: 0.05
       });
 
-      // 좌측 날개 생성
-      const leftGeo = createExactWingShape(false);
+      // 좌측 날개
+      const leftGeo = createChubbyCuteWingShape(false);
       leftWingMesh = new THREE.Mesh(leftGeo, wingMaterial);
       butterflyGroup.add(leftWingMesh);
 
-      // 우측 날개 생성
-      const rightGeo = createExactWingShape(true);
+      // 우측 날개
+      const rightGeo = createChubbyCuteWingShape(true);
       rightWingMesh = new THREE.Mesh(rightGeo, wingMaterial);
       butterflyGroup.add(rightWingMesh);
 
-      // 도안 중심에 맞는 부드러운 라벤더 몸통
+      // 둥글고 귀여운 연보라색 몸통
       const bodyMat = new THREE.MeshStandardMaterial({ color: 0x8b85e0, roughness: 0.4 });
-      const bodyGeo = new THREE.CylinderGeometry(0.04, 0.025, 1.25, 20);
+      const bodyGeo = new THREE.CylinderGeometry(0.045, 0.03, 1.25, 20);
       const bodyMesh = new THREE.Mesh(bodyGeo, bodyMat);
       butterflyGroup.add(bodyMesh);
 
-      // 머리
-      const headGeo = new THREE.SphereGeometry(0.065, 20, 20);
+      // 둥근 머리
+      const headGeo = new THREE.SphereGeometry(0.07, 20, 20);
       const headMesh = new THREE.Mesh(headGeo, bodyMat);
       headMesh.position.y = 0.65;
       butterflyGroup.add(headMesh);
 
-      // 곡선 더듬이 2개
+      // 더듬이 2개
       const antCurveL = new THREE.QuadraticBezierCurve3(
         new THREE.Vector3(-0.02, 0.68, 0),
         new THREE.Vector3(-0.15, 0.98, 0.1),
         new THREE.Vector3(-0.35, 1.18, 0)
       );
-      butterflyGroup.add(new THREE.Mesh(new THREE.TubeGeometry(antCurveL, 16, 0.01, 8, false), bodyMat));
+      butterflyGroup.add(new THREE.Mesh(new THREE.TubeGeometry(antCurveL, 16, 0.012, 8, false), bodyMat));
 
       const antCurveR = new THREE.QuadraticBezierCurve3(
         new THREE.Vector3(0.02, 0.68, 0),
         new THREE.Vector3(0.15, 0.98, 0.1),
         new THREE.Vector3(0.35, 1.18, 0)
       );
-      butterflyGroup.add(new THREE.Mesh(new THREE.TubeGeometry(antCurveR, 16, 0.01, 8, false), bodyMat));
+      butterflyGroup.add(new THREE.Mesh(new THREE.TubeGeometry(antCurveR, 16, 0.012, 8, false), bodyMat));
 
-      // 화면에 알맞은 크기로 조절 (0.6배)
+      // 알맞은 3D 크기 스케일링 (0.6배)
       butterflyGroup.scale.set(0.6, 0.6, 0.6);
       scene.add(butterflyGroup);
 
