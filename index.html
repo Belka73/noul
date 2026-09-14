@@ -149,19 +149,18 @@
       </footer>
     </section>
 
-    <!-- ================= [STEP 3] 도안과 1:1 일치하는 나비틀 맞추기 (슬라이더 없음, 직접 터치 제어) ================= -->
+    <!-- ================= [STEP 3] 도안 나비틀 맞춤 (터치 이동/확대) ================= -->
     <section id="screen-align" class="screen flex-col flex-1 justify-between py-2 text-center">
       <header class="pt-2">
         <h2 class="text-lg font-bold text-white">나비틀에 사진 맞추기</h2>
         <p class="text-xs text-blue-300/90 mt-0.5"><strong>[한 손가락 드래그]</strong>로 이동, <strong>[두 손가락 핀치]</strong>로 크기를 조절하세요.</p>
       </header>
 
-      <!-- 조작 영역: 네모 테두리 박스 완전 삭제, 도안 나비 실루엣만 노출 -->
       <div class="relative w-[320px] h-[320px] mx-auto my-auto overflow-hidden bg-black/60 rounded-2xl flex items-center justify-center">
         <canvas id="align-canvas" width="640" height="640" class="w-full h-full"></canvas>
         
-        <!-- 첨부해주신 도안(image_624722.png)의 나비 실루엣과 완벽히 일치하는 SVG 오버레이 -->
-        <div class="absolute inset-0 pointer-events-none flex items-center justify-center p-2">
+        <!-- 도안 이미지(image_625928.png)와 100% 동일한 SVG 오버레이 -->
+        <div class="absolute inset-0 pointer-events-none flex items-center justify-center p-3">
           <svg class="w-full h-full text-blue-400 drop-shadow-[0_0_12px_rgba(96,165,250,0.9)]" viewBox="0 0 100 100" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
             <!-- 도안 나비 실루엣 정밀 패스 -->
             <path d="M 50,33 C 51.5,33 53,35 53,38 C 58,35 75,18 89,20 C 97,22 99,35 91,48 C 84,59 79,62 76,64 C 81,67 87,74 86,83 C 84,93 69,96 61,87 C 55,80 53,74 53,71 C 53,74 51.5,77 50,77 C 48.5,77 47,74 47,71 C 47,74 45,80 39,87 C 31,96 16,93 14,83 C 13,74 19,67 24,64 C 21,62 16,59 9,48 C 1,35 3,22 11,20 C 25,18 42,35 47,38 C 47,35 48.5,33 50,33 Z"/>
@@ -197,7 +196,7 @@
       <div class="text-xs font-mono text-blue-200/80 tracking-widest z-10">NOUL METAMORPHOSIS...</div>
     </section>
 
-    <!-- ================= [STEP 5] 3D 나비 프리뷰 (알맞게 축소된 크기) ================= -->
+    <!-- ================= [STEP 5] 3D 나비 프리뷰 ================= -->
     <section id="screen-preview" class="screen flex-col flex-1 justify-between py-2 relative"
       style="background: linear-gradient(180deg, #5b9bf8 0%, #8ac0ff 40%, #edd8f8 100%) !important;">
       <header class="text-center pt-2 z-10">
@@ -260,7 +259,7 @@
     const progressBar = document.getElementById('progress-bar');
     const stepIndicator = document.getElementById('step-indicator');
     const selectionType = document.getElementById('selection-type');
-    const inputStep5 = document.getElementById('input-step-5');
+    const inputStep5 = document.getElementById('input-step5');
     const charCount = document.getElementById('char-count');
 
     function renderOptionBubbles(containerId, items, isMulti, stateKey) {
@@ -293,7 +292,7 @@
     renderOptionBubbles('list-step-3', optionsData.step3, false, 'step3_attitude');
     renderOptionBubbles('list-step-4', optionsData.step4, false, 'step4_destination');
 
-    inputStep5.addEventListener('input', (e) => {
+    document.getElementById('input-step-5').addEventListener('input', (e) => {
       userAnswers.step5_message = e.target.value.trim();
       charCount.innerText = `${e.target.value.length} / 100`;
       checkStepValidity();
@@ -343,7 +342,7 @@
     });
 
     /* ============================================================
-       사진 직접 터치 조작 (1손가락 이동 + 2손가락 핀치 줌) & 마스킹 클리핑
+       사진 직접 터치 조작 (1손가락 이동 + 2손가락 핀치 줌)
        ============================================================ */
     let rawImage = new Image();
     const alignCanvas = document.getElementById('align-canvas');
@@ -392,7 +391,6 @@
       actx.restore();
     }
 
-    // 마우스 이벤트 (PC)
     alignCanvas.addEventListener('mousedown', (e) => {
       isDragging = true;
       const rect = alignCanvas.getBoundingClientRect();
@@ -419,7 +417,6 @@
       drawAlignCanvas();
     }, { passive: false });
 
-    // 터치 이벤트 (모바일: 1손가락 이동 / 2손가락 핀치 줌)
     alignCanvas.addEventListener('touchstart', (e) => {
       const rect = alignCanvas.getBoundingClientRect();
       const scaleFactor = alignCanvas.width / rect.width;
@@ -465,18 +462,16 @@
       startPinchDist = 0;
     });
 
-    // [핵심] 나비 틀 바깥 영역을 100% 투명화하는 클리핑 추출
+    // 틀 밖의 불필요한 배경을 정밀 클리핑 마스크 처리
     document.getElementById('btn-confirm-align').addEventListener('click', () => {
       const maskedCanvas = document.createElement('canvas');
-      maskedCanvas.width = 640;
-      maskedCanvas.height = 640;
+      maskedCanvas.width = 1024;
+      maskedCanvas.height = 1024;
       const mctx = maskedCanvas.getContext('2d');
 
-      // 캔버스 크기(640x640)에 맞춘 나비 마스크 패스 생성
+      const s = 10.24; // 100x100 SVG 기준 1024 해상도로 스케일
       mctx.save();
       mctx.beginPath();
-      // 100x100 SVG 좌표를 640x640으로 6.4배 스케일링
-      const s = 6.4;
       mctx.moveTo(50 * s, 33 * s);
       mctx.bezierCurveTo(51.5 * s, 33 * s, 53 * s, 35 * s, 53 * s, 38 * s);
       mctx.bezierCurveTo(58 * s, 35 * s, 75 * s, 18 * s, 89 * s, 20 * s);
@@ -495,12 +490,10 @@
       mctx.bezierCurveTo(25 * s, 18 * s, 42 * s, 35 * s, 47 * s, 38 * s);
       mctx.bezierCurveTo(47 * s, 35 * s, 48.5 * s, 33 * s, 50 * s, 33 * s);
       mctx.closePath();
-      
-      // 나비 모양 내부만 남기고 클리핑
       mctx.clip();
 
-      // 사진 그리기 (틀 밖의 모든 여백은 자동 투명 제거됨)
-      mctx.drawImage(rawImage, imgX, imgY, rawImage.width * imgScale, rawImage.height * imgScale);
+      const scaleRatio = 1024 / alignCanvas.width;
+      mctx.drawImage(rawImage, imgX * scaleRatio, imgY * scaleRatio, rawImage.width * imgScale * scaleRatio, rawImage.height * imgScale * scaleRatio);
       mctx.restore();
 
       const extractedTexture = maskedCanvas.toDataURL('image/png');
@@ -513,38 +506,41 @@
     });
 
     /* ============================================================
-       도안과 1:1 일치하는 3D 나비 렌더러 (크기 축소 반영)
+       도안과 1:1 일치하는 3D 나비 지오메트리 & 무왜곡 UV 매핑
        ============================================================ */
     let scene, camera, renderer, butterflyGroup, leftWingGroup, rightWingGroup;
     let isFlyingAway = false, touchStartY = 0;
 
+    // 도안 실루엣과 완벽히 일치하는 단일 날개(좌/우) 메시 생성
     function createExactWingShape(isRight) {
       const shape = new THREE.Shape();
       const s = isRight ? 1 : -1;
 
       shape.moveTo(0, 0);
-      // 상단 날개 (도안의 넓고 부드러운 둥근 호)
-      shape.bezierCurveTo(s * 0.2, 0.4, s * 1.0, 1.4, s * 1.7, 1.4);
-      shape.bezierCurveTo(s * 2.3, 1.4, s * 2.5, 0.9, s * 2.2, 0.35);
-      shape.bezierCurveTo(s * 1.9, -0.05, s * 1.6, -0.15, s * 1.2, -0.2);
+      // 상단 큰 날개 (도안의 넓고 부드러운 타원형 곡선)
+      shape.bezierCurveTo(s * 0.15, 0.4, s * 0.8, 1.45, s * 1.6, 1.45);
+      shape.bezierCurveTo(s * 2.15, 1.4, s * 2.45, 0.85, s * 2.2, 0.35);
+      shape.bezierCurveTo(s * 1.95, -0.05, s * 1.6, -0.15, s * 1.15, -0.2);
 
-      // 하단 날개 (도안의 완만하게 감싸는 호)
-      shape.bezierCurveTo(s * 1.5, -0.5, s * 1.5, -1.0, s * 1.2, -1.3);
-      shape.bezierCurveTo(s * 0.8, -1.6, s * 0.5, -1.5, s * 0.35, -1.3);
-      shape.bezierCurveTo(s * 0.2, -1.0, s * 0.15, -0.5, 0, -0.25);
+      // 하단 둥근 날개 (도안의 엉덩이처럼 포근하게 받쳐주는 곡선)
+      shape.bezierCurveTo(s * 1.45, -0.5, s * 1.5, -1.05, s * 1.15, -1.35);
+      shape.bezierCurveTo(s * 0.8, -1.65, s * 0.45, -1.55, s * 0.3, -1.3);
+      shape.bezierCurveTo(s * 0.18, -0.95, s * 0.12, -0.5, 0, -0.25);
       shape.closePath();
 
-      const geom = new THREE.ShapeGeometry(shape, 40);
+      const geom = new THREE.ShapeGeometry(shape, 48);
 
-      // UV 매핑
+      // [핵심] 무왜곡 직교 UV 매핑 (정방형 캔버스 좌표와 1:1 일치)
       const pos = geom.attributes.position;
       const uvs = [];
       for (let i = 0; i < pos.count; i++) {
         const x = pos.getX(i);
         const y = pos.getY(i);
-        let u = !isRight ? 0.5 - (Math.abs(x) / 2.5) * 0.5 : 0.5 + (Math.abs(x) / 2.5) * 0.5;
-        let v = (y + 1.6) / 3.0;
-        uvs.push(Math.max(0, Math.min(1, u)), Math.max(0, Math.min(1, v)));
+        
+        // 중심축(0)이 캔버스의 중앙(u=0.5)과 완벽히 일치
+        let u = 0.5 + (x / 5.2);
+        let v = 0.5 + (y / 5.2);
+        uvs.push(u, v);
       }
       geom.setAttribute('uv', new THREE.Float32BufferAttribute(uvs, 2));
       return geom;
@@ -558,9 +554,8 @@
       const height = container.clientHeight || window.innerHeight;
 
       scene = new THREE.Scene();
-      // 카메라 거리를 뒤로 빼서(8.5) 화면 중앙에 전체 형태가 시원하게 들어오도록 설정
-      camera = new THREE.PerspectiveCamera(38, width / height, 0.1, 1000);
-      camera.position.set(0, -0.1, 8.5);
+      camera = new THREE.PerspectiveCamera(36, width / height, 0.1, 1000);
+      camera.position.set(0, -0.1, 9.5);
       camera.lookAt(0, 0, 0);
 
       renderer = new THREE.WebGLRenderer({ alpha: true, antialias: true });
@@ -570,24 +565,28 @@
 
       const textureLoader = new THREE.TextureLoader();
       const userTexture = textureLoader.load(textureURL);
+      userTexture.minFilter = THREE.LinearFilter;
+      userTexture.magFilter = THREE.LinearFilter;
 
       butterflyGroup = new THREE.Group();
 
-      const baseWingMat = new THREE.MeshBasicMaterial({ color: 0x8ef4e8, side: THREE.DoubleSide });
+      // 레퍼런스 스타일: 은은하고 맑은 민트 베이스 날개
+      const baseWingMat = new THREE.MeshBasicMaterial({ color: 0x93f5ea, side: THREE.DoubleSide });
 
+      // 사용자 드로잉 레이어 (깨짐 및 격자무늬 없는 깨끗한 투명 블렌딩)
       const drawingMat = new THREE.MeshBasicMaterial({
         map: userTexture,
         side: THREE.DoubleSide,
         transparent: true,
-        opacity: 0.75,
-        blending: THREE.MultiplyBlending
+        opacity: 0.85
       });
 
+      // 외곽 몽환적인 발광 림라이트
       const glowMat = new THREE.MeshBasicMaterial({
-        color: 0xb5a4fc,
+        color: 0xc4b5fd,
         side: THREE.DoubleSide,
         transparent: true,
-        opacity: 0.45,
+        opacity: 0.4,
         blending: THREE.AdditiveBlending
       });
 
@@ -597,7 +596,7 @@
       leftWingGroup.add(new THREE.Mesh(leftGeo, baseWingMat));
       leftWingGroup.add(new THREE.Mesh(leftGeo, drawingMat));
       const leftGlow = new THREE.Mesh(leftGeo, glowMat);
-      leftGlow.scale.set(1.05, 1.05, 1);
+      leftGlow.scale.set(1.04, 1.04, 1);
       leftWingGroup.add(leftGlow);
       butterflyGroup.add(leftWingGroup);
 
@@ -607,39 +606,39 @@
       rightWingGroup.add(new THREE.Mesh(rightGeo, baseWingMat));
       rightWingGroup.add(new THREE.Mesh(rightGeo, drawingMat));
       const rightGlow = new THREE.Mesh(rightGeo, glowMat);
-      rightGlow.scale.set(1.05, 1.05, 1);
+      rightGlow.scale.set(1.04, 1.04, 1);
       rightWingGroup.add(rightGlow);
       butterflyGroup.add(rightWingGroup);
 
-      // 도안 중심에 맞는 연보라색 몸통
-      const bodyGeo = new THREE.CylinderGeometry(0.04, 0.025, 1.2, 20);
+      // 도안 중심과 맞는 유선형 몸통
+      const bodyGeo = new THREE.CylinderGeometry(0.04, 0.025, 1.25, 20);
       const bodyMat = new THREE.MeshBasicMaterial({ color: 0x9b8ef6 });
       const bodyMesh = new THREE.Mesh(bodyGeo, bodyMat);
       butterflyGroup.add(bodyMesh);
 
-      // 머리
-      const headGeo = new THREE.SphereGeometry(0.06, 20, 20);
+      // 둥근 머리
+      const headGeo = new THREE.SphereGeometry(0.065, 20, 20);
       const headMesh = new THREE.Mesh(headGeo, bodyMat);
-      headMesh.position.y = 0.62;
+      headMesh.position.y = 0.65;
       butterflyGroup.add(headMesh);
 
       // 더듬이 2개
       const antCurveL = new THREE.QuadraticBezierCurve3(
-        new THREE.Vector3(-0.02, 0.65, 0),
-        new THREE.Vector3(-0.15, 0.95, 0.1),
-        new THREE.Vector3(-0.35, 1.15, 0)
+        new THREE.Vector3(-0.02, 0.68, 0),
+        new THREE.Vector3(-0.15, 0.98, 0.1),
+        new THREE.Vector3(-0.35, 1.18, 0)
       );
       butterflyGroup.add(new THREE.Mesh(new THREE.TubeGeometry(antCurveL, 16, 0.01, 8, false), bodyMat));
 
       const antCurveR = new THREE.QuadraticBezierCurve3(
-        new THREE.Vector3(0.02, 0.65, 0),
-        new THREE.Vector3(0.15, 0.95, 0.1),
-        new THREE.Vector3(0.35, 1.15, 0)
+        new THREE.Vector3(0.02, 0.68, 0),
+        new THREE.Vector3(0.15, 0.98, 0.1),
+        new THREE.Vector3(0.35, 1.18, 0)
       );
       butterflyGroup.add(new THREE.Mesh(new THREE.TubeGeometry(antCurveR, 16, 0.01, 8, false), bodyMat));
 
-      // [핵심] 나비 크기 축소 (화면 여백을 충분히 주어 앙증맞게 배치)
-      butterflyGroup.scale.set(0.65, 0.65, 0.65);
+      // 알맞은 3D 크기로 축소 (0.6배)
+      butterflyGroup.scale.set(0.6, 0.6, 0.6);
       scene.add(butterflyGroup);
 
       let clock = new THREE.Clock();
@@ -659,7 +658,7 @@
           butterflyGroup.position.y += 0.15;
           butterflyGroup.position.z -= 0.07;
 
-          if (butterflyGroup.position.y > 8.0) {
+          if (butterflyGroup.position.y > 8.5) {
             showScreen('screen-complete');
             isFlyingAway = false;
           }
