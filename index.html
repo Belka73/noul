@@ -159,6 +159,7 @@
       <div class="relative w-[320px] h-[320px] mx-auto my-auto overflow-hidden bg-black/60 rounded-2xl flex items-center justify-center">
         <canvas id="align-canvas" width="640" height="640" class="w-full h-full"></canvas>
         
+        <!-- 도안 실루엣과 완벽 일치하는 통통한 나비 SVG 가이드 오버레이 -->
         <div class="absolute inset-0 pointer-events-none flex items-center justify-center p-3">
           <svg class="w-full h-full text-blue-400 drop-shadow-[0_0_12px_rgba(96,165,250,0.9)]" viewBox="0 0 100 100" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
             <path d="M 50,33 C 51.5,33 53,35 53,38 C 58,35 75,18 89,20 C 97,22 99,35 91,48 C 84,59 79,62 76,64 C 81,67 87,74 86,83 C 84,93 69,96 61,87 C 55,80 53,74 53,71 C 53,74 51.5,77 50,77 C 48.5,77 47,74 47,71 C 47,74 45,80 39,87 C 31,96 16,93 14,83 C 13,74 19,67 24,64 C 21,62 16,59 9,48 C 1,35 3,22 11,20 C 25,18 42,35 47,38 C 47,35 48.5,33 50,33 Z"/>
@@ -480,36 +481,36 @@
     });
 
     /* ============================================================
-       두 번째 레퍼런스 스타일: 몸통 가슴-배 분리형 및 날개 중앙 밀착 3D 모델링
+       두 번째 레퍼런스 스타일: 머리-가슴-배 3단 입체 몸통 & 상향 밀착 날개 3D 모델링
        ============================================================ */
     let scene, camera, renderer, butterflyGroup, leftWingMesh, rightWingMesh;
     let isFlyingAway = false, touchStartY = 0;
 
-    // 날개 형태 (몸통 측면에 넓게 결합되도록 시작점 및 결합부 재설계)
+    // 도안 실루엣에 맞추어 위로 넓고 둥글게 펼쳐지는 통통한 날개
     function createChubbyCuteWingShape(isRight) {
       const shape = new THREE.Shape();
       const s = isRight ? 1 : -1;
 
-      // 가슴 상단부 부착 지점에서 출발
-      shape.moveTo(0, 0.45);
+      // 몸통 가슴 상단부 부착점에서 시작 (높이 y = 0.5)
+      shape.moveTo(0, 0.5);
 
-      // 상단 날개: 둥글고 넓게 솟구쳐 위쪽을 채우는 볼륨
-      shape.bezierCurveTo(s * 0.4, 0.95, s * 1.05, 1.7, s * 1.75, 1.65);
-      shape.bezierCurveTo(s * 2.35, 1.6, s * 2.55, 1.15, s * 2.35, 0.65);
-      shape.bezierCurveTo(s * 2.15, 0.25, s * 1.75, 0.05, s * 1.3, -0.05);
+      // 상단 큰 날개: 위로 높고 둥글게 솟구쳐 오르는 풍성한 타원형 호
+      shape.bezierCurveTo(s * 0.45, 1.0, s * 1.15, 1.8, s * 1.9, 1.75);
+      shape.bezierCurveTo(s * 2.5, 1.7, s * 2.7, 1.15, s * 2.45, 0.65);
+      shape.bezierCurveTo(s * 2.2, 0.2, s * 1.8, 0.0, s * 1.35, -0.05);
 
-      // 하단 날개: 엉덩이처럼 둥글게 볼륨을 받치며 배 아랫부분으로 완만하게 회귀
-      shape.bezierCurveTo(s * 1.7, -0.35, s * 1.7, -1.0, s * 1.35, -1.4);
-      shape.bezierCurveTo(s * 1.0, -1.75, s * 0.5, -1.65, s * 0.3, -1.35);
-      shape.bezierCurveTo(s * 0.15, -1.0, s * 0.08, -0.55, 0, -0.45);
+      // 하단 둥근 날개: 엉덩이처럼 포근하고 동글동글하게 받쳐주며 배 중간부로 완만하게 회귀
+      shape.bezierCurveTo(s * 1.8, -0.35, s * 1.8, -1.05, s * 1.45, -1.45);
+      shape.bezierCurveTo(s * 1.05, -1.85, s * 0.55, -1.75, s * 0.35, -1.45);
+      shape.bezierCurveTo(s * 0.18, -1.1, s * 0.08, -0.65, 0, -0.45);
       shape.closePath();
 
       const geom = new THREE.ShapeGeometry(shape, 48);
 
-      // 1:1 직교 UV 매핑 (정방형 캔버스 좌표계 동기화)
+      // 왜곡 없는 1:1 직교 UV 매핑
       const pos = geom.attributes.position;
       const uvs = [];
-      const totalSpan = 5.2;
+      const totalSpan = 5.4;
       for (let i = 0; i < pos.count; i++) {
         const x = pos.getX(i);
         const y = pos.getY(i);
@@ -559,69 +560,69 @@
         metalness: 0.05
       });
 
-      // 좌측 날개 (몸통 옆면에 길게 밀착 정렬)
+      // 좌측 날개 (가슴-배 높이에 맞추어 몸통 측면에 완벽 밀착)
       const leftGeo = createChubbyCuteWingShape(false);
       leftWingMesh = new THREE.Mesh(leftGeo, wingMaterial);
-      leftWingMesh.position.set(-0.06, 0.05, 0);
+      leftWingMesh.position.set(-0.08, 0.05, 0);
       butterflyGroup.add(leftWingMesh);
 
       // 우측 날개
       const rightGeo = createChubbyCuteWingShape(true);
       rightWingMesh = new THREE.Mesh(rightGeo, wingMaterial);
-      rightWingMesh.position.set(0.06, 0.05, 0);
+      rightWingMesh.position.set(0.08, 0.05, 0);
       butterflyGroup.add(rightWingMesh);
 
       // ==========================================
-      // [핵심] 두 번째 레퍼런스 스타일: 머리-가슴-배 분리형 몸통 구조
+      // [핵심] 두 번째 레퍼런스 스타일: 머리-가슴-배 3단 입체 몸통
       // ==========================================
       const bodyMat = new THREE.MeshStandardMaterial({ 
-        color: 0x9388eb, 
+        color: 0xf5f3ff, 
         roughness: 0.35, 
-        metalness: 0.08 
+        metalness: 0.05 
       });
 
-      // 1. 머리 (둥근 구체)
-      const headGeo = new THREE.SphereGeometry(0.09, 24, 24);
+      // 1. 머리 (단정하고 둥근 구체)
+      const headGeo = new THREE.SphereGeometry(0.11, 24, 24);
       const headMesh = new THREE.Mesh(headGeo, bodyMat);
-      headMesh.position.set(0, 0.62, 0.02);
+      headMesh.position.set(0, 0.72, 0.04);
       butterflyGroup.add(headMesh);
 
-      // 2. 가슴 (Thorax: 날개가 연결되는 통통하고 둥근 중앙 타원체)
-      const thoraxGeo = new THREE.SphereGeometry(0.12, 24, 24);
-      thoraxGeo.scale(1.0, 1.25, 0.9);
+      // 2. 가슴 (Thorax: 날개가 시작되는 도톰하고 볼록한 타원형 구체)
+      const thoraxGeo = new THREE.SphereGeometry(0.14, 24, 24);
+      thoraxGeo.scale(1.15, 1.35, 1.0);
       const thoraxMesh = new THREE.Mesh(thoraxGeo, bodyMat);
-      thoraxMesh.position.set(0, 0.28, 0.02);
+      thoraxMesh.position.set(0, 0.35, 0.04);
       butterflyGroup.add(thoraxMesh);
 
-      // 3. 배 (Abdomen: 아래로 매끄럽게 좁아지는 포근한 유선형 타원체)
-      const abdomenGeo = new THREE.CylinderGeometry(0.10, 0.04, 0.85, 24);
+      // 3. 배 (Abdomen: 가슴 아래로 자연스럽게 이어지며 꼬리 쪽으로 좁아지는 포근한 유선형)
+      const abdomenGeo = new THREE.CylinderGeometry(0.12, 0.05, 0.95, 24);
       const abdomenMesh = new THREE.Mesh(abdomenGeo, bodyMat);
-      abdomenMesh.position.set(0, -0.32, 0.01);
+      abdomenMesh.position.set(0, -0.32, 0.02);
       butterflyGroup.add(abdomenMesh);
 
-      // 배 끝 둥근 마감
-      const bottomCapGeo = new THREE.SphereGeometry(0.04, 24, 24);
+      // 배 하단 둥근 캡 마감
+      const bottomCapGeo = new THREE.SphereGeometry(0.05, 24, 24);
       const bottomCapMesh = new THREE.Mesh(bottomCapGeo, bodyMat);
-      bottomCapMesh.position.set(0, -0.74, 0.01);
+      bottomCapMesh.position.set(0, -0.80, 0.02);
       butterflyGroup.add(bottomCapMesh);
 
-      // 4. 우아하게 뻗은 곡선 더듬이 2개
+      // 4. 부드럽게 뻗어나가는 유려한 곡선 더듬이 2개
       const antCurveL = new THREE.QuadraticBezierCurve3(
-        new THREE.Vector3(-0.03, 0.68, 0),
-        new THREE.Vector3(-0.16, 0.98, 0.1),
-        new THREE.Vector3(-0.35, 1.20, 0)
+        new THREE.Vector3(-0.03, 0.78, 0),
+        new THREE.Vector3(-0.18, 1.10, 0.1),
+        new THREE.Vector3(-0.38, 1.32, 0)
       );
-      butterflyGroup.add(new THREE.Mesh(new THREE.TubeGeometry(antCurveL, 16, 0.012, 8, false), bodyMat));
+      butterflyGroup.add(new THREE.Mesh(new THREE.TubeGeometry(antCurveL, 16, 0.014, 8, false), bodyMat));
 
       const antCurveR = new THREE.QuadraticBezierCurve3(
-        new THREE.Vector3(0.03, 0.68, 0),
-        new THREE.Vector3(0.16, 0.98, 0.1),
-        new THREE.Vector3(0.35, 1.20, 0)
+        new THREE.Vector3(0.03, 0.78, 0),
+        new THREE.Vector3(0.18, 1.10, 0.1),
+        new THREE.Vector3(0.38, 1.32, 0)
       );
-      butterflyGroup.add(new THREE.Mesh(new THREE.TubeGeometry(antCurveR, 16, 0.012, 8, false), bodyMat));
+      butterflyGroup.add(new THREE.Mesh(new THREE.TubeGeometry(antCurveR, 16, 0.014, 8, false), bodyMat));
 
-      // 알맞은 3D 스케일링 (0.6배)
-      butterflyGroup.scale.set(0.6, 0.6, 0.6);
+      // 알맞은 3D 스케일링 (0.58배)
+      butterflyGroup.scale.set(0.58, 0.58, 0.58);
       scene.add(butterflyGroup);
 
       let clock = new THREE.Clock();
