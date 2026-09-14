@@ -49,7 +49,7 @@
       touch-action: none;
     }
 
-    /* 로딩 오브제 호흡 애니메이션 */
+    /* 레퍼런스 특유의 몽환적인 펄스 애니메이션 */
     @keyframes pulseGlow {
       0%, 100% {
         transform: scale(0.96) rotate(-2deg);
@@ -64,7 +64,7 @@
       animation: pulseGlow 2.4s infinite ease-in-out;
     }
 
-    /* 로딩 하단 인디케이터 점 애니메이션 */
+    /* 로딩 인디케이터 점 */
     @keyframes dotFade {
       0%, 100% { opacity: 0.2; transform: scale(0.8); }
       50% { opacity: 1; transform: scale(1.2); }
@@ -191,9 +191,8 @@
       </footer>
     </section>
 
-    <!-- ================= [신규] 감성 로딩 화면 (약 캡슐 레퍼런스 스타일) ================= -->
+    <!-- ================= [4구간] 감성 로딩 화면 ================= -->
     <section id="view-loading" class="view-screen flex-col flex-1 justify-between items-center py-12 text-center relative overflow-hidden">
-      <!-- 상단 감성 텍스트 -->
       <div class="mt-8 z-10">
         <h2 class="text-2xl font-bold text-white tracking-tight leading-snug">
           내면의 고유한 결을 담아<br>나비를 깨우고 있습니다.
@@ -203,12 +202,8 @@
         </p>
       </div>
 
-      <!-- 중앙 몽환적 블러 오브제 & 나비 실루엣 -->
       <div class="relative flex items-center justify-center my-auto pulse-animation">
-        <!-- 레퍼런스 특유의 몽환적인 핑크/바이올렛/시안 소프트 블러 캡슐 광채 -->
         <div class="w-44 h-72 rounded-full bg-gradient-to-b from-purple-500 via-fuchsia-500 to-rose-400 blur-2xl opacity-75"></div>
-        
-        <!-- 빛 가운데 서서히 깨어나는 나비 벡터 실루엣 -->
         <svg class="absolute w-28 h-28 text-white/95 drop-shadow-[0_0_15px_rgba(255,255,255,0.8)]" viewBox="0 0 500 400" fill="currentColor">
           <ellipse cx="250" cy="135" rx="5" ry="6"/>
           <path d="M250,140 C254,140 257,144 257,150 L256,230 C256,238 253,246 250,246 C247,246 244,238 244,230 L243,150 C243,144 246,140 250,140 Z"/>
@@ -216,7 +211,6 @@
         </svg>
       </div>
 
-      <!-- 하단 5개 닷 인디케이터 -->
       <div class="flex items-center gap-2 mb-4 z-10">
         <span class="w-2 h-2 rounded-full bg-white dot-1"></span>
         <span class="w-2 h-2 rounded-full bg-white dot-2"></span>
@@ -226,30 +220,31 @@
       </div>
     </section>
 
-    <!-- ================= [4구간] 3D 나비 프리뷰 & 날려보내기 ================= -->
-    <section id="view-preview" class="view-screen flex-col flex-1 justify-between py-2 relative">
+    <!-- ================= [5구간] 3D 나비 프리뷰 & 날려보내기 (몽환적 하늘빛 배경) ================= -->
+    <section id="view-preview" class="view-screen flex-col flex-1 justify-between py-2 relative" 
+      style="background: radial-gradient(circle at 50% 35%, #2a5298 0%, #1e3c72 45%, #0b0f19 100%);">
       <header class="text-center pt-2 z-10">
-        <span class="text-xs font-mono text-blue-400 tracking-wider uppercase">NOUL REAL-TIME PREVIEW</span>
-        <h2 class="text-xl font-bold text-white mt-0.5">내면의 나비가 깨어났습니다</h2>
-        <p class="text-xs text-gray-400 mt-1">화면을 위로 쓸어 올려 대형 화면으로 띄워보내세요.</p>
+        <span class="text-xs font-mono text-amber-200/90 tracking-wider uppercase">NOUL LUMINOUS PREVIEW</span>
+        <h2 class="text-xl font-bold text-white mt-0.5">내면의 빛을 머금은 나비</h2>
+        <p class="text-xs text-blue-200/80 mt-1">화면을 위로 쓸어 올려 대형 화면으로 띄워보내세요.</p>
       </header>
 
       <div id="three-container" class="flex-1 w-full h-full absolute inset-0 z-0"></div>
 
       <footer class="w-full pb-6 flex flex-col items-center gap-2 z-10 pointer-events-none">
         <div class="bounce-guide flex flex-col items-center">
-          <svg class="w-6 h-6 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <svg class="w-6 h-6 text-amber-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 15l7-7 7 7"></path>
           </svg>
-          <span class="text-xs font-medium text-blue-300 tracking-wider">SWIPE UP TO FLY</span>
+          <span class="text-xs font-medium text-amber-100 tracking-wider">SWIPE UP TO FLY</span>
         </div>
       </footer>
     </section>
 
-    <!-- ================= [5구간] 날려보내기 완료 화면 ================= -->
+    <!-- ================= [6구간] 비행 완료 화면 ================= -->
     <section id="view-complete" class="view-screen flex-col flex-1 justify-center items-center text-center p-6">
-      <div class="w-20 h-20 rounded-full bg-blue-500/10 border border-blue-400/30 flex items-center justify-center mb-6">
-        <svg class="w-10 h-10 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <div class="w-20 h-20 rounded-full bg-amber-400/10 border border-amber-300/30 flex items-center justify-center mb-6">
+        <svg class="w-10 h-10 text-amber-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
         </svg>
       </div>
@@ -267,7 +262,7 @@
 
   <script>
     /* ============================================================
-       1. 데이터 및 상태 관리
+       1. 상태 및 데이터
        ============================================================ */
     let rawImage = new Image();
     let cropPoints = [];
@@ -292,9 +287,6 @@
     let currentStep = 1;
     const totalSteps = 5;
 
-    /* ============================================================
-       2. 화면 요소
-       ============================================================ */
     const viewSurvey = document.getElementById('view-survey');
     const viewCapture = document.getElementById('view-capture');
     const viewCrop = document.getElementById('view-crop');
@@ -314,7 +306,7 @@
     const charCount = document.getElementById('char-count');
 
     /* ============================================================
-       3. 5단계 설문 인터랙션
+       2. 설문 로직
        ============================================================ */
     function renderOptionBubbles(containerId, items, isMulti, stateKey) {
       const container = document.getElementById(containerId);
@@ -402,7 +394,7 @@
     });
 
     /* ============================================================
-       4. 카메라 업로드 및 4점 크롭
+       3. 사진 업로드 및 4점 크롭
        ============================================================ */
     function onImageLoaded(e) {
       const file = e.target.files[0];
@@ -534,7 +526,6 @@
       viewCapture.classList.add('active');
     });
 
-    // 512x512 텍스처 추출 후 [로딩 화면] 거쳐서 3D로 전환
     document.getElementById('btn-confirm-crop').addEventListener('click', () => {
       const exportCanvas = document.createElement('canvas');
       exportCanvas.width = 512;
@@ -557,26 +548,53 @@
 
       extractedTextureURL = exportCanvas.toDataURL('image/jpeg', 0.88);
 
-      // 크롭 화면 닫고 -> 감성 로딩 화면 노출
       viewCrop.classList.remove('active');
       viewLoading.classList.add('active');
 
-      // 약 2.4초간 감성 연출 후 3D 화면으로 부드럽게 전환
       setTimeout(() => {
         viewLoading.classList.remove('active');
         viewPreview.classList.add('active');
-        initThreeButterfly(extractedTextureURL);
+        initLuminousButterfly(extractedTextureURL);
       }, 2400);
     });
 
     /* ============================================================
-       5. Three.js 3D 나비 프리뷰 & 스와이프 인터랙션
+       4. Three.js: 둥근 유기적 나비 곡선 실루엣 & 몽환적 빛(Glow) 렌더링
        ============================================================ */
-    let scene, camera, renderer, butterflyGroup, leftWing, rightWing;
+    let scene, camera, renderer, butterflyGroup, leftWingGroup, rightWingGroup;
     let isFlyingAway = false;
     let touchStartY = 0;
 
-    function initThreeButterfly(textureDataURL) {
+    // 레퍼런스 실루엣에 맞춘 유기적인 둥근 나비 날개 Geometry 생성기
+    function createOrganicWingGeometry() {
+      const shape = new THREE.Shape();
+      shape.moveTo(0, 0);
+
+      // 상단 큰 날개 (유려한 둥근 곡선)
+      shape.bezierCurveTo(-0.3, 0.5, -1.2, 1.4, -1.7, 1.2);
+      shape.bezierCurveTo(-2.1, 1.0, -2.0, 0.4, -1.7, 0.1);
+      shape.bezierCurveTo(-1.5, -0.1, -1.2, -0.05, -0.9, -0.2);
+
+      // 하단 작은 날개 (부드러운 곡선)
+      shape.bezierCurveTo(-1.3, -0.5, -1.4, -1.1, -1.0, -1.4);
+      shape.bezierCurveTo(-0.7, -1.6, -0.3, -1.3, 0, -0.7);
+      shape.closePath();
+
+      const geom = new THREE.ShapeGeometry(shape, 32);
+
+      // UV를 0~1 범위로 정규화 매핑 (텍스처 입히기)
+      const pos = geom.attributes.position;
+      const uvs = [];
+      for (let i = 0; i < pos.count; i++) {
+        const u = (pos.getX(i) + 2.1) / 2.1;
+        const v = (pos.getY(i) + 1.6) / 2.9;
+        uvs.push(Math.max(0, Math.min(1, u)), Math.max(0, Math.min(1, v)));
+      }
+      geom.setAttribute('uv', new THREE.Float32BufferAttribute(uvs, 2));
+      return geom;
+    }
+
+    function initLuminousButterfly(textureDataURL) {
       const container = document.getElementById('three-container');
       container.innerHTML = '';
 
@@ -585,7 +603,7 @@
 
       scene = new THREE.Scene();
       camera = new THREE.PerspectiveCamera(45, width / height, 0.1, 1000);
-      camera.position.set(0, -1, 6.5);
+      camera.position.set(0, -0.3, 5.2);
       camera.lookAt(0, 0, 0);
 
       renderer = new THREE.WebGLRenderer({ alpha: true, antialias: true });
@@ -593,67 +611,111 @@
       renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
       container.appendChild(renderer.domElement);
 
-      const ambientLight = new THREE.AmbientLight(0xffffff, 0.9);
-      scene.add(ambientLight);
-      const dirLight = new THREE.DirectionalLight(0xa5b4fc, 0.8);
-      dirLight.position.set(0, 5, 5);
-      scene.add(dirLight);
-
       const textureLoader = new THREE.TextureLoader();
-      const userTexture = textureLoader.load(textureDataURL);
 
-      const wingMaterial = new THREE.MeshStandardMaterial({
-        map: userTexture,
-        side: THREE.DoubleSide,
-        roughness: 0.4,
-        metalness: 0.1
-      });
+      // 사용자 드로잉 텍스처 (좌우 분할)
+      const leftTexture = textureLoader.load(textureDataURL);
+      leftTexture.repeat.set(0.5, 1);
+      leftTexture.offset.set(0, 0);
+
+      const rightTexture = textureLoader.load(textureDataURL);
+      rightTexture.repeat.set(0.5, 1);
+      rightTexture.offset.set(0.5, 0);
 
       butterflyGroup = new THREE.Group();
 
-      const bodyGeo = new THREE.CylinderGeometry(0.06, 0.04, 1.4, 16);
-      const bodyMat = new THREE.MeshStandardMaterial({ color: 0x1e293b });
+      // 둥근 날개 지오메트리
+      const wingGeo = createOrganicWingGeometry();
+
+      // [핵심 1] 드로잉 날개 머티리얼 (반투명 + 자체 발광 톤)
+      const leftDrawingMat = new THREE.MeshBasicMaterial({
+        map: leftTexture,
+        side: THREE.DoubleSide,
+        transparent: true,
+        opacity: 0.88,
+        color: 0xfff7ed
+      });
+
+      const rightDrawingMat = new THREE.MeshBasicMaterial({
+        map: rightTexture,
+        side: THREE.DoubleSide,
+        transparent: true,
+        opacity: 0.88,
+        color: 0xfff7ed
+      });
+
+      // [핵심 2] 레퍼런스 특유의 몽환적인 웜톤 골드/화이트 발광 레이어 (Glow Halo)
+      const glowMat = new THREE.MeshBasicMaterial({
+        color: 0xffe89e,
+        side: THREE.DoubleSide,
+        transparent: true,
+        opacity: 0.45,
+        blending: THREE.AdditiveBlending
+      });
+
+      // 좌측 날개 그룹
+      leftWingGroup = new THREE.Group();
+      const leftMesh = new THREE.Mesh(wingGeo, leftDrawingMat);
+      const leftGlowMesh = new THREE.Mesh(wingGeo, glowMat);
+      leftGlowMesh.scale.set(1.08, 1.08, 1); // 살짝 바깥으로 퍼지는 빛
+      leftWingGroup.add(leftMesh);
+      leftWingGroup.add(leftGlowMesh);
+      butterflyGroup.add(leftWingGroup);
+
+      // 우측 날개 그룹 (좌우 반전)
+      rightWingGroup = new THREE.Group();
+      const rightMesh = new THREE.Mesh(wingGeo, rightDrawingMat);
+      const rightGlowMesh = new THREE.Mesh(wingGeo, glowMat);
+      rightGlowMesh.scale.set(1.08, 1.08, 1);
+      rightMesh.scale.set(-1, 1, 1);
+      rightGlowMesh.scale.set(-1.08, 1.08, 1);
+      rightWingGroup.add(rightMesh);
+      rightWingGroup.add(rightGlowMesh);
+      butterflyGroup.add(rightWingGroup);
+
+      // 은은하게 빛나는 얇은 나비 몸통
+      const bodyGeo = new THREE.CylinderGeometry(0.035, 0.02, 1.3, 16);
+      const bodyMat = new THREE.MeshBasicMaterial({ color: 0xfffae6 });
       const bodyMesh = new THREE.Mesh(bodyGeo, bodyMat);
-      bodyMesh.rotation.x = Math.PI / 2;
       butterflyGroup.add(bodyMesh);
 
-      const leftWingGeo = new THREE.PlaneGeometry(1.6, 2.2);
-      leftWingGeo.translate(-0.8, 0, 0);
-      leftWing = new THREE.Mesh(leftWingGeo, wingMaterial);
-      leftWing.position.x = -0.05;
-      butterflyGroup.add(leftWing);
+      // 나비 머리 & 얇은 더듬이
+      const headGeo = new THREE.SphereGeometry(0.055, 16, 16);
+      const headMesh = new THREE.Mesh(headGeo, bodyMat);
+      headMesh.position.y = 0.65;
+      butterflyGroup.add(headMesh);
 
-      const rightWingGeo = new THREE.PlaneGeometry(1.6, 2.2);
-      rightWingGeo.translate(0.8, 0, 0);
-      rightWing = new THREE.Mesh(rightWingGeo, wingMaterial);
-      rightWing.position.x = 0.05;
-      butterflyGroup.add(rightWing);
-
-      butterflyGroup.rotation.x = 0.5;
+      // 레퍼런스 각도 (우상단으로 45도 기울어진 채 우아하게 부유)
+      butterflyGroup.rotation.z = -0.35;
+      butterflyGroup.rotation.x = 0.45;
       scene.add(butterflyGroup);
 
+      // 애니메이션 루프
       let clock = new THREE.Clock();
       function animate() {
         requestAnimationFrame(animate);
         const time = clock.getElapsedTime();
 
         if (!isFlyingAway) {
-          const flap = Math.sin(time * 7) * 0.55;
-          leftWing.rotation.y = flap;
-          rightWing.rotation.y = -flap;
+          // 우아하고 부드러운 호흡형 날갯짓
+          const flap = Math.sin(time * 5.2) * 0.52;
+          leftWingGroup.rotation.y = flap;
+          rightWingGroup.rotation.y = -flap;
 
-          butterflyGroup.position.y = Math.sin(time * 2) * 0.15;
-          butterflyGroup.rotation.y = Math.sin(time * 1.2) * 0.15;
+          // 공중에서 은은한 파동 유영
+          butterflyGroup.position.y = Math.sin(time * 1.8) * 0.12;
+          butterflyGroup.position.x = Math.cos(time * 1.2) * 0.08;
         } else {
-          const fastFlap = Math.sin(time * 22) * 0.7;
-          leftWing.rotation.y = fastFlap;
-          rightWing.rotation.y = -fastFlap;
+          // 위로 날아오를 때 날갯짓 가속 및 빛 속으로 비상
+          const fastFlap = Math.sin(time * 24) * 0.75;
+          leftWingGroup.rotation.y = fastFlap;
+          rightWingGroup.rotation.y = -fastFlap;
 
-          butterflyGroup.position.y += 0.12;
+          butterflyGroup.position.y += 0.14;
+          butterflyGroup.position.x += 0.04;
           butterflyGroup.position.z -= 0.06;
-          butterflyGroup.rotation.x -= 0.02;
 
-          if (butterflyGroup.position.y > 6) {
+          if (butterflyGroup.position.y > 6.5) {
             viewPreview.classList.remove('active');
             viewComplete.classList.add('active');
             isFlyingAway = false;
