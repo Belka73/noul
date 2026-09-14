@@ -28,16 +28,14 @@
       box-shadow: 0 0 15px rgba(147, 197, 253, 0.4);
       transform: translateY(-2px);
     }
-    .view-screen, .step-screen {
+    .screen {
       display: none;
-      animation: fadeIn 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+      opacity: 0;
+      transition: opacity 0.3s ease-in-out;
     }
-    .view-screen.active, .step-screen.active {
-      display: flex;
-    }
-    @keyframes fadeIn {
-      from { opacity: 0; transform: translateY(8px); }
-      to { opacity: 1; transform: translateY(0); }
+    .screen.active {
+      display: flex !important;
+      opacity: 1;
     }
     #align-canvas {
       touch-action: none;
@@ -49,46 +47,24 @@
     #three-container {
       touch-action: none;
     }
-
     @keyframes pulseGlow {
-      0%, 100% {
-        transform: scale(0.96) rotate(-2deg);
-        filter: drop-shadow(0 0 35px rgba(168, 85, 247, 0.55));
-      }
-      50% {
-        transform: scale(1.04) rotate(2deg);
-        filter: drop-shadow(0 0 60px rgba(59, 130, 246, 0.75));
-      }
+      0%, 100% { transform: scale(0.96) rotate(-2deg); filter: drop-shadow(0 0 35px rgba(168, 85, 247, 0.55)); }
+      50% { transform: scale(1.04) rotate(2deg); filter: drop-shadow(0 0 60px rgba(59, 130, 246, 0.75)); }
     }
-    .pulse-animation {
-      animation: pulseGlow 2.4s infinite ease-in-out;
-    }
-
-    @keyframes dotFade {
-      0%, 100% { opacity: 0.2; transform: scale(0.8); }
-      50% { opacity: 1; transform: scale(1.2); }
-    }
-    .dot-1 { animation: dotFade 1.2s infinite ease-in-out 0s; }
-    .dot-2 { animation: dotFade 1.2s infinite ease-in-out 0.2s; }
-    .dot-3 { animation: dotFade 1.2s infinite ease-in-out 0.4s; }
-    .dot-4 { animation: dotFade 1.2s infinite ease-in-out 0.6s; }
-    .dot-5 { animation: dotFade 1.2s infinite ease-in-out 0.8s; }
-
+    .pulse-animation { animation: pulseGlow 2.4s infinite ease-in-out; }
     @keyframes bounceUp {
       0%, 100% { transform: translateY(0); opacity: 0.6; }
       50% { transform: translateY(-8px); opacity: 1; }
     }
-    .bounce-guide {
-      animation: bounceUp 1.8s infinite ease-in-out;
-    }
+    .bounce-guide { animation: bounceUp 1.8s infinite ease-in-out; }
   </style>
 </head>
 <body class="flex justify-center min-h-screen">
 
   <main class="w-full max-w-md flex flex-col justify-between p-6 relative h-screen">
 
-    <!-- ================= [1구간] 5단계 감정 질문 ================= -->
-    <section id="view-survey" class="view-screen active flex-col flex-1 justify-between">
+    <!-- ================= [STEP 1] 5단계 감정 질문 ================= -->
+    <section id="screen-survey" class="screen active flex-col flex-1 justify-between">
       <header class="w-full mb-3">
         <div class="flex justify-between text-xs text-gray-400 mb-2 font-mono">
           <span id="step-indicator" class="text-blue-400 font-semibold">STEP 1 / 5</span>
@@ -100,32 +76,28 @@
       </header>
 
       <div class="flex-1 flex flex-col justify-center overflow-y-auto pr-1">
-        <div id="step-1" class="step-screen active flex-col">
-          <h2 class="text-xl font-bold mb-1 tracking-tight text-white">웅크린 고치를 깨고 나온 지금,</h2>
+        <div id="substep-1" class="substep flex-col flex">
+          <h2 class="text-xl font-bold mb-1 text-white">웅크린 고치를 깨고 나온 지금,</h2>
           <p class="text-xs text-gray-400 mb-5">나의 상태를 가장 잘 나타내는 결을 골라주세요.</p>
           <div class="flex flex-wrap gap-2.5 max-h-[50vh] overflow-y-auto py-1" id="list-step-1"></div>
         </div>
-
-        <div id="step-2" class="step-screen flex-col">
-          <h2 class="text-xl font-bold mb-1 tracking-tight text-white">나비 날개에 실어 당장 털어낼 짐은?</h2>
+        <div id="substep-2" class="substep flex-col hidden">
+          <h2 class="text-xl font-bold mb-1 text-white">나비 날개에 실어 당장 털어낼 짐은?</h2>
           <p class="text-xs text-gray-400 mb-5">원하는 만큼 모두 선택할 수 있습니다. (다중 선택)</p>
           <div class="flex flex-wrap gap-2.5 max-h-[50vh] overflow-y-auto py-1" id="list-step-2"></div>
         </div>
-
-        <div id="step-3" class="step-screen flex-col">
-          <h2 class="text-xl font-bold mb-1 tracking-tight text-white">긴 여정 동안 챙겨갈 태도는?</h2>
+        <div id="substep-3" class="substep flex-col hidden">
+          <h2 class="text-xl font-bold mb-1 text-white">긴 여정 동안 챙겨갈 태도는?</h2>
           <p class="text-xs text-gray-400 mb-5">비행 동안 나비가 품고 갈 마음의 결을 골라주세요.</p>
           <div class="flex flex-wrap gap-2.5 max-h-[50vh] overflow-y-auto py-1" id="list-step-3"></div>
         </div>
-
-        <div id="step-4" class="step-screen flex-col">
-          <h2 class="text-xl font-bold mb-1 tracking-tight text-white">나를 대신해 닿았으면 하는 곳은?</h2>
+        <div id="substep-4" class="substep flex-col hidden">
+          <h2 class="text-xl font-bold mb-1 text-white">나를 대신해 닿았으면 하는 곳은?</h2>
           <p class="text-xs text-gray-400 mb-5">이 나비가 가만히 쉬어갈 안식처를 골라주세요.</p>
           <div class="flex flex-wrap gap-2.5 max-h-[50vh] overflow-y-auto py-1" id="list-step-4"></div>
         </div>
-
-        <div id="step-5" class="step-screen flex-col">
-          <h2 class="text-xl font-bold mb-1 tracking-tight text-white">돌아올 나비에게 건넬 한마디</h2>
+        <div id="substep-5" class="substep flex-col hidden">
+          <h2 class="text-xl font-bold mb-1 text-white">돌아올 나비에게 건넬 한마디</h2>
           <p class="text-xs text-gray-400 mb-4">비행을 마치고 나에게 돌아올 나비에게 남겨주세요.</p>
           <div class="flex flex-col gap-3">
             <textarea id="input-step-5" rows="4" maxlength="100" 
@@ -142,25 +114,25 @@
       </footer>
     </section>
 
-    <!-- ================= [2구간] 수직 촬영 공지 및 도안 캡처 ================= -->
-    <section id="view-capture" class="view-screen flex-col flex-1 justify-between py-4 text-center">
+    <!-- ================= [STEP 2] 수직 촬영 공지 안내 화면 ================= -->
+    <section id="screen-capture" class="screen flex-col flex-1 justify-between py-4 text-center">
       <header class="mt-2">
         <span class="text-xs font-mono text-blue-400 tracking-wider uppercase">Noul Archive Step 02</span>
         <h1 class="text-2xl font-bold mt-1 text-white">나비 도안 촬영하기</h1>
       </header>
 
-      <!-- 수직 촬영 안내 카드 -->
-      <div class="w-full bg-blue-500/10 border border-blue-400/30 rounded-2xl p-6 text-center my-auto">
+      <div class="w-full bg-blue-500/10 border border-blue-400/30 rounded-2xl p-6 text-center my-auto shadow-lg">
         <div class="w-16 h-16 mx-auto rounded-full bg-blue-500/20 flex items-center justify-center mb-4 text-blue-300">
           <svg class="w-9 h-9" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"></path>
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"></path>
           </svg>
         </div>
         <h3 class="text-lg font-bold text-white mb-2">💡 꼭 수직(위에서 똑바로)으로 찍어주세요</h3>
         <p class="text-xs text-gray-300 leading-relaxed">
-          종이가 기울어지거나 그림자가 지지 않도록<br>
-          스마트폰을 <strong>종이와 평행하게 정면 위에서</strong> 비춰주세요.<br><br>
-          <span class="text-blue-300">※ 촬영 후 다음 화면에서 나비 크기를 손가락으로 자유롭게 맞출 수 있습니다!</span>
+          종이가 기울어지지 않도록 스마트폰을<br>
+          <strong>종이와 평행하게 정면 위에서</strong> 촬영해 주세요.<br><br>
+          <span class="text-blue-300 font-medium">※ 촬영 후 다음 화면에서 나비 크기와 위치를<br>손가락으로 자유롭게 맞출 수 있습니다!</span>
         </p>
       </div>
 
@@ -177,39 +149,50 @@
       </footer>
     </section>
 
-    <!-- ================= [3구간] 찍은 사진을 나비틀에 맞게 확대/이동 조절 ================= -->
-    <section id="view-align" class="view-screen flex-col flex-1 justify-between py-2 text-center">
+    <!-- ================= [STEP 3] 나비틀에 맞게 사진 조절 ================= -->
+    <section id="screen-align" class="screen flex-col flex-1 justify-between py-2 text-center">
       <header class="pt-2">
-        <h2 class="text-lg font-bold text-white">나비틀에 맞게 사진 맞추기</h2>
-        <p class="text-xs text-blue-300/90 mt-0.5">손가락으로 <strong>[사진을 드래그하여 이동]</strong>하고 <strong>[두 손가락으로 확대/축소]</strong>하세요.</p>
+        <h2 class="text-lg font-bold text-white">나비틀에 사진 맞추기</h2>
+        <p class="text-xs text-blue-300/90 mt-0.5">화면을 드래그해 이동하고, 아래 슬라이더로 크기를 조절하세요.</p>
       </header>
 
-      <!-- 캔버스 조작 영역 (나비 실루엣 오버레이 장착) -->
-      <div class="relative w-[320px] h-[320px] mx-auto my-auto rounded-2xl overflow-hidden border border-blue-400/40 shadow-2xl bg-black/60 flex items-center justify-center">
-        <canvas id="align-canvas" width="640" height="640" class="w-full h-full"></canvas>
-        <!-- 기준 나비 실루엣 오버레이 (클릭 관통) -->
-        <div class="absolute inset-0 pointer-events-none flex items-center justify-center">
-          <svg class="w-[85%] h-[85%] text-blue-400/80 drop-shadow-[0_0_10px_rgba(96,165,250,0.8)]" viewBox="0 0 100 100" fill="none" stroke="currentColor" stroke-width="2">
-            <!-- 윗날개 -->
-            <path d="M 50,45 C 42,22 18,15 8,28 C -2,40 2,58 18,60 C 32,62 45,50 50,52" stroke-linecap="round"/>
-            <path d="M 50,45 C 58,22 82,15 92,28 C 102,40 98,58 82,60 C 68,62 55,50 50,52" stroke-linecap="round"/>
-            <!-- 아랫날개 -->
+      <!-- 캔버스 조작 영역 (오버레이) -->
+      <div class="relative w-[300px] h-[300px] mx-auto my-auto rounded-2xl overflow-hidden border-2 border-blue-400/50 shadow-2xl bg-black/80 flex items-center justify-center">
+        <canvas id="align-canvas" width="600" height="600" class="w-full h-full"></canvas>
+        
+        <!-- 파란색 나비 기준 가이드 틀 (두 번째 레퍼런스 실루엣과 1:1 일치) -->
+        <div class="absolute inset-0 pointer-events-none flex items-center justify-center p-4">
+          <svg class="w-full h-full text-blue-400 drop-shadow-[0_0_12px_rgba(96,165,250,0.9)]" viewBox="0 0 100 100" fill="none" stroke="currentColor" stroke-width="2.2">
+            <!-- 둥글고 통통한 윗날개 -->
+            <path d="M 50,48 C 42,22 18,15 8,28 C -2,40 2,58 18,60 C 32,62 45,50 50,52" stroke-linecap="round"/>
+            <path d="M 50,48 C 58,22 82,15 92,28 C 102,40 98,58 82,60 C 68,62 55,50 50,52" stroke-linecap="round"/>
+            <!-- 물방울 아랫날개 -->
             <path d="M 50,53 C 44,62 28,68 26,78 C 24,88 35,92 40,82 C 43,75 48,65 50,62" stroke-linecap="round"/>
             <path d="M 50,53 C 56,62 72,68 74,78 C 76,88 65,92 60,82 C 57,75 52,65 50,62" stroke-linecap="round"/>
-            <!-- 몸통 중심선 -->
-            <line x1="50" y1="30" x2="50" y2="72" stroke-dasharray="2 2" stroke-width="1.5"/>
+            <!-- 몸통 중심 기준선 -->
+            <line x1="50" y1="28" x2="50" y2="76" stroke-dasharray="2 2" stroke-width="1.5" stroke="#93c5fd"/>
           </svg>
         </div>
       </div>
 
+      <!-- 모바일에서도 확실하게 조작되는 크기 조절 슬라이더 -->
+      <div class="w-full px-4 mb-2">
+        <div class="flex items-center justify-between text-xs text-gray-400 mb-1">
+          <span>사진 축소</span>
+          <span class="text-blue-300 font-mono">사진 크기 조절</span>
+          <span>사진 확대</span>
+        </div>
+        <input type="range" id="scale-slider" min="0.3" max="3.0" step="0.02" value="1.0" class="w-full accent-blue-500 h-2 bg-white/20 rounded-lg cursor-pointer">
+      </div>
+
       <footer class="flex gap-3 w-full mb-1">
         <button id="btn-rephoto" type="button" class="w-1/3 py-3.5 rounded-xl border border-white/20 text-gray-300 text-sm active:scale-95 transition-all">다시 촬영</button>
-        <button id="btn-confirm-align" type="button" class="flex-1 py-3.5 rounded-xl bg-blue-500 text-white font-medium text-sm active:scale-95 transition-all shadow-lg shadow-blue-500/25">이 위치로 확정하기</button>
+        <button id="btn-confirm-align" type="button" class="flex-1 py-3.5 rounded-xl bg-blue-500 text-white font-medium text-sm active:scale-95 transition-all shadow-lg shadow-blue-500/25">이 위치로 나비 깨우기</button>
       </footer>
     </section>
 
-    <!-- ================= [4구간] 감성 로딩 화면 ================= -->
-    <section id="view-loading" class="view-screen flex-col flex-1 justify-between items-center py-12 text-center relative overflow-hidden">
+    <!-- ================= [STEP 4] 감성 로딩 화면 ================= -->
+    <section id="screen-loading" class="screen flex-col flex-1 justify-between items-center py-12 text-center relative overflow-hidden">
       <div class="mt-8 z-10">
         <h2 class="text-2xl font-bold text-white tracking-tight leading-snug">
           내면의 고유한 결을 담아<br>나비를 깨우고 있습니다.
@@ -222,24 +205,18 @@
       <div class="relative flex items-center justify-center my-auto pulse-animation">
         <div class="w-44 h-72 rounded-full bg-gradient-to-b from-purple-500 via-fuchsia-500 to-rose-400 blur-2xl opacity-75"></div>
         <svg class="absolute w-28 h-28 text-white/95 drop-shadow-[0_0_15px_rgba(255,255,255,0.8)]" viewBox="0 0 100 100" fill="none" stroke="currentColor" stroke-width="3">
-          <path d="M 50,45 C 42,25 22,18 10,28 C 0,38 2,55 18,58 C 32,60 45,50 50,52"/>
-          <path d="M 50,45 C 58,25 78,18 90,28 C 100,38 98,55 82,58 C 68,60 55,50 50,52"/>
-          <path d="M 50,53 C 45,62 30,68 28,78 C 26,88 36,92 40,82 C 43,75 48,65 50,62"/>
-          <path d="M 50,53 C 55,62 70,68 72,78 C 74,88 64,92 60,82 C 57,75 52,65 50,62"/>
+          <path d="M 50,48 C 42,22 18,15 8,28 C -2,40 2,58 18,60 C 32,62 45,50 50,52"/>
+          <path d="M 50,48 C 58,22 82,15 92,28 C 102,40 98,58 82,60 C 68,62 55,50 50,52"/>
+          <path d="M 50,53 C 44,62 28,68 26,78 C 24,88 35,92 40,82 C 43,75 48,65 50,62"/>
+          <path d="M 50,53 C 56,62 72,68 74,78 C 76,88 65,92 60,82 C 57,75 52,65 50,62"/>
         </svg>
       </div>
 
-      <div class="flex items-center gap-2 mb-4 z-10">
-        <span class="w-2 h-2 rounded-full bg-white dot-1"></span>
-        <span class="w-2 h-2 rounded-full bg-white dot-2"></span>
-        <span class="w-2 h-2 rounded-full bg-white dot-3"></span>
-        <span class="w-2 h-2 rounded-full bg-white dot-4"></span>
-        <span class="w-2 h-2 rounded-full bg-white dot-5"></span>
-      </div>
+      <div class="text-xs font-mono text-blue-200/80 tracking-widest z-10">NOUL METAMORPHOSIS...</div>
     </section>
 
-    <!-- ================= [5구간] 3D 나비 프리뷰 (화면에 쏙 들어오는 적당한 크기) ================= -->
-    <section id="view-preview" class="view-screen flex-col flex-1 justify-between py-2 relative" 
+    <!-- ================= [STEP 5] 3D 나비 프리뷰 ================= -->
+    <section id="screen-preview" class="screen flex-col flex-1 justify-between py-2 relative"
       style="background: linear-gradient(180deg, #5b9bf8 0%, #8ac0ff 40%, #edd8f8 100%) !important;">
       <header class="text-center pt-2 z-10">
         <span class="text-xs font-mono text-white/90 font-semibold tracking-wider uppercase drop-shadow">NOUL 3D BUTTERFLY</span>
@@ -247,6 +224,7 @@
         <p class="text-xs text-white/80 mt-0.5 font-light drop-shadow">화면을 위로 쓸어 올려 대형 화면으로 날려보내세요.</p>
       </header>
 
+      <!-- 3D 캔버스 래퍼 -->
       <div id="three-container" class="flex-1 w-full h-full absolute inset-0 z-0"></div>
 
       <footer class="w-full pb-6 flex flex-col items-center gap-2 z-10 pointer-events-none">
@@ -259,8 +237,8 @@
       </footer>
     </section>
 
-    <!-- ================= [6구간] 비행 완료 화면 ================= -->
-    <section id="view-complete" class="view-screen flex-col flex-1 justify-center items-center text-center p-6">
+    <!-- ================= [STEP 6] 비행 완료 화면 ================= -->
+    <section id="screen-complete" class="screen flex-col flex-1 justify-center items-center text-center p-6">
       <div class="w-20 h-20 rounded-full bg-blue-400/20 border border-blue-300/40 flex items-center justify-center mb-6">
         <svg class="w-10 h-10 text-blue-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
@@ -279,9 +257,18 @@
   </main>
 
   <script>
-    let rawImage = new Image();
-    let extractedTextureURL = null;
+    /* ============================================================
+       1. 화면 전환 관리자
+       ============================================================ */
+    function showScreen(screenId) {
+      document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+      const target = document.getElementById(screenId);
+      if (target) target.classList.add('active');
+    }
 
+    /* ============================================================
+       2. 5단계 설문 인터랙션
+       ============================================================ */
     const optionsData = {
       step1: ["조심스레 기지개를 켬", "깊은 숨을 크게 들이쉼", "새로운 바람이 궁금함", "굳었던 몸을 천천히 풂", "이제 막 시야가 트임", "온전히 나에게 집중함", "마음이 한결 가벼워짐", "천천히 날개를 말리는 중", "아무 방해 없이 평온함", "묵은 생각을 툭 털어냄", "나만의 속도를 찾는 중", "낯설지만 설레는 기분", "가만히 온기를 느끼는 중", "어디로든 갈 수 있을 듯함", "긴 잠에서 개운하게 깸", "내 안의 소리에 귀 기울임", "서두르지 않고 둘러봄", "담담하게 첫 발을 디딤", "그저 지금에 충실하고 싶음", "가볍게 날아오를 준비 중", "조용한 여유를 만끽함", "혼자만의 시간이 편안함"],
       step2: ["남들의 시선과 평가", "억지로 쥐어짜는 긍정", "줄어드는 잔고 걱정", "밤마다 곱씹는 이불킥", "억지로 버티는 인간관계", "아무것도 안 할 때의 죄책감", "내일 출근·등교의 막막함", "잘해야 한다는 강박", "끝없는 타인과의 비교", "차마 못 뱉고 삼킨 말들", "이미 지나간 일에 대한 후회", "안 읽은 메신저 알림의 압박", "착한 사람이어야 한다는 부담", "손익을 따지는 계산적인 태도", "혼자 다 짊어지려는 버릇", "미래에 대한 막연한 공포", "나를 갉아먹는 자책", "눈치 보며 맞추는 습관", "쓸데없이 많아진 잡생각", "완벽하지 못했다는 찜찜함", "거절하지 못해 떠안은 일들", "억지로 웃어넘기던 버릇"],
@@ -289,27 +276,12 @@
       step4: ["연락이 아예 안 터지는 곳", "아무도 나를 모르는 낯선 길", "온종일 햇볕만 드는 창가", "파도 소리만 들리는 밤바다", "불 다 끄고 누운 내 방 침대", "시선이 닿지 않는 먼 수평선", "풀냄새 가득한 축축한 숲", "시원한 바람이 부는 언덕", "비 오는 날의 조용한 실내", "사람 발길이 끊긴 옥상", "멍하니 걷기 좋은 밤거리", "소음 하나 없는 눈 덮인 들판", "시간 감각이 사라진 공간", "달빛만 켜져 있는 방", "파란 물결 아래 고요한 물속", "알람 소리 없는 늦은 아침", "가로등만 깜빡이는 골목길", "구름 위 끝없이 펼쳐진 하늘", "누구도 재촉하지 않는 벤치", "끝없이 펼쳐진 모래사장", "책장 냄새 나는 한적한 도서관"]
     };
 
-    const userAnswers = {
-      step1_state: null,
-      step2_burdens: [],
-      step3_attitude: null,
-      step4_destination: null,
-      step5_message: ""
-    };
-
+    const userAnswers = { step1_state: null, step2_burdens: [], step3_attitude: null, step4_destination: null, step5_message: "" };
     let currentStep = 1;
     const totalSteps = 5;
 
-    const viewSurvey = document.getElementById('view-survey');
-    const viewCapture = document.getElementById('view-capture');
-    const viewAlign = document.getElementById('view-align');
-    const viewLoading = document.getElementById('view-loading');
-    const viewPreview = document.getElementById('view-preview');
-    const viewComplete = document.getElementById('view-complete');
-
     const btnNext = document.getElementById('btn-next');
     const btnPrev = document.getElementById('btn-prev');
-    const btnBackToSurvey = document.getElementById('btn-back-to-survey');
     const progressBar = document.getElementById('progress-bar');
     const stepIndicator = document.getElementById('step-indicator');
     const selectionType = document.getElementById('selection-type');
@@ -324,7 +296,6 @@
         btn.type = 'button';
         btn.className = 'chip text-xs md:text-sm px-3.5 py-2 rounded-full cursor-pointer text-gray-300 active:scale-95';
         btn.innerText = text;
-
         btn.addEventListener('click', () => {
           if (isMulti) {
             btn.classList.toggle('selected');
@@ -360,22 +331,19 @@
       else if (currentStep === 3) valid = !!userAnswers.step3_attitude;
       else if (currentStep === 4) valid = !!userAnswers.step4_destination;
       else if (currentStep === 5) valid = userAnswers.step5_message.length > 0;
-
       btnNext.disabled = !valid;
     }
 
     function refreshStepScreen() {
-      document.querySelectorAll('.step-screen').forEach((el, idx) => {
-        el.classList.toggle('active', idx + 1 === currentStep);
+      document.querySelectorAll('.substep').forEach((el, idx) => {
+        el.classList.toggle('hidden', idx + 1 !== currentStep);
+        el.classList.toggle('flex', idx + 1 === currentStep);
       });
-
       progressBar.style.width = `${(currentStep / totalSteps) * 100}%`;
       stepIndicator.innerText = `STEP ${currentStep} / ${totalSteps}`;
       selectionType.innerText = currentStep === 2 ? "다중 선택 가능" : (currentStep === 5 ? "직접 입력" : "단일 선택");
-
       btnPrev.classList.toggle('hidden', currentStep === 1);
       btnNext.innerText = currentStep === totalSteps ? "도안 촬영하러 가기" : "다음 단계";
-
       checkStepValidity();
     }
 
@@ -384,8 +352,7 @@
         currentStep++;
         refreshStepScreen();
       } else {
-        viewSurvey.classList.remove('active');
-        viewCapture.classList.add('active');
+        showScreen('screen-capture');
       }
     });
 
@@ -396,22 +363,21 @@
       }
     });
 
-    btnBackToSurvey.addEventListener('click', () => {
-      viewCapture.classList.remove('active');
-      viewSurvey.classList.add('active');
+    document.getElementById('btn-back-to-survey').addEventListener('click', () => {
+      showScreen('screen-survey');
     });
 
     /* ============================================================
-       사진 업로드 및 대화형 캔버스 조작 (이동 + 핀치 줌)
+       3. 사진 로드 및 나비틀 맞춤 캔버스 (드래그 + 슬라이더 확대/축소)
        ============================================================ */
+    let rawImage = new Image();
     const alignCanvas = document.getElementById('align-canvas');
     const actx = alignCanvas.getContext('2d');
+    const scaleSlider = document.getElementById('scale-slider');
 
-    let imgX = 0, imgY = 0, imgScale = 1.0;
-    let isDragging = false;
-    let startX = 0, startY = 0;
-    let initialPinchDist = 0;
-    let initialScale = 1.0;
+    let imgX = 0, imgY = 0, userScale = 1.0;
+    let baseScale = 1.0;
+    let isDragging = false, startX = 0, startY = 0;
 
     function onImageLoaded(e) {
       const file = e.target.files[0];
@@ -422,8 +388,7 @@
         rawImage = new Image();
         rawImage.onload = () => {
           initAlignUI();
-          viewCapture.classList.remove('active');
-          viewAlign.classList.add('active');
+          showScreen('screen-align');
         };
         rawImage.src = evt.target.result;
       };
@@ -434,120 +399,95 @@
     document.getElementById('album-input').addEventListener('change', onImageLoaded);
 
     document.getElementById('btn-rephoto').addEventListener('click', () => {
-      viewAlign.classList.remove('active');
-      viewCapture.classList.add('active');
+      showScreen('screen-capture');
     });
 
     function initAlignUI() {
-      // 캔버스 중앙에 사진이 쏙 들어오도록 초기 스케일 계산
-      const canvasSize = alignCanvas.width; // 640
-      const baseScale = canvasSize / Math.max(rawImage.width, rawImage.height);
-      imgScale = baseScale;
-      imgX = (canvasSize - rawImage.width * imgScale) / 2;
-      imgY = (canvasSize - rawImage.height * imgScale) / 2;
+      scaleSlider.value = 1.0;
+      userScale = 1.0;
+      baseScale = alignCanvas.width / Math.min(rawImage.width, rawImage.height);
+      imgX = (alignCanvas.width - rawImage.width * baseScale) / 2;
+      imgY = (alignCanvas.height - rawImage.height * baseScale) / 2;
       drawAlignCanvas();
     }
 
     function drawAlignCanvas() {
       actx.clearRect(0, 0, alignCanvas.width, alignCanvas.height);
       actx.save();
-      actx.drawImage(rawImage, imgX, imgY, rawImage.width * imgScale, rawImage.height * imgScale);
+      const currentScale = baseScale * userScale;
+      actx.drawImage(rawImage, imgX, imgY, rawImage.width * currentScale, rawImage.height * currentScale);
       actx.restore();
     }
 
-    // 터치/마우스 조작 이벤트 등록
-    alignCanvas.addEventListener('mousedown', (e) => {
+    scaleSlider.addEventListener('input', (e) => {
+      const prevScale = baseScale * userScale;
+      userScale = parseFloat(e.target.value);
+      const newScale = baseScale * userScale;
+      // 중심점 기준 확대/축소 보정
+      const centerX = alignCanvas.width / 2;
+      const centerY = alignCanvas.height / 2;
+      imgX = centerX - (centerX - imgX) * (newScale / prevScale);
+      imgY = centerY - (centerY - imgY) * (newScale / prevScale);
+      drawAlignCanvas();
+    });
+
+    // 드래그 조작 (마우스 & 터치 공통)
+    function handleDragStart(clientX, clientY) {
       isDragging = true;
-      startX = e.clientX - imgX;
-      startY = e.clientY - imgY;
-    });
-
-    window.addEventListener('mousemove', (e) => {
-      if (!isDragging) return;
-      imgX = e.clientX - startX;
-      imgY = e.clientY - startY;
-      drawAlignCanvas();
-    });
-
-    window.addEventListener('mouseup', () => { isDragging = false; });
-
-    // 휠 줌 (PC용)
-    alignCanvas.addEventListener('wheel', (e) => {
-      e.preventDefault();
-      const zoomFactor = e.deltaY < 0 ? 1.06 : 0.94;
-      imgScale *= zoomFactor;
-      drawAlignCanvas();
-    }, { passive: false });
-
-    // 모바일 터치 드래그 및 핀치 줌
-    alignCanvas.addEventListener('touchstart', (e) => {
-      if (e.touches.length === 1) {
-        isDragging = true;
-        const rect = alignCanvas.getBoundingClientRect();
-        const scaleCanvas = alignCanvas.width / rect.width;
-        startX = (e.touches[0].clientX - rect.left) * scaleCanvas - imgX;
-        startY = (e.touches[0].clientY - rect.top) * scaleCanvas - imgY;
-      } else if (e.touches.length === 2) {
-        isDragging = false;
-        initialPinchDist = Math.hypot(
-          e.touches[0].clientX - e.touches[1].clientX,
-          e.touches[0].clientY - e.touches[1].clientY
-        );
-        initialScale = imgScale;
-      }
-    }, { passive: false });
-
-    alignCanvas.addEventListener('touchmove', (e) => {
-      e.preventDefault();
       const rect = alignCanvas.getBoundingClientRect();
       const scaleCanvas = alignCanvas.width / rect.width;
+      startX = (clientX - rect.left) * scaleCanvas - imgX;
+      startY = (clientY - rect.top) * scaleCanvas - imgY;
+    }
 
-      if (e.touches.length === 1 && isDragging) {
-        imgX = (e.touches[0].clientX - rect.left) * scaleCanvas - startX;
-        imgY = (e.touches[0].clientY - rect.top) * scaleCanvas - startY;
-        drawAlignCanvas();
-      } else if (e.touches.length === 2) {
-        const currentDist = Math.hypot(
-          e.touches[0].clientX - e.touches[1].clientX,
-          e.touches[0].clientY - e.touches[1].clientY
-        );
-        if (initialPinchDist > 0) {
-          const factor = currentDist / initialPinchDist;
-          imgScale = initialScale * factor;
-          drawAlignCanvas();
-        }
+    function handleDragMove(clientX, clientY) {
+      if (!isDragging) return;
+      const rect = alignCanvas.getBoundingClientRect();
+      const scaleCanvas = alignCanvas.width / rect.width;
+      imgX = (clientX - rect.left) * scaleCanvas - startX;
+      imgY = (clientY - rect.top) * scaleCanvas - startY;
+      drawAlignCanvas();
+    }
+
+    alignCanvas.addEventListener('mousedown', (e) => handleDragStart(e.clientX, e.clientY));
+    window.addEventListener('mousemove', (e) => handleDragMove(e.clientX, e.clientY));
+    window.addEventListener('mouseup', () => { isDragging = false; });
+
+    alignCanvas.addEventListener('touchstart', (e) => {
+      if (e.touches.length === 1) handleDragStart(e.touches[0].clientX, e.touches[0].clientY);
+    }, { passive: false });
+
+    window.addEventListener('touchmove', (e) => {
+      if (isDragging && e.touches.length === 1) {
+        if (e.cancelable) e.preventDefault();
+        handleDragMove(e.touches[0].clientX, e.touches[0].clientY);
       }
     }, { passive: false });
 
-    alignCanvas.addEventListener('touchend', () => { isDragging = false; });
+    window.addEventListener('touchend', () => { isDragging = false; });
 
-    // 최종 확정: 캔버스에 보이는 그대로 텍스처 추출
+    // 위치 확정 시 텍스처 추출
     document.getElementById('btn-confirm-align').addEventListener('click', () => {
-      extractedTextureURL = alignCanvas.toDataURL('image/jpeg', 0.94);
-
-      viewAlign.classList.remove('active');
-      viewLoading.classList.add('active');
+      const extractedTexture = alignCanvas.toDataURL('image/jpeg', 0.95);
+      showScreen('screen-loading');
 
       setTimeout(() => {
-        viewLoading.classList.remove('active');
-        viewPreview.classList.add('active');
-        initReferenceButterfly(extractedTextureURL);
-      }, 2000);
+        showScreen('screen-preview');
+        initChubbyButterfly(extractedTexture);
+      }, 2200);
     });
 
     /* ============================================================
-       두 번째 레퍼런스 스타일: 통통하고 둥근 청록/라벤더 나비 3D 렌더러
+       4. 두 번째 레퍼런스 스타일: 통통하고 귀여운 3D 나비 렌더러
        ============================================================ */
     let scene, camera, renderer, butterflyGroup, leftWingGroup, rightWingGroup;
-    let isFlyingAway = false;
-    let touchStartY = 0;
+    let isFlyingAway = false, touchStartY = 0;
 
-    function createChubbyWingShape(isRight) {
+    function createRealisticChubbyWing(isRight) {
       const shape = new THREE.Shape();
       const s = isRight ? 1 : -1;
 
       shape.moveTo(0, 0);
-
       // 1. 상단 둥글고 통통한 날개
       shape.bezierCurveTo(s * 0.2, 0.4, s * 0.8, 1.2, s * 1.6, 1.35);
       shape.bezierCurveTo(s * 2.2, 1.45, s * 2.5, 0.9, s * 2.3, 0.4);
@@ -561,26 +501,21 @@
 
       const geom = new THREE.ShapeGeometry(shape, 40);
 
-      // UV 매핑
+      // 정밀 UV 매핑 (정방형 텍스처 중심선에서 날개 형태로 1:1 투영)
       const pos = geom.attributes.position;
       const uvs = [];
       for (let i = 0; i < pos.count; i++) {
         const x = pos.getX(i);
         const y = pos.getY(i);
-        let u;
-        if (!isRight) {
-          u = 0.5 - (Math.abs(x) / 2.5) * 0.5;
-        } else {
-          u = 0.5 + (Math.abs(x) / 2.5) * 0.5;
-        }
-        const v = (y + 1.8) / 3.25;
+        let u = !isRight ? 0.5 - (Math.abs(x) / 2.5) * 0.5 : 0.5 + (Math.abs(x) / 2.5) * 0.5;
+        let v = (y + 1.8) / 3.25;
         uvs.push(Math.max(0, Math.min(1, u)), Math.max(0, Math.min(1, v)));
       }
       geom.setAttribute('uv', new THREE.Float32BufferAttribute(uvs, 2));
       return geom;
     }
 
-    function initReferenceButterfly(textureURL) {
+    function initChubbyButterfly(textureURL) {
       const container = document.getElementById('three-container');
       container.innerHTML = '';
 
@@ -588,9 +523,9 @@
       const height = container.clientHeight || window.innerHeight;
 
       scene = new THREE.Scene();
-      // 카메라 거리를 여유롭게 두어 화면 중앙에 전체 형태가 시원하게 들어옴
-      camera = new THREE.PerspectiveCamera(42, width / height, 0.1, 1000);
-      camera.position.set(0, -0.15, 7.5);
+      // 카메라 거리를 7.8로 넓혀 화면 여백을 넉넉히 확보
+      camera = new THREE.PerspectiveCamera(40, width / height, 0.1, 1000);
+      camera.position.set(0, -0.2, 7.8);
       camera.lookAt(0, 0, 0);
 
       renderer = new THREE.WebGLRenderer({ alpha: true, antialias: true });
@@ -603,22 +538,19 @@
 
       butterflyGroup = new THREE.Group();
 
-      // 레퍼런스 스타일: 통통한 민트/시안 발광 베이스
-      const baseWingMat = new THREE.MeshBasicMaterial({
-        color: 0x8ef4e8,
-        side: THREE.DoubleSide
-      });
+      // 레퍼런스 스타일: 소프트 시안/민트 베이스 날개
+      const baseWingMat = new THREE.MeshBasicMaterial({ color: 0x8ef4e8, side: THREE.DoubleSide });
 
-      // 사용자가 그린 무늬 블렌딩 레이어
+      // 사용자 도안 블렌딩 (MultiplyBlending으로 깨짐 없이 채색선만 융합)
       const drawingMat = new THREE.MeshBasicMaterial({
         map: userTexture,
         side: THREE.DoubleSide,
         transparent: true,
-        opacity: 0.65,
+        opacity: 0.7,
         blending: THREE.MultiplyBlending
       });
 
-      // 외곽 림라이트 발광
+      // 외곽 은은한 라벤더 글로우
       const glowMat = new THREE.MeshBasicMaterial({
         color: 0xb5a4fc,
         side: THREE.DoubleSide,
@@ -628,26 +560,26 @@
       });
 
       // 좌측 날개
-      const leftGeo = createChubbyWingShape(false);
+      const leftGeo = createRealisticChubbyWing(false);
       leftWingGroup = new THREE.Group();
       leftWingGroup.add(new THREE.Mesh(leftGeo, baseWingMat));
       leftWingGroup.add(new THREE.Mesh(leftGeo, drawingMat));
       const leftGlow = new THREE.Mesh(leftGeo, glowMat);
-      leftGlow.scale.set(1.06, 1.06, 1);
+      leftGlow.scale.set(1.05, 1.05, 1);
       leftWingGroup.add(leftGlow);
       butterflyGroup.add(leftWingGroup);
 
       // 우측 날개
-      const rightGeo = createChubbyWingShape(true);
+      const rightGeo = createRealisticChubbyWing(true);
       rightWingGroup = new THREE.Group();
       rightWingGroup.add(new THREE.Mesh(rightGeo, baseWingMat));
       rightWingGroup.add(new THREE.Mesh(rightGeo, drawingMat));
       const rightGlow = new THREE.Mesh(rightGeo, glowMat);
-      rightGlow.scale.set(1.06, 1.06, 1);
+      rightGlow.scale.set(1.05, 1.05, 1);
       rightWingGroup.add(rightGlow);
       butterflyGroup.add(rightWingGroup);
 
-      // 연보라색 유선형 몸통
+      // 둥글고 귀여운 연보라색 몸통
       const bodyGeo = new THREE.CylinderGeometry(0.045, 0.03, 1.2, 20);
       const bodyMat = new THREE.MeshBasicMaterial({ color: 0x9b8ef6 });
       const bodyMesh = new THREE.Mesh(bodyGeo, bodyMat);
@@ -659,27 +591,23 @@
       headMesh.position.y = 0.62;
       butterflyGroup.add(headMesh);
 
-      // 2개의 곡선 더듬이
-      const antennaCurveL = new THREE.QuadraticBezierCurve3(
+      // 곡선 더듬이 2개
+      const antCurveL = new THREE.QuadraticBezierCurve3(
         new THREE.Vector3(-0.02, 0.65, 0),
         new THREE.Vector3(-0.15, 0.95, 0.1),
         new THREE.Vector3(-0.35, 1.15, 0)
       );
-      const antennaTubeL = new THREE.TubeGeometry(antennaCurveL, 16, 0.012, 8, false);
-      const antennaMeshL = new THREE.Mesh(antennaTubeL, bodyMat);
-      butterflyGroup.add(antennaMeshL);
+      butterflyGroup.add(new THREE.Mesh(new THREE.TubeGeometry(antCurveL, 16, 0.012, 8, false), bodyMat));
 
-      const antennaCurveR = new THREE.QuadraticBezierCurve3(
+      const antCurveR = new THREE.QuadraticBezierCurve3(
         new THREE.Vector3(0.02, 0.65, 0),
         new THREE.Vector3(0.15, 0.95, 0.1),
         new THREE.Vector3(0.35, 1.15, 0)
       );
-      const antennaTubeR = new THREE.TubeGeometry(antennaCurveR, 16, 0.012, 8, false);
-      const antennaMeshR = new THREE.Mesh(antennaTubeR, bodyMat);
-      butterflyGroup.add(antennaMeshR);
+      butterflyGroup.add(new THREE.Mesh(new THREE.TubeGeometry(antCurveR, 16, 0.012, 8, false), bodyMat));
 
-      // 스케일 조절 (화면 여백 최적화)
-      butterflyGroup.scale.set(0.85, 0.85, 0.85);
+      // 화면에 알맞은 크기로 축소 스케일링
+      butterflyGroup.scale.set(0.82, 0.82, 0.82);
       scene.add(butterflyGroup);
 
       let clock = new THREE.Clock();
@@ -691,23 +619,19 @@
           const flap = Math.sin(time * 5.0) * 0.48;
           leftWingGroup.rotation.y = flap;
           rightWingGroup.rotation.y = -flap;
-
           butterflyGroup.position.y = Math.sin(time * 1.8) * 0.12;
         } else {
           const fastFlap = Math.sin(time * 22) * 0.7;
           leftWingGroup.rotation.y = fastFlap;
           rightWingGroup.rotation.y = -fastFlap;
-
-          butterflyGroup.position.y += 0.14;
-          butterflyGroup.position.z -= 0.06;
+          butterflyGroup.position.y += 0.15;
+          butterflyGroup.position.z -= 0.07;
 
           if (butterflyGroup.position.y > 8.0) {
-            viewPreview.classList.remove('active');
-            viewComplete.classList.add('active');
+            showScreen('screen-complete');
             isFlyingAway = false;
           }
         }
-
         renderer.render(scene, camera);
       }
       animate();
@@ -721,11 +645,8 @@
       }, { passive: true });
 
       targetEl.addEventListener('touchend', (e) => {
-        const touchEndY = e.changedTouches[0].clientY;
-        const deltaY = touchStartY - touchEndY;
-        if (deltaY > 50 && !isFlyingAway) {
-          isFlyingAway = true;
-        }
+        const deltaY = touchStartY - e.changedTouches[0].clientY;
+        if (deltaY > 50 && !isFlyingAway) isFlyingAway = true;
       }, { passive: true });
 
       let isMouseDown = false;
@@ -736,9 +657,7 @@
       targetEl.addEventListener('mouseup', (e) => {
         if (!isMouseDown) return;
         isMouseDown = false;
-        if ((touchStartY - e.clientY) > 50 && !isFlyingAway) {
-          isFlyingAway = true;
-        }
+        if ((touchStartY - e.clientY) > 50 && !isFlyingAway) isFlyingAway = true;
       });
     }
   </script>
