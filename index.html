@@ -4,9 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>너울 : NOUL - 내면의 나비 띄우기</title>
-  <!-- Tailwind CSS CDN -->
   <script src="https://cdn.tailwindcss.com"></script>
-  <!-- Three.js CDN -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
   <style>
     body {
@@ -49,7 +47,7 @@
       touch-action: none;
     }
 
-    /* 레퍼런스 특유의 몽환적인 펄스 애니메이션 */
+    /* 로딩 애니메이션 */
     @keyframes pulseGlow {
       0%, 100% {
         transform: scale(0.96) rotate(-2deg);
@@ -64,7 +62,6 @@
       animation: pulseGlow 2.4s infinite ease-in-out;
     }
 
-    /* 로딩 인디케이터 점 */
     @keyframes dotFade {
       0%, 100% { opacity: 0.2; transform: scale(0.8); }
       50% { opacity: 1; transform: scale(1.2); }
@@ -76,7 +73,7 @@
     .dot-5 { animation: dotFade 1.2s infinite ease-in-out 0.8s; }
 
     @keyframes bounceUp {
-      0%, 100% { transform: translateY(0); opacity: 0.4; }
+      0%, 100% { transform: translateY(0); opacity: 0.5; }
       50% { transform: translateY(-8px); opacity: 1; }
     }
     .bounce-guide {
@@ -174,7 +171,7 @@
       </footer>
     </section>
 
-    <!-- ================= [3구간] 4점 수동 조절 ================= -->
+    <!-- ================= [3구간] 4점 수동 크롭 ================= -->
     <section id="view-crop" class="view-screen flex-col flex-1 justify-between py-2">
       <header class="text-center pt-2">
         <h2 class="text-lg font-bold text-white">도안 모서리 맞추기</h2>
@@ -198,7 +195,7 @@
           내면의 고유한 결을 담아<br>나비를 깨우고 있습니다.
         </h2>
         <p class="text-xs text-blue-300/80 mt-3 font-light tracking-wide">
-          마음의 빛깔을 날개에 입히는 중입니다. 잠시만 기다려주세요.
+          종이의 무게를 지우고 빛의 날개를 입히는 중입니다.
         </p>
       </div>
 
@@ -220,40 +217,40 @@
       </div>
     </section>
 
-    <!-- ================= [5구간] 3D 나비 프리뷰 & 날려보내기 (몽환적 하늘빛 배경) ================= -->
+    <!-- ================= [5구간] 3D 나비 프리뷰 (레퍼런스 하늘빛 그라데이션) ================= -->
     <section id="view-preview" class="view-screen flex-col flex-1 justify-between py-2 relative" 
-      style="background: radial-gradient(circle at 50% 35%, #2a5298 0%, #1e3c72 45%, #0b0f19 100%);">
+      style="background: linear-gradient(180deg, #3884e8 0%, #68b0f8 45%, #fbe8b5 100%) !important;">
       <header class="text-center pt-2 z-10">
-        <span class="text-xs font-mono text-amber-200/90 tracking-wider uppercase">NOUL LUMINOUS PREVIEW</span>
-        <h2 class="text-xl font-bold text-white mt-0.5">내면의 빛을 머금은 나비</h2>
-        <p class="text-xs text-blue-200/80 mt-1">화면을 위로 쓸어 올려 대형 화면으로 띄워보내세요.</p>
+        <span class="text-xs font-mono text-amber-100 font-semibold tracking-wider uppercase drop-shadow">NOUL LUMINOUS PREVIEW</span>
+        <h2 class="text-xl font-bold text-white mt-0.5 drop-shadow-md">내면의 빛을 머금은 나비</h2>
+        <p class="text-xs text-blue-50 mt-1 font-light drop-shadow">화면을 위로 쓸어 올려 대형 화면으로 날려보내세요.</p>
       </header>
 
       <div id="three-container" class="flex-1 w-full h-full absolute inset-0 z-0"></div>
 
       <footer class="w-full pb-6 flex flex-col items-center gap-2 z-10 pointer-events-none">
         <div class="bounce-guide flex flex-col items-center">
-          <svg class="w-6 h-6 text-amber-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 15l7-7 7 7"></path>
+          <svg class="w-7 h-7 text-white drop-shadow" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 15l7-7 7 7"></path>
           </svg>
-          <span class="text-xs font-medium text-amber-100 tracking-wider">SWIPE UP TO FLY</span>
+          <span class="text-xs font-semibold text-white tracking-widest drop-shadow">SWIPE UP TO FLY</span>
         </div>
       </footer>
     </section>
 
     <!-- ================= [6구간] 비행 완료 화면 ================= -->
     <section id="view-complete" class="view-screen flex-col flex-1 justify-center items-center text-center p-6">
-      <div class="w-20 h-20 rounded-full bg-amber-400/10 border border-amber-300/30 flex items-center justify-center mb-6">
+      <div class="w-20 h-20 rounded-full bg-amber-400/20 border border-amber-300/40 flex items-center justify-center mb-6">
         <svg class="w-10 h-10 text-amber-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
         </svg>
       </div>
       <h2 class="text-2xl font-bold text-white mb-2">하늘 위로 날아올랐습니다</h2>
-      <p class="text-sm text-gray-400 leading-relaxed mb-8">
+      <p class="text-sm text-gray-300 leading-relaxed mb-8">
         마음의 무게를 털어낸 나비가<br>
         전면 대형 스크린의 너울 속으로 합류했습니다.
       </p>
-      <button onclick="location.reload()" type="button" class="px-8 py-3.5 rounded-xl border border-white/20 text-gray-300 text-xs font-medium active:scale-95 transition-all">
+      <button onclick="location.reload()" type="button" class="px-8 py-3.5 rounded-xl border border-white/20 text-gray-200 text-xs font-medium active:scale-95 transition-all">
         새로운 나비 띄우기
       </button>
     </section>
@@ -262,7 +259,7 @@
 
   <script>
     /* ============================================================
-       1. 상태 및 데이터
+       1. 데이터 및 상태 관리
        ============================================================ */
     let rawImage = new Image();
     let cropPoints = [];
@@ -306,7 +303,7 @@
     const charCount = document.getElementById('char-count');
 
     /* ============================================================
-       2. 설문 로직
+       2. 설문 처리
        ============================================================ */
     function renderOptionBubbles(containerId, items, isMulti, stateKey) {
       const container = document.getElementById(containerId);
@@ -394,7 +391,7 @@
     });
 
     /* ============================================================
-       3. 사진 업로드 및 4점 크롭
+       3. 사진 로드 및 4점 조절
        ============================================================ */
     function onImageLoaded(e) {
       const file = e.target.files[0];
@@ -526,6 +523,9 @@
       viewCapture.classList.add('active');
     });
 
+    /* ============================================================
+       [핵심 수정 1] 하얀 종이 배경 자동 제거 (투명 PNG 생성)
+       ============================================================ */
     document.getElementById('btn-confirm-crop').addEventListener('click', () => {
       const exportCanvas = document.createElement('canvas');
       exportCanvas.width = 512;
@@ -540,13 +540,32 @@
       const maxX = Math.max(...cropPoints.map(p => p.x)) * scaleX;
       const maxY = Math.max(...cropPoints.map(p => p.y)) * scaleY;
 
+      // 1) 512x512로 도안 복사
       expCtx.drawImage(
         rawImage,
         minX, minY, maxX - minX, maxY - minY,
         0, 0, 512, 512
       );
 
-      extractedTextureURL = exportCanvas.toDataURL('image/jpeg', 0.88);
+      // 2) 하얀 종이 픽셀 투명화 알고리즘
+      const imgData = expCtx.getImageData(0, 0, 512, 512);
+      const data = imgData.data;
+      for (let i = 0; i < data.length; i += 4) {
+        const r = data[i], g = data[i+1], b = data[i+2];
+        const brightness = (r * 0.299 + g * 0.587 + b * 0.114);
+
+        // 종이의 흰색/회색 영역을 투명하게 날림
+        if (brightness > 165) {
+          data[i + 3] = Math.max(0, 255 - (brightness - 165) * 3.5);
+        } else {
+          // 채색된 선은 빛에 어울리도록 부드럽게 강조
+          data[i + 3] = 255;
+        }
+      }
+      expCtx.putImageData(imgData, 0, 0);
+
+      // 투명 PNG로 추출
+      extractedTextureURL = exportCanvas.toDataURL('image/png');
 
       viewCrop.classList.remove('active');
       viewLoading.classList.add('active');
@@ -559,42 +578,53 @@
     });
 
     /* ============================================================
-       4. Three.js: 둥근 유기적 나비 곡선 실루엣 & 몽환적 빛(Glow) 렌더링
+       [핵심 수정 2] 레퍼런스 무드 Three.js 둥근 발광 나비 렌더러
        ============================================================ */
     let scene, camera, renderer, butterflyGroup, leftWingGroup, rightWingGroup;
     let isFlyingAway = false;
     let touchStartY = 0;
 
-    // 레퍼런스 실루엣에 맞춘 유기적인 둥근 나비 날개 Geometry 생성기
-    function createOrganicWingGeometry() {
+    // 둥근 부드러운 날개 형상 (Left Wing)
+    function createWingShape(isRight) {
       const shape = new THREE.Shape();
+      const s = isRight ? 1 : -1;
+
       shape.moveTo(0, 0);
+      // 상단 둥근 큰 날개
+      shape.bezierCurveTo(s * 0.4, 0.6, s * 1.3, 1.45, s * 1.85, 1.15);
+      shape.bezierCurveTo(s * 2.15, 0.9, s * 2.05, 0.25, s * 1.7, 0.05);
+      shape.bezierCurveTo(s * 1.5, -0.05, s * 1.25, -0.1, s * 0.95, -0.25);
 
-      // 상단 큰 날개 (유려한 둥근 곡선)
-      shape.bezierCurveTo(-0.3, 0.5, -1.2, 1.4, -1.7, 1.2);
-      shape.bezierCurveTo(-2.1, 1.0, -2.0, 0.4, -1.7, 0.1);
-      shape.bezierCurveTo(-1.5, -0.1, -1.2, -0.05, -0.9, -0.2);
-
-      // 하단 작은 날개 (부드러운 곡선)
-      shape.bezierCurveTo(-1.3, -0.5, -1.4, -1.1, -1.0, -1.4);
-      shape.bezierCurveTo(-0.7, -1.6, -0.3, -1.3, 0, -0.7);
+      // 하단 둥근 작은 날개
+      shape.bezierCurveTo(s * 1.35, -0.6, s * 1.45, -1.15, s * 1.05, -1.45);
+      shape.bezierCurveTo(s * 0.7, -1.65, s * 0.35, -1.3, 0, -0.65);
       shape.closePath();
 
       const geom = new THREE.ShapeGeometry(shape, 32);
 
-      // UV를 0~1 범위로 정규화 매핑 (텍스처 입히기)
+      // [핵심] 좌우 날개 UV 정밀 매핑 (중심선 u=0.5에서 대칭 확장)
       const pos = geom.attributes.position;
       const uvs = [];
       for (let i = 0; i < pos.count; i++) {
-        const u = (pos.getX(i) + 2.1) / 2.1;
-        const v = (pos.getY(i) + 1.6) / 2.9;
+        const x = pos.getX(i);
+        const y = pos.getY(i);
+        
+        let u;
+        if (!isRight) {
+          // 좌측 날개: 몸통(x=0)이 u=0.5, 끝(x=-1.85)이 u=0.0
+          u = 0.5 - (Math.abs(x) / 1.85) * 0.5;
+        } else {
+          // 우측 날개: 몸통(x=0)이 u=0.5, 끝(x=+1.85)이 u=1.0
+          u = 0.5 + (Math.abs(x) / 1.85) * 0.5;
+        }
+        const v = (y + 1.6) / 2.8;
         uvs.push(Math.max(0, Math.min(1, u)), Math.max(0, Math.min(1, v)));
       }
       geom.setAttribute('uv', new THREE.Float32BufferAttribute(uvs, 2));
       return geom;
     }
 
-    function initLuminousButterfly(textureDataURL) {
+    function initLuminousButterfly(pngTextureURL) {
       const container = document.getElementById('three-container');
       container.innerHTML = '';
 
@@ -603,7 +633,7 @@
 
       scene = new THREE.Scene();
       camera = new THREE.PerspectiveCamera(45, width / height, 0.1, 1000);
-      camera.position.set(0, -0.3, 5.2);
+      camera.position.set(0, -0.2, 5.2);
       camera.lookAt(0, 0, 0);
 
       renderer = new THREE.WebGLRenderer({ alpha: true, antialias: true });
@@ -612,40 +642,20 @@
       container.appendChild(renderer.domElement);
 
       const textureLoader = new THREE.TextureLoader();
-
-      // 사용자 드로잉 텍스처 (좌우 분할)
-      const leftTexture = textureLoader.load(textureDataURL);
-      leftTexture.repeat.set(0.5, 1);
-      leftTexture.offset.set(0, 0);
-
-      const rightTexture = textureLoader.load(textureDataURL);
-      rightTexture.repeat.set(0.5, 1);
-      rightTexture.offset.set(0.5, 0);
+      const userTexture = textureLoader.load(pngTextureURL);
 
       butterflyGroup = new THREE.Group();
 
-      // 둥근 날개 지오메트리
-      const wingGeo = createOrganicWingGeometry();
-
-      // [핵심 1] 드로잉 날개 머티리얼 (반투명 + 자체 발광 톤)
-      const leftDrawingMat = new THREE.MeshBasicMaterial({
-        map: leftTexture,
+      // 레퍼런스 스타일: 따뜻한 크림골드 빛 발광 날개 기본 베이스
+      const baseWingMat = new THREE.MeshBasicMaterial({
+        color: 0xfffae0,
         side: THREE.DoubleSide,
         transparent: true,
-        opacity: 0.88,
-        color: 0xfff7ed
+        opacity: 0.92
       });
 
-      const rightDrawingMat = new THREE.MeshBasicMaterial({
-        map: rightTexture,
-        side: THREE.DoubleSide,
-        transparent: true,
-        opacity: 0.88,
-        color: 0xfff7ed
-      });
-
-      // [핵심 2] 레퍼런스 특유의 몽환적인 웜톤 골드/화이트 발광 레이어 (Glow Halo)
-      const glowMat = new THREE.MeshBasicMaterial({
+      // 외곽 소프트 블러 글로우 레이어
+      const outerGlowMat = new THREE.MeshBasicMaterial({
         color: 0xffe89e,
         side: THREE.DoubleSide,
         transparent: true,
@@ -653,60 +663,75 @@
         blending: THREE.AdditiveBlending
       });
 
-      // 좌측 날개 그룹
+      // 사용자가 그린 무늬 텍스처 레이어 (투명 배경)
+      const drawingMat = new THREE.MeshBasicMaterial({
+        map: userTexture,
+        side: THREE.DoubleSide,
+        transparent: true,
+        opacity: 0.85
+      });
+
+      // 좌측 날개 조립
+      const leftWingGeo = createWingShape(false);
       leftWingGroup = new THREE.Group();
-      const leftMesh = new THREE.Mesh(wingGeo, leftDrawingMat);
-      const leftGlowMesh = new THREE.Mesh(wingGeo, glowMat);
-      leftGlowMesh.scale.set(1.08, 1.08, 1); // 살짝 바깥으로 퍼지는 빛
-      leftWingGroup.add(leftMesh);
+      
+      const leftBaseMesh = new THREE.Mesh(leftWingGeo, baseWingMat);
+      const leftGlowMesh = new THREE.Mesh(leftWingGeo, outerGlowMat);
+      leftGlowMesh.scale.set(1.1, 1.1, 1);
+      const leftDrawMesh = new THREE.Mesh(leftWingGeo, drawingMat);
+      leftDrawMesh.position.z = 0.01; // 베이스 날개 살짝 위에
+
+      leftWingGroup.add(leftBaseMesh);
       leftWingGroup.add(leftGlowMesh);
+      leftWingGroup.add(leftDrawMesh);
       butterflyGroup.add(leftWingGroup);
 
-      // 우측 날개 그룹 (좌우 반전)
+      // 우측 날개 조립
+      const rightWingGeo = createWingShape(true);
       rightWingGroup = new THREE.Group();
-      const rightMesh = new THREE.Mesh(wingGeo, rightDrawingMat);
-      const rightGlowMesh = new THREE.Mesh(wingGeo, glowMat);
-      rightGlowMesh.scale.set(1.08, 1.08, 1);
-      rightMesh.scale.set(-1, 1, 1);
-      rightGlowMesh.scale.set(-1.08, 1.08, 1);
-      rightWingGroup.add(rightMesh);
+
+      const rightBaseMesh = new THREE.Mesh(rightWingGeo, baseWingMat);
+      const rightGlowMesh = new THREE.Mesh(rightWingGeo, outerGlowMat);
+      rightGlowMesh.scale.set(1.1, 1.1, 1);
+      const rightDrawMesh = new THREE.Mesh(rightWingGeo, drawingMat);
+      rightDrawMesh.position.z = 0.01;
+
+      rightWingGroup.add(rightBaseMesh);
       rightWingGroup.add(rightGlowMesh);
+      rightWingGroup.add(rightDrawMesh);
       butterflyGroup.add(rightWingGroup);
 
-      // 은은하게 빛나는 얇은 나비 몸통
-      const bodyGeo = new THREE.CylinderGeometry(0.035, 0.02, 1.3, 16);
-      const bodyMat = new THREE.MeshBasicMaterial({ color: 0xfffae6 });
+      // 얇고 은은하게 빛나는 나비 몸통
+      const bodyGeo = new THREE.CylinderGeometry(0.03, 0.02, 1.3, 16);
+      const bodyMat = new THREE.MeshBasicMaterial({ color: 0xfffbe8 });
       const bodyMesh = new THREE.Mesh(bodyGeo, bodyMat);
       butterflyGroup.add(bodyMesh);
 
-      // 나비 머리 & 얇은 더듬이
-      const headGeo = new THREE.SphereGeometry(0.055, 16, 16);
+      // 머리 & 더듬이
+      const headGeo = new THREE.SphereGeometry(0.05, 16, 16);
       const headMesh = new THREE.Mesh(headGeo, bodyMat);
       headMesh.position.y = 0.65;
       butterflyGroup.add(headMesh);
 
-      // 레퍼런스 각도 (우상단으로 45도 기울어진 채 우아하게 부유)
-      butterflyGroup.rotation.z = -0.35;
-      butterflyGroup.rotation.x = 0.45;
+      // 레퍼런스 특유의 우아한 대각선 비행 각도
+      butterflyGroup.rotation.z = -0.32;
+      butterflyGroup.rotation.x = 0.4;
       scene.add(butterflyGroup);
 
-      // 애니메이션 루프
+      // 펄럭임 애니메이션 루프
       let clock = new THREE.Clock();
       function animate() {
         requestAnimationFrame(animate);
         const time = clock.getElapsedTime();
 
         if (!isFlyingAway) {
-          // 우아하고 부드러운 호흡형 날갯짓
-          const flap = Math.sin(time * 5.2) * 0.52;
+          const flap = Math.sin(time * 5.5) * 0.52;
           leftWingGroup.rotation.y = flap;
           rightWingGroup.rotation.y = -flap;
 
-          // 공중에서 은은한 파동 유영
-          butterflyGroup.position.y = Math.sin(time * 1.8) * 0.12;
-          butterflyGroup.position.x = Math.cos(time * 1.2) * 0.08;
+          butterflyGroup.position.y = Math.sin(time * 2.0) * 0.12;
+          butterflyGroup.position.x = Math.cos(time * 1.4) * 0.06;
         } else {
-          // 위로 날아오를 때 날갯짓 가속 및 빛 속으로 비상
           const fastFlap = Math.sin(time * 24) * 0.75;
           leftWingGroup.rotation.y = fastFlap;
           rightWingGroup.rotation.y = -fastFlap;
