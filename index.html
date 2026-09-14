@@ -1,0 +1,474 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>너울 : NOUL - 내면의 나비 띄우기</title>
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body {
+      background-color: #0b0f19;
+      color: #f3f4f6;
+      font-family: -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", "Pretendard", sans-serif;
+      -webkit-tap-highlight-color: transparent;
+      touch-action: pan-y;
+    }
+    /* 반투명 유리(Glassmorphism) 버블 칩 */
+    .chip {
+      background: rgba(255, 255, 255, 0.07);
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      backdrop-filter: blur(8px);
+      transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    .chip.selected {
+      background: rgba(147, 197, 253, 0.25);
+      border-color: #93c5fd;
+      color: #ffffff;
+      box-shadow: 0 0 15px rgba(147, 197, 253, 0.4);
+      transform: translateY(-2px);
+    }
+    /* 화면 전환 페이드 */
+    .view-screen, .step-screen {
+      display: none;
+      animation: fadeIn 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    }
+    .view-screen.active, .step-screen.active {
+      display: flex;
+    }
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(8px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    #crop-canvas {
+      touch-action: none;
+      cursor: crosshair;
+    }
+    /* 스크롤바 커스텀 */
+    ::-webkit-scrollbar { width: 4px; }
+    ::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.2); border-radius: 4px; }
+  </style>
+</head>
+<body class="flex justify-center min-h-screen">
+
+  <main class="w-full max-w-md flex flex-col justify-between p-6 relative">
+
+    <!-- ================= [1구간] 5단계 감정 질문 버블 UI ================= -->
+    <section id="view-survey" class="view-screen active flex-col flex-1 justify-between">
+      <!-- 상단 단계 인디케이터 -->
+      <header class="w-full mb-3">
+        <div class="flex justify-between text-xs text-gray-400 mb-2 font-mono">
+          <span id="step-indicator" class="text-blue-400 font-semibold">STEP 1 / 5</span>
+          <span id="selection-type">단일 선택</span>
+        </div>
+        <div class="w-full h-1 bg-gray-800 rounded-full overflow-hidden">
+          <div id="progress-bar" class="h-full bg-blue-400 transition-all duration-300 w-1/5"></div>
+        </div>
+      </header>
+
+      <!-- 중앙 5단계 질문 & 칩 영역 -->
+      <div class="flex-1 flex flex-col justify-center overflow-y-auto pr-1">
+        <!-- STEP 1 -->
+        <div id="step-1" class="step-screen active flex-col">
+          <h2 class="text-xl font-bold mb-1 tracking-tight text-white">웅크린 고치를 깨고 나온 지금,</h2>
+          <p class="text-xs text-gray-400 mb-5">나의 상태를 가장 잘 나타내는 결을 골라주세요.</p>
+          <div class="flex flex-wrap gap-2.5 max-h-[50vh] overflow-y-auto py-1" id="list-step-1"></div>
+        </div>
+
+        <!-- STEP 2 -->
+        <div id="step-2" class="step-screen flex-col">
+          <h2 class="text-xl font-bold mb-1 tracking-tight text-white">나비 날개에 실어 당장 털어낼 짐은?</h2>
+          <p class="text-xs text-gray-400 mb-5">원하는 만큼 모두 선택할 수 있습니다. (다중 선택)</p>
+          <div class="flex flex-wrap gap-2.5 max-h-[50vh] overflow-y-auto py-1" id="list-step-2"></div>
+        </div>
+
+        <!-- STEP 3 -->
+        <div id="step-3" class="step-screen flex-col">
+          <h2 class="text-xl font-bold mb-1 tracking-tight text-white">긴 여정 동안 챙겨갈 태도는?</h2>
+          <p class="text-xs text-gray-400 mb-5">비행 동안 나비가 품고 갈 마음의 결을 골라주세요.</p>
+          <div class="flex flex-wrap gap-2.5 max-h-[50vh] overflow-y-auto py-1" id="list-step-3"></div>
+        </div>
+
+        <!-- STEP 4 -->
+        <div id="step-4" class="step-screen flex-col">
+          <h2 class="text-xl font-bold mb-1 tracking-tight text-white">나를 대신해 닿았으면 하는 곳은?</h2>
+          <p class="text-xs text-gray-400 mb-5">이 나비가 가만히 쉬어갈 안식처를 골라주세요.</p>
+          <div class="flex flex-wrap gap-2.5 max-h-[50vh] overflow-y-auto py-1" id="list-step-4"></div>
+        </div>
+
+        <!-- STEP 5 -->
+        <div id="step-5" class="step-screen flex-col">
+          <h2 class="text-xl font-bold mb-1 tracking-tight text-white">돌아올 나비에게 건넬 한마디</h2>
+          <p class="text-xs text-gray-400 mb-4">비행을 마치고 나에게 돌아올 나비에게 남겨주세요.</p>
+          <div class="flex flex-col gap-3">
+            <textarea id="input-step-5" rows="4" maxlength="100" 
+              placeholder="거기선 폰 끄고 푹 쉬어 / 가벼워진 채로만 돌아와 줘..." 
+              class="w-full bg-white/5 border border-white/20 rounded-2xl p-4 text-sm text-white focus:outline-none focus:border-blue-400 placeholder-gray-500 resize-none"></textarea>
+            <div class="text-right text-xs text-gray-500 font-mono" id="char-count">0 / 100</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 하단 네비게이션 버튼 -->
+      <footer class="w-full pt-4 flex gap-3">
+        <button id="btn-prev" type="button" class="w-1/3 py-3.5 rounded-xl border border-white/20 text-gray-300 font-medium text-sm hidden active:scale-95 transition-all">이전</button>
+        <button id="btn-next" type="button" disabled class="flex-1 py-3.5 rounded-xl bg-blue-500 text-white font-medium text-sm disabled:opacity-40 disabled:pointer-events-none active:scale-95 transition-all shadow-lg shadow-blue-500/20">다음 단계</button>
+      </footer>
+    </section>
+
+    <!-- ================= [2구간] 도안 촬영 / 앨범 선택 ================= -->
+    <section id="view-capture" class="view-screen flex-col flex-1 justify-between py-4 text-center">
+      <header class="mt-4">
+        <span class="text-xs font-mono text-blue-400 tracking-wider uppercase">Noul Archive Step 02</span>
+        <h1 class="text-2xl font-bold mt-1 tracking-tight text-white">나비 도안 담기</h1>
+        <p class="text-xs text-gray-400 mt-2">채색한 종이 도안의 사각 틀이 보이도록 비춰주세요.</p>
+      </header>
+
+      <!-- 카메라 가이드 뷰파인더 -->
+      <div class="w-64 h-64 mx-auto border-2 border-dashed border-blue-400/40 rounded-2xl flex flex-col items-center justify-center p-6 bg-white/5 relative my-auto">
+        <svg class="w-12 h-12 text-blue-300 mb-3 opacity-80" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"></path>
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"></path>
+        </svg>
+        <span class="text-xs text-gray-300 leading-relaxed">
+          종이에 인쇄된 <strong>[ 꺾쇠 마커 ]</strong> 네 모서리가<br>화면 안에 모두 들어오게 촬영합니다.
+        </span>
+      </div>
+
+      <footer class="flex flex-col gap-3 w-full mb-2">
+        <label class="w-full py-4 rounded-xl bg-blue-500 text-white font-medium text-sm cursor-pointer active:scale-95 transition-all text-center block shadow-lg shadow-blue-500/20">
+          카메라로 도안 촬영하기
+          <input type="file" id="camera-input" accept="image/*" capture="environment" class="hidden">
+        </label>
+        <label class="w-full py-3.5 rounded-xl border border-white/20 text-gray-300 font-medium text-xs cursor-pointer active:scale-95 transition-all text-center block">
+          앨범에서 사진 불러오기
+          <input type="file" id="album-input" accept="image/*" class="hidden">
+        </label>
+        <button id="btn-back-to-survey" type="button" class="w-full py-2 text-xs text-gray-500">← 질문 수정하기</button>
+      </footer>
+    </section>
+
+    <!-- ================= [3구간] 4점 수동 조절 (크롭 뷰어) ================= -->
+    <section id="view-crop" class="view-screen flex-col flex-1 justify-between py-2">
+      <header class="text-center pt-2">
+        <h2 class="text-lg font-bold text-white">도안 모서리 맞추기</h2>
+        <p class="text-xs text-gray-400 mt-1">4개 파란 점을 종이의 <strong>[ 꺾쇠 모서리 ]</strong> 끝에 맞춰주세요.</p>
+      </header>
+
+      <div class="flex-1 flex items-center justify-center my-3 relative overflow-hidden">
+        <canvas id="crop-canvas" class="border border-white/10 rounded-lg max-w-full max-h-[58vh] bg-black/50 shadow-2xl"></canvas>
+      </div>
+
+      <footer class="flex gap-3 w-full">
+        <button id="btn-recrop" type="button" class="w-1/3 py-3.5 rounded-xl border border-white/20 text-gray-300 text-sm active:scale-95 transition-all">다시 촬영</button>
+        <button id="btn-confirm-crop" type="button" class="flex-1 py-3.5 rounded-xl bg-blue-500 text-white font-medium text-sm active:scale-95 transition-all shadow-lg shadow-blue-500/20">도안 확정 및 완료</button>
+      </footer>
+    </section>
+
+  </main>
+
+  <script>
+    /* ============================================================
+       1. 전역 상태 및 데이터 셋
+       ============================================================ */
+    let rawImage = new Image();
+    let cropPoints = [];
+    let draggingIndex = -1;
+    let extractedTextureURL = null; // 512x512 JPEG Base64
+
+    // 5단계 선택지 데이터
+    const optionsData = {
+      step1: ["조심스레 기지개를 켬", "깊은 숨을 크게 들이쉼", "새로운 바람이 궁금함", "굳었던 몸을 천천히 풂", "이제 막 시야가 트임", "온전히 나에게 집중함", "마음이 한결 가벼워짐", "천천히 날개를 말리는 중", "아무 방해 없이 평온함", "묵은 생각을 툭 털어냄", "나만의 속도를 찾는 중", "낯설지만 설레는 기분", "가만히 온기를 느끼는 중", "어디로든 갈 수 있을 듯함", "긴 잠에서 개운하게 깸", "내 안의 소리에 귀 기울임", "서두르지 않고 둘러봄", "담담하게 첫 발을 디딤", "그저 지금에 충실하고 싶음", "가볍게 날아오를 준비 중", "조용한 여유를 만끽함", "혼자만의 시간이 편안함"],
+      step2: ["남들의 시선과 평가", "억지로 쥐어짜는 긍정", "줄어드는 잔고 걱정", "밤마다 곱씹는 이불킥", "억지로 버티는 인간관계", "아무것도 안 할 때의 죄책감", "내일 출근·등교의 막막함", "잘해야 한다는 강박", "끝없는 타인과의 비교", "차마 못 뱉고 삼킨 말들", "이미 지나간 일에 대한 후회", "안 읽은 메신저 알림의 압박", "착한 사람이어야 한다는 부담", "손익을 따지는 계산적인 태도", "혼자 다 짊어지려는 버릇", "미래에 대한 막연한 공포", "나를 갉아먹는 자책", "눈치 보며 맞추는 습관", "쓸데없이 많아진 잡생각", "완벽하지 못했다는 찜찜함", "거절하지 못해 떠안은 일들", "억지로 웃어넘기던 버릇"],
+      step3: ["흔들려도 그냥 둠", "남 눈치 안 보고 멍때림", "망해도 별일 아니라고 넘김", "내 속도대로 천천히 감", "할 만큼 했다고 인정함", "억지로 애쓰지 않음", "싫은 건 싫다고 생각함", "오늘 하루만 버텨봄", "완벽하지 않아도 만족함", "혼자만의 침묵을 즐김", "남의 말 한 귀로 흘림", "당장 답을 찾지 않음", "아무 계획 없이 흘러감", "내 감정에 솔직해짐", "쉬는 것에 당당해짐", "안 되는 건 쿨하게 포기함", "넘어져도 급하게 안 일어남", "나를 가장 먼저 챙김", "작은 틈을 내어 숨을 쉼", "그때그때 마음 가는 대로 함", "타인의 기대에서 한 발 물러섬"],
+      step4: ["연락이 아예 안 터지는 곳", "아무도 나를 모르는 낯선 길", "온종일 햇볕만 드는 창가", "파도 소리만 들리는 밤바다", "불 다 끄고 누운 내 방 침대", "시선이 닿지 않는 먼 수평선", "풀냄새 가득한 축축한 숲", "시원한 바람이 부는 언덕", "비 오는 날의 조용한 실내", "사람 발길이 끊긴 옥상", "멍하니 걷기 좋은 밤거리", "소음 하나 없는 눈 덮인 들판", "시간 감각이 사라진 공간", "달빛만 켜져 있는 방", "파란 물결 아래 고요한 물속", "알람 소리 없는 늦은 아침", "가로등만 깜빡이는 골목길", "구름 위 끝없이 펼쳐진 하늘", "누구도 재촉하지 않는 벤치", "끝없이 펼쳐진 모래사장", "책장 냄새 나는 한적한 도서관"]
+    };
+
+    // DB butterflies 테이블 매핑용 객체
+    const userAnswers = {
+      step1_state: null,
+      step2_burdens: [],
+      step3_attitude: null,
+      step4_destination: null,
+      step5_message: ""
+    };
+
+    let currentStep = 1;
+    const totalSteps = 5;
+
+    /* ============================================================
+       2. 화면 요소 바인딩
+       ============================================================ */
+    const viewSurvey = document.getElementById('view-survey');
+    const viewCapture = document.getElementById('view-capture');
+    const viewCrop = document.getElementById('view-crop');
+    const canvas = document.getElementById('crop-canvas');
+    const ctx = canvas.getContext('2d');
+
+    const btnNext = document.getElementById('btn-next');
+    const btnPrev = document.getElementById('btn-prev');
+    const btnBackToSurvey = document.getElementById('btn-back-to-survey');
+    const progressBar = document.getElementById('progress-bar');
+    const stepIndicator = document.getElementById('step-indicator');
+    const selectionType = document.getElementById('selection-type');
+    const inputStep5 = document.getElementById('input-step-5');
+    const charCount = document.getElementById('char-count');
+
+    /* ============================================================
+       3. 5단계 질문 버블 UI 로직 (먼저 실행)
+       ============================================================ */
+    function renderOptionBubbles(containerId, items, isMulti, stateKey) {
+      const container = document.getElementById(containerId);
+      container.innerHTML = '';
+      items.forEach(text => {
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'chip text-xs md:text-sm px-3.5 py-2 rounded-full cursor-pointer text-gray-300 active:scale-95';
+        btn.innerText = text;
+
+        btn.addEventListener('click', () => {
+          if (isMulti) {
+            btn.classList.toggle('selected');
+            const idx = userAnswers[stateKey].indexOf(text);
+            if (idx > -1) userAnswers[stateKey].splice(idx, 1);
+            else userAnswers[stateKey].push(text);
+          } else {
+            container.querySelectorAll('.chip').forEach(c => c.classList.remove('selected'));
+            btn.classList.add('selected');
+            userAnswers[stateKey] = text;
+          }
+          checkStepValidity();
+        });
+        container.appendChild(btn);
+      });
+    }
+
+    renderOptionBubbles('list-step-1', optionsData.step1, false, 'step1_state');
+    renderOptionBubbles('list-step-2', optionsData.step2, true, 'step2_burdens');
+    renderOptionBubbles('list-step-3', optionsData.step3, false, 'step3_attitude');
+    renderOptionBubbles('list-step-4', optionsData.step4, false, 'step4_destination');
+
+    inputStep5.addEventListener('input', (e) => {
+      userAnswers.step5_message = e.target.value.trim();
+      charCount.innerText = `${e.target.value.length} / 100`;
+      checkStepValidity();
+    });
+
+    function checkStepValidity() {
+      let valid = false;
+      if (currentStep === 1) valid = !!userAnswers.step1_state;
+      else if (currentStep === 2) valid = userAnswers.step2_burdens.length > 0;
+      else if (currentStep === 3) valid = !!userAnswers.step3_attitude;
+      else if (currentStep === 4) valid = !!userAnswers.step4_destination;
+      else if (currentStep === 5) valid = userAnswers.step5_message.length > 0;
+
+      btnNext.disabled = !valid;
+    }
+
+    function refreshStepScreen() {
+      document.querySelectorAll('.step-screen').forEach((el, idx) => {
+        el.classList.toggle('active', idx + 1 === currentStep);
+      });
+
+      progressBar.style.width = `${(currentStep / totalSteps) * 100}%`;
+      stepIndicator.innerText = `STEP ${currentStep} / ${totalSteps}`;
+      selectionType.innerText = currentStep === 2 ? "다중 선택 가능" : (currentStep === 5 ? "직접 입력" : "단일 선택");
+
+      btnPrev.classList.toggle('hidden', currentStep === 1);
+      btnNext.innerText = currentStep === totalSteps ? "도안 촬영하러 가기" : "다음 단계";
+
+      checkStepValidity();
+    }
+
+    btnNext.addEventListener('click', () => {
+      if (currentStep < totalSteps) {
+        currentStep++;
+        refreshStepScreen();
+      } else {
+        viewSurvey.classList.remove('active');
+        viewCapture.classList.add('active');
+      }
+    });
+
+    btnPrev.addEventListener('click', () => {
+      if (currentStep > 1) {
+        currentStep--;
+        refreshStepScreen();
+      }
+    });
+
+    btnBackToSurvey.addEventListener('click', () => {
+      viewCapture.classList.remove('active');
+      viewSurvey.classList.add('active');
+    });
+
+    /* ============================================================
+       4. 사진 촬영 및 4점 크롭 로직 (모바일 터치 완벽 대응 수정본)
+       ============================================================ */
+    function onImageLoaded(e) {
+      const file = e.target.files[0];
+      if (!file) return;
+
+      const reader = new FileReader();
+      reader.onload = (evt) => {
+        rawImage = new Image();
+        rawImage.onload = () => {
+          initCropUI();
+          viewCapture.classList.remove('active');
+          viewCrop.classList.add('active');
+        };
+        rawImage.src = evt.target.result;
+      };
+      reader.readAsDataURL(file);
+    }
+
+    document.getElementById('camera-input').addEventListener('change', onImageLoaded);
+    document.getElementById('album-input').addEventListener('change', onImageLoaded);
+
+    function initCropUI() {
+      const maxW = Math.min(window.innerWidth - 48, 380);
+      const scale = maxW / rawImage.width;
+      canvas.width = maxW;
+      canvas.height = rawImage.height * scale;
+
+      const insetX = canvas.width * 0.15;
+      const insetY = canvas.height * 0.15;
+
+      cropPoints = [
+        { x: insetX, y: insetY },                           // 좌상단
+        { x: canvas.width - insetX, y: insetY },           // 우상단
+        { x: canvas.width - insetX, y: canvas.height - insetY }, // 우하단
+        { x: insetX, y: canvas.height - insetY }            // 좌하단
+      ];
+
+      drawCropScreen();
+    }
+
+    function drawCropScreen() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      ctx.drawImage(rawImage, 0, 0, canvas.width, canvas.height);
+
+      // 반투명 어두운 오버레이
+      ctx.fillStyle = 'rgba(0, 0, 0, 0.55)';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+      // 선택 영역만 밝게 마스킹
+      ctx.save();
+      ctx.beginPath();
+      ctx.moveTo(cropPoints[0].x, cropPoints[0].y);
+      for (let i = 1; i < 4; i++) ctx.lineTo(cropPoints[i].x, cropPoints[i].y);
+      ctx.closePath();
+      ctx.clip();
+      ctx.drawImage(rawImage, 0, 0, canvas.width, canvas.height);
+      ctx.restore();
+
+      // 사각 테두리 라인
+      ctx.strokeStyle = '#93c5fd';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(cropPoints[0].x, cropPoints[0].y);
+      for (let i = 1; i < 4; i++) ctx.lineTo(cropPoints[i].x, cropPoints[i].y);
+      ctx.closePath();
+      ctx.stroke();
+
+      // 4개 터치 핸들 원
+      cropPoints.forEach((pt) => {
+        ctx.fillStyle = '#3b82f6';
+        ctx.beginPath();
+        ctx.arc(pt.x, pt.y, 11, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.strokeStyle = '#ffffff';
+        ctx.lineWidth = 2.5;
+        ctx.stroke();
+      });
+    }
+
+    // 모바일 터치 좌표 정밀 보정
+    function getPointerPos(e) {
+      const rect = canvas.getBoundingClientRect();
+      const scaleX = canvas.width / rect.width;
+      const scaleY = canvas.height / rect.height;
+
+      const clientX = (e.touches && e.touches.length > 0) ? e.touches[0].clientX : e.clientX;
+      const clientY = (e.touches && e.touches.length > 0) ? e.touches[0].clientY : e.clientY;
+
+      return {
+        x: (clientX - rect.left) * scaleX,
+        y: (clientY - rect.top) * scaleY
+      };
+    }
+
+    function handlePointerStart(e) {
+      const pos = getPointerPos(e);
+      let minDist = 45; // 터치 판정 반경을 넉넉히 주어 조작감 개선
+      draggingIndex = -1;
+
+      cropPoints.forEach((pt, idx) => {
+        const dist = Math.hypot(pt.x - pos.x, pt.y - pos.y);
+        if (dist < minDist) {
+          minDist = dist;
+          draggingIndex = idx;
+        }
+      });
+    }
+
+    function handlePointerMove(e) {
+      if (draggingIndex === -1) return;
+      if (e.cancelable) e.preventDefault();
+
+      const pos = getPointerPos(e);
+      cropPoints[draggingIndex] = {
+        x: Math.max(0, Math.min(canvas.width, pos.x)),
+        y: Math.max(0, Math.min(canvas.height, pos.y))
+      };
+      drawCropScreen();
+    }
+
+    function handlePointerEnd() {
+      draggingIndex = -1; // 손을 떼는 즉시 드래그 상태 강제 해제
+    }
+
+    // 마우스 이벤트 (PC)
+    canvas.addEventListener('mousedown', handlePointerStart);
+    window.addEventListener('mousemove', handlePointerMove);
+    window.addEventListener('mouseup', handlePointerEnd);
+
+    // 모바일 터치 이벤트
+    canvas.addEventListener('touchstart', handlePointerStart, { passive: false });
+    window.addEventListener('touchmove', handlePointerMove, { passive: false });
+    window.addEventListener('touchend', handlePointerEnd);
+    window.addEventListener('touchcancel', handlePointerEnd);
+
+    document.getElementById('btn-recrop').addEventListener('click', () => {
+      viewCrop.classList.remove('active');
+      viewCapture.classList.add('active');
+    });
+
+    // 512x512 정사각형 텍스처 추출
+    document.getElementById('btn-confirm-crop').addEventListener('click', () => {
+      const exportCanvas = document.createElement('canvas');
+      exportCanvas.width = 512;
+      exportCanvas.height = 512;
+      const expCtx = exportCanvas.getContext('2d');
+
+      const scaleX = rawImage.width / canvas.width;
+      const scaleY = rawImage.height / canvas.height;
+
+      const minX = Math.min(...cropPoints.map(p => p.x)) * scaleX;
+      const minY = Math.min(...cropPoints.map(p => p.y)) * scaleY;
+      const maxX = Math.max(...cropPoints.map(p => p.x)) * scaleX;
+      const maxY = Math.max(...cropPoints.map(p => p.y)) * scaleY;
+
+      expCtx.drawImage(
+        rawImage,
+        minX, minY, maxX - minX, maxY - minY,
+        0, 0, 512, 512
+      );
+
+      extractedTextureURL = exportCanvas.toDataURL('image/jpeg', 0.88);
+
+      alert("5단계 질문 답변과 도안 추출(512x512)이 모두 완료되었습니다!\n다음 작업: 3D 나비 화면으로 연동");
+    });
+  </script>
+</body>
+</html>
