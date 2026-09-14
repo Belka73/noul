@@ -39,6 +39,13 @@
       from { opacity: 0; transform: translateY(8px); }
       to { opacity: 1; transform: translateY(0); }
     }
+    #align-canvas {
+      touch-action: none;
+      cursor: grab;
+    }
+    #align-canvas:active {
+      cursor: grabbing;
+    }
     #three-container {
       touch-action: none;
     }
@@ -135,33 +142,31 @@
       </footer>
     </section>
 
-    <!-- ================= [2구간] 나비 실루엣 가이드 촬영 (4점 조절 대체) ================= -->
-    <section id="view-capture" class="view-screen flex-col flex-1 justify-between py-2 text-center">
+    <!-- ================= [2구간] 수직 촬영 공지 및 도안 캡처 ================= -->
+    <section id="view-capture" class="view-screen flex-col flex-1 justify-between py-4 text-center">
       <header class="mt-2">
         <span class="text-xs font-mono text-blue-400 tracking-wider uppercase">Noul Archive Step 02</span>
-        <h1 class="text-xl font-bold mt-1 text-white">나비 도안 맞추기</h1>
-        <p class="text-xs text-gray-400 mt-1">도안의 나비가 아래 가이드 실루엣 안에 들어오도록 비춰주세요.</p>
+        <h1 class="text-2xl font-bold mt-1 text-white">나비 도안 촬영하기</h1>
       </header>
 
-      <!-- 나비 형태 가이드 뷰파인더 -->
-      <div class="w-72 h-72 mx-auto rounded-2xl flex flex-col items-center justify-center relative my-auto bg-black/40 border border-white/10 overflow-hidden shadow-inner">
-        <!-- 레퍼런스 나비 가이드 SVG 오버레이 -->
-        <svg class="w-60 h-60 text-blue-400/60 drop-shadow-[0_0_12px_rgba(96,165,250,0.5)]" viewBox="0 0 100 100" fill="none" stroke="currentColor" stroke-width="1.8">
-          <!-- 상단 둥근 날개 -->
-          <path d="M 50,45 C 42,25 22,18 10,28 C 0,38 2,55 18,58 C 32,60 45,50 50,52" stroke-linecap="round"/>
-          <path d="M 50,45 C 58,25 78,18 90,28 C 100,38 98,55 82,58 C 68,60 55,50 50,52" stroke-linecap="round"/>
-          <!-- 하단 물방울 날개 -->
-          <path d="M 50,53 C 45,62 30,68 28,78 C 26,88 36,92 40,82 C 43,75 48,65 50,62" stroke-linecap="round"/>
-          <path d="M 50,53 C 55,62 70,68 72,78 C 74,88 64,92 60,82 C 57,75 52,65 50,62" stroke-linecap="round"/>
-          <!-- 몸통 가이드선 -->
-          <line x1="50" y1="35" x2="50" y2="70" stroke-dasharray="2 2" stroke-width="1.2"/>
-        </svg>
-        <span class="absolute bottom-3 text-[11px] text-blue-300/80 font-medium">가이드 틀에 맞춰 촬영하면 자동 생성됩니다</span>
+      <!-- 수직 촬영 안내 카드 -->
+      <div class="w-full bg-blue-500/10 border border-blue-400/30 rounded-2xl p-6 text-center my-auto">
+        <div class="w-16 h-16 mx-auto rounded-full bg-blue-500/20 flex items-center justify-center mb-4 text-blue-300">
+          <svg class="w-9 h-9" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+          </svg>
+        </div>
+        <h3 class="text-lg font-bold text-white mb-2">💡 꼭 수직(위에서 똑바로)으로 찍어주세요</h3>
+        <p class="text-xs text-gray-300 leading-relaxed">
+          종이가 기울어지거나 그림자가 지지 않도록<br>
+          스마트폰을 <strong>종이와 평행하게 정면 위에서</strong> 비춰주세요.<br><br>
+          <span class="text-blue-300">※ 촬영 후 다음 화면에서 나비 크기를 손가락으로 자유롭게 맞출 수 있습니다!</span>
+        </p>
       </div>
 
       <footer class="flex flex-col gap-2.5 w-full mb-1">
         <label class="w-full py-4 rounded-xl bg-blue-500 text-white font-medium text-sm cursor-pointer active:scale-95 transition-all text-center block shadow-lg shadow-blue-500/25">
-          카메라로 나비 담기
+          카메라로 도안 촬영하기
           <input type="file" id="camera-input" accept="image/*" capture="environment" class="hidden">
         </label>
         <label class="w-full py-3 rounded-xl border border-white/20 text-gray-300 font-medium text-xs cursor-pointer active:scale-95 transition-all text-center block">
@@ -172,7 +177,38 @@
       </footer>
     </section>
 
-    <!-- ================= [3구간] 로딩 화면 ================= -->
+    <!-- ================= [3구간] 찍은 사진을 나비틀에 맞게 확대/이동 조절 ================= -->
+    <section id="view-align" class="view-screen flex-col flex-1 justify-between py-2 text-center">
+      <header class="pt-2">
+        <h2 class="text-lg font-bold text-white">나비틀에 맞게 사진 맞추기</h2>
+        <p class="text-xs text-blue-300/90 mt-0.5">손가락으로 <strong>[사진을 드래그하여 이동]</strong>하고 <strong>[두 손가락으로 확대/축소]</strong>하세요.</p>
+      </header>
+
+      <!-- 캔버스 조작 영역 (나비 실루엣 오버레이 장착) -->
+      <div class="relative w-[320px] h-[320px] mx-auto my-auto rounded-2xl overflow-hidden border border-blue-400/40 shadow-2xl bg-black/60 flex items-center justify-center">
+        <canvas id="align-canvas" width="640" height="640" class="w-full h-full"></canvas>
+        <!-- 기준 나비 실루엣 오버레이 (클릭 관통) -->
+        <div class="absolute inset-0 pointer-events-none flex items-center justify-center">
+          <svg class="w-[85%] h-[85%] text-blue-400/80 drop-shadow-[0_0_10px_rgba(96,165,250,0.8)]" viewBox="0 0 100 100" fill="none" stroke="currentColor" stroke-width="2">
+            <!-- 윗날개 -->
+            <path d="M 50,45 C 42,22 18,15 8,28 C -2,40 2,58 18,60 C 32,62 45,50 50,52" stroke-linecap="round"/>
+            <path d="M 50,45 C 58,22 82,15 92,28 C 102,40 98,58 82,60 C 68,62 55,50 50,52" stroke-linecap="round"/>
+            <!-- 아랫날개 -->
+            <path d="M 50,53 C 44,62 28,68 26,78 C 24,88 35,92 40,82 C 43,75 48,65 50,62" stroke-linecap="round"/>
+            <path d="M 50,53 C 56,62 72,68 74,78 C 76,88 65,92 60,82 C 57,75 52,65 50,62" stroke-linecap="round"/>
+            <!-- 몸통 중심선 -->
+            <line x1="50" y1="30" x2="50" y2="72" stroke-dasharray="2 2" stroke-width="1.5"/>
+          </svg>
+        </div>
+      </div>
+
+      <footer class="flex gap-3 w-full mb-1">
+        <button id="btn-rephoto" type="button" class="w-1/3 py-3.5 rounded-xl border border-white/20 text-gray-300 text-sm active:scale-95 transition-all">다시 촬영</button>
+        <button id="btn-confirm-align" type="button" class="flex-1 py-3.5 rounded-xl bg-blue-500 text-white font-medium text-sm active:scale-95 transition-all shadow-lg shadow-blue-500/25">이 위치로 확정하기</button>
+      </footer>
+    </section>
+
+    <!-- ================= [4구간] 감성 로딩 화면 ================= -->
     <section id="view-loading" class="view-screen flex-col flex-1 justify-between items-center py-12 text-center relative overflow-hidden">
       <div class="mt-8 z-10">
         <h2 class="text-2xl font-bold text-white tracking-tight leading-snug">
@@ -202,7 +238,7 @@
       </div>
     </section>
 
-    <!-- ================= [4구간] 3D 나비 프리뷰 ================= -->
+    <!-- ================= [5구간] 3D 나비 프리뷰 (화면에 쏙 들어오는 적당한 크기) ================= -->
     <section id="view-preview" class="view-screen flex-col flex-1 justify-between py-2 relative" 
       style="background: linear-gradient(180deg, #5b9bf8 0%, #8ac0ff 40%, #edd8f8 100%) !important;">
       <header class="text-center pt-2 z-10">
@@ -223,7 +259,7 @@
       </footer>
     </section>
 
-    <!-- ================= [5구간] 비행 완료 화면 ================= -->
+    <!-- ================= [6구간] 비행 완료 화면 ================= -->
     <section id="view-complete" class="view-screen flex-col flex-1 justify-center items-center text-center p-6">
       <div class="w-20 h-20 rounded-full bg-blue-400/20 border border-blue-300/40 flex items-center justify-center mb-6">
         <svg class="w-10 h-10 text-blue-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -266,6 +302,7 @@
 
     const viewSurvey = document.getElementById('view-survey');
     const viewCapture = document.getElementById('view-capture');
+    const viewAlign = document.getElementById('view-align');
     const viewLoading = document.getElementById('view-loading');
     const viewPreview = document.getElementById('view-preview');
     const viewComplete = document.getElementById('view-complete');
@@ -364,7 +401,18 @@
       viewSurvey.classList.add('active');
     });
 
-    // 사진 촬영 즉시 자동 정방형 크롭 및 텍스처 변환
+    /* ============================================================
+       사진 업로드 및 대화형 캔버스 조작 (이동 + 핀치 줌)
+       ============================================================ */
+    const alignCanvas = document.getElementById('align-canvas');
+    const actx = alignCanvas.getContext('2d');
+
+    let imgX = 0, imgY = 0, imgScale = 1.0;
+    let isDragging = false;
+    let startX = 0, startY = 0;
+    let initialPinchDist = 0;
+    let initialScale = 1.0;
+
     function onImageLoaded(e) {
       const file = e.target.files[0];
       if (!file) return;
@@ -373,7 +421,9 @@
       reader.onload = (evt) => {
         rawImage = new Image();
         rawImage.onload = () => {
-          processDirectCrop();
+          initAlignUI();
+          viewCapture.classList.remove('active');
+          viewAlign.classList.add('active');
         };
         rawImage.src = evt.target.result;
       };
@@ -383,26 +433,99 @@
     document.getElementById('camera-input').addEventListener('change', onImageLoaded);
     document.getElementById('album-input').addEventListener('change', onImageLoaded);
 
-    function processDirectCrop() {
-      const exportCanvas = document.createElement('canvas');
-      exportCanvas.width = 1024;
-      exportCanvas.height = 1024;
-      const expCtx = exportCanvas.getContext('2d');
+    document.getElementById('btn-rephoto').addEventListener('click', () => {
+      viewAlign.classList.remove('active');
+      viewCapture.classList.add('active');
+    });
 
-      // 원본의 정중앙 정방형 영역을 잘라내어 왜곡 방지
-      const minDim = Math.min(rawImage.width, rawImage.height);
-      const startX = (rawImage.width - minDim) / 2;
-      const startY = (rawImage.height - minDim) / 2;
+    function initAlignUI() {
+      // 캔버스 중앙에 사진이 쏙 들어오도록 초기 스케일 계산
+      const canvasSize = alignCanvas.width; // 640
+      const baseScale = canvasSize / Math.max(rawImage.width, rawImage.height);
+      imgScale = baseScale;
+      imgX = (canvasSize - rawImage.width * imgScale) / 2;
+      imgY = (canvasSize - rawImage.height * imgScale) / 2;
+      drawAlignCanvas();
+    }
 
-      expCtx.drawImage(
-        rawImage,
-        startX, startY, minDim, minDim,
-        0, 0, 1024, 1024
-      );
+    function drawAlignCanvas() {
+      actx.clearRect(0, 0, alignCanvas.width, alignCanvas.height);
+      actx.save();
+      actx.drawImage(rawImage, imgX, imgY, rawImage.width * imgScale, rawImage.height * imgScale);
+      actx.restore();
+    }
 
-      extractedTextureURL = exportCanvas.toDataURL('image/jpeg', 0.92);
+    // 터치/마우스 조작 이벤트 등록
+    alignCanvas.addEventListener('mousedown', (e) => {
+      isDragging = true;
+      startX = e.clientX - imgX;
+      startY = e.clientY - imgY;
+    });
 
-      viewCapture.classList.remove('active');
+    window.addEventListener('mousemove', (e) => {
+      if (!isDragging) return;
+      imgX = e.clientX - startX;
+      imgY = e.clientY - startY;
+      drawAlignCanvas();
+    });
+
+    window.addEventListener('mouseup', () => { isDragging = false; });
+
+    // 휠 줌 (PC용)
+    alignCanvas.addEventListener('wheel', (e) => {
+      e.preventDefault();
+      const zoomFactor = e.deltaY < 0 ? 1.06 : 0.94;
+      imgScale *= zoomFactor;
+      drawAlignCanvas();
+    }, { passive: false });
+
+    // 모바일 터치 드래그 및 핀치 줌
+    alignCanvas.addEventListener('touchstart', (e) => {
+      if (e.touches.length === 1) {
+        isDragging = true;
+        const rect = alignCanvas.getBoundingClientRect();
+        const scaleCanvas = alignCanvas.width / rect.width;
+        startX = (e.touches[0].clientX - rect.left) * scaleCanvas - imgX;
+        startY = (e.touches[0].clientY - rect.top) * scaleCanvas - imgY;
+      } else if (e.touches.length === 2) {
+        isDragging = false;
+        initialPinchDist = Math.hypot(
+          e.touches[0].clientX - e.touches[1].clientX,
+          e.touches[0].clientY - e.touches[1].clientY
+        );
+        initialScale = imgScale;
+      }
+    }, { passive: false });
+
+    alignCanvas.addEventListener('touchmove', (e) => {
+      e.preventDefault();
+      const rect = alignCanvas.getBoundingClientRect();
+      const scaleCanvas = alignCanvas.width / rect.width;
+
+      if (e.touches.length === 1 && isDragging) {
+        imgX = (e.touches[0].clientX - rect.left) * scaleCanvas - startX;
+        imgY = (e.touches[0].clientY - rect.top) * scaleCanvas - startY;
+        drawAlignCanvas();
+      } else if (e.touches.length === 2) {
+        const currentDist = Math.hypot(
+          e.touches[0].clientX - e.touches[1].clientX,
+          e.touches[0].clientY - e.touches[1].clientY
+        );
+        if (initialPinchDist > 0) {
+          const factor = currentDist / initialPinchDist;
+          imgScale = initialScale * factor;
+          drawAlignCanvas();
+        }
+      }
+    }, { passive: false });
+
+    alignCanvas.addEventListener('touchend', () => { isDragging = false; });
+
+    // 최종 확정: 캔버스에 보이는 그대로 텍스처 추출
+    document.getElementById('btn-confirm-align').addEventListener('click', () => {
+      extractedTextureURL = alignCanvas.toDataURL('image/jpeg', 0.94);
+
+      viewAlign.classList.remove('active');
       viewLoading.classList.add('active');
 
       setTimeout(() => {
@@ -410,28 +533,27 @@
         viewPreview.classList.add('active');
         initReferenceButterfly(extractedTextureURL);
       }, 2000);
-    }
+    });
 
     /* ============================================================
-       두 번째 레퍼런스 스타일: 둥글고 통통한 유선형 나비 3D 렌더러
+       두 번째 레퍼런스 스타일: 통통하고 둥근 청록/라벤더 나비 3D 렌더러
        ============================================================ */
     let scene, camera, renderer, butterflyGroup, leftWingGroup, rightWingGroup;
     let isFlyingAway = false;
     let touchStartY = 0;
 
-    // 레퍼런스 특유의 둥글고 유려한 날개 지오메트리
     function createChubbyWingShape(isRight) {
       const shape = new THREE.Shape();
       const s = isRight ? 1 : -1;
 
       shape.moveTo(0, 0);
 
-      // 1. 상단 큰 날개 (둥글고 볼륨감 있는 곡선)
+      // 1. 상단 둥글고 통통한 날개
       shape.bezierCurveTo(s * 0.2, 0.4, s * 0.8, 1.2, s * 1.6, 1.35);
       shape.bezierCurveTo(s * 2.2, 1.45, s * 2.5, 0.9, s * 2.3, 0.4);
       shape.bezierCurveTo(s * 2.1, -0.05, s * 1.7, -0.2, s * 1.2, -0.25);
 
-      // 2. 하단 작은 날개 (물방울처럼 둥글게 떨어지며 꼬리 끝이 모이는 형태)
+      // 2. 하단 물방울 꼬리 날개
       shape.bezierCurveTo(s * 1.5, -0.55, s * 1.4, -1.2, s * 1.0, -1.45);
       shape.bezierCurveTo(s * 0.7, -1.65, s * 0.5, -1.8, s * 0.4, -1.65);
       shape.bezierCurveTo(s * 0.35, -1.4, s * 0.3, -0.8, 0, -0.3);
@@ -466,9 +588,9 @@
       const height = container.clientHeight || window.innerHeight;
 
       scene = new THREE.Scene();
-      // 카메라 거리를 멀리(7.0) 띄워 화면 밖으로 나가지 않고 전체가 보이도록 설정
+      // 카메라 거리를 여유롭게 두어 화면 중앙에 전체 형태가 시원하게 들어옴
       camera = new THREE.PerspectiveCamera(42, width / height, 0.1, 1000);
-      camera.position.set(0, -0.2, 7.0);
+      camera.position.set(0, -0.15, 7.5);
       camera.lookAt(0, 0, 0);
 
       renderer = new THREE.WebGLRenderer({ alpha: true, antialias: true });
@@ -481,13 +603,13 @@
 
       butterflyGroup = new THREE.Group();
 
-      // 레퍼런스 스타일의 통통한 소프트 민트/시안 발광 베이스
+      // 레퍼런스 스타일: 통통한 민트/시안 발광 베이스
       const baseWingMat = new THREE.MeshBasicMaterial({
         color: 0x8ef4e8,
         side: THREE.DoubleSide
       });
 
-      // 사용자 드로잉이 깨짐 없이 은은하게 얹히는 블렌딩 머티리얼
+      // 사용자가 그린 무늬 블렌딩 레이어
       const drawingMat = new THREE.MeshBasicMaterial({
         map: userTexture,
         side: THREE.DoubleSide,
@@ -496,7 +618,7 @@
         blending: THREE.MultiplyBlending
       });
 
-      // 날개 외곽의 보라/블루 림라이트 글로우
+      // 외곽 림라이트 발광
       const glowMat = new THREE.MeshBasicMaterial({
         color: 0xb5a4fc,
         side: THREE.DoubleSide,
@@ -525,19 +647,19 @@
       rightWingGroup.add(rightGlow);
       butterflyGroup.add(rightWingGroup);
 
-      // 레퍼런스 특유의 둥글고 귀여운 연보라색 몸통
+      // 연보라색 유선형 몸통
       const bodyGeo = new THREE.CylinderGeometry(0.045, 0.03, 1.2, 20);
       const bodyMat = new THREE.MeshBasicMaterial({ color: 0x9b8ef6 });
       const bodyMesh = new THREE.Mesh(bodyGeo, bodyMat);
       butterflyGroup.add(bodyMesh);
 
-      // 둥근 머리
+      // 머리
       const headGeo = new THREE.SphereGeometry(0.07, 20, 20);
       const headMesh = new THREE.Mesh(headGeo, bodyMat);
       headMesh.position.y = 0.62;
       butterflyGroup.add(headMesh);
 
-      // 2개의 유려한 더듬이
+      // 2개의 곡선 더듬이
       const antennaCurveL = new THREE.QuadraticBezierCurve3(
         new THREE.Vector3(-0.02, 0.65, 0),
         new THREE.Vector3(-0.15, 0.95, 0.1),
@@ -556,8 +678,8 @@
       const antennaMeshR = new THREE.Mesh(antennaTubeR, bodyMat);
       butterflyGroup.add(antennaMeshR);
 
-      // 전체 나비 크기를 알맞게 스케일링
-      butterflyGroup.scale.set(0.9, 0.9, 0.9);
+      // 스케일 조절 (화면 여백 최적화)
+      butterflyGroup.scale.set(0.85, 0.85, 0.85);
       scene.add(butterflyGroup);
 
       let clock = new THREE.Clock();
@@ -566,14 +688,12 @@
         const time = clock.getElapsedTime();
 
         if (!isFlyingAway) {
-          // 부드러운 호흡형 날갯짓
           const flap = Math.sin(time * 5.0) * 0.48;
           leftWingGroup.rotation.y = flap;
           rightWingGroup.rotation.y = -flap;
 
           butterflyGroup.position.y = Math.sin(time * 1.8) * 0.12;
         } else {
-          // 위로 비상하는 모션
           const fastFlap = Math.sin(time * 22) * 0.7;
           leftWingGroup.rotation.y = fastFlap;
           rightWingGroup.rotation.y = -fastFlap;
@@ -581,7 +701,7 @@
           butterflyGroup.position.y += 0.14;
           butterflyGroup.position.z -= 0.06;
 
-          if (butterflyGroup.position.y > 7.5) {
+          if (butterflyGroup.position.y > 8.0) {
             viewPreview.classList.remove('active');
             viewComplete.classList.add('active');
             isFlyingAway = false;
