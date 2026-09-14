@@ -425,8 +425,8 @@
       } else if (e.touches.length === 2) {
         isDragging = false;
         startPinchDist = Math.hypot(
-          e.touches[0].clientX - e.touches.clientX,
-          e.touches[0].clientY - e.touches.clientY
+          e.touches[0].clientX - e.touches[1].clientX,
+          e.touches[0].clientY - e.touches[1].clientY
         );
         pinchStartScale = imgScale;
       }
@@ -445,8 +445,8 @@
         drawAlignCanvas();
       } else if (e.touches.length === 2 && startPinchDist > 0) {
         const currentDist = Math.hypot(
-          e.touches[0].clientX - e.touches.clientX,
-          e.touches[0].clientY - e.touches.clientY
+          e.touches[0].clientX - e.touches[1].clientX,
+          e.touches[0].clientY - e.touches[1].clientY
         );
         const factor = currentDist / startPinchDist;
         imgScale = pinchStartScale * factor;
@@ -480,7 +480,7 @@
     });
 
     /* ============================================================
-       강한 입체 명암 & 단절 없는 유기적 단일 몸통 3D 나비 렌더러
+       몸통 마디 음영 및 날개 접합부 앰비언트 오클루전(AO) 3D 나비 렌더러
        ============================================================ */
     let scene, camera, renderer, butterflyGroup, leftWingMesh, rightWingMesh;
     let isFlyingAway = false, touchStartY = 0;
@@ -511,24 +511,81 @@
         uvs.push(u, v);
       }
       geom.setAttribute('uv', new THREE.Float32BufferAttribute(uvs, 2));
+      // aoMap용 보조 UV 좌표계 추가
+      geom.setAttribute('uv2', new THREE.Float32BufferAttribute(uvs, 2));
       geom.computeVertexNormals();
       return geom;
     }
 
-    function createSeamlessBodyGeometry() {
+    // 마디(Joint) 굴곡이 정밀하게 파여 자연스러운 골짜기 그림자를 만드는 유기적 몸통
+    function createSegmentedBodyGeometry() {
       const points = [];
-      points.push(new THREE.Vector2(0.001, 0.72));  // 머리 꼭대기
-      points.push(new THREE.Vector2(0.11, 0.62));   // 둥근 머리 볼륨
-      points.push(new THREE.Vector2(0.09, 0.50));   // 목 (끊김 없음)
-      points.push(new THREE.Vector2(0.15, 0.28));   // 가슴(Thorax) 볼록 볼륨
-      points.push(new THREE.Vector2(0.12, 0.02));   // 허리 전이부
-      points.push(new THREE.Vector2(0.115, -0.28)); // 배 상단
-      points.push(new THREE.Vector2(0.08, -0.58));  // 배 하단
+      points.push(new THREE.Vector2(0.001, 0.72));  // 머리 정수리
+      points.push(new THREE.Vector2(0.12, 0.62));   // 둥근 머리 볼륨
+      points.push(new THREE.Vector2(0.085, 0.51));  // 목 마디 경계선 (골짜기 음영 생성)
+      points.push(new THREE.Vector2(0.165, 0.28));  // 가슴(Thorax) 중앙 최대 볼륨
+      points.push(new THREE.Vector2(0.105, 0.05));  // 가슴-배 허리선 (골짜기 음영 생성)
+      points.push(new THREE.Vector2(0.13, -0.15));  // 배(Abdomen) 첫째 마디
+      points.push(new THREE.Vector2(0.11, -0.32));  // 배 둘째 마디 경계
+      points.push(new THREE.Vector2(0.115, -0.42)); // 배 셋째 마디
+      points.push(new THREE.Vector2(0.07, -0.65));  // 배 하단 수축부
       points.push(new THREE.Vector2(0.001, -0.82)); // 꼬리 끝
 
-      const geom = new THREE.LatheGeometry(points, 28);
+      const geom = new THREE.LatheGeometry(points, 32);
       geom.computeVertexNormals();
       return geom;
+    }
+
+    // 몸통 마디 주름을 검은 음영으로 강조하는 절차적 AO 텍스처 맵 생성
+    function generateBodyAOTexture() {
+      const canvas = document.createElement('canvas');
+      canvas.width = 128;
+      canvas.height = 512;
+      const ctx = canvas.getContext('2d');
+
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(0, 0, 128, 512);
+
+      // 마디 접합부에 들어갈 짙은 앰비언트 섀도우 그라데이션 라인
+      function drawDarkBand(yPercent, thickness, darkness) {
+        const y = yPercent * 512;
+        const grad = ctx.createLinearGradient(0, y - thickness, 0, y + thickness);
+        grad.addColorStop(0, 'rgba(255, 255, 255, 1)');
+        grad.addColorStop(0.5, `rgba(${darkness}, ${darkness}, ${darkness}, 1)`);
+        grad.addColorStop(1, 'rgba(255, 255, 255, 1)');
+        ctx.fillStyle = grad;
+        ctx.fillRect(0, y - thickness, 128, thickness * 2);
+      }
+
+      drawDarkBand(0.18, 16, 80);  // 목 마디 주름
+      drawDarkBand(0.48, 22, 50);  // 가슴-배 허리 마디
+      drawDarkBand(0.66, 15, 90);  // 배 중간 마디 1
+      drawDarkBand(0.78, 15, 90);  // 배 중간 마디 2
+
+      return new THREE.CanvasTexture(canvas);
+    }
+
+    // 날개와 몸통이 닿는 안쪽 뿌리 부위에 짙은 그늘을 주는 날개 AO 맵 생성
+    function generateWingAOTexture() {
+      const canvas = document.createElement('canvas');
+      canvas.width = 512;
+      canvas.height = 512;
+      const ctx = canvas.getContext('2d');
+
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(0, 0, 512, 512);
+
+      // 중앙 몸통 결합부(u=0.5)를 중심으로 짙은 세로 그림자 밴드
+      const grad = ctx.createLinearGradient(160, 0, 352, 0);
+      grad.addColorStop(0, '#ffffff');
+      grad.addColorStop(0.45, '#4a4a55');
+      grad.addColorStop(0.55, '#4a4a55');
+      grad.addColorStop(1, '#ffffff');
+
+      ctx.fillStyle = grad;
+      ctx.fillRect(160, 0, 192, 512);
+
+      return new THREE.CanvasTexture(canvas);
     }
 
     function initExactButterfly(textureURL) {
@@ -550,16 +607,18 @@
       renderer.toneMappingExposure = 1.15;
       container.appendChild(renderer.domElement);
 
-      // [진한 명암비를 위한 고대비 조명 설정]
-      const ambLight = new THREE.AmbientLight(0xffffff, 0.45); // 환경광 낮추어 어두운 면 확보
+      // [깊은 음영을 위한 명암비 조명 세팅]
+      const ambLight = new THREE.AmbientLight(0xffffff, 0.35); // 앰비언트를 낮추어 그림자 톤 강화
       scene.add(ambLight);
 
-      const keyLight = new THREE.DirectionalLight(0xfff8ee, 1.85); // 키 라이트 강화
-      keyLight.position.set(4, 5.5, 6.5);
+      // 우측 상단 정면 주광 (Key Light: 형태 굴곡 하이라이트)
+      const keyLight = new THREE.DirectionalLight(0xfff8ee, 1.95);
+      keyLight.position.set(4.5, 6, 7);
       scene.add(keyLight);
 
-      const fillLight = new THREE.DirectionalLight(0x93c5fd, 0.25); // 필 라이트 약화하여 음영 깊이 증대
-      fillLight.position.set(-4, -3, 3);
+      // 좌측 하단 은은한 보조광 (Fill Light)
+      const fillLight = new THREE.DirectionalLight(0xa5b4fc, 0.25);
+      fillLight.position.set(-5, -3, 3);
       scene.add(fillLight);
 
       const textureLoader = new THREE.TextureLoader();
@@ -568,37 +627,47 @@
       userTexture.minFilter = THREE.LinearMipmapLinearFilter;
       userTexture.magFilter = THREE.LinearFilter;
 
+      const wingAO = generateWingAOTexture();
+      const bodyAO = generateBodyAOTexture();
+
       butterflyGroup = new THREE.Group();
 
+      // [핵심 1] 날개-몸통 접합부에 짙은 명암(aoMap)이 드리우는 날개 머티리얼
       const wingMaterial = new THREE.MeshStandardMaterial({
         map: userTexture,
+        aoMap: wingAO,
+        aoMapIntensity: 1.4, // 접합부 그늘 강조
         side: THREE.DoubleSide,
         roughness: 0.35,
         metalness: 0.05
       });
 
+      // 좌측 날개
       const leftGeo = createChubbyCuteWingShape(false);
       leftWingMesh = new THREE.Mesh(leftGeo, wingMaterial);
       leftWingMesh.position.set(-0.06, 0.02, 0);
       butterflyGroup.add(leftWingMesh);
 
+      // 우측 날개
       const rightGeo = createChubbyCuteWingShape(true);
       rightWingMesh = new THREE.Mesh(rightGeo, wingMaterial);
       rightWingMesh.position.set(0.06, 0.02, 0);
       butterflyGroup.add(rightWingMesh);
 
-      // 단절 없는 단일 유기적 몸통
+      // [핵심 2] 마디마디마다 음영(aoMap)과 표면 굴곡 명암이 형성되는 몸통 머티리얼
       const bodyMat = new THREE.MeshStandardMaterial({ 
-        color: 0xf5f3ff, 
+        color: 0xf3f0ff, 
+        aoMap: bodyAO,
+        aoMapIntensity: 1.6, // 마디 주름 골짜기 음영 강조
         roughness: 0.3, 
-        metalness: 0.12 
+        metalness: 0.08 
       });
 
-      const bodyGeo = createSeamlessBodyGeometry();
+      const bodyGeo = createSegmentedBodyGeometry();
       const bodyMesh = new THREE.Mesh(bodyGeo, bodyMat);
       butterflyGroup.add(bodyMesh);
 
-      // 더듬이 2개
+      // 2개의 곡선 더듬이
       const antCurveL = new THREE.QuadraticBezierCurve3(
         new THREE.Vector3(-0.03, 0.68, 0.02),
         new THREE.Vector3(-0.16, 1.02, 0.1),
@@ -613,6 +682,7 @@
       );
       butterflyGroup.add(new THREE.Mesh(new THREE.TubeGeometry(antCurveR, 16, 0.012, 8, false), bodyMat));
 
+      // 3D 스케일링
       butterflyGroup.scale.set(0.58, 0.58, 0.58);
       scene.add(butterflyGroup);
 
