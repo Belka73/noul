@@ -24,7 +24,6 @@
       user-select: none;
     }
 
-    /* 환기 화면 하단 강조 문장용 손글씨 폰트 */
     .handwriting-accent {
       font-family: 'Nanum Pen Script', cursive, sans-serif;
       font-size: 1.45rem;
@@ -58,7 +57,6 @@
       filter: blur(60px);
     }
 
-    /* 알약 칩 크기, 폰트, 두께 100% 절대 유지 */
     .pill-chip {
       background: rgba(255, 255, 255, 0.11) !important;
       border: 1px solid rgba(255, 255, 255, 0.22) !important;
@@ -111,7 +109,6 @@
       line-height: 1.35;
     }
 
-    /* 상하 스크롤 영역 */
     .vertical-scroll-chips {
       overflow-y: auto;
       overflow-x: hidden;
@@ -159,7 +156,6 @@
     }
     .pulse-animation { animation: pulseGlow 2.4s infinite ease-in-out; }
 
-    /* 년/월/일 숫자 인풋 스핀 버튼 제거 */
     input[type=number]::-webkit-inner-spin-button, 
     input[type=number]::-webkit-outer-spin-button { 
       -webkit-appearance: none; 
@@ -257,9 +253,9 @@
         <div id="organic-chip-container" class="flex flex-col items-center gap-2.5 w-full py-3"></div>
       </div>
 
-      <!-- [Q6] 날짜(년/월/일 3칸) / 이메일 설정 - 세로 정중앙(my-auto) 배치 및 하단 문구 제거 -->
-      <div id="field-step-6" class="hidden flex-col justify-center flex-1 w-full px-2 my-auto">
-        <div class="bg-white/5 border border-white/15 backdrop-blur-xl rounded-3xl p-5 space-y-4 shadow-xl">
+      <!-- [Q6] 날짜(년/월/일 3칸) / 이메일 설정 - 질문과 하단 버튼 사이 공간의 완벽한 세로 정중앙 배치 -->
+      <div id="field-step-6" class="hidden flex-1 w-full flex-col justify-center items-center px-2 min-h-0">
+        <div class="w-full bg-white/5 border border-white/15 backdrop-blur-xl rounded-3xl p-5 space-y-4 shadow-xl">
           <!-- 년, 월, 일 3칸 입력란 -->
           <div>
             <label class="block text-xs font-mono text-orange-300 mb-1.5 font-medium">찬란한 재회의 날</label>
@@ -540,15 +536,18 @@
       if (currentStepIdx < 5) {
         surveyChipWrapper.classList.remove('hidden');
         elField6.classList.add('hidden');
+        elField6.classList.remove('flex');
         elField7.classList.add('hidden');
         renderVerticalScrollChips();
       } else if (currentStepIdx === 5) {
         surveyChipWrapper.classList.add('hidden');
         elField6.classList.remove('hidden');
+        elField6.classList.add('flex');
         elField7.classList.add('hidden');
       } else {
         surveyChipWrapper.classList.add('hidden');
         elField6.classList.add('hidden');
+        elField6.classList.remove('flex');
         elField7.classList.remove('hidden');
       }
 
