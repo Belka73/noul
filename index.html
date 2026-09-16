@@ -110,10 +110,10 @@
       line-height: 1.35;
     }
 
-    /* 화면 전체틀 기준 좌우 안쪽에 절대 고정되는 화살표 버튼 */
+    /* 좌우 화살표 버튼: top 48%로 살짝 위로 이동 배치 */
     .arrow-nav-btn {
       position: absolute;
-      top: 55%;
+      top: 48%;
       transform: translateY(-50%);
       width: 38px;
       height: 38px;
@@ -257,20 +257,20 @@
     <!-- [STEP 1] 설문 화면 -->
     <section id="screen-survey" class="screen flex-col flex-1 justify-between overflow-visible relative">
       
-      <!-- 상단 진행바 (STEP 표기 삭제 및 최상단 배치) -->
+      <!-- 상단 진행바 -->
       <header class="w-full pt-1 flex-shrink-0">
         <div class="w-full h-1 bg-white/10 rounded-full overflow-hidden">
           <div id="progress-bar" class="h-full bg-gradient-to-r from-pink-500 to-orange-400 transition-all duration-300" style="width: 14.28%;"></div>
         </div>
       </header>
 
-      <!-- 질문 문장 (진행바 바로 아래로 끌어올려 화면 상단 공간 확보) -->
+      <!-- 질문 문장 -->
       <div class="text-center mt-1 mb-1 pt-1 flex-shrink-0">
         <h1 id="question-title" class="text-2xl font-bold text-white tracking-tight leading-snug">당신은 어떤 나비인가요?</h1>
         <p id="question-desc" class="text-xs text-slate-300/80 mt-0.5 font-light">자신을 소개해 주세요. (다중 선택)</p>
       </div>
 
-      <!-- 키워드 영역 (화살표는 화면 가장자리에 절대 고정, 칩들은 경계 없이 자유롭게 확장) -->
+      <!-- 키워드 영역 (화살표 위치: top 48%로 살짝 위로 이동) -->
       <div id="survey-chip-wrapper" class="flex-1 relative flex items-center justify-center w-full min-h-0 my-auto overflow-visible">
         
         <!-- 좌측 고정 화살표 -->
@@ -508,7 +508,6 @@
     let currentStepIdx = 0;
     let chipPageIndex = 0;
 
-    // 키워드 크기와 배열 유지, 화살표 겹침 방지를 위한 [3-3-3-2-2-3-3-2] 구조 (페이지당 21개)
     const ROW_PATTERN = [3, 3, 3, 2, 2, 3, 3, 2];
     const CHIPS_PER_PAGE = 21;
 
