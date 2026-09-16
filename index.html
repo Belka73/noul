@@ -6,6 +6,8 @@
   <title>너울 : NOUL - 내면의 나비 띄우기</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <!-- Supabase 공식 클라이언트 라이브러리 -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <style>
     body {
       background-color: #0b0f19;
@@ -57,53 +59,102 @@
       50% { transform: translateY(-8px); opacity: 1; }
     }
     .bounce-guide { animation: bounceUp 1.8s infinite ease-in-out; }
+
+    /* 다크모드 대응 달력 인풋 스타일링 */
+    input[type="datetime-local"]::-webkit-calendar-picker-indicator {
+      filter: invert(1);
+      opacity: 0.7;
+      cursor: pointer;
+    }
   </style>
 </head>
 <body class="flex justify-center min-h-screen">
 
   <main class="w-full max-w-md flex flex-col justify-between p-6 relative h-screen">
 
-    <!-- ================= [STEP 1] 5단계 감정 질문 ================= -->
+    <!-- ================= [STEP 1] 7단계 감정 설문 & 타임캡슐 & 이름 짓기 ================= -->
     <section id="screen-survey" class="screen active flex-col flex-1 justify-between">
       <header class="w-full mb-3">
         <div class="flex justify-between text-xs text-gray-400 mb-2 font-mono">
-          <span id="step-indicator" class="text-blue-400 font-semibold">STEP 1 / 5</span>
-          <span id="selection-type">단일 선택</span>
+          <span id="step-indicator" class="text-blue-400 font-semibold">STEP 1 / 7</span>
+          <span id="selection-type">다중 선택</span>
         </div>
         <div class="w-full h-1 bg-gray-800 rounded-full overflow-hidden">
-          <div id="progress-bar" class="h-full bg-blue-400 transition-all duration-300 w-1/5"></div>
+          <div id="progress-bar" class="h-full bg-blue-400 transition-all duration-300 w-1/7"></div>
         </div>
       </header>
 
       <div class="flex-1 flex flex-col justify-center overflow-y-auto pr-1">
+        <!-- 1번 질문: 나의 성향 -->
         <div id="substep-1" class="substep flex-col flex">
-          <h2 class="text-xl font-bold mb-1 text-white">웅크린 고치를 깨고 나온 지금,</h2>
-          <p class="text-xs text-gray-400 mb-5">나의 상태를 가장 잘 나타내는 결을 골라주세요.</p>
+          <h2 class="text-xl font-bold mb-1 text-white">당신은 어떤 나비인가요?</h2>
+          <p class="text-xs text-gray-400 mb-4">일상 속 내 모습을 가장 잘 나타내는 성향을 골라주세요. (다중 선택)</p>
           <div class="flex flex-wrap gap-2.5 max-h-[50vh] overflow-y-auto py-1" id="list-step-1"></div>
         </div>
+
+        <!-- 2번 질문: 여정의 목표 -->
         <div id="substep-2" class="substep flex-col hidden">
-          <h2 class="text-xl font-bold mb-1 text-white">나비 날개에 실어 당장 털어낼 짐은?</h2>
-          <p class="text-xs text-gray-400 mb-5">원하는 만큼 모두 선택할 수 있습니다. (다중 선택)</p>
+          <h2 class="text-xl font-bold mb-1 text-white">고치에서 나온 당신, 어떤 여정을 떠날 건가요?</h2>
+          <p class="text-xs text-gray-400 mb-4">향하고 싶은 방향을 골라주세요. (다중 선택)</p>
           <div class="flex flex-wrap gap-2.5 max-h-[50vh] overflow-y-auto py-1" id="list-step-2"></div>
         </div>
+
+        <!-- 3번 질문: 챙겨갈 태도 -->
         <div id="substep-3" class="substep flex-col hidden">
-          <h2 class="text-xl font-bold mb-1 text-white">긴 여정 동안 챙겨갈 태도는?</h2>
-          <p class="text-xs text-gray-400 mb-5">비행 동안 나비가 품고 갈 마음의 결을 골라주세요.</p>
+          <h2 class="text-xl font-bold mb-1 text-white">긴 여정을 위해 챙겨가야 할 것은?</h2>
+          <p class="text-xs text-gray-400 mb-4">비행 동안 나비가 품고 갈 마음의 결을 골라주세요. (다중 선택)</p>
           <div class="flex flex-wrap gap-2.5 max-h-[50vh] overflow-y-auto py-1" id="list-step-3"></div>
         </div>
+
+        <!-- 4번 질문: 천적 -->
         <div id="substep-4" class="substep flex-col hidden">
-          <h2 class="text-xl font-bold mb-1 text-white">나를 대신해 닿았으면 하는 곳은?</h2>
-          <p class="text-xs text-gray-400 mb-5">이 나비가 가만히 쉬어갈 안식처를 골라주세요.</p>
+          <h2 class="text-xl font-bold mb-1 text-white">비행 중 마주친 나의 천적은?</h2>
+          <p class="text-xs text-gray-400 mb-4 leading-relaxed">사마귀? 거미? 작은 새? 당신의 날갯짓을 가로막는 것은 무엇일까요? (다중 선택)</p>
           <div class="flex flex-wrap gap-2.5 max-h-[50vh] overflow-y-auto py-1" id="list-step-4"></div>
         </div>
+
+        <!-- 5번 질문: 돌파 무기 -->
         <div id="substep-5" class="substep flex-col hidden">
-          <h2 class="text-xl font-bold mb-1 text-white">돌아올 나비에게 건넬 한마디</h2>
-          <p class="text-xs text-gray-400 mb-4">비행을 마치고 나에게 돌아올 나비에게 남겨주세요.</p>
+          <h2 class="text-xl font-bold mb-1 text-white">그 천적을 맞닥뜨렸을 때, 어떻게 맞설 건가요?</h2>
+          <p class="text-xs text-gray-400 mb-4">어떤 공격에도 흔들리지 않을 비장의 한 수를 골라주세요. (다중 선택)</p>
+          <div class="flex flex-wrap gap-2.5 max-h-[50vh] overflow-y-auto py-1" id="list-step-5"></div>
+        </div>
+
+        <!-- 6번 질문: 타임캡슐 귀환 예약 -->
+        <div id="substep-6" class="substep flex-col hidden">
+          <h2 class="text-xl font-bold mb-1 text-white leading-snug">여정을 무사히 마치고,<br>더욱 찬란해진 나비가 돌아올 날은?</h2>
+          <p class="text-xs text-gray-400 mb-5 leading-relaxed">
+            하늘의 파도(너울)를 건너며 상처를 비워낸 나비가, 가장 눈부신 빛을 품고 당신의 품으로 다시 날아앉을 시간을 정해 주세요.
+          </p>
+          <div class="flex flex-col gap-4">
+            <div>
+              <label class="block text-xs font-mono text-blue-300 mb-1.5">찬란한 재회의 시간 (년/월/일/시)</label>
+              <input id="input-step-6-time" type="datetime-local" 
+                class="w-full bg-white/5 border border-white/20 rounded-2xl px-4 py-3.5 text-sm text-white focus:outline-none focus:border-blue-400">
+            </div>
+            <div>
+              <label class="block text-xs font-mono text-blue-300 mb-1.5">나비를 맞이할 이메일 주소</label>
+              <input id="input-step-6-email" type="email" placeholder="example@email.com" 
+                class="w-full bg-white/5 border border-white/20 rounded-2xl px-4 py-3.5 text-sm text-white focus:outline-none focus:border-blue-400 placeholder-gray-500">
+            </div>
+            <p class="text-[11px] text-gray-400/90 leading-relaxed mt-1 italic">
+              * 약속된 시간에 맞춰, 마음의 무게를 털어낸 나비의 여정 기록이 이메일로 도착합니다.
+            </p>
+          </div>
+        </div>
+
+        <!-- 7번 질문: 나비 이름 짓기 -->
+        <div id="substep-7" class="substep flex-col hidden">
+          <h2 class="text-xl font-bold mb-1 text-white leading-snug">먼 하늘 너울 속으로 날아오를,<br>이 나비의 이름은?</h2>
+          <p class="text-xs text-gray-400 mb-5">당신의 깊은 마음을 대신 품고 비행을 떠날 나비에게 고유한 이름을 붙여주세요.</p>
           <div class="flex flex-col gap-3">
-            <textarea id="input-step-5" rows="4" maxlength="100" 
-              placeholder="거기선 폰 끄고 푹 쉬어 / 가벼워진 채로만 돌아와 줘..." 
-              class="w-full bg-white/5 border border-white/20 rounded-2xl p-4 text-sm text-white focus:outline-none focus:border-blue-400 placeholder-gray-500 resize-none"></textarea>
-            <div class="text-right text-xs text-gray-500 font-mono" id="char-count">0 / 100</div>
+            <input id="input-step-7-name" type="text" maxlength="10" 
+              placeholder="예: 윤슬, 쉼표, 칼퇴, 다정, 시온, 바람..." 
+              class="w-full bg-white/5 border border-white/20 rounded-2xl px-4 py-3.5 text-base text-white focus:outline-none focus:border-blue-400 placeholder-gray-500 tracking-wide font-medium">
+            <div class="flex justify-between items-center px-1 text-xs text-gray-500 font-mono">
+              <span>한글/영문 10자 이내</span>
+              <span id="char-count-7">0 / 10</span>
+            </div>
           </div>
         </div>
       </div>
@@ -199,8 +250,8 @@
       style="background: linear-gradient(180deg, #5b9bf8 0%, #8ac0ff 40%, #edd8f8 100%) !important;">
       <header class="text-center pt-2 z-10">
         <span class="text-xs font-mono text-white/90 font-semibold tracking-wider uppercase drop-shadow">NOUL 3D BUTTERFLY</span>
-        <h2 class="text-xl font-bold text-white mt-0.5 drop-shadow-md">내면의 빛을 머금은 나비</h2>
-        <p class="text-xs text-white/80 mt-0.5 font-light drop-shadow">화면을 위로 쓸어 올려 대형 화면으로 날려보내세요.</p>
+        <h2 id="preview-butterfly-name" class="text-2xl font-black text-white mt-0.5 drop-shadow-md tracking-tight">‘나비’</h2>
+        <p class="text-xs text-white/85 mt-0.5 font-light drop-shadow">화면을 위로 쓸어 올려 대형 화면으로 날려보내세요.</p>
       </header>
 
       <div id="three-container" class="flex-1 w-full h-full absolute inset-0 z-0"></div>
@@ -223,7 +274,7 @@
         </svg>
       </div>
       <h2 class="text-2xl font-bold text-white mb-2">하늘 위로 날아올랐습니다</h2>
-      <p class="text-sm text-gray-300 leading-relaxed mb-8">
+      <p id="complete-desc" class="text-sm text-gray-300 leading-relaxed mb-8">
         마음의 무게를 털어낸 나비가<br>
         전면 대형 스크린의 너울 속으로 합류했습니다.
       </p>
@@ -235,31 +286,121 @@
   </main>
 
   <script>
+    /* ============================================================
+       Supabase 연동 설정
+       ============================================================ */
+    const SUPABASE_URL = 'https://YOUR_PROJECT_ID.supabase.co';
+    const SUPABASE_ANON_KEY = 'YOUR_ANON_KEY_HERE';
+    
+    let supabase = null;
+    try {
+      if (window.supabase && SUPABASE_URL.indexOf('YOUR_PROJECT_ID') === -1) {
+        supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+        console.log("🦋 Supabase 연결 준비 완료");
+      }
+    } catch (e) {
+      console.warn("Supabase 키 미설정 상태 (로컬 테스트 모드):", e);
+    }
+
+    let currentExtractedTexture = null;
+
     function showScreen(screenId) {
       document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
       const target = document.getElementById(screenId);
       if (target) target.classList.add('active');
     }
 
+    /* ============================================================
+       정제된 7단계 문답 풀 (각 50개 키워드)
+       ============================================================ */
     const optionsData = {
-      step1: ["조심스레 기지개를 켬", "깊은 숨을 크게 들이쉼", "새로운 바람이 궁금함", "굳었던 몸을 천천히 풂", "이제 막 시야가 트임", "온전히 나에게 집중함", "마음이 한결 가벼워짐", "천천히 날개를 말리는 중", "아무 방해 없이 평온함", "묵은 생각을 툭 털어냄", "나만의 속도를 찾는 중", "낯설지만 설레는 기분", "가만히 온기를 느끼는 중", "어디로든 갈 수 있을 듯함", "긴 잠에서 개운하게 깸", "내 안의 소리에 귀 기울임", "서두르지 않고 둘러봄", "담담하게 첫 발을 디딤", "그저 지금에 충실하고 싶음", "가볍게 날아오를 준비 중", "조용한 여유를 만끽함", "혼자만의 시간이 편안함"],
-      step2: ["남들의 시선과 평가", "억지로 쥐어짜는 긍정", "줄어드는 잔고 걱정", "밤마다 곱씹는 이불킥", "억지로 버티는 인간관계", "아무것도 안 할 때의 죄책감", "내일 출근·등교의 막막함", "잘해야 한다는 강박", "끝없는 타인과의 비교", "차마 못 뱉고 삼킨 말들", "이미 지나간 일에 대한 후회", "안 읽은 메신저 알림의 압박", "착한 사람이어야 한다는 부담", "손익을 따지는 계산적인 태도", "혼자 다 짊어지려는 버릇", "미래에 대한 막연한 공포", "나를 갈아먹는 자책", "눈치 보며 맞추는 습관", "쓸데없이 많아진 잡생각", "완벽하지 못했다는 찜찜함", "거절하지 못해 떠안은 일들", "억지로 웃어넘기던 버릇"],
-      step3: ["흔들려도 그냥 둠", "남 눈치 안 보고 멍때림", "망해도 별일 아니라고 넘김", "내 속도대로 천천히 감", "할 만큼 했다고 인정함", "억지로 애쓰지 않음", "싫은 건 싫다고 생각함", "오늘 하루만 버텨봄", "완벽하지 않아도 만족함", "혼자만의 침묵을 즐김", "남의 말 한 귀로 흘림", "당장 답을 찾지 않음", "아무 계획 없이 흘러감", "내 감정에 솔직해짐", "쉬는 것에 당당해짐", "안 되는 건 쿨하게 포기함", "넘어져도 급하게 안 일어남", "나를 가장 먼저 챙김", "작은 틈을 내어 숨을 쉼", "그때그때 마음 가는 대로 함", "타인의 기대에서 한 발 물러섬"],
-      step4: ["연락이 아예 안 터지는 곳", "아무도 나를 모르는 낯선 길", "온종일 햇볕만 드는 창가", "파도 소리만 들리는 밤바다", "불 다 끄고 누운 내 방 침대", "시선이 닿지 않는 먼 수평선", "풀냄새 가득한 축축한 숲", "시원한 바람이 부는 언덕", "비 오는 날의 조용한 실내", "사람 발길이 끊긴 옥상", "멍하니 걷기 좋은 밤거리", "소음 하나 없는 눈 덮인 들판", "시간 감각이 사라진 공간", "달빛만 켜져 있는 방", "파란 물결 아래 고요한 물속", "알람 소리 없는 늦은 아침", "가로등만 깜빡이는 골목길", "구름 위 끝없이 펼쳐진 하늘", "누구도 재촉하지 않는 벤치", "끝없이 펼쳐진 모래사장", "책장 냄새 나는 한적한 도서관"]
+      step1: [
+        "프로 멍때림러", "즉흥 여행러", "새벽 감성러", "침대 지박령", "완벽주의 지향", 
+        "프로 자책러", "활력 넘치는 에너자이저", "조용한 관찰자", "독립적인 마이웨이", "남 눈치 만렙", 
+        "다정한 경청자", "단호박 거절러", "감정 기복 롤러코스터", "잔잔한 호수", "번아웃 직전", 
+        "갓생 지향러", "배터리 3%", "호기심 천국", "쿨한 덤덤러", "섬세한 유리멘탈", 
+        "은둔형 집순이/집돌이", "외유내강형", "리액션 봇", "침묵의 평화주의자", "앞만 보는 직진러", 
+        "벼락치기 장인", "사소한 것에 행복러", "생각이 꼬리를 무는 타입", "겉바속촉 외강내유", "따뜻한 오지라퍼", 
+        "혼밥 마스터", "유리알 감수성", "세상만사 귀차니즘", "은근한 야망가", "철벽 방어형", 
+        "자유로운 방랑자", "잔걱정 인형", "충동적 행동파", "차분한 정리러", "무덤덤한 로봇", 
+        "소심한 투덜이", "포용력 바다", "팩트 폭격기", "자발적 아싸", "파워 인싸", 
+        "멘탈 바위", "일희일비러", "유쾌한 개그캐", "고독한 미식가", "나만의 페이스 유지러"
+      ],
+      step2: [
+        "취업 뽀개기", "칼퇴 보장", "자취방 독립", "내 작은 카페", "자격증 합격", 
+        "목표 어학 점수", "해외 한 달 살기", "1,000만 원 저축", "내 브랜드 론칭", "숙면 8시간", 
+        "콘서트 올콘", "운동 습관화", "포트폴리오 완성", "악연 손절", "첫 월급 선물", 
+        "창작물 완판", "바다 여행", "완벽주의 탈출", "채널 1만 구독", "면접 당당함", 
+        "학자금 완납", "좋아하는 일로 밥벌이", "운전면허 드라이브", "온전한 호캉스", "완독 10권", 
+        "바디프로필", "나만의 작업실", "타인 시선 무시", "팀 프로젝트 대박", "쿨한 멘탈", 
+        "내 집 마련 기반", "악기 마스터", "고요한 밤산책", "다정한 연애", "단골 아지트", 
+        "집밥 챙겨먹기", "번아웃 브레이크", "거절하는 용기", "내 스타일대로", "워홀·교환학생", 
+        "매일 셀프 칭찬", "개인 전시·팝업", "수면 패턴 정상화", "공모전 수상", "대범한 배짱", 
+        "주말 카페 멍때리기", "가족 여행 보내기", "하루 종일 넷플릭스", "비교 끊기", "그냥 오늘 행복"
+      ],
+      step3: [
+        "흔들려도 그냥 둠", "남 눈치 안 보고 멍때림", "망해도 별일 아니라고 넘김", "내 속도대로 천천히 감", "할 만큼 했다고 인정함", 
+        "억지로 애쓰지 않음", "싫은 건 싫다고 생각함", "오늘 하루만 버텨봄", "완벽하지 않아도 만족함", "혼자만의 침묵을 즐김", 
+        "남의 말 한 귀로 흘림", "당장 답을 찾지 않음", "아무 계획 없이 흘러감", "내 감정에 솔직해짐", "쉬는 것에 당당해짐", 
+        "안 되는 건 쿨하게 포기함", "넘어져도 급하게 안 일어남", "나를 가장 먼저 챙김", "작은 틈을 내어 숨을 쉼", "그때그때 마음 가는 대로 함", 
+        "타인의 기대에서 한 발 물러섬", "서두르지 않는 뻔뻔함", "실수해도 씩씩하게 웃기", "지금 이대로 충분하다는 안도", "세상 참견 차단하기", 
+        "실패를 경험으로 치기", "내 선택을 끝까지 믿기", "억지 인연 붙잡지 않기", "감정 기복에 휘둘리지 않기", "나만의 속도 존중하기", 
+        "작은 일에 일희일비 안 하기", "거절 앞에 당당해지기", "지나간 일 곱씹지 않기", "타인과의 비교 단호히 끊기", "힘 빼고 유연하게 살기", 
+        "있는 그대로의 나 사랑하기", "번아웃 전에 먼저 멈추기", "단단한 자기 확신 갖기", "굳이 설명하지 않는 대범함", "안 풀릴 땐 일단 자고 보기", 
+        "세상 기준에 나를 맞추지 않기", "사소한 즐거움 먼저 찾기", "묵묵히 내 보폭 유지하기", "미움받을 약간의 용기", "쓸데없는 자책 지우기", 
+        "혼자만의 시간 지켜내기", "무리한 부탁 딱 자르기", "앞날을 기대하는 설렘", "어떤 순간에도 자책하지 않기", "그냥 오늘 하루 즐기기"
+      ],
+      step4: [
+        "비교중독", "만성 피로", "텅 빈 잔고", "완벽주의 강박", "미래 막막함", 
+        "거절 공포", "지나간 후회", "가면 증후군", "스마트폰 중독", "결정 장애", 
+        "눈치 보기", "벼락치기 습관", "타인 인정 욕구", "번아웃 무기력", "억지 미소", 
+        "취업 압박감", "수면 부족", "실패 공포증", "잦은 감정 기복", "뒤처짐 조급함", 
+        "고립감과 외로움", "쓸데없는 잡생각", "꼰대와 갑질", "자책과 자기 비하", "억지 인연 유지", 
+        "학점·스펙 압박", "충동구매 후회", "시작의 두려움", "단톡방 알림 감옥", "과도한 책임감", 
+        "부모님 잔소리", "과열된 머릿속", "애매한 재능", "만성 무기력", "타인의 무례함", 
+        "겉도는 관계", "질투와 열등감", "끝없는 미루기", "건강 악화", "타인의 오해", 
+        "월세·생활비 압박", "도파민 중독", "좁아진 시야", "낮은 자존감", "겉만 번지르르함", 
+        "감정 쓰레기통 역할", "무리한 부탁", "고립된 혼밥", "흐려진 목표", "그냥 온갖 귀찮음"
+      ],
+      step5: [
+        "\"어쩌라고\" 마인드", "일단 푹 자기", "칼같은 단호함", "한 귀로 흘리기", "연락 차단 모드", 
+        "뻔뻔한 배짱", "\"그럴 수 있지\"", "빠른 손절", "나만의 속도", "미련 없는 포기", 
+        "쿨한 넘김", "거절하는 용기", "침묵의 멍때리기", "스스로 토닥이기", "당당한 마이웨이", 
+        "무반응과 무관심", "셀프 칭찬", "혼자만의 고요", "딴청 피우기", "근거 없는 자신감", 
+        "할 말은 하기", "맛있는 한 끼", "단단한 자기 확신", "일희일비 안 하기", "억지 웃음 멈추기", 
+        "타인 기대 던지기", "내 보폭 지키기", "씩씩한 리셋", "망해도 고(Go)", "즉각 브레이크", 
+        "시선 차단 선글라스", "감정 분리하기", "지나간 일 잊기", "힘 빼고 유연함", "눈치 안 보기", 
+        "있는 그대로 긍정", "선 긋기", "방어막 치기", "소신 지키기", "작은 일탈", 
+        "유쾌한 무시", "대범한 무덤덤함", "질문 가볍게 넘기기", "내 기분 우선", "무리한 부탁 쳐내기", 
+        "혼밥의 자유", "심호흡 한 번", "비교 스위치 끄기", "굳은살 멘탈", "그냥 오늘 하루 즐기기"
+      ]
     };
 
-    const userAnswers = { step1_state: null, step2_burdens: [], step3_attitude: null, step4_destination: null, step5_message: "" };
+    const userAnswers = { 
+      step1_identity: [],
+      step2_journey: [],
+      step3_attitude: [],
+      step4_nemesis: [],
+      step5_weapon: [],
+      step6_return_time: "",
+      step6_email: "",
+      step7_butterfly_name: ""
+    };
+
     let currentStep = 1;
-    const totalSteps = 5;
+    const totalSteps = 7;
 
     const btnNext = document.getElementById('btn-next');
     const btnPrev = document.getElementById('btn-prev');
     const progressBar = document.getElementById('progress-bar');
     const stepIndicator = document.getElementById('step-indicator');
     const selectionType = document.getElementById('selection-type');
-    const charCount = document.getElementById('char-count');
+    const inputTime = document.getElementById('input-step-6-time');
+    const inputEmail = document.getElementById('input-step-6-email');
+    const inputName = document.getElementById('input-step-7-name');
+    const charCount7 = document.getElementById('char-count-7');
 
-    function renderOptionBubbles(containerId, items, isMulti, stateKey) {
+    function renderOptionBubbles(containerId, items, stateKey) {
       const container = document.getElementById(containerId);
       container.innerHTML = '';
       items.forEach(text => {
@@ -268,40 +409,51 @@
         btn.className = 'chip text-xs md:text-sm px-3.5 py-2 rounded-full cursor-pointer text-gray-300 active:scale-95';
         btn.innerText = text;
         btn.addEventListener('click', () => {
-          if (isMulti) {
-            btn.classList.toggle('selected');
-            const idx = userAnswers[stateKey].indexOf(text);
-            if (idx > -1) userAnswers[stateKey].splice(idx, 1);
-            else userAnswers[stateKey].push(text);
-          } else {
-            container.querySelectorAll('.chip').forEach(c => c.classList.remove('selected'));
-            btn.classList.add('selected');
-            userAnswers[stateKey] = text;
-          }
+          btn.classList.toggle('selected');
+          const idx = userAnswers[stateKey].indexOf(text);
+          if (idx > -1) userAnswers[stateKey].splice(idx, 1);
+          else userAnswers[stateKey].push(text);
           checkStepValidity();
         });
         container.appendChild(btn);
       });
     }
 
-    renderOptionBubbles('list-step-1', optionsData.step1, false, 'step1_state');
-    renderOptionBubbles('list-step-2', optionsData.step2, true, 'step2_burdens');
-    renderOptionBubbles('list-step-3', optionsData.step3, false, 'step3_attitude');
-    renderOptionBubbles('list-step-4', optionsData.step4, false, 'step4_destination');
+    renderOptionBubbles('list-step-1', optionsData.step1, 'step1_identity');
+    renderOptionBubbles('list-step-2', optionsData.step2, 'step2_journey');
+    renderOptionBubbles('list-step-3', optionsData.step3, 'step3_attitude');
+    renderOptionBubbles('list-step-4', optionsData.step4, 'step4_nemesis');
+    renderOptionBubbles('list-step-5', optionsData.step5, 'step5_weapon');
 
-    document.getElementById('input-step-5').addEventListener('input', (e) => {
-      userAnswers.step5_message = e.target.value.trim();
-      charCount.innerText = `${e.target.value.length} / 100`;
+    inputTime.addEventListener('input', (e) => {
+      userAnswers.step6_return_time = e.target.value;
       checkStepValidity();
     });
 
+    inputEmail.addEventListener('input', (e) => {
+      userAnswers.step6_email = e.target.value.trim();
+      checkStepValidity();
+    });
+
+    inputName.addEventListener('input', (e) => {
+      userAnswers.step7_butterfly_name = e.target.value.trim();
+      charCount7.innerText = `${e.target.value.length} / 10`;
+      checkStepValidity();
+    });
+
+    function isValidEmail(email) {
+      return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+    }
+
     function checkStepValidity() {
       let valid = false;
-      if (currentStep === 1) valid = !!userAnswers.step1_state;
-      else if (currentStep === 2) valid = userAnswers.step2_burdens.length > 0;
-      else if (currentStep === 3) valid = !!userAnswers.step3_attitude;
-      else if (currentStep === 4) valid = !!userAnswers.step4_destination;
-      else if (currentStep === 5) valid = userAnswers.step5_message.length > 0;
+      if (currentStep === 1) valid = userAnswers.step1_identity.length > 0;
+      else if (currentStep === 2) valid = userAnswers.step2_journey.length > 0;
+      else if (currentStep === 3) valid = userAnswers.step3_attitude.length > 0;
+      else if (currentStep === 4) valid = userAnswers.step4_nemesis.length > 0;
+      else if (currentStep === 5) valid = userAnswers.step5_weapon.length > 0;
+      else if (currentStep === 6) valid = !!userAnswers.step6_return_time && isValidEmail(userAnswers.step6_email);
+      else if (currentStep === 7) valid = userAnswers.step7_butterfly_name.length > 0;
       btnNext.disabled = !valid;
     }
 
@@ -312,7 +464,11 @@
       });
       progressBar.style.width = `${(currentStep / totalSteps) * 100}%`;
       stepIndicator.innerText = `STEP ${currentStep} / ${totalSteps}`;
-      selectionType.innerText = currentStep === 2 ? "다중 선택 가능" : (currentStep === 5 ? "직접 입력" : "단일 선택");
+      
+      if (currentStep <= 5) selectionType.innerText = "다중 선택 가능";
+      else if (currentStep === 6) selectionType.innerText = "예약 일시 및 메일 입력";
+      else selectionType.innerText = "직접 입력";
+
       btnPrev.classList.toggle('hidden', currentStep === 1);
       btnNext.innerText = currentStep === totalSteps ? "도안 촬영하러 가기" : "다음 단계";
       checkStepValidity();
@@ -470,17 +626,79 @@
       ectx.fillRect(0, 0, 1024, 1024);
       ectx.drawImage(rawImage, imgX * scaleRatio, imgY * scaleRatio, rawImage.width * imgScale * scaleRatio, rawImage.height * imgScale * scaleRatio);
 
-      const extractedTexture = exportCanvas.toDataURL('image/jpeg', 0.98);
+      currentExtractedTexture = exportCanvas.toDataURL('image/jpeg', 0.92);
       showScreen('screen-loading');
 
       setTimeout(() => {
+        const nameHeader = document.getElementById('preview-butterfly-name');
+        if (nameHeader) {
+          nameHeader.innerText = `‘${userAnswers.step7_butterfly_name || "나비"}’`;
+        }
         showScreen('screen-preview');
-        initExactButterfly(extractedTexture);
+        initExactButterfly(currentExtractedTexture);
       }, 2200);
     });
 
     /* ============================================================
-       몸통 마디 음영 및 날개 접합부 앰비언트 오클루전(AO) 3D 나비 렌더러
+       Supabase 연동 함수 (7단계 데이터 전송)
+       ============================================================ */
+    function dataURLtoBlob(dataurl) {
+      const arr = dataurl.split(',');
+      const mime = arr[0].match(/:(.*?);/)[1];
+      const bstr = atob(arr[1]);
+      let n = bstr.length;
+      const u8arr = new Uint8Array(n);
+      while (n--) {
+        u8arr[n] = bstr.charCodeAt(n);
+      }
+      return new Blob([u8arr], { type: mime });
+    }
+
+    async function sendButterflyToSupabase(textureBase64) {
+      if (!supabase) {
+        console.log("⚠️ Supabase 미연결 (로컬 프리뷰 모드로 진행)");
+        return;
+      }
+
+      try {
+        const fileName = `butterfly_${Date.now()}_${Math.random().toString(36).substring(2, 7)}.jpg`;
+        const blob = dataURLtoBlob(textureBase64);
+
+        const { data: uploadData, error: uploadError } = await supabase.storage
+          .from('butterflies')
+          .upload(fileName, blob, { contentType: 'image/jpeg' });
+
+        if (uploadError) throw uploadError;
+
+        const { data: publicUrlData } = supabase.storage
+          .from('butterflies')
+          .getPublicUrl(fileName);
+
+        const texturePublicUrl = publicUrlData.publicUrl;
+
+        const { error: dbError } = await supabase
+          .from('butterflies')
+          .insert([{
+            butterfly_name: userAnswers.step7_butterfly_name || '이름 없음',
+            texture_url: texturePublicUrl,
+            step1_identity: userAnswers.step1_identity,
+            step2_journey: userAnswers.step2_journey,
+            step3_attitude: userAnswers.step3_attitude,
+            step4_nemesis: userAnswers.step4_nemesis,
+            step5_weapon: userAnswers.step5_weapon,
+            scheduled_at: userAnswers.step6_return_time,
+            recipient_email: userAnswers.step6_email
+          }]);
+
+        if (dbError) throw dbError;
+        console.log(`✨ [${userAnswers.step7_butterfly_name}] 나비가 Supabase에 성공적으로 저장되었습니다!`);
+      } catch (err) {
+        console.error("Supabase 전송 에러:", err);
+      }
+    }
+
+    /* ============================================================
+       3D 나비 렌더러
        ============================================================ */
     let scene, camera, renderer, butterflyGroup, leftWingMesh, rightWingMesh;
     let isFlyingAway = false, touchStartY = 0;
@@ -499,7 +717,6 @@
       shape.closePath();
 
       const geom = new THREE.ShapeGeometry(shape, 48);
-
       const pos = geom.attributes.position;
       const uvs = [];
       const totalSpan = 5.4;
@@ -511,32 +728,29 @@
         uvs.push(u, v);
       }
       geom.setAttribute('uv', new THREE.Float32BufferAttribute(uvs, 2));
-      // aoMap용 보조 UV 좌표계 추가
       geom.setAttribute('uv2', new THREE.Float32BufferAttribute(uvs, 2));
       geom.computeVertexNormals();
       return geom;
     }
 
-    // 마디(Joint) 굴곡이 정밀하게 파여 자연스러운 골짜기 그림자를 만드는 유기적 몸통
     function createSegmentedBodyGeometry() {
       const points = [];
-      points.push(new THREE.Vector2(0.001, 0.72));  // 머리 정수리
-      points.push(new THREE.Vector2(0.12, 0.62));   // 둥근 머리 볼륨
-      points.push(new THREE.Vector2(0.085, 0.51));  // 목 마디 경계선 (골짜기 음영 생성)
-      points.push(new THREE.Vector2(0.165, 0.28));  // 가슴(Thorax) 중앙 최대 볼륨
-      points.push(new THREE.Vector2(0.105, 0.05));  // 가슴-배 허리선 (골짜기 음영 생성)
-      points.push(new THREE.Vector2(0.13, -0.15));  // 배(Abdomen) 첫째 마디
-      points.push(new THREE.Vector2(0.11, -0.32));  // 배 둘째 마디 경계
-      points.push(new THREE.Vector2(0.115, -0.42)); // 배 셋째 마디
-      points.push(new THREE.Vector2(0.07, -0.65));  // 배 하단 수축부
-      points.push(new THREE.Vector2(0.001, -0.82)); // 꼬리 끝
+      points.push(new THREE.Vector2(0.001, 0.72));
+      points.push(new THREE.Vector2(0.12, 0.62));
+      points.push(new THREE.Vector2(0.085, 0.51));
+      points.push(new THREE.Vector2(0.165, 0.28));
+      points.push(new THREE.Vector2(0.105, 0.05));
+      points.push(new THREE.Vector2(0.13, -0.15));
+      points.push(new THREE.Vector2(0.11, -0.32));
+      points.push(new THREE.Vector2(0.115, -0.42));
+      points.push(new THREE.Vector2(0.07, -0.65));
+      points.push(new THREE.Vector2(0.001, -0.82));
 
       const geom = new THREE.LatheGeometry(points, 32);
       geom.computeVertexNormals();
       return geom;
     }
 
-    // 몸통 마디 주름을 검은 음영으로 강조하는 절차적 AO 텍스처 맵 생성
     function generateBodyAOTexture() {
       const canvas = document.createElement('canvas');
       canvas.width = 128;
@@ -546,7 +760,6 @@
       ctx.fillStyle = '#ffffff';
       ctx.fillRect(0, 0, 128, 512);
 
-      // 마디 접합부에 들어갈 짙은 앰비언트 섀도우 그라데이션 라인
       function drawDarkBand(yPercent, thickness, darkness) {
         const y = yPercent * 512;
         const grad = ctx.createLinearGradient(0, y - thickness, 0, y + thickness);
@@ -557,15 +770,14 @@
         ctx.fillRect(0, y - thickness, 128, thickness * 2);
       }
 
-      drawDarkBand(0.18, 16, 80);  // 목 마디 주름
-      drawDarkBand(0.48, 22, 50);  // 가슴-배 허리 마디
-      drawDarkBand(0.66, 15, 90);  // 배 중간 마디 1
-      drawDarkBand(0.78, 15, 90);  // 배 중간 마디 2
+      drawDarkBand(0.18, 16, 80);
+      drawDarkBand(0.48, 22, 50);
+      drawDarkBand(0.66, 15, 90);
+      drawDarkBand(0.78, 15, 90);
 
       return new THREE.CanvasTexture(canvas);
     }
 
-    // 날개와 몸통이 닿는 안쪽 뿌리 부위에 짙은 그늘을 주는 날개 AO 맵 생성
     function generateWingAOTexture() {
       const canvas = document.createElement('canvas');
       canvas.width = 512;
@@ -575,7 +787,6 @@
       ctx.fillStyle = '#ffffff';
       ctx.fillRect(0, 0, 512, 512);
 
-      // 중앙 몸통 결합부(u=0.5)를 중심으로 짙은 세로 그림자 밴드
       const grad = ctx.createLinearGradient(160, 0, 352, 0);
       grad.addColorStop(0, '#ffffff');
       grad.addColorStop(0.45, '#4a4a55');
@@ -607,16 +818,13 @@
       renderer.toneMappingExposure = 1.15;
       container.appendChild(renderer.domElement);
 
-      // [깊은 음영을 위한 명암비 조명 세팅]
-      const ambLight = new THREE.AmbientLight(0xffffff, 0.35); // 앰비언트를 낮추어 그림자 톤 강화
+      const ambLight = new THREE.AmbientLight(0xffffff, 0.35);
       scene.add(ambLight);
 
-      // 우측 상단 정면 주광 (Key Light: 형태 굴곡 하이라이트)
       const keyLight = new THREE.DirectionalLight(0xfff8ee, 1.95);
       keyLight.position.set(4.5, 6, 7);
       scene.add(keyLight);
 
-      // 좌측 하단 은은한 보조광 (Fill Light)
       const fillLight = new THREE.DirectionalLight(0xa5b4fc, 0.25);
       fillLight.position.set(-5, -3, 3);
       scene.add(fillLight);
@@ -632,42 +840,33 @@
 
       butterflyGroup = new THREE.Group();
 
-      // [핵심 1] 날개-몸통 접합부에 짙은 명암(aoMap)이 드리우는 날개 머티리얼
       const wingMaterial = new THREE.MeshStandardMaterial({
         map: userTexture,
         aoMap: wingAO,
-        aoMapIntensity: 1.4, // 접합부 그늘 강조
+        aoMapIntensity: 1.4,
         side: THREE.DoubleSide,
         roughness: 0.35,
         metalness: 0.05
       });
 
-      // 좌측 날개
-      const leftGeo = createChubbyCuteWingShape(false);
-      leftWingMesh = new THREE.Mesh(leftGeo, wingMaterial);
+      leftWingMesh = new THREE.Mesh(createChubbyCuteWingShape(false), wingMaterial);
       leftWingMesh.position.set(-0.06, 0.02, 0);
       butterflyGroup.add(leftWingMesh);
 
-      // 우측 날개
-      const rightGeo = createChubbyCuteWingShape(true);
-      rightWingMesh = new THREE.Mesh(rightGeo, wingMaterial);
+      rightWingMesh = new THREE.Mesh(createChubbyCuteWingShape(true), wingMaterial);
       rightWingMesh.position.set(0.06, 0.02, 0);
       butterflyGroup.add(rightWingMesh);
 
-      // [핵심 2] 마디마디마다 음영(aoMap)과 표면 굴곡 명암이 형성되는 몸통 머티리얼
       const bodyMat = new THREE.MeshStandardMaterial({ 
         color: 0xf3f0ff, 
         aoMap: bodyAO,
-        aoMapIntensity: 1.6, // 마디 주름 골짜기 음영 강조
+        aoMapIntensity: 1.6,
         roughness: 0.3, 
         metalness: 0.08 
       });
 
-      const bodyGeo = createSegmentedBodyGeometry();
-      const bodyMesh = new THREE.Mesh(bodyGeo, bodyMat);
-      butterflyGroup.add(bodyMesh);
+      butterflyGroup.add(new THREE.Mesh(createSegmentedBodyGeometry(), bodyMat));
 
-      // 2개의 곡선 더듬이
       const antCurveL = new THREE.QuadraticBezierCurve3(
         new THREE.Vector3(-0.03, 0.68, 0.02),
         new THREE.Vector3(-0.16, 1.02, 0.1),
@@ -682,7 +881,6 @@
       );
       butterflyGroup.add(new THREE.Mesh(new THREE.TubeGeometry(antCurveR, 16, 0.012, 8, false), bodyMat));
 
-      // 3D 스케일링
       butterflyGroup.scale.set(0.58, 0.58, 0.58);
       scene.add(butterflyGroup);
 
@@ -704,6 +902,13 @@
           butterflyGroup.position.z -= 0.07;
 
           if (butterflyGroup.position.y > 8.5) {
+            if (currentExtractedTexture) {
+              sendButterflyToSupabase(currentExtractedTexture);
+            }
+            const completeDesc = document.getElementById('complete-desc');
+            if (completeDesc) {
+              completeDesc.innerHTML = `마음의 무게를 털어낸 <strong>‘${userAnswers.step7_butterfly_name || "나비"}’</strong>(이)가<br>전면 대형 스크린의 너울 속으로 합류했습니다.`;
+            }
             showScreen('screen-complete');
             isFlyingAway = false;
           }
