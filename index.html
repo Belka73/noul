@@ -57,7 +57,7 @@
       filter: blur(60px);
     }
 
-    /* 알약 칩 크기 및 폰트 절대 유지 */
+    /* 알약 칩 스타일 및 크기 유지 */
     .pill-chip {
       background: rgba(255, 255, 255, 0.11) !important;
       border: 1px solid rgba(255, 255, 255, 0.22) !important;
@@ -110,29 +110,40 @@
       line-height: 1.35;
     }
 
-    /* 좌우 화살표 버튼 */
+    /* 화면 안쪽에 고정되어 잘림 없는 플로팅 화살표 버튼 */
     .arrow-nav-btn {
-      width: 36px;
-      height: 36px;
+      position: absolute;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 38px;
+      height: 38px;
       border-radius: 9999px;
-      background: rgba(255, 255, 255, 0.14);
-      border: 1px solid rgba(255, 255, 255, 0.28);
-      backdrop-filter: blur(12px);
+      background: rgba(18, 12, 34, 0.78);
+      border: 1px solid rgba(255, 255, 255, 0.32);
+      backdrop-filter: blur(14px);
+      -webkit-backdrop-filter: blur(14px);
       color: #ffffff;
       display: flex;
       align-items: center;
       justify-content: center;
       transition: all 0.2s ease;
       cursor: pointer;
-      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+      box-shadow: 0 4px 14px rgba(0, 0, 0, 0.5);
+      z-index: 30;
       flex-shrink: 0;
     }
+    .arrow-nav-btn.btn-prev {
+      left: 10px;
+    }
+    .arrow-nav-btn.btn-next {
+      right: 10px;
+    }
     .arrow-nav-btn:active {
-      transform: scale(0.92);
+      transform: translateY(-50%) scale(0.92);
       background: rgba(255, 255, 255, 0.3);
     }
     .arrow-nav-btn:disabled {
-      opacity: 0.12;
+      opacity: 0.15;
       pointer-events: none;
     }
 
@@ -244,38 +255,38 @@
     </section>
 
     <!-- [STEP 1] 설문 화면 -->
-    <section id="screen-survey" class="screen flex-col flex-1 justify-between overflow-visible">
+    <section id="screen-survey" class="screen flex-col flex-1 justify-between overflow-hidden relative">
       
-      <!-- 상단 진행바 (STEP 표기 삭제, 상단 여백 확보) -->
+      <!-- 상단 진행바 -->
       <header class="w-full pt-0 flex-shrink-0">
         <div class="w-full h-1 bg-white/10 rounded-full overflow-hidden">
           <div id="progress-bar" class="h-full bg-gradient-to-r from-pink-500 to-orange-400 transition-all duration-300" style="width: 14.28%;"></div>
         </div>
       </header>
 
-      <!-- 질문 문장: 진행바와 함께 위쪽으로 끌어올려 키워드 수용 공간 극대화 -->
+      <!-- 질문 문장 -->
       <div class="text-center mt-2 mb-1 pt-0 flex-shrink-0">
         <h1 id="question-title" class="text-2xl font-bold text-white tracking-tight leading-snug">당신은 어떤 나비인가요?</h1>
         <p id="question-desc" class="text-xs text-slate-300/80 mt-0.5 font-light">자신을 소개해 주세요. (다중 선택)</p>
       </div>
 
-      <!-- 키워드 영역: overflow-visible로 경계를 완전히 없앰 -->
-      <div id="survey-chip-wrapper" class="flex-1 flex items-center justify-between w-full min-h-0 my-auto px-1 gap-2 overflow-visible">
+      <!-- 키워드 영역: 화살표는 화면 양쪽 안쪽에 고정되고 칩들은 중앙에서 자연스럽게 배열 -->
+      <div id="survey-chip-wrapper" class="flex-1 relative flex items-center justify-center w-full min-h-0 my-auto overflow-visible">
         
         <!-- 좌측 원형 화살표 -->
-        <button id="btn-chip-prev" class="arrow-nav-btn" type="button" aria-label="이전 키워드">
+        <button id="btn-chip-prev" class="arrow-nav-btn btn-prev" type="button" aria-label="이전 키워드">
           <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M15 19l-7-7 7-7"></path>
           </svg>
         </button>
 
-        <!-- 중앙 키워드 컨테이너 (경계선 완전 제거, overflow-visible) -->
-        <div class="flex-1 flex flex-col items-center justify-center overflow-visible">
+        <!-- 중앙 키워드 컨테이너 -->
+        <div class="w-full flex flex-col items-center justify-center overflow-visible">
           <div id="organic-chip-container" class="flex flex-col items-center justify-center gap-2 w-full overflow-visible"></div>
         </div>
 
         <!-- 우측 원형 화살표 -->
-        <button id="btn-chip-next" class="arrow-nav-btn" type="button" aria-label="다음 키워드">
+        <button id="btn-chip-next" class="arrow-nav-btn btn-next" type="button" aria-label="다음 키워드">
           <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 5l7 7-7 7"></path>
           </svg>
@@ -497,8 +508,7 @@
     let currentStepIdx = 0;
     let chipPageIndex = 0;
 
-    // 화살표와 닿는 줄(4행)을 2개로 줄여 화살표와 겹침을 방지하고 위아래 8줄로 꽉 채운 21개 배치
-    // [3 - 3 - 3 - 2(화살표라인) - 2(화살표라인) - 3 - 3 - 2]
+    // 화살표와 닿는 4행·5행을 2개로 줄여 화살표와 절대 겹치지 않게 조정한 8줄 [3-3-3-2-2-3-3-2] = 21개
     const ROW_PATTERN = [3, 3, 3, 2, 2, 3, 3, 2];
     const CHIPS_PER_PAGE = 21;
 
