@@ -57,7 +57,7 @@
       filter: blur(60px);
     }
 
-    /* 알약 칩 크기, 폰트, 두께 절대 유지 */
+    /* 알약 칩 크기, 폰트, 두께 100% 절대 유지 */
     .pill-chip {
       background: rgba(255, 255, 255, 0.11) !important;
       border: 1px solid rgba(255, 255, 255, 0.22) !important;
@@ -110,11 +110,11 @@
       line-height: 1.35;
     }
 
-    /* 좌우 화살표 버튼: top 48%로 살짝 위로 이동 배치 */
+    /* 화면 전체 세로축 정중앙(50%) 고정 화살표 */
     .arrow-nav-btn {
       position: absolute;
-      top: 48%;
-      transform: translateY(-50%);
+      top: 50% !important;
+      transform: translateY(-50%) !important;
       width: 38px;
       height: 38px;
       border-radius: 9999px;
@@ -129,17 +129,17 @@
       transition: all 0.2s ease;
       cursor: pointer;
       box-shadow: 0 4px 14px rgba(0, 0, 0, 0.5);
-      z-index: 40;
+      z-index: 50;
       flex-shrink: 0;
     }
     .arrow-nav-btn.btn-prev {
-      left: 8px;
+      left: 10px;
     }
     .arrow-nav-btn.btn-next {
-      right: 8px;
+      right: 10px;
     }
     .arrow-nav-btn:active {
-      transform: translateY(-50%) scale(0.92);
+      transform: translateY(-50%) scale(0.92) !important;
       background: rgba(255, 255, 255, 0.3);
     }
     .arrow-nav-btn:disabled {
@@ -255,7 +255,7 @@
     </section>
 
     <!-- [STEP 1] 설문 화면 -->
-    <section id="screen-survey" class="screen flex-col flex-1 justify-between overflow-visible relative">
+    <section id="screen-survey" class="screen flex-col flex-1 justify-between overflow-visible relative h-full">
       
       <!-- 상단 진행바 -->
       <header class="w-full pt-1 flex-shrink-0">
@@ -270,27 +270,24 @@
         <p id="question-desc" class="text-xs text-slate-300/80 mt-0.5 font-light">자신을 소개해 주세요. (다중 선택)</p>
       </div>
 
-      <!-- 키워드 영역 (화살표 위치: top 48%로 살짝 위로 이동) -->
-      <div id="survey-chip-wrapper" class="flex-1 relative flex items-center justify-center w-full min-h-0 my-auto overflow-visible">
-        
-        <!-- 좌측 고정 화살표 -->
-        <button id="btn-chip-prev" class="arrow-nav-btn btn-prev" type="button" aria-label="이전 키워드">
-          <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M15 19l-7-7 7-7"></path>
-          </svg>
-        </button>
+      <!-- 좌우 화살표: 화면 전체 세로축 정중앙(top: 50%, translateY(-50%))에 독립 고정 -->
+      <button id="btn-chip-prev" class="arrow-nav-btn btn-prev" type="button" aria-label="이전 키워드">
+        <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M15 19l-7-7 7-7"></path>
+        </svg>
+      </button>
 
-        <!-- 중앙 키워드 컨테이너 -->
-        <div class="w-full flex flex-col items-center justify-center overflow-visible px-8">
+      <button id="btn-chip-next" class="arrow-nav-btn btn-next" type="button" aria-label="다음 키워드">
+        <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 5l7 7-7 7"></path>
+        </svg>
+      </button>
+
+      <!-- 중앙 키워드 영역 -->
+      <div id="survey-chip-wrapper" class="flex-1 relative flex items-center justify-center w-full min-h-0 my-auto overflow-visible px-8">
+        <div class="w-full flex flex-col items-center justify-center overflow-visible">
           <div id="organic-chip-container" class="flex flex-col items-center justify-center gap-2 w-full overflow-visible"></div>
         </div>
-
-        <!-- 우측 고정 화살표 -->
-        <button id="btn-chip-next" class="arrow-nav-btn btn-next" type="button" aria-label="다음 키워드">
-          <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 5l7 7-7 7"></path>
-          </svg>
-        </button>
       </div>
 
       <!-- [Q6] 일시 / 이메일 설정 -->
@@ -508,6 +505,7 @@
     let currentStepIdx = 0;
     let chipPageIndex = 0;
 
+    // 8줄 [3-3-3-2-2-3-3-2] = 페이지당 21개 (잘림 없음)
     const ROW_PATTERN = [3, 3, 3, 2, 2, 3, 3, 2];
     const CHIPS_PER_PAGE = 21;
 
@@ -539,16 +537,22 @@
 
       if (currentStepIdx < 5) {
         surveyChipWrapper.classList.remove('hidden');
+        btnChipPrev.classList.remove('hidden');
+        btnChipNext.classList.remove('hidden');
         elField6.classList.add('hidden');
         elField7.classList.add('hidden');
         chipPageIndex = 0;
         renderPagedChips();
       } else if (currentStepIdx === 5) {
         surveyChipWrapper.classList.add('hidden');
+        btnChipPrev.classList.add('hidden');
+        btnChipNext.classList.add('hidden');
         elField6.classList.remove('hidden');
         elField7.classList.add('hidden');
       } else {
         surveyChipWrapper.classList.add('hidden');
+        btnChipPrev.classList.add('hidden');
+        btnChipNext.classList.add('hidden');
         elField6.classList.add('hidden');
         elField7.classList.remove('hidden');
       }
