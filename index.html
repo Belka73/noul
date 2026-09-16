@@ -6,8 +6,12 @@
   <title>너울 : NOUL</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <!-- 감성 손글씨 필기체 폰트 불러오기 -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Nanum+Pen+Script&display=swap" rel="stylesheet">
+
   <style>
-    /* 뷰포트 높이 강제 100% 고정 (스크롤 절대 방지) */
     html, body {
       width: 100%;
       height: 100dvh;
@@ -21,7 +25,15 @@
       user-select: none;
     }
 
-    /* 몽환적인 배경 앰비언트 글로우 */
+    /* 환기 화면에 적용될 부드러운 필기체 */
+    .handwriting-text {
+      font-family: 'Nanum Pen Script', cursive, sans-serif;
+      font-size: 1.38rem;
+      line-height: 1.45;
+      letter-spacing: 0.02em;
+    }
+
+    /* 몽환적 배경 앰비언트 글로우 */
     .ambient-bg {
       position: fixed;
       inset: 0;
@@ -35,7 +47,7 @@
       height: 360px;
       left: -20%;
       top: 15%;
-      background: radial-gradient(circle, rgba(244, 63, 94, 0.4) 0%, rgba(244, 63, 94, 0) 70%);
+      background: radial-gradient(circle, rgba(244, 63, 94, 0.38) 0%, rgba(244, 63, 94, 0) 70%);
       filter: blur(55px);
     }
     .ambient-glow-2 {
@@ -44,11 +56,11 @@
       height: 380px;
       right: -25%;
       bottom: 10%;
-      background: radial-gradient(circle, rgba(249, 115, 22, 0.42) 0%, rgba(249, 115, 22, 0) 70%);
+      background: radial-gradient(circle, rgba(249, 115, 22, 0.4) 0%, rgba(249, 115, 22, 0) 70%);
       filter: blur(60px);
     }
 
-    /* 레퍼런스 스타일 2열 알약형 캡슐 칩 */
+    /* 레퍼런스 스타일 자연스러운 알약형 캡슐 칩 */
     .pill-chip {
       background: rgba(255, 255, 255, 0.12);
       border: 1px solid rgba(255, 255, 255, 0.22);
@@ -56,19 +68,18 @@
       -webkit-backdrop-filter: blur(12px);
       color: rgba(255, 255, 255, 0.92);
       border-radius: 9999px;
-      padding: 0.45rem 0.6rem;
-      font-size: 0.8rem;
-      letter-spacing: -0.025em;
+      padding: 0.42rem 0.85rem;
+      font-size: 0.78rem;
+      letter-spacing: -0.02em;
       line-height: 1.2;
       transition: all 0.18s cubic-bezier(0.16, 1, 0.3, 1);
-      box-shadow: 0 3px 8px rgba(0, 0, 0, 0.15);
-      display: flex;
+      box-shadow: 0 3px 8px rgba(0, 0, 0, 0.14);
+      display: inline-flex;
       align-items: center;
       justify-content: center;
       text-align: center;
       white-space: nowrap;
       cursor: pointer;
-      width: 100%;
     }
     .pill-chip:active {
       transform: scale(0.95);
@@ -78,8 +89,25 @@
       border-color: rgba(254, 215, 170, 0.95) !important;
       color: #ffffff !important;
       font-weight: 600;
-      box-shadow: 0 4px 14px rgba(249, 115, 22, 0.5), inset 0 1px 1px rgba(255, 255, 255, 0.4);
+      box-shadow: 0 4px 16px rgba(249, 115, 22, 0.5), inset 0 1px 1px rgba(255, 255, 255, 0.4);
       transform: translateY(-1.5px);
+    }
+
+    /* 문장 속 키워드 강조 배지 (괄호 없이 네온 캡슐 형태로 돋보이게) */
+    .keyword-highlight {
+      display: inline-block;
+      font-family: -apple-system, BlinkMacSystemFont, "Pretendard", sans-serif;
+      font-weight: 700;
+      font-size: 0.85rem;
+      color: #fed7aa;
+      background: rgba(249, 115, 22, 0.22);
+      border: 1px solid rgba(251, 146, 60, 0.55);
+      border-radius: 9999px;
+      padding: 0.12rem 0.55rem;
+      margin: 0 0.2rem;
+      vertical-align: middle;
+      box-shadow: 0 0 10px rgba(249, 115, 22, 0.3);
+      line-height: 1.35;
     }
 
     /* 레퍼런스 좌·우 원형 화살표 버튼 */
@@ -200,10 +228,10 @@
       </footer>
     </section>
 
-    <!-- ================= [STEP 1] 설문 화면 (간격 하향 + 2열 고밀도 그리드) ================= -->
+    <!-- ================= [STEP 1] 설문 화면 (자연스러운 엇갈림 지그재그 배열) ================= -->
     <section id="screen-survey" class="screen flex-col flex-1 justify-between overflow-hidden">
       
-      <!-- 1. 상단 프로그레스 바 -->
+      <!-- 상단 프로그레스 바 -->
       <header class="w-full pt-1 flex-shrink-0">
         <div class="flex justify-between items-center text-xs font-mono mb-2">
           <span id="step-indicator" class="text-orange-400 font-bold tracking-wider">STEP 01 / 07</span>
@@ -214,13 +242,13 @@
         </div>
       </header>
 
-      <!-- 2. 질문 타이틀: 진행바와의 간격을 넓혀 확실히 아래로 내림 (mt-6 적용) -->
-      <div class="text-center mt-6 mb-2 flex-shrink-0">
+      <!-- 질문 타이틀: 진행바와 간격을 넉넉히 벌려 아래쪽으로 배치 -->
+      <div class="text-center mt-5 mb-1 flex-shrink-0">
         <h1 id="question-title" class="text-xl font-bold text-white tracking-tight leading-snug">당신은 어떤 나비인가요?</h1>
-        <p id="question-desc" class="text-xs text-slate-300/80 mt-1.5 font-light">자신을 소개해 주세요. (다중 선택)</p>
+        <p id="question-desc" class="text-xs text-slate-300/80 mt-1 font-light">자신을 소개해 주세요. (다중 선택)</p>
       </div>
 
-      <!-- 3. 키워드 선택 영역: 좌·우 화살표 + 2열 고밀도 그리드 (14~16개 배치) -->
+      <!-- 키워드 선택 영역: 레퍼런스 스타일 엇갈린 자연스러운 클러스터 배치 -->
       <div id="survey-chip-wrapper" class="flex-1 flex items-center justify-between gap-1 w-full min-h-0 my-auto">
         <!-- 좌측 화살표 -->
         <button id="btn-chip-prev" class="arrow-nav-btn z-10" type="button" aria-label="이전 키워드">
@@ -229,9 +257,9 @@
           </svg>
         </button>
 
-        <!-- 중앙 알약 칩 영역: grid-cols-2 로 레퍼런스처럼 깔끔하게 정렬 -->
+        <!-- 중앙 알약 칩 영역 (레퍼런스처럼 3개-4개-4개-3개 유기적으로 뭉쳐지는 flex wrap 컨테이너) -->
         <div class="flex-1 flex flex-col justify-center items-center px-1">
-          <div id="chip-grid" class="grid grid-cols-2 gap-2 w-full max-w-[280px]"></div>
+          <div id="chip-grid" class="flex flex-wrap justify-center content-center gap-2 max-w-[310px] w-full py-1"></div>
           
           <div id="chip-page-indicator" class="text-[10px] font-mono text-slate-400 mt-2 tracking-widest bg-white/5 px-2 py-0.5 rounded-full border border-white/10">
             1 / 4
@@ -262,7 +290,7 @@
           </div>
         </div>
         <p class="text-[11px] text-slate-400 italic text-center px-2 leading-relaxed">
-          "가장 헐겁게 떠났던 나비가 모든 무게를 털어내고, 약속된 시간에 맞춰 가장 찬란한 모습으로 당신의 문을 두드립니다."
+          "가장 헐겁게 떠났던 나비가 모든 무게를 털어내고, 약속된 시간에 맞춰 가장 찬란한 모습으로 당신의 문을 두드립니다."[cite: 1]
         </p>
       </div>
 
@@ -278,34 +306,36 @@
           </div>
         </div>
         <p class="text-[11px] text-slate-400 italic text-center px-2 leading-relaxed">
-          "이름을 부르는 순간, 나비는 비로소 당신만의 분신이 되어 거대한 하늘 너울 속으로 날아오를 준비를 마칩니다."
+          "이름을 부르는 순간, 나비는 비로소 당신만의 분신이 되어 거대한 하늘 너울 속으로 날아오를 준비를 마칩니다."[cite: 1]
         </p>
       </div>
 
-      <!-- 4. 하단 화면 고정 액션 버튼 -->
+      <!-- 하단 액션 버튼 -->
       <footer class="w-full pt-2 flex gap-2.5 flex-shrink-0">
         <button id="btn-survey-prev" type="button" class="w-1/3 py-3.5 rounded-2xl border border-white/20 bg-white/5 text-slate-300 font-medium text-sm hidden active:scale-95 transition-all">이전</button>
         <button id="btn-survey-next" type="button" disabled class="flex-1 py-3.5 rounded-2xl bg-gradient-to-r from-orange-500 to-amber-500 text-white font-semibold text-sm disabled:opacity-30 disabled:pointer-events-none active:scale-95 transition-all shadow-lg shadow-orange-500/25">다음 질문으로</button>
       </footer>
     </section>
 
-    <!-- ================= [STEP 2] 동화적 환기 화면 (Interlude: 나비 살짝 하향, 문장 완전 중앙) ================= -->
-    <section id="screen-interlude" class="screen flex-col flex-1 justify-between py-4 text-center overflow-hidden">
-      <!-- 1. 나비: 상단에 딱 붙지 않도록 mt-6으로 살짝 하향 조정, 영문 태그 완전 제거 -->
-      <div class="flex flex-col items-center justify-center mt-6 flex-shrink-0">
-        <div class="w-[140px] h-[120px] relative flex items-center justify-center">
+    <!-- ================= [STEP 2] 동화적 환기 화면 (Interlude) ================= -->
+    <!-- 나비와 문장 간격 축소, 문장 살짝 상향, 필기체 폰트, 키워드 오렌지 배지 강조 -->
+    <section id="screen-interlude" class="screen flex-col flex-1 justify-start items-center py-2 text-center overflow-hidden">
+      
+      <!-- 상단 3D 나비: 문장과 딱 붙도록 마진 축소 -->
+      <div class="flex flex-col items-center justify-center mt-3 flex-shrink-0">
+        <div class="w-[130px] h-[105px] relative flex items-center justify-center">
           <div id="interlude-canvas-container" class="w-full h-full"></div>
         </div>
       </div>
 
-      <!-- 2. 문장: 바닥이 아닌 화면 정중앙에 편안하게 안착 -->
-      <div class="flex-1 flex flex-col justify-center items-center px-4 my-auto">
-        <div id="interlude-text-box" class="space-y-3.5 text-slate-200 text-[14px] leading-relaxed font-light break-keep max-w-[320px] mx-auto text-center"></div>
+      <!-- 중앙 동화 문장: 나비 바로 아래로 바짝 끌어올리고, 감성 필기체 적용 -->
+      <div class="flex-1 flex flex-col justify-start items-center px-4 pt-2 my-auto">
+        <div id="interlude-text-box" class="space-y-2.5 text-slate-100 handwriting-text break-keep max-w-[325px] mx-auto text-center"></div>
       </div>
 
-      <!-- 3. 하단 버튼 -->
-      <footer class="w-full pt-2 flex-shrink-0">
-        <button id="btn-interlude-next" type="button" class="w-full py-4 rounded-2xl bg-gradient-to-r from-orange-500 to-amber-500 text-white font-semibold text-sm tracking-wide active:scale-95 transition-all shadow-lg shadow-orange-500/30">
+      <!-- 하단 버튼 -->
+      <footer class="w-full pt-1 flex-shrink-0">
+        <button id="btn-interlude-next" type="button" class="w-full py-3.5 rounded-2xl bg-gradient-to-r from-orange-500 to-amber-500 text-white font-semibold text-sm tracking-wide active:scale-95 transition-all shadow-lg shadow-orange-500/30">
           다음 여정으로
         </button>
       </footer>
@@ -318,7 +348,7 @@
           내면의 고유한 모습을 담아<br>나비를 깨우고 있습니다.
         </h2>
         <p class="text-xs text-orange-300/80 mt-2 font-light tracking-wide">
-          종이의 무게를 지우고 빛의 날개를 입히는 중입니다.
+          종이의 무게를 지우고 빛의 날개를 입히는 중입니다.[cite: 1]
         </p>
       </div>
 
@@ -338,7 +368,7 @@
       <header class="text-center pt-2 z-10">
         <span class="text-xs font-mono text-white/90 font-semibold tracking-wider uppercase drop-shadow">NOUL 3D BUTTERFLY</span>
         <h2 id="preview-butterfly-name" class="text-2xl font-black text-white mt-0.5 drop-shadow-md tracking-tight">‘나비’</h2>
-        <p class="text-xs text-white/85 mt-0.5 font-light drop-shadow">화면을 위로 쓸어 올려 대형 화면으로 날려보내세요.</p>
+        <p class="text-xs text-white/85 mt-0.5 font-light drop-shadow">화면을 위로 쓸어 올려 대형 화면으로 날려보내세요.[cite: 1]</p>
       </header>
 
       <div id="three-container" class="flex-1 w-full h-full absolute inset-0 z-0"></div>
@@ -363,7 +393,7 @@
       <h2 class="text-2xl font-bold text-white mb-2">하늘 위로 날아올랐습니다</h2>
       <p id="complete-desc" class="text-sm text-slate-300 leading-relaxed mb-8">
         마음의 무게를 털어낸 나비가<br>
-        전면 대형 스크린의 너울 속으로 합류했습니다.
+        전면 대형 스크린의 너울 속으로 합류했습니다.[cite: 1]
       </p>
       <button onclick="location.reload()" type="button" class="px-8 py-3.5 rounded-2xl border border-white/20 text-slate-200 text-xs font-medium active:scale-95 transition-all">
         새로운 나비 띄우기
@@ -379,12 +409,12 @@
       if (target) target.classList.add('active');
     }
 
-    function joinWithGwaWa(words) {
+    /* 괄호 대신 오렌지 네온 캡슐 배지로 돋보이게 렌더링 */
+    function formatKeywordBadges(words) {
       if (!words || words.length === 0) return "";
-      return words.map(w => `<strong class="text-orange-400 font-semibold underline decoration-orange-400/40 underline-offset-4">(${w})</strong>`).join(', ');
+      return words.map(w => `<span class="keyword-highlight">${w}</span>`).join(' ');
     }
 
-    /* 50개 키워드 풀 */
     const surveyQuestions = [
       {
         title: "당신은 어떤 나비인가요?",
@@ -453,7 +483,7 @@
       },
       {
         title: "먼 하늘 너울 속으로 날아오를 나비의 이름은?",
-        desc: "나비에게 고유한 이름을 붙여주세요.",
+        desc: "나비에게 고유한 이름을 붙여주세요.[cite: 1]",
         badge: "이름 입력"
       }
     ];
@@ -466,7 +496,6 @@
 
     let currentStepIdx = 0;
     let chipPageIndex = 0;
-    /* 2열 7행 = 한 화면 14개로 모바일 최적 맞춤 */
     const CHIPS_PER_PAGE = 14;
 
     const elTitle = document.getElementById('question-title');
@@ -603,7 +632,7 @@
     });
 
     /* ============================================================
-       환기 페이지(Interlude) 렌더링
+       환기 페이지(Interlude) 렌더링 - 괄호 제거 & 배지화 & 필기체
        ============================================================ */
     const interludeTextBox = document.getElementById('interlude-text-box');
     const btnInterludeNext = document.getElementById('btn-interlude-next');
@@ -613,40 +642,40 @@
       if (stepFrom === 0) {
         html = `
           <p>깊은 잠에서 깨어나 눈부신 햇살과 잔잔한 바람을 맞이한 당신.</p>
-          <p>당신은 ${joinWithGwaWa(userSelections.q1)}의 모습을 품은 작은 나비가 되어 마침내 세상 밖으로 날개를 펼쳤습니다.</p>
-          <p class="text-slate-300 font-medium pt-2">당신만의 온전한 날갯짓으로, 이제 어떤 하늘을 향해 날아가 보고 싶나요?</p>
+          <p>당신은 ${formatKeywordBadges(userSelections.q1)}의 모습을 품은 작은 나비가 되어 마침내 세상 밖으로 날개를 펼쳤습니다.</p>
+          <p class="text-orange-200/90 pt-1">당신만의 온전한 날갯짓으로, 이제 어떤 하늘을 향해 날아가 보고 싶나요?</p>
         `;
       } else if (stepFrom === 1) {
         html = `
-          <p>저 멀리 반짝이는 ${joinWithGwaWa(userSelections.q2)}을(를) 가슴에 품었습니다.</p>
+          <p>저 멀리 반짝이는 ${formatKeywordBadges(userSelections.q2)}을 가슴에 품었습니다.</p>
           <p>가고 싶은 곳이 생긴 나비의 마음속엔 작고 따뜻한 불꽃이 피어오릅니다.</p>
-          <p class="text-slate-400 text-xs">먼 길을 가다 보면 세찬 바람과 차가운 비를 만나기도 하겠지요.</p>
-          <p class="text-slate-300 font-medium pt-2">그 긴 비행 동안 날개가 지치지 않도록, 날개 안쪽에 품고 갈 단단한 마음은 무엇인가요?</p>
+          <p class="text-slate-300 text-sm">먼 길을 가다 보면 세찬 바람과 차가운 비를 만나기도 하겠지요.</p>
+          <p class="text-orange-200/90 pt-1">그 긴 비행 동안 날개가 지치지 않도록, 날개 안쪽에 품고 갈 단단한 마음은 무엇인가요?</p>
         `;
       } else if (stepFrom === 2) {
         html = `
-          <p>${joinWithGwaWa(userSelections.q3)}을(를) 가만히 챙겨 넣었습니다.</p>
+          <p>${formatKeywordBadges(userSelections.q3)}을 가만히 챙겨 넣었습니다.</p>
           <p>이제 당신은 세상의 조급한 시계에 쫓기지 않고, 오직 당신만의 보폭으로 하늘을 날 준비를 마쳤습니다.</p>
-          <p class="text-slate-300 font-medium pt-2">그런데 저 앞의 짙은 구름 속에서, 오래전부터 당신의 비행을 무겁게 가로막던 그림자가 서서히 모습을 드러냅니다.</p>
+          <p class="text-orange-200/90 pt-1">그런데 저 앞의 짙은 구름 속에서, 오래전부터 당신의 비행을 무겁게 가로막던 그림자가 서서히 모습을 드러냅니다.</p>
         `;
       } else if (stepFrom === 3) {
         html = `
-          <p>먹구름처럼 불쑥 나타나 앞길을 막아선 ${joinWithGwaWa(userSelections.q4)}.</p>
+          <p>먹구름처럼 불쑥 나타나 앞길을 막아선 ${formatKeywordBadges(userSelections.q4)}.</p>
           <p>작고 여린 날개가 잠시 파르르 떨리며 숨을 고릅니다.</p>
-          <p class="text-slate-300 font-medium pt-2">하지만 두려워할 필요는 없습니다. 당신에겐 이 끈질긴 그림자를 가볍게 털어내고 지나갈 당신만의 지혜가 있으니까요.</p>
+          <p class="text-orange-200/90 pt-1">하지만 두려워할 필요는 없습니다. 당신에겐 이 끈질긴 그림자를 가볍게 털어내고 지나갈 당신만의 지혜가 있으니까요.</p>
         `;
       } else if (stepFrom === 4) {
         html = `
-          <p>시원한 ${joinWithGwaWa(userSelections.q5)} 한마디에, 날개를 옥죄던 어두운 그림자들이 허공으로 맥없이 흩어져 사라집니다.</p>
-          <p>온갖 무게를 털어내고 한결 가벼워진 나비는 이제 거대한 하늘 너울 속으로 온전히 날아오릅니다.</p>
-          <p class="text-slate-300 font-medium pt-2">모든 상처를 비워낸 나비가 가장 눈부신 빛이 되어 당신의 품으로 다시 돌아올 날은 언제일까요?</p>
+          <p>시원한 ${formatKeywordBadges(userSelections.q5)} 한마디에, 날개를 옥죄던 어두운 그림자들이 허공으로 맥없이 흩어져 사라집니다.</p>
+          <p>온갖 무게를 털어내고 한결 가벼워진 나비는 이제 거대한 하늘 너울 속으로 온전히 날아오릅니다.[cite: 1]</p>
+          <p class="text-orange-200/90 pt-1">모든 상처를 비워낸 나비가 가장 눈부신 빛이 되어 당신의 품으로 다시 돌아올 날은 언제일까요?[cite: 1]</p>
         `;
       } else if (stepFrom === 5) {
         const formattedDate = userSelections.q6_time ? userSelections.q6_time.replace('T', ' ') : '약속된 그날';
         html = `
-          <p><strong class="text-orange-400 font-semibold underline underline-offset-4">${formattedDate}</strong></p>
+          <p><span class="keyword-highlight">${formattedDate}</span></p>
           <p>지친 계절의 끝자락, 가장 따뜻한 위로가 필요한 바로 그 순간으로 소중한 약속을 띄워 보냈습니다.</p>
-          <p class="text-slate-300 font-medium pt-2">이제 이 모든 여정과 당신의 깊은 마음을 대신 품고 날아갈, 세상에 단 하나뿐인 이 작은 분신에게 다정한 이름을 선물해 주세요.</p>
+          <p class="text-orange-200/90 pt-1">이제 이 모든 여정과 당신의 깊은 마음을 대신 품고 날아갈, 세상에 단 하나뿐인 이 작은 분신에게 다정한 이름을 선물해 주세요.</p>
         `;
       }
 
@@ -888,8 +917,8 @@
       container.innerHTML = '';
       if (miniAnimId) cancelAnimationFrame(miniAnimId);
 
-      const w = container.clientWidth || 140;
-      const h = container.clientHeight || 120;
+      const w = container.clientWidth || 130;
+      const h = container.clientHeight || 105;
 
       miniScene = new THREE.Scene();
       miniCamera = new THREE.PerspectiveCamera(36, w / h, 0.1, 100);
