@@ -7,7 +7,6 @@
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
   <style>
-    /* 카카오톡 인앱 및 모바일 브라우저 주소창 완벽 대응 */
     html, body {
       height: 100%;
       height: 100dvh;
@@ -19,7 +18,6 @@
       user-select: none;
     }
 
-    /* 몽환적 배경 앰비언트 글로우 */
     .ambient-bg {
       position: fixed;
       inset: 0;
@@ -55,19 +53,20 @@
       filter: blur(65px);
     }
 
-    /* 레퍼런스 스타일 둥근 알약형 캡슐 칩 */
+    /* 레퍼런스 스타일 알약형 캡슐 칩 (컴팩트 고밀도 세팅) */
     .pill-chip {
       background: rgba(255, 255, 255, 0.12);
       border: 1px solid rgba(255, 255, 255, 0.22);
-      backdrop-filter: blur(14px);
-      -webkit-backdrop-filter: blur(14px);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
       color: rgba(255, 255, 255, 0.92);
       border-radius: 9999px;
-      padding: 0.55rem 1.05rem;
-      font-size: 0.85rem;
-      letter-spacing: -0.015em;
-      transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
-      box-shadow: 0 4px 14px rgba(0, 0, 0, 0.15);
+      padding: 0.42rem 0.85rem;
+      font-size: 0.78rem;
+      letter-spacing: -0.02em;
+      line-height: 1.25;
+      transition: all 0.18s cubic-bezier(0.16, 1, 0.3, 1);
+      box-shadow: 0 3px 10px rgba(0, 0, 0, 0.14);
       display: inline-flex;
       align-items: center;
       justify-content: center;
@@ -83,18 +82,18 @@
       border-color: rgba(254, 215, 170, 0.95) !important;
       color: #ffffff !important;
       font-weight: 600;
-      box-shadow: 0 4px 18px rgba(249, 115, 22, 0.5), inset 0 1px 1px rgba(255, 255, 255, 0.4);
-      transform: translateY(-2px);
+      box-shadow: 0 4px 16px rgba(249, 115, 22, 0.5), inset 0 1px 1px rgba(255, 255, 255, 0.4);
+      transform: translateY(-1.5px);
     }
 
     /* 레퍼런스 좌·우 원형 화살표 버튼 */
     .arrow-nav-btn {
-      width: 38px;
-      height: 38px;
+      width: 36px;
+      height: 36px;
       border-radius: 9999px;
       background: rgba(255, 255, 255, 0.14);
-      border: 1px solid rgba(255, 255, 255, 0.28);
-      backdrop-filter: blur(12px);
+      border: 1px solid rgba(255, 255, 255, 0.26);
+      backdrop-filter: blur(10px);
       color: #ffffff;
       display: flex;
       align-items: center;
@@ -147,7 +146,7 @@
 </head>
 <body class="flex justify-center w-full">
 
-  <!-- 은은한 앰비언트 배경 -->
+  <!-- 배경 앰비언트 글로우 -->
   <div class="ambient-bg">
     <div class="ambient-glow-1"></div>
     <div class="ambient-glow-2"></div>
@@ -213,10 +212,10 @@
       </footer>
     </section>
 
-    <!-- ================= [STEP 1] 설문 화면 (좌우 넘김 화살표 완벽 적용) ================= -->
+    <!-- ================= [STEP 1] 설문 화면 ================= -->
     <section id="screen-survey" class="screen flex-col flex-1 justify-between overflow-hidden">
       
-      <!-- 1. 상단 프로그레스 헤더 -->
+      <!-- 상단 프로그레스 바 -->
       <header class="w-full pt-1 flex-shrink-0">
         <div class="flex justify-between items-center text-xs font-mono mb-2">
           <span id="step-indicator" class="text-orange-400 font-bold tracking-wider">STEP 01 / 07</span>
@@ -227,34 +226,34 @@
         </div>
       </header>
 
-      <!-- 2. 중앙 타이틀 -->
-      <div class="text-center pt-2 pb-1 flex-shrink-0">
+      <!-- 질문 타이틀 (진행 바와의 간격을 넉넉히 벌려 아래쪽으로 이동) -->
+      <div class="text-center mt-5 pt-3 pb-2 flex-shrink-0">
         <h1 id="question-title" class="text-xl font-bold text-white tracking-tight leading-snug">당신은 어떤 나비인가요?</h1>
-        <p id="question-desc" class="text-xs text-slate-300/80 mt-1 font-light">자신을 소개해 주세요. (다중 선택)</p>
+        <p id="question-desc" class="text-xs text-slate-300/80 mt-1.5 font-light">자신을 소개해 주세요. (다중 선택)</p>
       </div>
 
-      <!-- 3. 중앙 본문 영역: [Q1~Q5] 좌우 화살표 + 알약 칩 (절대 안 밀림) -->
+      <!-- [Q1 ~ Q5] 16개 고밀도 알약 칩 + 좌·우 화살표 -->
       <div id="survey-chip-wrapper" class="flex-1 flex items-center justify-between gap-1 min-h-0 relative my-auto">
         <!-- 좌측 화살표 -->
         <button id="btn-chip-prev" class="arrow-nav-btn z-10" type="button" aria-label="이전 키워드">
-          <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M15 19l-7-7 7-7"></path>
           </svg>
         </button>
 
-        <!-- 중앙 알약 칩들 (한 화면 10개 고정) -->
+        <!-- 중앙 알약 칩 영역 (16개 촘촘한 배치) -->
         <div class="flex-1 flex flex-col justify-center items-center h-full px-1">
-          <div id="chip-grid" class="flex flex-wrap justify-center content-center gap-2 w-full"></div>
+          <div id="chip-grid" class="flex flex-wrap justify-center content-center gap-1.5 w-full max-h-[52vh]"></div>
           
-          <!-- 페이지 표시 (1 / 5) -->
+          <!-- 페이지 표시 (1 / 4) -->
           <div id="chip-page-indicator" class="text-[10px] font-mono text-slate-400 mt-2.5 tracking-widest bg-white/5 px-2.5 py-0.5 rounded-full border border-white/10">
-            1 / 5
+            1 / 4
           </div>
         </div>
 
         <!-- 우측 화살표 -->
         <button id="btn-chip-next" class="arrow-nav-btn z-10" type="button" aria-label="다음 키워드">
-          <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 5l7 7-7 7"></path>
           </svg>
         </button>
@@ -296,7 +295,7 @@
         </p>
       </div>
 
-      <!-- 4. 하단 화면 고정 액션 버튼 (잘림 방지) -->
+      <!-- 하단 액션 버튼 바 -->
       <footer class="w-full pt-2 flex gap-2.5 flex-shrink-0">
         <button id="btn-survey-prev" type="button" class="w-1/3 py-3.5 rounded-2xl border border-white/20 bg-white/5 text-slate-300 font-medium text-sm hidden active:scale-95 transition-all">이전</button>
         <button id="btn-survey-next" type="button" disabled class="flex-1 py-3.5 rounded-2xl bg-gradient-to-r from-orange-500 to-amber-500 text-white font-semibold text-sm disabled:opacity-30 disabled:pointer-events-none active:scale-95 transition-all shadow-lg shadow-orange-500/25">다음 질문으로</button>
@@ -304,23 +303,20 @@
     </section>
 
     <!-- ================= [STEP 2] 동화적 환기 화면 (Interlude) ================= -->
-    <section id="screen-interlude" class="screen flex-col flex-1 justify-between py-2 text-center overflow-hidden">
-      <!-- 상단 3D 나비 (컴팩트한 크기로 온전한 노출) -->
-      <div class="flex flex-col items-center justify-center pt-1 flex-shrink-0">
-        <div class="w-[130px] h-[120px] relative flex items-center justify-center">
+    <section id="screen-interlude" class="screen flex-col flex-1 justify-between py-4 text-center overflow-hidden">
+      <!-- 1. 나비: 너무 위에 붙지 않도록 mt-3 여백 부여, noul companion 텍스트 제거 -->
+      <div class="flex flex-col items-center justify-center mt-3 flex-shrink-0">
+        <div class="w-[140px] h-[130px] relative flex items-center justify-center">
           <div id="interlude-canvas-container" class="w-full h-full"></div>
         </div>
-        <div class="inline-flex items-center gap-2 px-3 py-0.5 rounded-full bg-white/10 backdrop-blur-md border border-white/10 mt-1">
-          <span class="text-[10px] font-mono text-orange-300 tracking-wider font-medium">NOUL COMPANION</span>
-        </div>
       </div>
 
-      <!-- 하단 문장 -->
-      <div class="flex-1 flex flex-col justify-center px-3 py-2 text-center my-auto">
-        <div id="interlude-text-box" class="space-y-3 text-slate-200 text-[13.5px] leading-relaxed font-light break-keep"></div>
+      <!-- 2. 문장: 바닥 쪽이 아닌 화면 정중앙에 편안히 안착하도록 조정 -->
+      <div class="flex-1 flex flex-col justify-center items-center px-4 my-auto">
+        <div id="interlude-text-box" class="space-y-3.5 text-slate-200 text-[14px] leading-relaxed font-light break-keep max-w-[320px] mx-auto text-center"></div>
       </div>
 
-      <!-- 하단 진입 버튼 -->
+      <!-- 3. 하단 진입 버튼 -->
       <footer class="w-full pt-2 flex-shrink-0">
         <button id="btn-interlude-next" type="button" class="w-full py-4 rounded-2xl bg-gradient-to-r from-orange-500 to-amber-500 text-white font-semibold text-sm tracking-wide active:scale-95 transition-all shadow-lg shadow-orange-500/30">
           다음 여정으로
@@ -332,7 +328,7 @@
     <section id="screen-loading" class="screen flex-col flex-1 justify-between items-center py-10 text-center relative overflow-hidden">
       <div class="mt-4 z-10">
         <h2 class="text-2xl font-bold text-white tracking-tight leading-snug">
-          내면의 고유한 결을 담아<br>나비를 깨우고 있습니다.
+          내면의 고유한 모습을 담아<br>나비를 깨우고 있습니다.
         </h2>
         <p class="text-xs text-orange-300/80 mt-2 font-light tracking-wide">
           종이의 무게를 지우고 빛의 날개를 입히는 중입니다.
@@ -401,6 +397,7 @@
       return words.map(w => `<strong class="text-orange-400 font-semibold underline decoration-orange-400/40 underline-offset-4">(${w})</strong>`).join(', ');
     }
 
+    /* 50개 키워드 풀 */
     const surveyQuestions = [
       {
         title: "당신은 어떤 나비인가요?",
@@ -480,9 +477,10 @@
       q7_name: ""
     };
 
-    let currentStepIdx = 0; // 0 ~ 6
-    let chipPageIndex = 0;  // 10개씩 페이징
-    const CHIPS_PER_PAGE = 10;
+    let currentStepIdx = 0;
+    let chipPageIndex = 0;
+    /* 레퍼런스처럼 한 페이지에 16개씩 많이 배치 */
+    const CHIPS_PER_PAGE = 16;
 
     const elTitle = document.getElementById('question-title');
     const elDesc = document.getElementById('question-desc');
@@ -629,39 +627,39 @@
         html = `
           <p>깊은 잠에서 깨어나 눈부신 햇살과 잔잔한 바람을 맞이한 당신.</p>
           <p>당신은 ${joinWithGwaWa(userSelections.q1)}의 모습을 품은 작은 나비가 되어 마침내 세상 밖으로 날개를 펼쳤습니다.</p>
-          <p class="text-slate-300 font-medium pt-1">당신만의 온전한 날갯짓으로, 이제 어떤 하늘을 향해 날아가 보고 싶나요?</p>
+          <p class="text-slate-300 font-medium pt-2">당신만의 온전한 날갯짓으로, 이제 어떤 하늘을 향해 날아가 보고 싶나요?</p>
         `;
       } else if (stepFrom === 1) {
         html = `
           <p>저 멀리 반짝이는 ${joinWithGwaWa(userSelections.q2)}을(를) 가슴에 품었습니다.</p>
           <p>가고 싶은 곳이 생긴 나비의 마음속엔 작고 따뜻한 불꽃이 피어오릅니다.</p>
           <p class="text-slate-400 text-xs">먼 길을 가다 보면 세찬 바람과 차가운 비를 만나기도 하겠지요.</p>
-          <p class="text-slate-300 font-medium pt-1">그 긴 비행 동안 날개가 지치지 않도록, 날개 안쪽에 품고 갈 단단한 마음은 무엇인가요?</p>
+          <p class="text-slate-300 font-medium pt-2">그 긴 비행 동안 날개가 지치지 않도록, 날개 안쪽에 품고 갈 단단한 마음은 무엇인가요?</p>
         `;
       } else if (stepFrom === 2) {
         html = `
           <p>${joinWithGwaWa(userSelections.q3)}을(를) 가만히 챙겨 넣었습니다.</p>
           <p>이제 당신은 세상의 조급한 시계에 쫓기지 않고, 오직 당신만의 보폭으로 하늘을 날 준비를 마쳤습니다.</p>
-          <p class="text-slate-300 font-medium pt-1">그런데 저 앞의 짙은 구름 속에서, 오래전부터 당신의 비행을 무겁게 가로막던 그림자가 서서히 모습을 드러냅니다.</p>
+          <p class="text-slate-300 font-medium pt-2">그런데 저 앞의 짙은 구름 속에서, 오래전부터 당신의 비행을 무겁게 가로막던 그림자가 서서히 모습을 드러냅니다.</p>
         `;
       } else if (stepFrom === 3) {
         html = `
           <p>먹구름처럼 불쑥 나타나 앞길을 막아선 ${joinWithGwaWa(userSelections.q4)}.</p>
           <p>작고 여린 날개가 잠시 파르르 떨리며 숨을 고릅니다.</p>
-          <p class="text-slate-300 font-medium pt-1">하지만 두려워할 필요는 없습니다. 당신에겐 이 끈질긴 그림자를 가볍게 털어내고 지나갈 당신만의 지혜가 있으니까요.</p>
+          <p class="text-slate-300 font-medium pt-2">하지만 두려워할 필요는 없습니다. 당신에겐 이 끈질긴 그림자를 가볍게 털어내고 지나갈 당신만의 지혜가 있으니까요.</p>
         `;
       } else if (stepFrom === 4) {
         html = `
           <p>시원한 ${joinWithGwaWa(userSelections.q5)} 한마디에, 날개를 옥죄던 어두운 그림자들이 허공으로 맥없이 흩어져 사라집니다.</p>
           <p>온갖 무게를 털어내고 한결 가벼워진 나비는 이제 거대한 하늘 너울 속으로 온전히 날아오릅니다.</p>
-          <p class="text-slate-300 font-medium pt-1">모든 상처를 비워낸 나비가 가장 눈부신 빛이 되어 당신의 품으로 다시 돌아올 날은 언제일까요?</p>
+          <p class="text-slate-300 font-medium pt-2">모든 상처를 비워낸 나비가 가장 눈부신 빛이 되어 당신의 품으로 다시 돌아올 날은 언제일까요?</p>
         `;
       } else if (stepFrom === 5) {
         const formattedDate = userSelections.q6_time ? userSelections.q6_time.replace('T', ' ') : '약속된 그날';
         html = `
           <p><strong class="text-orange-400 font-semibold underline underline-offset-4">${formattedDate}</strong></p>
           <p>지친 계절의 끝자락, 가장 따뜻한 위로가 필요한 바로 그 순간으로 소중한 약속을 띄워 보냈습니다.</p>
-          <p class="text-slate-300 font-medium pt-1">이제 이 모든 여정과 당신의 깊은 마음을 대신 품고 날아갈, 세상에 단 하나뿐인 이 작은 분신에게 다정한 이름을 선물해 주세요.</p>
+          <p class="text-slate-300 font-medium pt-2">이제 이 모든 여정과 당신의 깊은 마음을 대신 품고 날아갈, 세상에 단 하나뿐인 이 작은 분신에게 다정한 이름을 선물해 주세요.</p>
         `;
       }
 
@@ -894,7 +892,7 @@
       return new THREE.CanvasTexture(canvas);
     }
 
-    /* 환기 페이지 미니 3D 나비 */
+    /* 환기 페이지 미니 3D 나비 (정면 비율 정돈) */
     let miniScene, miniCamera, miniRenderer, miniGroup, miniLeftWing, miniRightWing;
     let miniAnimId = null;
 
@@ -903,8 +901,8 @@
       container.innerHTML = '';
       if (miniAnimId) cancelAnimationFrame(miniAnimId);
 
-      const w = container.clientWidth || 130;
-      const h = container.clientHeight || 120;
+      const w = container.clientWidth || 140;
+      const h = container.clientHeight || 130;
 
       miniScene = new THREE.Scene();
       miniCamera = new THREE.PerspectiveCamera(36, w / h, 0.1, 100);
@@ -916,7 +914,7 @@
       miniRenderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
       container.appendChild(miniRenderer.domElement);
 
-      const ambLight = new THREE.AmbientLight(0xffffff, 0.7);
+      const ambLight = new THREE.AmbientLight(0xffffff, 0.75);
       miniScene.add(ambLight);
 
       const dirLight = new THREE.DirectionalLight(0xffedd5, 1.8);
