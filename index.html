@@ -3,918 +3,393 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>너울 : NOUL - 내면의 나비 띄우기</title>
+  <title>너울 : NOUL - 키워드 선택</title>
   <script src="https://cdn.tailwindcss.com"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <style>
     body {
-      background-color: #0b0f19;
-      color: #f3f4f6;
+      background-color: #0b071a;
       font-family: -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", "Pretendard", sans-serif;
       -webkit-tap-highlight-color: transparent;
-      touch-action: pan-y;
+      user-select: none;
+    }
+
+    /* 레퍼런스 특유의 몽환적인 핑크-오렌지-바이올렛 블러 배경 */
+    .glow-bg {
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      z-index: 0;
       overflow: hidden;
     }
+    .glow-blob-1 {
+      position: absolute;
+      width: 380px;
+      height: 380px;
+      left: -20%;
+      top: 15%;
+      background: radial-gradient(circle, rgba(244, 63, 94, 0.45) 0%, rgba(244, 63, 94, 0) 70%);
+      filter: blur(50px);
+    }
+    .glow-blob-2 {
+      position: absolute;
+      width: 400px;
+      height: 400px;
+      right: -25%;
+      bottom: 10%;
+      background: radial-gradient(circle, rgba(249, 115, 22, 0.45) 0%, rgba(249, 115, 22, 0) 70%);
+      filter: blur(55px);
+    }
+    .glow-blob-3 {
+      position: absolute;
+      width: 320px;
+      height: 320px;
+      left: 20%;
+      top: 45%;
+      background: radial-gradient(circle, rgba(168, 85, 247, 0.25) 0%, rgba(168, 85, 247, 0) 70%);
+      filter: blur(60px);
+    }
 
-    /* 레퍼런스 스타일: 둥근 알약형 글래스 칩 */
-    .chip {
+    /* 레퍼런스 스타일 둥근 알약형(Pill) 반투명 글래스 칩 */
+    .pill-chip {
       background: rgba(255, 255, 255, 0.12);
       border: 1px solid rgba(255, 255, 255, 0.22);
-      backdrop-filter: blur(12px);
-      -webkit-backdrop-filter: blur(12px);
-      color: rgba(255, 255, 255, 0.9);
-      transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
-      user-select: none;
-      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+      backdrop-filter: blur(14px);
+      -webkit-backdrop-filter: blur(14px);
+      color: rgba(255, 255, 255, 0.92);
       border-radius: 9999px;
+      padding: 0.65rem 1.15rem;
+      font-size: 0.86rem;
+      letter-spacing: -0.015em;
+      transition: all 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      white-space: nowrap;
     }
-    .chip:active {
-      transform: scale(0.96);
+    .pill-chip:active {
+      transform: scale(0.95);
     }
 
-    /* 레퍼런스 스타일: 오렌지/선셋 하이라이트 선택 효과 */
-    .chip.selected {
-      background: linear-gradient(135deg, rgba(251, 146, 60, 0.9) 0%, rgba(234, 88, 12, 0.95) 100%) !important;
-      border-color: rgba(254, 215, 170, 0.8) !important;
+    /* 레퍼런스 선택 상태: 따뜻하고 선명한 오렌지/선셋 그라디언트 & 소프트 섀도우 */
+    .pill-chip.selected {
+      background: linear-gradient(135deg, #fb923c 0%, #f97316 60%, #ea580c 100%) !important;
+      border-color: rgba(254, 215, 170, 0.9) !important;
       color: #ffffff !important;
       font-weight: 600;
-      box-shadow: 0 0 20px rgba(249, 115, 22, 0.55), inset 0 1px 1px rgba(255, 255, 255, 0.4);
+      box-shadow: 0 6px 20px rgba(249, 115, 22, 0.45), inset 0 1px 1px rgba(255, 255, 255, 0.4);
       transform: translateY(-2px);
     }
 
-    .screen {
+    /* 스크롤바 숨김 처리 */
+    .no-scrollbar::-webkit-scrollbar {
       display: none;
-      opacity: 0;
-      transition: opacity 0.3s ease-in-out;
     }
-    .screen.active {
-      display: flex !important;
-      opacity: 1;
+    .no-scrollbar {
+      -ms-overflow-style: none;
+      scrollbar-width: none;
     }
-    #align-canvas {
-      touch-action: none;
-      cursor: grab;
-    }
-    #align-canvas:active {
-      cursor: grabbing;
-    }
-    #three-container {
-      touch-action: none;
-    }
-    @keyframes pulseGlow {
-      0%, 100% { transform: scale(0.96) rotate(-2deg); filter: drop-shadow(0 0 35px rgba(168, 85, 247, 0.55)); }
-      50% { transform: scale(1.04) rotate(2deg); filter: drop-shadow(0 0 60px rgba(59, 130, 246, 0.75)); }
-    }
-    .pulse-animation { animation: pulseGlow 2.4s infinite ease-in-out; }
-    @keyframes bounceUp {
-      0%, 100% { transform: translateY(0); opacity: 0.6; }
-      50% { transform: translateY(-8px); opacity: 1; }
-    }
-    .bounce-guide { animation: bounceUp 1.8s infinite ease-in-out; }
 
     input[type="datetime-local"]::-webkit-calendar-picker-indicator {
       filter: invert(1);
-      opacity: 0.8;
+      opacity: 0.75;
       cursor: pointer;
     }
   </style>
 </head>
-<body class="flex justify-center min-h-screen">
+<body class="flex justify-center min-h-screen text-slate-100 antialiased overflow-hidden">
 
-  <main class="w-full max-w-md flex flex-col justify-between p-6 relative h-screen">
+  <!-- 배경 블러 오브제 -->
+  <div class="glow-bg">
+    <div class="glow-blob-1"></div>
+    <div class="glow-blob-2"></div>
+    <div class="glow-blob-3"></div>
+  </div>
 
-    <!-- ================= [STEP 1] 7단계 감정 설문 & 타임캡슐 & 이름 짓기 ================= -->
-    <section id="screen-survey" class="screen active flex-col flex-1 justify-between">
-      <header class="w-full mb-3 flex-shrink-0">
-        <div class="flex justify-between text-xs text-gray-400 mb-2 font-mono">
-          <span id="step-indicator" class="text-blue-400 font-semibold">STEP 1 / 7</span>
-          <span id="selection-type">다중 선택</span>
-        </div>
-        <div class="w-full h-1 bg-gray-800 rounded-full overflow-hidden">
-          <div id="progress-bar" class="h-full bg-blue-400 transition-all duration-300" style="width: 14.28%;"></div>
-        </div>
-      </header>
+  <main class="w-full max-w-md flex flex-col justify-between p-6 relative z-10 h-screen">
 
-      <div class="flex-1 flex flex-col overflow-y-auto pr-1">
-        <!-- 1번 질문: 성향 -->
-        <div id="substep-1" class="substep flex-col flex text-center">
-          <h2 class="text-xl font-bold mb-1 text-white">당신은 어떤 나비인가요?</h2>
-          <p class="text-xs text-gray-400 mb-5">자신을 소개해 주세요. (다중 선택)</p>
-          <div class="flex flex-wrap justify-center gap-2 max-h-[55vh] overflow-y-auto py-1" id="list-step-1"></div>
-        </div>
+    <!-- 상단 스텝 프로그레스 헤더 -->
+    <header class="w-full mb-3 flex-shrink-0">
+      <div class="flex justify-between items-center text-xs font-mono mb-2.5">
+        <span id="step-indicator" class="text-orange-400 font-bold tracking-wider">STEP 01 / 07</span>
+        <span id="selection-badge" class="px-2.5 py-0.5 rounded-full bg-white/10 text-slate-300 text-[11px] backdrop-blur-md">다중 선택</span>
+      </div>
+      <div class="w-full h-1 bg-white/10 rounded-full overflow-hidden">
+        <div id="progress-bar" class="h-full bg-gradient-to-r from-pink-500 to-orange-400 transition-all duration-300" style="width: 14.28%;"></div>
+      </div>
+    </header>
 
-        <!-- 2번 질문: 여정 목표 -->
-        <div id="substep-2" class="substep flex-col hidden text-center">
-          <h2 class="text-xl font-bold mb-1 text-white">고치에서 나온 당신, 어떤 여정을 떠날 건가요?</h2>
-          <p class="text-xs text-gray-400 mb-5">향하고 싶은 방향을 골라주세요. (다중 선택)</p>
-          <div class="flex flex-wrap justify-center gap-2 max-h-[55vh] overflow-y-auto py-1" id="list-step-2"></div>
-        </div>
+    <!-- 중앙 질문 및 칩 목록 컨테이너 -->
+    <div class="flex-1 flex flex-col justify-between overflow-hidden">
 
-        <!-- 3번 질문: 챙겨갈 태도 -->
-        <div id="substep-3" class="substep flex-col hidden text-center">
-          <h2 class="text-xl font-bold mb-1 text-white">긴 여정을 위해 챙겨가야 할 것은?</h2>
-          <p class="text-xs text-gray-400 mb-5">비행 동안 나비가 품고 갈 마음의 결을 골라주세요. (다중 선택)</p>
-          <div class="flex flex-wrap justify-center gap-2 max-h-[55vh] overflow-y-auto py-1" id="list-step-3"></div>
-        </div>
-
-        <!-- 4번 질문: 천적 -->
-        <div id="substep-4" class="substep flex-col hidden text-center">
-          <h2 class="text-xl font-bold mb-1 text-white">비행 중 마주친 나의 천적은?</h2>
-          <p class="text-xs text-gray-400 mb-5 leading-relaxed">사마귀? 거미? 작은 새? 당신의 날갯짓을 가로막는 것은 무엇일까요? (다중 선택)</p>
-          <div class="flex flex-wrap justify-center gap-2 max-h-[55vh] overflow-y-auto py-1" id="list-step-4"></div>
-        </div>
-
-        <!-- 5번 질문: 돌파 무기 -->
-        <div id="substep-5" class="substep flex-col hidden text-center">
-          <h2 class="text-xl font-bold mb-1 text-white">그 천적을 맞닥뜨렸을 때, 어떻게 맞설 건가요?</h2>
-          <p class="text-xs text-gray-400 mb-5">어떤 공격에도 흔들리지 않을 비장의 한 수를 골라주세요. (다중 선택)</p>
-          <div class="flex flex-wrap justify-center gap-2 max-h-[55vh] overflow-y-auto py-1" id="list-step-5"></div>
-        </div>
-
-        <!-- 6번 질문: 타임캡슐 귀환 예약 -->
-        <div id="substep-6" class="substep flex-col hidden text-center">
-          <h2 class="text-xl font-bold mb-1 text-white leading-snug">여정을 무사히 마치고,<br>더욱 찬란해진 나비가 돌아올 날은?</h2>
-          <p class="text-xs text-gray-400 mb-5 leading-relaxed">
-            하늘의 파도(너울)를 건너며 상처를 비워낸 나비가, 가장 눈부신 빛을 품고 당신의 품으로 다시 날아앉을 시간을 정해 주세요.
-          </p>
-          <div class="flex flex-col gap-4 text-left">
-            <div>
-              <label class="block text-xs font-mono text-blue-300 mb-1.5">찬란한 재회의 시간 (년/월/일/시)</label>
-              <input id="input-step-6-time" type="datetime-local" 
-                class="w-full bg-white/5 border border-white/20 rounded-2xl px-4 py-3.5 text-sm text-white focus:outline-none focus:border-orange-400">
-            </div>
-            <div>
-              <label class="block text-xs font-mono text-blue-300 mb-1.5">나비를 맞이할 이메일 주소</label>
-              <input id="input-step-6-email" type="email" placeholder="example@email.com" 
-                class="w-full bg-white/5 border border-white/20 rounded-2xl px-4 py-3.5 text-sm text-white focus:outline-none focus:border-orange-400 placeholder-gray-500">
-            </div>
-            <p class="text-[11px] text-gray-400/90 leading-relaxed italic text-center">
-              "가장 헐겁게 떠났던 나비가 모든 무게를 털어내고, 약속된 시간에 맞춰 가장 찬란한 모습으로 당신의 문을 두드립니다."
-            </p>
-          </div>
-        </div>
-
-        <!-- 7번 질문: 나비 이름 짓기 -->
-        <div id="substep-7" class="substep flex-col hidden text-center">
-          <h2 class="text-xl font-bold mb-1 text-white leading-snug">먼 하늘 너울 속으로 날아오를,<br>이 나비의 이름은?</h2>
-          <p class="text-xs text-gray-400 mb-5">당신의 깊은 마음을 대신 품고 비행을 떠날 나비에게 고유한 이름을 붙여주세요.</p>
-          <div class="flex flex-col gap-3 text-left">
-            <input id="input-step-7-name" type="text" maxlength="10" 
-              placeholder="예: 윤슬, 쉼표, 칼퇴, 다정, 시온, 바람..." 
-              class="w-full bg-white/5 border border-white/20 rounded-2xl px-4 py-3.5 text-base text-white focus:outline-none focus:border-orange-400 placeholder-gray-500 tracking-wide font-medium">
-            <div class="flex justify-between items-center px-1 text-xs text-gray-500 font-mono">
-              <span>한글/영문 10자 이내</span>
-              <span id="char-count-7">0 / 10</span>
-            </div>
-            <p class="text-[11px] text-gray-400/90 leading-relaxed italic text-center mt-2">
-              "이름을 부르는 순간, 나비는 비로소 당신만의 분신이 되어 거대한 하늘 너울 속으로 날아오를 준비를 마칩니다."
-            </p>
-          </div>
-        </div>
+      <!-- 타이틀 & 안내문 -->
+      <div class="text-center pt-2 pb-3 flex-shrink-0">
+        <h1 id="question-title" class="text-xl font-bold text-white tracking-tight leading-snug">당신은 어떤 나비인가요?</h1>
+        <p id="question-desc" class="text-xs text-slate-300/80 mt-1 font-light">자신을 소개해 주세요. (다중 선택)</p>
       </div>
 
-      <footer class="w-full pt-4 flex gap-3 flex-shrink-0">
-        <button id="btn-prev" type="button" class="w-1/3 py-3.5 rounded-xl border border-white/20 text-gray-300 font-medium text-sm hidden active:scale-95 transition-all">이전</button>
-        <button id="btn-next" type="button" disabled class="flex-1 py-3.5 rounded-xl bg-blue-500 text-white font-medium text-sm disabled:opacity-40 disabled:pointer-events-none active:scale-95 transition-all shadow-lg shadow-blue-500/20">다음 단계</button>
-      </footer>
-    </section>
+      <!-- [Q1 ~ Q5] 2열 알약 칩 컨테이너 -->
+      <div id="chips-scroll-area" class="flex-1 overflow-y-auto no-scrollbar py-2 px-1">
+        <div id="chip-grid" class="flex flex-wrap justify-center gap-2.5 pb-6"></div>
+      </div>
 
-    <!-- ================= [STEP 2] 수직 촬영 안내 ================= -->
-    <section id="screen-capture" class="screen flex-col flex-1 justify-between py-4 text-center">
-      <header class="mt-2">
-        <span class="text-xs font-mono text-blue-400 tracking-wider uppercase">Noul Archive Step 02</span>
-        <h1 class="text-2xl font-bold mt-1 text-white">나비 도안 촬영하기</h1>
-      </header>
-
-      <div class="w-full bg-blue-500/10 border border-blue-400/30 rounded-2xl p-6 text-center my-auto shadow-lg">
-        <div class="w-16 h-16 mx-auto rounded-full bg-blue-500/20 flex items-center justify-center mb-4 text-blue-300">
-          <svg class="w-9 h-9" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"></path>
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"></path>
-          </svg>
+      <!-- [Q6] 일시 설정 필드 -->
+      <div id="field-step-6" class="hidden flex-col justify-center flex-1 py-4 px-1 gap-5">
+        <div class="bg-white/5 border border-white/15 backdrop-blur-xl rounded-2xl p-5 space-y-4">
+          <div>
+            <label class="block text-xs font-mono text-orange-300 mb-1.5 font-medium">찬란한 재회의 시간 (datetime-local)</label>
+            <input id="input-q6-time" type="datetime-local" class="w-full bg-white/10 border border-white/20 rounded-xl px-4 py-3.5 text-sm text-white focus:outline-none focus:border-orange-400">
+            <span class="text-[11px] text-slate-400 mt-1.5 block leading-relaxed">
+              새로운 다짐이 필요할 때, 지친 계절의 끝, 혹은 1년 뒤 오늘처럼 찬란한 위로가 닿길 바라는 순간을 약속해 주세요.
+            </span>
+          </div>
+          <div>
+            <label class="block text-xs font-mono text-orange-300 mb-1.5 font-medium">나비를 맞이할 이메일</label>
+            <input id="input-q6-email" type="email" placeholder="example@email.com" class="w-full bg-white/10 border border-white/20 rounded-xl px-4 py-3.5 text-sm text-white focus:outline-none focus:border-orange-400 placeholder-slate-500">
+          </div>
         </div>
-        <h3 class="text-lg font-bold text-white mb-2">💡 꼭 수직(위에서 똑바로)으로 찍어주세요</h3>
-        <p class="text-xs text-gray-300 leading-relaxed">
-          종이가 기울어지지 않도록 스마트폰을<br>
-          <strong>종이와 평행하게 정면 위에서</strong> 촬영해 주세요.<br><br>
-          <span class="text-blue-300 font-medium">※ 다음 화면에서 손가락 터치로 사진을 직접 밀고 당겨<br>도안 나비틀에 맞출 수 있습니다!</span>
+        <p class="text-xs text-slate-300/80 italic text-center px-4 leading-relaxed">
+          "가장 헐겁게 떠났던 나비가 모든 무게를 털어내고, 약속된 시간에 맞춰 가장 찬란한 모습으로 당신의 문을 두드립니다."
         </p>
       </div>
 
-      <footer class="flex flex-col gap-2.5 w-full mb-1">
-        <label class="w-full py-4 rounded-xl bg-blue-500 text-white font-medium text-sm cursor-pointer active:scale-95 transition-all text-center block shadow-lg shadow-blue-500/25">
-          카메라로 도안 촬영하기
-          <input type="file" id="camera-input" accept="image/*" capture="environment" class="hidden">
-        </label>
-        <label class="w-full py-3 rounded-xl border border-white/20 text-gray-300 font-medium text-xs cursor-pointer active:scale-95 transition-all text-center block">
-          앨범에서 사진 선택
-          <input type="file" id="album-input" accept="image/*" class="hidden">
-        </label>
-        <button id="btn-back-to-survey" type="button" class="w-full py-1 text-xs text-gray-500">← 질문 수정하기</button>
-      </footer>
-    </section>
-
-    <!-- ================= [STEP 3] 도안 나비틀 맞춤 ================= -->
-    <section id="screen-align" class="screen flex-col flex-1 justify-between py-2 text-center">
-      <header class="pt-2">
-        <h2 class="text-lg font-bold text-white">나비틀에 사진 맞추기</h2>
-        <p class="text-xs text-blue-300/90 mt-0.5"><strong>[한 손가락 드래그]</strong>로 이동, <strong>[두 손가락 핀치]</strong>로 크기를 조절하세요.</p>
-      </header>
-
-      <div class="relative w-[320px] h-[320px] mx-auto my-auto overflow-hidden bg-black/60 rounded-2xl flex items-center justify-center">
-        <canvas id="align-canvas" width="640" height="640" class="w-full h-full"></canvas>
-        
-        <div class="absolute inset-0 pointer-events-none flex items-center justify-center p-3">
-          <svg class="w-full h-full text-blue-400 drop-shadow-[0_0_12px_rgba(96,165,250,0.9)]" viewBox="0 0 100 100" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M 50,33 C 51.5,33 53,35 53,38 C 58,35 75,18 89,20 C 97,22 99,35 91,48 C 84,59 79,62 76,64 C 81,67 87,74 86,83 C 84,93 69,96 61,87 C 55,80 53,74 53,71 C 53,74 51.5,77 50,77 C 48.5,77 47,74 47,71 C 47,74 45,80 39,87 C 31,96 16,93 14,83 C 13,74 19,67 24,64 C 21,62 16,59 9,48 C 1,35 3,22 11,20 C 25,18 42,35 47,38 C 47,35 48.5,33 50,33 Z"/>
-            <line x1="50" y1="26" x2="50" y2="80" stroke-dasharray="2 2" stroke-width="1.2" stroke="#93c5fd" opacity="0.6"/>
-          </svg>
+      <!-- [Q7] 나비 이름 짓기 필드 -->
+      <div id="field-step-7" class="hidden flex-col justify-center flex-1 py-4 px-1 gap-5">
+        <div class="bg-white/5 border border-white/15 backdrop-blur-xl rounded-2xl p-5 space-y-3">
+          <label class="block text-xs font-mono text-orange-300 font-medium">나비의 고유 이름</label>
+          <input id="input-q7-name" type="text" maxlength="10" placeholder="예: 윤슬, 쉼표, 칼퇴, 다정, 시온, 바람..." 
+                 class="w-full bg-white/10 border border-white/20 rounded-xl px-4 py-3.5 text-base text-white focus:outline-none focus:border-orange-400 placeholder-slate-500 tracking-wide">
+          <div class="flex justify-between items-center text-[11px] text-slate-400 font-mono px-1">
+            <span>한글/영문 10자 이내</span>
+            <span id="char-counter">0 / 10</span>
+          </div>
         </div>
-      </div>
-
-      <footer class="flex gap-3 w-full mb-1">
-        <button id="btn-rephoto" type="button" class="w-1/3 py-3.5 rounded-xl border border-white/20 text-gray-300 text-sm active:scale-95 transition-all">다시 촬영</button>
-        <button id="btn-confirm-align" type="button" class="flex-1 py-3.5 rounded-xl bg-blue-500 text-white font-medium text-sm active:scale-95 transition-all shadow-lg shadow-blue-500/25">이 위치로 확정하기</button>
-      </footer>
-    </section>
-
-    <!-- ================= [STEP 4] 감성 로딩 화면 ================= -->
-    <section id="screen-loading" class="screen flex-col flex-1 justify-between items-center py-12 text-center relative overflow-hidden">
-      <div class="mt-8 z-10">
-        <h2 class="text-2xl font-bold text-white tracking-tight leading-snug">
-          내면의 고유한 결을 담아<br>나비를 깨우고 있습니다.
-        </h2>
-        <p class="text-xs text-blue-300/80 mt-3 font-light tracking-wide">
-          종이의 무게를 지우고 빛의 날개를 입히는 중입니다.
+        <p class="text-xs text-slate-300/80 italic text-center px-4 leading-relaxed">
+          "이름을 부르는 순간, 나비는 비로소 당신만의 분신이 되어 거대한 하늘 너울 속으로 날아오를 준비를 마칩니다."
         </p>
       </div>
 
-      <div class="relative flex items-center justify-center my-auto pulse-animation">
-        <div class="w-44 h-72 rounded-full bg-gradient-to-b from-purple-500 via-fuchsia-500 to-rose-400 blur-2xl opacity-75"></div>
-        <svg class="absolute w-28 h-28 text-white/95 drop-shadow-[0_0_15px_rgba(255,255,255,0.8)]" viewBox="0 0 100 100" fill="none" stroke="currentColor" stroke-width="2.5">
-          <path d="M 50,33 C 51.5,33 53,35 53,38 C 58,35 75,18 89,20 C 97,22 99,35 91,48 C 84,59 79,62 76,64 C 81,67 87,74 86,83 C 84,93 69,96 61,87 C 55,80 53,74 53,71 C 53,74 51.5,77 50,77 C 48.5,77 47,74 47,71 C 47,74 45,80 39,87 C 31,96 16,93 14,83 C 13,74 19,67 24,64 C 21,62 16,59 9,48 C 1,35 3,22 11,20 C 25,18 42,35 47,38 C 47,35 48.5,33 50,33 Z"/>
-        </svg>
-      </div>
+    </div>
 
-      <div class="text-xs font-mono text-blue-200/80 tracking-widest z-10">NOUL METAMORPHOSIS...</div>
-    </section>
-
-    <!-- ================= [STEP 5] 3D 나비 프리뷰 ================= -->
-    <section id="screen-preview" class="screen flex-col flex-1 justify-between py-2 relative"
-      style="background: linear-gradient(180deg, #5b9bf8 0%, #8ac0ff 40%, #edd8f8 100%) !important;">
-      <header class="text-center pt-2 z-10">
-        <span class="text-xs font-mono text-white/90 font-semibold tracking-wider uppercase drop-shadow">NOUL 3D BUTTERFLY</span>
-        <h2 id="preview-butterfly-name" class="text-2xl font-black text-white mt-0.5 drop-shadow-md tracking-tight">‘나비’</h2>
-        <p class="text-xs text-white/85 mt-0.5 font-light drop-shadow">화면을 위로 쓸어 올려 대형 화면으로 날려보내세요.</p>
-      </header>
-
-      <div id="three-container" class="flex-1 w-full h-full absolute inset-0 z-0"></div>
-
-      <footer class="w-full pb-6 flex flex-col items-center gap-2 z-10 pointer-events-none">
-        <div class="bounce-guide flex flex-col items-center">
-          <svg class="w-7 h-7 text-white drop-shadow" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 15l7-7 7 7"></path>
-          </svg>
-          <span class="text-xs font-semibold text-white tracking-widest drop-shadow">SWIPE UP TO FLY</span>
-        </div>
-      </footer>
-    </section>
-
-    <!-- ================= [STEP 6] 비행 완료 화면 ================= -->
-    <section id="screen-complete" class="screen flex-col flex-1 justify-center items-center text-center p-6">
-      <div class="w-20 h-20 rounded-full bg-blue-400/20 border border-blue-300/40 flex items-center justify-center mb-6">
-        <svg class="w-10 h-10 text-blue-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
-        </svg>
-      </div>
-      <h2 class="text-2xl font-bold text-white mb-2">하늘 위로 날아올랐습니다</h2>
-      <p id="complete-desc" class="text-sm text-gray-300 leading-relaxed mb-8">
-        마음의 무게를 털어낸 나비가<br>
-        전면 대형 스크린의 너울 속으로 합류했습니다.
-      </p>
-      <button onclick="location.reload()" type="button" class="px-8 py-3.5 rounded-xl border border-white/20 text-gray-200 text-xs font-medium active:scale-95 transition-all">
-        새로운 나비 띄우기
-      </button>
-    </section>
+    <!-- 하단 이전/다음 네비게이션 바 -->
+    <footer class="w-full pt-4 flex gap-3 flex-shrink-0">
+      <button id="btn-prev" type="button" class="w-1/3 py-3.5 rounded-2xl border border-white/20 bg-white/5 backdrop-blur-md text-slate-300 font-medium text-sm hidden active:scale-95 transition-all">이전</button>
+      <button id="btn-next" type="button" disabled class="flex-1 py-3.5 rounded-2xl bg-gradient-to-r from-orange-500 to-amber-500 text-white font-semibold text-sm disabled:opacity-30 disabled:pointer-events-none active:scale-95 transition-all shadow-lg shadow-orange-500/25">다음</button>
+    </footer>
 
   </main>
 
   <script>
-    function showScreen(screenId) {
-      document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
-      const target = document.getElementById(screenId);
-      if (target) target.classList.add('active');
-    }
+    /* 질문별 50개 키워드 데이터 세트 */
+    const questions = [
+      {
+        title: "당신은 어떤 나비인가요?",
+        desc: "자신을 소개해 주세요. (다중 선택)",
+        badge: "다중 선택",
+        options: [
+          "야행성", "아침형", "집돌이·집순이", "외향형", "계획파", "즉흥파", "사색가", "행동파", "마이웨이", "눈치러",
+          "완벽주의", "단순명쾌", "유리멘탈", "무념무상", "일벌레", "게으른 완벽주의", "벼락치기파", "루틴러", "커피수액러", "산책러",
+          "숏폼중독", "미식가", "집콕프로", "바깥바람파", "혼자가 편한", "과묵한 편", "다정다감", "리액션 장인", "경청러", "분위기 메이커",
+          "낯가림러", "관찰자", "칼퇴사수형", "프로공감러", "생각 부자", "담담이", "긍정회로", "쿨내진동", "쿠쿠다스", "말랑멘탈",
+          "호기심 천국", "느긋이", "조급이", "현실주의자", "낭만주의자", "감성파", "멀티태스커", "한우물파", "아이디어 뱅크", "직진러"
+        ]
+      },
+      {
+        title: "고치에서 나온 당신, 어떤 여정을 떠날 건가요?",
+        desc: "향하고 싶은 방향을 골라주세요. (다중 선택)",
+        badge: "다중 선택",
+        options: [
+          "취업 뽀개기", "칼퇴 보장", "자취방 독립", "내 작은 카페", "자격증 합격", "목표 어학 점수", "해외 한 달 살기", "1,000만 원 저축", "내 브랜드 론칭", "숙면 8시간",
+          "콘서트 올콘", "운동 습관화", "포트폴리오 완성", "악연 손절", "첫 월급 선물", "창작물 완판", "바다 여행", "완벽주의 탈출", "채널 1만 구독", "면접 당당함",
+          "학자금 완납", "좋아하는 일로 밥벌이", "운전면허 드라이브", "온전한 호캉스", "완독 10권", "바디프로필", "나만의 작업실", "타인 시선 무시", "팀 프로젝트 대박", "쿨한 멘탈",
+          "내 집 마련 기반", "악기 마스터", "고요한 밤산책", "다정한 연애", "단골 아지트", "집밥 챙겨먹기", "번아웃 브레이크", "거절하는 용기", "내 스타일대로", "워홀·교환학생",
+          "매일 셀프 칭찬", "개인 전시·팝업", "수면 패턴 정상화", "공모전 수상", "대범한 배짱", "주말 카페 멍때리기", "가족 여행 보내기", "하루 종일 넷플릭스", "비교 끊기", "그냥 오늘 행복"
+        ]
+      },
+      {
+        title: "긴 여정을 위해 챙겨가야 할 것은?",
+        desc: "비행 동안 나비가 품고 갈 마음의 결을 골라주세요. (다중 선택)",
+        badge: "다중 선택",
+        options: [
+          "흔들려도 그냥 둠", "남 눈치 안 보고 멍때림", "망해도 별일 아니라고 넘김", "내 속도대로 천천히 감", "할 만큼 했다고 인정함", "억지로 애쓰지 않음", "싫은 건 싫다고 생각함", "오늘 하루만 버텨봄", "완벽하지 않아도 만족함", "혼자만의 침묵을 즐김",
+          "남의 말 한 귀로 흘림", "당장 답을 찾지 않음", "아무 계획 없이 흘러감", "내 감정에 솔직해짐", "쉬는 것에 당당해짐", "안 되는 건 쿨하게 포기함", "넘어져도 급하게 안 일어남", "나를 가장 먼저 챙김", "작은 틈을 내어 숨을 쉼", "그때그때 마음 가는 대로 함",
+          "타인의 기대에서 한 발 물러섬", "서두르지 않는 뻔뻔함", "실수해도 씩씩하게 웃기", "지금 이대로 충분하다는 안도", "세상 참견 차단하기", "실패를 경험으로 치기", "내 선택을 끝까지 믿기", "억지 인연 붙잡지 않기", "감정 기복에 휘둘리지 않기", "나만의 속도 존중하기",
+          "작은 일에 일희일비 안 하기", "거절 앞에 당당해지기", "지나간 일 곱씹지 않기", "타인과의 비교 단호히 끊기", "힘 빼고 유연하게 살기", "있는 그대로의 나 사랑하기", "번아웃 전에 먼저 멈추기", "단단한 자기 확신 갖기", "굳이 설명하지 않는 대범함", "안 풀릴 땐 일단 자고 보기",
+          "세상 기준에 나를 맞추지 않기", "사소한 즐거움 먼저 찾기", "묵묵히 내 보폭 유지하기", "미움받을 약간의 용기", "쓸데없는 자책 지우기", "혼자만의 시간 지켜내기", "무리한 부탁 딱 자르기", "앞날을 기대하는 설렘", "어떤 순간에도 자책하지 않기", "그냥 오늘 하루 즐기기"
+        ]
+      },
+      {
+        title: "비행 중 마주친 나의 천적은?",
+        desc: "날갯짓을 가로막는 것은 무엇일까요? (다중 선택)",
+        badge: "다중 선택",
+        options: [
+          "비교중독", "만성 피로", "텅 빈 잔고", "완벽주의 강박", "미래 막막함", "거절 공포", "지나간 후회", "가면 증후군", "스마트폰 중독", "결정 장애",
+          "눈치 보기", "벼락치기 습관", "타인 인정 욕구", "번아웃 무기력", "억지 미소", "취업 압박감", "수면 부족", "실패 공포증", "잦은 감정 기복", "뒤처짐 조급함",
+          "고립감과 외로움", "쓸데없는 잡생각", "꼰대와 갑질", "자책과 자기 비하", "억지 인연 유지", "학점·스펙 압박", "충동구매 후회", "시작의 두려움", "단톡방 알림 감옥", "과도한 책임감",
+          "부모님 잔소리", "과열된 머릿속", "애매한 재능", "만성 무기력", "타인의 무례함", "겉도는 관계", "질투와 열등감", "끝없는 미루기", "건강 악화", "타인의 오해",
+          "월세·생활비 압박", "도파민 중독", "좁아진 시야", "낮은 자존감", "겉만 번지르르함", "감정 쓰레기통 역할", "무리한 부탁", "고립된 혼밥", "흐려진 목표", "그냥 온갖 귀찮음"
+        ]
+      },
+      {
+        title: "천적을 맞닥뜨렸을 때, 어떻게 맞설 건가요?",
+        desc: "비장의 한 수를 골라주세요. (다중 선택)",
+        badge: "다중 선택",
+        options: [
+          '"어쩌라고" 마인드', "일단 푹 자기", "칼같은 단호함", "한 귀로 흘리기", "연락 차단 모드", "뻔뻔한 배짱", '"그럴 수 있지"', "빠른 손절", "나만의 속도", "미련 없는 포기",
+          "쿨한 넘김", "거절하는 용기", "침묵의 멍때리기", "스스로 토닥이기", "당당한 마이웨이", "무반응과 무관심", "셀프 칭찬", "혼자만의 고요", "딴청 피우기", "근거 없는 자신감",
+          "할 말은 하기", "맛있는 한 끼", "단단한 자기 확신", "일희일비 안 하기", "억지 웃음 멈추기", "타인 기대 던지기", "내 보폭 지키기", "씩씩한 리셋", "망해도 고(Go)", "즉각 브레이크",
+          "시선 차단 선글라스", "감정 분리하기", "지나간 일 잊기", "힘 빼고 유연함", "눈치 안 보기", "있는 그대로 긍정", "선 긋기", "방어막 치기", "소신 지키기", "작은 일탈",
+          "유쾌한 무시", "대범한 무덤덤함", "질문 가볍게 넘기기", "내 기분 우선", "무리한 부탁 쳐내기", "혼밥의 자유", "심호흡 한 번", "비교 스위치 끄기", "굳은살 멘탈", "그냥 오늘 하루 즐기기"
+        ]
+      },
+      {
+        title: "더욱 찬란해진 나비가 돌아올 날은?",
+        desc: "다시 날아앉을 시간을 정해 주세요.",
+        badge: "시간 예약"
+      },
+      {
+        title: "먼 하늘 너울 속으로 날아오를 나비의 이름은?",
+        desc: "나비에게 고유한 이름을 붙여주세요.",
+        badge: "이름 입력"
+      }
+    ];
 
-    /* 보내주신 질문별 50개 키워드 풀 */
-    const optionsData = {
-      step1: [
-        "야행성", "아침형", "집돌이·집순이", "외향형", "계획파", "즉흥파", "사색가", "행동파", "마이웨이", "눈치러",
-        "완벽주의", "단순명쾌", "유리멘탈", "무념무상", "일벌레", "게으른 완벽주의", "벼락치기파", "루틴러", "커피수액러", "산책러",
-        "숏폼중독", "미식가", "집콕프로", "바깥바람파", "혼자가 편한", "과묵한 편", "다정다감", "리액션 장인", "경청러", "분위기 메이커",
-        "낯가림러", "관찰자", "칼퇴사수형", "프로공감러", "생각 부자", "담담이", "긍정회로", "쿨내진동", "쿠쿠다스", "말랑멘탈",
-        "호기심 천국", "느긋이", "조급이", "현실주의자", "낭만주의자", "감성파", "멀티태스커", "한우물파", "아이디어 뱅크", "직진러"
-      ],
-      step2: [
-        "취업 뽀개기", "칼퇴 보장", "자취방 독립", "내 작은 카페", "자격증 합격", "목표 어학 점수", "해외 한 달 살기", "1,000만 원 저축", "내 브랜드 론칭", "숙면 8시간",
-        "콘서트 올콘", "운동 습관화", "포트폴리오 완성", "악연 손절", "첫 월급 선물", "창작물 완판", "바다 여행", "완벽주의 탈출", "채널 1만 구독", "면접 당당함",
-        "학자금 완납", "좋아하는 일로 밥벌이", "운전면허 드라이브", "온전한 호캉스", "완독 10권", "바디프로필", "나만의 작업실", "타인 시선 무시", "팀 프로젝트 대박", "쿨한 멘탈",
-        "내 집 마련 기반", "악기 마스터", "고요한 밤산책", "다정한 연애", "단골 아지트", "집밥 챙겨먹기", "번아웃 브레이크", "거절하는 용기", "내 스타일대로", "워홀·교환학생",
-        "매일 셀프 칭찬", "개인 전시·팝업", "수면 패턴 정상화", "공모전 수상", "대범한 배짱", "주말 카페 멍때리기", "가족 여행 보내기", "하루 종일 넷플릭스", "비교 끊기", "그냥 오늘 행복"
-      ],
-      step3: [
-        "흔들려도 그냥 둠", "남 눈치 안 보고 멍때림", "망해도 별일 아니라고 넘김", "내 속도대로 천천히 감", "할 만큼 했다고 인정함", "억지로 애쓰지 않음", "싫은 건 싫다고 생각함", "오늘 하루만 버텨봄", "완벽하지 않아도 만족함", "혼자만의 침묵을 즐김",
-        "남의 말 한 귀로 흘림", "당장 답을 찾지 않음", "아무 계획 없이 흘러감", "내 감정에 솔직해짐", "쉬는 것에 당당해짐", "안 되는 건 쿨하게 포기함", "넘어져도 급하게 안 일어남", "나를 가장 먼저 챙김", "작은 틈을 내어 숨을 쉼", "그때그때 마음 가는 대로 함",
-        "타인의 기대에서 한 발 물러섬", "서두르지 않는 뻔뻔함", "실수해도 씩씩하게 웃기", "지금 이대로 충분하다는 안도", "세상 참견 차단하기", "실패를 경험으로 치기", "내 선택을 끝까지 믿기", "억지 인연 붙잡지 않기", "감정 기복에 휘둘리지 않기", "나만의 속도 존중하기",
-        "작은 일에 일희일비 안 하기", "거절 앞에 당당해지기", "지나간 일 곱씹지 않기", "타인과의 비교 단호히 끊기", "힘 빼고 유연하게 살기", "있는 그대로의 나 사랑하기", "번아웃 전에 먼저 멈추기", "단단한 자기 확신 갖기", "굳이 설명하지 않는 대범함", "안 풀릴 땐 일단 자고 보기",
-        "세상 기준에 나를 맞추지 않기", "사소한 즐거움 먼저 찾기", "묵묵히 내 보폭 유지하기", "미움받을 약간의 용기", "쓸데없는 자책 지우기", "혼자만의 시간 지켜내기", "무리한 부탁 딱 자르기", "앞날을 기대하는 설렘", "어떤 순간에도 자책하지 않기", "그냥 오늘 하루 즐기기"
-      ],
-      step4: [
-        "비교중독", "만성 피로", "텅 빈 잔고", "완벽주의 강박", "미래 막막함", "거절 공포", "지나간 후회", "가면 증후군", "스마트폰 중독", "결정 장애",
-        "눈치 보기", "벼락치기 습관", "타인 인정 욕구", "번아웃 무기력", "억지 미소", "취업 압박감", "수면 부족", "실패 공포증", "잦은 감정 기복", "뒤처짐 조급함",
-        "고립감과 외로움", "쓸데없는 잡생각", "꼰대와 갑질", "자책과 자기 비하", "억지 인연 유지", "학점·스펙 압박", "충동구매 후회", "시작의 두려움", "단톡방 알림 감옥", "과도한 책임감",
-        "부모님 잔소리", "과열된 머릿속", "애매한 재능", "만성 무기력", "타인의 무례함", "겉도는 관계", "질투와 열등감", "끝없는 미루기", "건강 악화", "타인의 오해",
-        "월세·생활비 압박", "도파민 중독", "좁아진 시야", "낮은 자존감", "겉만 번지르르함", "감정 쓰레기통 역할", "무리한 부탁", "고립된 혼밥", "흐려진 목표", "그냥 온갖 귀찮음"
-      ],
-      step5: [
-        "\"어쩌라고\" 마인드", "일단 푹 자기", "칼같은 단호함", "한 귀로 흘리기", "연락 차단 모드", "뻔뻔한 배짱", "\"그럴 수 있지\"", "빠른 손절", "나만의 속도", "미련 없는 포기",
-        "쿨한 넘김", "거절하는 용기", "침묵의 멍때리기", "스스로 토닥이기", "당당한 마이웨이", "무반응과 무관심", "셀프 칭찬", "혼자만의 고요", "딴청 피우기", "근거 없는 자신감",
-        "할 말은 하기", "맛있는 한 끼", "단단한 자기 확신", "일희일비 안 하기", "억지 웃음 멈추기", "타인 기대 던지기", "내 보폭 지키기", "씩씩한 리셋", "망해도 고(Go)", "즉각 브레이크",
-        "시선 차단 선글라스", "감정 분리하기", "지나간 일 잊기", "힘 빼고 유연함", "눈치 안 보기", "있는 그대로 긍정", "선 긋기", "방어막 치기", "소신 지키기", "작은 일탈",
-        "유쾌한 무시", "대범한 무덤덤함", "질문 가볍게 넘기기", "내 기분 우선", "무리한 부탁 쳐내기", "혼밥의 자유", "심호흡 한 번", "비교 스위치 끄기", "굳은살 멘탈", "그냥 오늘 하루 즐기기"
-      ]
+    /* 유저 선택 상태 저장소 */
+    const userSelections = {
+      q1: [], q2: [], q3: [], q4: [], q5: [],
+      q6_time: "", q6_email: "",
+      q7_name: ""
     };
 
-    const userAnswers = { 
-      step1: [],
-      step2: [],
-      step3: [],
-      step4: [],
-      step5: [],
-      step6_time: "",
-      step6_email: "",
-      step7_name: ""
-    };
-    let currentStep = 1;
-    const totalSteps = 7;
+    let stepIndex = 0; // 0 ~ 6
 
+    const elTitle = document.getElementById('question-title');
+    const elDesc = document.getElementById('question-desc');
+    const elBadge = document.getElementById('selection-badge');
+    const elStepIndicator = document.getElementById('step-indicator');
+    const elProgressBar = document.getElementById('progress-bar');
+    const elChipsArea = document.getElementById('chips-scroll-area');
+    const elChipGrid = document.getElementById('chip-grid');
+    const elField6 = document.getElementById('field-step-6');
+    const elField7 = document.getElementById('field-step-7');
     const btnNext = document.getElementById('btn-next');
     const btnPrev = document.getElementById('btn-prev');
-    const progressBar = document.getElementById('progress-bar');
-    const stepIndicator = document.getElementById('step-indicator');
-    const selectionType = document.getElementById('selection-type');
-    const inputTime = document.getElementById('input-step-6-time');
-    const inputEmail = document.getElementById('input-step-6-email');
-    const inputName = document.getElementById('input-step-7-name');
-    const charCount7 = document.getElementById('char-count-7');
+    const inputQ6Time = document.getElementById('input-q6-time');
+    const inputQ6Email = document.getElementById('input-q6-email');
+    const inputQ7Name = document.getElementById('input-q7-name');
+    const charCounter = document.getElementById('char-counter');
 
-    function renderOptionBubbles(containerId, items, stateKey) {
-      const container = document.getElementById(containerId);
-      if (!container) return;
-      container.innerHTML = '';
-      items.forEach(text => {
-        const btn = document.createElement('button');
-        btn.type = 'button';
-        btn.className = 'chip text-xs md:text-sm px-4 py-2.5 cursor-pointer';
-        btn.innerText = text;
-        if (userAnswers[stateKey].includes(text)) {
-          btn.classList.add('selected');
+    function renderCurrentStep() {
+      const q = questions[stepIndex];
+      elTitle.innerText = q.title;
+      elDesc.innerText = q.desc;
+      elBadge.innerText = q.badge;
+      elStepIndicator.innerText = `STEP 0${stepIndex + 1} / 07`;
+      elProgressBar.style.width = `${((stepIndex + 1) / 7) * 100}%`;
+
+      btnPrev.classList.toggle('hidden', stepIndex === 0);
+      btnNext.innerText = stepIndex === 6 ? "나비 완성하기" : "다음";
+
+      if (stepIndex < 5) {
+        elChipsArea.classList.remove('hidden');
+        elField6.classList.add('hidden');
+        elField7.classList.add('hidden');
+        renderChips(q.options, `q${stepIndex + 1}`);
+        elChipsArea.scrollTop = 0;
+      } else if (stepIndex === 5) {
+        elChipsArea.classList.add('hidden');
+        elField6.classList.remove('hidden');
+        elField7.classList.add('hidden');
+      } else {
+        elChipsArea.classList.add('hidden');
+        elField6.classList.add('hidden');
+        elField7.classList.remove('hidden');
+      }
+
+      validateCurrentStep();
+    }
+
+    /* 알약형 칩 동적 생성 */
+    function renderChips(options, stateKey) {
+      elChipGrid.innerHTML = '';
+      options.forEach(item => {
+        const chip = document.createElement('button');
+        chip.type = 'button';
+        chip.className = 'pill-chip';
+        chip.innerText = item;
+
+        if (userSelections[stateKey].includes(item)) {
+          chip.classList.add('selected');
         }
-        btn.addEventListener('click', () => {
-          btn.classList.toggle('selected');
-          const idx = userAnswers[stateKey].indexOf(text);
-          if (idx > -1) userAnswers[stateKey].splice(idx, 1);
-          else userAnswers[stateKey].push(text);
-          checkStepValidity();
+
+        chip.addEventListener('click', () => {
+          chip.classList.toggle('selected');
+          const idx = userSelections[stateKey].indexOf(item);
+          if (idx > -1) {
+            userSelections[stateKey].splice(idx, 1);
+          } else {
+            userSelections[stateKey].push(item);
+          }
+          validateCurrentStep();
         });
-        container.appendChild(btn);
+
+        elChipGrid.appendChild(chip);
       });
     }
 
-    renderOptionBubbles('list-step-1', optionsData.step1, 'step1');
-    renderOptionBubbles('list-step-2', optionsData.step2, 'step2');
-    renderOptionBubbles('list-step-3', optionsData.step3, 'step3');
-    renderOptionBubbles('list-step-4', optionsData.step4, 'step4');
-    renderOptionBubbles('list-step-5', optionsData.step5, 'step5');
-
-    inputTime.addEventListener('input', (e) => {
-      userAnswers.step6_time = e.target.value;
-      checkStepValidity();
-    });
-
-    inputEmail.addEventListener('input', (e) => {
-      userAnswers.step6_email = e.target.value.trim();
-      checkStepValidity();
-    });
-
-    inputName.addEventListener('input', (e) => {
-      userAnswers.step7_name = e.target.value.trim();
-      charCount7.innerText = `${e.target.value.length} / 10`;
-      checkStepValidity();
-    });
-
-    function isValidEmail(email) {
-      return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+    function validateCurrentStep() {
+      let isValid = false;
+      if (stepIndex === 0) isValid = userSelections.q1.length > 0;
+      else if (stepIndex === 1) isValid = userSelections.q2.length > 0;
+      else if (stepIndex === 2) isValid = userSelections.q3.length > 0;
+      else if (stepIndex === 3) isValid = userSelections.q4.length > 0;
+      else if (stepIndex === 4) isValid = userSelections.q5.length > 0;
+      else if (stepIndex === 5) {
+        const hasTime = !!userSelections.q6_time;
+        const hasEmail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(userSelections.q6_email);
+        isValid = hasTime && hasEmail;
+      } else if (stepIndex === 6) {
+        isValid = userSelections.q7_name.trim().length > 0;
+      }
+      btnNext.disabled = !isValid;
     }
 
-    function checkStepValidity() {
-      let valid = false;
-      if (currentStep === 1) valid = userAnswers.step1.length > 0;
-      else if (currentStep === 2) valid = userAnswers.step2.length > 0;
-      else if (currentStep === 3) valid = userAnswers.step3.length > 0;
-      else if (currentStep === 4) valid = userAnswers.step4.length > 0;
-      else if (currentStep === 5) valid = userAnswers.step5.length > 0;
-      else if (currentStep === 6) valid = !!userAnswers.step6_time && isValidEmail(userAnswers.step6_email);
-      else if (currentStep === 7) valid = userAnswers.step7_name.length > 0;
-      btnNext.disabled = !valid;
-    }
+    inputQ6Time.addEventListener('input', (e) => {
+      userSelections.q6_time = e.target.value;
+      validateCurrentStep();
+    });
 
-    function refreshStepScreen() {
-      document.querySelectorAll('.substep').forEach((el, idx) => {
-        el.classList.toggle('hidden', idx + 1 !== currentStep);
-        el.classList.toggle('flex', idx + 1 === currentStep);
-      });
-      progressBar.style.width = `${(currentStep / totalSteps) * 100}%`;
-      stepIndicator.innerText = `STEP ${currentStep} / ${totalSteps}`;
-      
-      if (currentStep <= 5) selectionType.innerText = "다중 선택";
-      else if (currentStep === 6) selectionType.innerText = "일시 / 이메일 입력";
-      else selectionType.innerText = "직접 입력";
+    inputQ6Email.addEventListener('input', (e) => {
+      userSelections.q6_email = e.target.value.trim();
+      validateCurrentStep();
+    });
 
-      btnPrev.classList.toggle('hidden', currentStep === 1);
-      btnNext.innerText = currentStep === totalSteps ? "도안 촬영하러 가기" : "다음 단계";
-      checkStepValidity();
-    }
+    inputQ7Name.addEventListener('input', (e) => {
+      userSelections.q7_name = e.target.value.trim();
+      charCounter.innerText = `${e.target.value.length} / 10`;
+      validateCurrentStep();
+    });
 
     btnNext.addEventListener('click', () => {
-      if (currentStep < totalSteps) {
-        currentStep++;
-        refreshStepScreen();
+      if (stepIndex < 6) {
+        stepIndex++;
+        renderCurrentStep();
       } else {
-        showScreen('screen-capture');
+        alert(`✨ 나비 [${userSelections.q7_name}]의 준비가 완료되었습니다!\n다음 드로잉/스캔 단계로 넘어갑니다.`);
+        console.log("최종 수집된 문답 데이터:", userSelections);
       }
     });
 
     btnPrev.addEventListener('click', () => {
-      if (currentStep > 1) {
-        currentStep--;
-        refreshStepScreen();
+      if (stepIndex > 0) {
+        stepIndex--;
+        renderCurrentStep();
       }
     });
 
-    document.getElementById('btn-back-to-survey').addEventListener('click', () => {
-      showScreen('screen-survey');
-    });
-
-    refreshStepScreen();
-
-    /* ============================================================
-       사진 직접 터치 조작 (1손가락 이동 + 2손가락 핀치 줌)
-       ============================================================ */
-    let rawImage = new Image();
-    const alignCanvas = document.getElementById('align-canvas');
-    const actx = alignCanvas.getContext('2d');
-
-    let imgX = 0, imgY = 0, imgScale = 1.0;
-    let isDragging = false;
-    let startX = 0, startY = 0;
-    let startPinchDist = 0, pinchStartScale = 1.0;
-    let currentExtractedTexture = null;
-
-    function onImageLoaded(e) {
-      const file = e.target.files[0];
-      if (!file) return;
-
-      const reader = new FileReader();
-      reader.onload = (evt) => {
-        rawImage = new Image();
-        rawImage.onload = () => {
-          initAlignUI();
-          showScreen('screen-align');
-        };
-        rawImage.src = evt.target.result;
-      };
-      reader.readAsDataURL(file);
-    }
-
-    document.getElementById('camera-input').addEventListener('change', onImageLoaded);
-    document.getElementById('album-input').addEventListener('change', onImageLoaded);
-
-    document.getElementById('btn-rephoto').addEventListener('click', () => {
-      showScreen('screen-capture');
-    });
-
-    function initAlignUI() {
-      const baseScale = alignCanvas.width / Math.min(rawImage.width, rawImage.height);
-      imgScale = baseScale;
-      imgX = (alignCanvas.width - rawImage.width * imgScale) / 2;
-      imgY = (alignCanvas.height - rawImage.height * imgScale) / 2;
-      drawAlignCanvas();
-    }
-
-    function drawAlignCanvas() {
-      actx.clearRect(0, 0, alignCanvas.width, alignCanvas.height);
-      actx.save();
-      actx.drawImage(rawImage, imgX, imgY, rawImage.width * imgScale, rawImage.height * imgScale);
-      actx.restore();
-    }
-
-    alignCanvas.addEventListener('mousedown', (e) => {
-      isDragging = true;
-      const rect = alignCanvas.getBoundingClientRect();
-      const scaleFactor = alignCanvas.width / rect.width;
-      startX = (e.clientX - rect.left) * scaleFactor - imgX;
-      startY = (e.clientY - rect.top) * scaleFactor - imgY;
-    });
-
-    window.addEventListener('mousemove', (e) => {
-      if (!isDragging) return;
-      const rect = alignCanvas.getBoundingClientRect();
-      const scaleFactor = alignCanvas.width / rect.width;
-      imgX = (e.clientX - rect.left) * scaleFactor - startX;
-      imgY = (e.clientY - rect.top) * scaleFactor - startY;
-      drawAlignCanvas();
-    });
-
-    window.addEventListener('mouseup', () => { isDragging = false; });
-
-    alignCanvas.addEventListener('wheel', (e) => {
-      e.preventDefault();
-      const zoom = e.deltaY < 0 ? 1.05 : 0.95;
-      imgScale *= zoom;
-      drawAlignCanvas();
-    }, { passive: false });
-
-    alignCanvas.addEventListener('touchstart', (e) => {
-      const rect = alignCanvas.getBoundingClientRect();
-      const scaleFactor = alignCanvas.width / rect.width;
-
-      if (e.touches.length === 1) {
-        isDragging = true;
-        startX = (e.touches[0].clientX - rect.left) * scaleFactor - imgX;
-        startY = (e.touches[0].clientY - rect.top) * scaleFactor - imgY;
-      } else if (e.touches.length === 2) {
-        isDragging = false;
-        startPinchDist = Math.hypot(
-          e.touches[0].clientX - e.touches[1].clientX,
-          e.touches[0].clientY - e.touches[1].clientY
-        );
-        pinchStartScale = imgScale;
-      }
-    }, { passive: false });
-
-    window.addEventListener('touchmove', (e) => {
-      if (!document.getElementById('screen-align').classList.contains('active')) return;
-      if (e.cancelable) e.preventDefault();
-
-      const rect = alignCanvas.getBoundingClientRect();
-      const scaleFactor = alignCanvas.width / rect.width;
-
-      if (e.touches.length === 1 && isDragging) {
-        imgX = (e.touches[0].clientX - rect.left) * scaleFactor - startX;
-        imgY = (e.touches[0].clientY - rect.top) * scaleFactor - startY;
-        drawAlignCanvas();
-      } else if (e.touches.length === 2 && startPinchDist > 0) {
-        const currentDist = Math.hypot(
-          e.touches[0].clientX - e.touches[1].clientX,
-          e.touches[0].clientY - e.touches[1].clientY
-        );
-        const factor = currentDist / startPinchDist;
-        imgScale = pinchStartScale * factor;
-        drawAlignCanvas();
-      }
-    }, { passive: false });
-
-    window.addEventListener('touchend', () => {
-      isDragging = false;
-      startPinchDist = 0;
-    });
-
-    document.getElementById('btn-confirm-align').addEventListener('click', () => {
-      const exportCanvas = document.createElement('canvas');
-      exportCanvas.width = 1024;
-      exportCanvas.height = 1024;
-      const ectx = exportCanvas.getContext('2d');
-
-      const scaleRatio = 1024 / alignCanvas.width;
-      ectx.fillStyle = "#ffffff";
-      ectx.fillRect(0, 0, 1024, 1024);
-      ectx.drawImage(rawImage, imgX * scaleRatio, imgY * scaleRatio, rawImage.width * imgScale * scaleRatio, rawImage.height * imgScale * scaleRatio);
-
-      currentExtractedTexture = exportCanvas.toDataURL('image/jpeg', 0.95);
-      showScreen('screen-loading');
-
-      setTimeout(() => {
-        const nameHeader = document.getElementById('preview-butterfly-name');
-        if (nameHeader) {
-          nameHeader.innerText = `‘${userAnswers.step7_name || "나비"}’`;
-        }
-        showScreen('screen-preview');
-        initExactButterfly(currentExtractedTexture);
-      }, 2200);
-    });
-
-    /* ============================================================
-       Supabase 연동 함수
-       ============================================================ */
-    const SUPABASE_URL = 'https://YOUR_PROJECT_ID.supabase.co';
-    const SUPABASE_ANON_KEY = 'YOUR_ANON_KEY_HERE';
-    let supabase = null;
-    try {
-      if (window.supabase && SUPABASE_URL.indexOf('YOUR_PROJECT_ID') === -1) {
-        supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-      }
-    } catch (e) {}
-
-    function dataURLtoBlob(dataurl) {
-      const arr = dataurl.split(',');
-      const mime = arr[0].match(/:(.*?);/)[1];
-      const bstr = atob(arr[1]);
-      let n = bstr.length;
-      const u8arr = new Uint8Array(n);
-      while (n--) {
-        u8arr[n] = bstr.charCodeAt(n);
-      }
-      return new Blob([u8arr], { type: mime });
-    }
-
-    async function sendButterflyToSupabase(textureBase64) {
-      if (!supabase) return;
-      try {
-        const fileName = `butterfly_${Date.now()}_${Math.random().toString(36).substring(2, 7)}.jpg`;
-        const blob = dataURLtoBlob(textureBase64);
-
-        const { error: uploadError } = await supabase.storage
-          .from('butterflies')
-          .upload(fileName, blob, { contentType: 'image/jpeg' });
-
-        if (uploadError) throw uploadError;
-
-        const { data: publicUrlData } = supabase.storage
-          .from('butterflies')
-          .getPublicUrl(fileName);
-
-        await supabase.from('butterflies').insert([{
-          butterfly_name: userAnswers.step7_name || '이름 없음',
-          texture_url: publicUrlData.publicUrl,
-          step1_identity: userAnswers.step1,
-          step2_journey: userAnswers.step2,
-          step3_attitude: userAnswers.step3,
-          step4_nemesis: userAnswers.step4,
-          step5_weapon: userAnswers.step5,
-          scheduled_at: userAnswers.step6_time,
-          recipient_email: userAnswers.step6_email
-        }]);
-      } catch (err) {
-        console.error("Supabase 에러:", err);
-      }
-    }
-
-    /* ============================================================
-       3D 나비 렌더러
-       ============================================================ */
-    let scene, camera, renderer, butterflyGroup, leftWingMesh, rightWingMesh;
-    let isFlyingAway = false, touchStartY = 0;
-
-    function createChubbyCuteWingShape(isRight) {
-      const shape = new THREE.Shape();
-      const s = isRight ? 1 : -1;
-
-      shape.moveTo(0, 0.45);
-      shape.bezierCurveTo(s * 0.45, 0.95, s * 1.15, 1.75, s * 1.9, 1.7);
-      shape.bezierCurveTo(s * 2.5, 1.65, s * 2.7, 1.15, s * 2.45, 0.6);
-      shape.bezierCurveTo(s * 2.2, 0.2, s * 1.8, 0.0, s * 1.35, -0.1);
-      shape.bezierCurveTo(s * 1.8, -0.35, s * 1.8, -1.05, s * 1.45, -1.5);
-      shape.bezierCurveTo(s * 1.05, -1.9, s * 0.55, -1.8, s * 0.35, -1.5);
-      shape.bezierCurveTo(s * 0.18, -1.15, s * 0.08, -0.7, 0, -0.45);
-      shape.closePath();
-
-      const geom = new THREE.ShapeGeometry(shape, 48);
-      const pos = geom.attributes.position;
-      const uvs = [];
-      const totalSpan = 5.4;
-      for (let i = 0; i < pos.count; i++) {
-        const x = pos.getX(i);
-        const y = pos.getY(i);
-        let u = 0.5 + (x / totalSpan);
-        let v = 0.5 + (y / totalSpan);
-        uvs.push(u, v);
-      }
-      geom.setAttribute('uv', new THREE.Float32BufferAttribute(uvs, 2));
-      geom.setAttribute('uv2', new THREE.Float32BufferAttribute(uvs, 2));
-      geom.computeVertexNormals();
-      return geom;
-    }
-
-    function createSegmentedBodyGeometry() {
-      const points = [];
-      points.push(new THREE.Vector2(0.001, 0.72));
-      points.push(new THREE.Vector2(0.12, 0.62));
-      points.push(new THREE.Vector2(0.085, 0.51));
-      points.push(new THREE.Vector2(0.165, 0.28));
-      points.push(new THREE.Vector2(0.105, 0.05));
-      points.push(new THREE.Vector2(0.13, -0.15));
-      points.push(new THREE.Vector2(0.11, -0.32));
-      points.push(new THREE.Vector2(0.115, -0.42));
-      points.push(new THREE.Vector2(0.07, -0.65));
-      points.push(new THREE.Vector2(0.001, -0.82));
-
-      const geom = new THREE.LatheGeometry(points, 32);
-      geom.computeVertexNormals();
-      return geom;
-    }
-
-    function generateBodyAOTexture() {
-      const canvas = document.createElement('canvas');
-      canvas.width = 128;
-      canvas.height = 512;
-      const ctx = canvas.getContext('2d');
-
-      ctx.fillStyle = '#ffffff';
-      ctx.fillRect(0, 0, 128, 512);
-
-      function drawDarkBand(yPercent, thickness, darkness) {
-        const y = yPercent * 512;
-        const grad = ctx.createLinearGradient(0, y - thickness, 0, y + thickness);
-        grad.addColorStop(0, 'rgba(255, 255, 255, 1)');
-        grad.addColorStop(0.5, `rgba(${darkness}, ${darkness}, ${darkness}, 1)`);
-        grad.addColorStop(1, 'rgba(255, 255, 255, 1)');
-        ctx.fillStyle = grad;
-        ctx.fillRect(0, y - thickness, 128, thickness * 2);
-      }
-
-      drawDarkBand(0.18, 16, 80);
-      drawDarkBand(0.48, 22, 50);
-      drawDarkBand(0.66, 15, 90);
-      drawDarkBand(0.78, 15, 90);
-
-      return new THREE.CanvasTexture(canvas);
-    }
-
-    function generateWingAOTexture() {
-      const canvas = document.createElement('canvas');
-      canvas.width = 512;
-      canvas.height = 512;
-      const ctx = canvas.getContext('2d');
-
-      ctx.fillStyle = '#ffffff';
-      ctx.fillRect(0, 0, 512, 512);
-
-      const grad = ctx.createLinearGradient(160, 0, 352, 0);
-      grad.addColorStop(0, '#ffffff');
-      grad.addColorStop(0.45, '#4a4a55');
-      grad.addColorStop(0.55, '#4a4a55');
-      grad.addColorStop(1, '#ffffff');
-
-      ctx.fillStyle = grad;
-      ctx.fillRect(160, 0, 192, 512);
-
-      return new THREE.CanvasTexture(canvas);
-    }
-
-    function initExactButterfly(textureURL) {
-      const container = document.getElementById('three-container');
-      container.innerHTML = '';
-
-      const width = container.clientWidth || window.innerWidth;
-      const height = container.clientHeight || window.innerHeight;
-
-      scene = new THREE.Scene();
-      camera = new THREE.PerspectiveCamera(38, width / height, 0.1, 1000);
-      camera.position.set(0, -0.1, 9.5);
-      camera.lookAt(0, 0, 0);
-
-      renderer = new THREE.WebGLRenderer({ alpha: true, antialias: true });
-      renderer.setSize(width, height);
-      renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-      renderer.toneMapping = THREE.ACESFilmicToneMapping;
-      renderer.toneMappingExposure = 1.15;
-      container.appendChild(renderer.domElement);
-
-      const ambLight = new THREE.AmbientLight(0xffffff, 0.35);
-      scene.add(ambLight);
-
-      const keyLight = new THREE.DirectionalLight(0xfff8ee, 1.95);
-      keyLight.position.set(4.5, 6, 7);
-      scene.add(keyLight);
-
-      const fillLight = new THREE.DirectionalLight(0xa5b4fc, 0.25);
-      fillLight.position.set(-5, -3, 3);
-      scene.add(fillLight);
-
-      const textureLoader = new THREE.TextureLoader();
-      const userTexture = textureLoader.load(textureURL);
-      userTexture.generateMipmaps = true;
-      userTexture.minFilter = THREE.LinearMipmapLinearFilter;
-      userTexture.magFilter = THREE.LinearFilter;
-
-      const wingAO = generateWingAOTexture();
-      const bodyAO = generateBodyAOTexture();
-
-      butterflyGroup = new THREE.Group();
-
-      const wingMaterial = new THREE.MeshStandardMaterial({
-        map: userTexture,
-        aoMap: wingAO,
-        aoMapIntensity: 1.4,
-        side: THREE.DoubleSide,
-        roughness: 0.35,
-        metalness: 0.05
-      });
-
-      leftWingMesh = new THREE.Mesh(createChubbyCuteWingShape(false), wingMaterial);
-      leftWingMesh.position.set(-0.06, 0.02, 0);
-      butterflyGroup.add(leftWingMesh);
-
-      rightWingMesh = new THREE.Mesh(createChubbyCuteWingShape(true), wingMaterial);
-      rightWingMesh.position.set(0.06, 0.02, 0);
-      butterflyGroup.add(rightWingMesh);
-
-      const bodyMat = new THREE.MeshStandardMaterial({ 
-        color: 0xf3f0ff, 
-        aoMap: bodyAO,
-        aoMapIntensity: 1.6,
-        roughness: 0.3, 
-        metalness: 0.08 
-      });
-
-      butterflyGroup.add(new THREE.Mesh(createSegmentedBodyGeometry(), bodyMat));
-
-      const antCurveL = new THREE.QuadraticBezierCurve3(
-        new THREE.Vector3(-0.03, 0.68, 0.02),
-        new THREE.Vector3(-0.16, 1.02, 0.1),
-        new THREE.Vector3(-0.35, 1.25, 0.02)
-      );
-      butterflyGroup.add(new THREE.Mesh(new THREE.TubeGeometry(antCurveL, 16, 0.012, 8, false), bodyMat));
-
-      const antCurveR = new THREE.QuadraticBezierCurve3(
-        new THREE.Vector3(0.03, 0.68, 0.02),
-        new THREE.Vector3(0.16, 1.02, 0.1),
-        new THREE.Vector3(0.35, 1.25, 0.02)
-      );
-      butterflyGroup.add(new THREE.Mesh(new THREE.TubeGeometry(antCurveR, 16, 0.012, 8, false), bodyMat));
-
-      butterflyGroup.scale.set(0.58, 0.58, 0.58);
-      scene.add(butterflyGroup);
-
-      let clock = new THREE.Clock();
-      function animate() {
-        requestAnimationFrame(animate);
-        const time = clock.getElapsedTime();
-
-        if (!isFlyingAway) {
-          const flap = Math.sin(time * 5.0) * 0.48;
-          leftWingMesh.rotation.y = flap;
-          rightWingMesh.rotation.y = -flap;
-          butterflyGroup.position.y = Math.sin(time * 1.8) * 0.12;
-        } else {
-          const fastFlap = Math.sin(time * 22) * 0.7;
-          leftWingMesh.rotation.y = fastFlap;
-          rightWingMesh.rotation.y = -fastFlap;
-          butterflyGroup.position.y += 0.15;
-          butterflyGroup.position.z -= 0.07;
-
-          if (butterflyGroup.position.y > 8.5) {
-            if (currentExtractedTexture) {
-              sendButterflyToSupabase(currentExtractedTexture);
-            }
-            const completeDesc = document.getElementById('complete-desc');
-            if (completeDesc) {
-              completeDesc.innerHTML = `마음의 무게를 털어낸 <strong>‘${userAnswers.step7_name || "나비"}’</strong>(이)가<br>전면 대형 스크린의 너울 속으로 합류했습니다.`;
-            }
-            showScreen('screen-complete');
-            isFlyingAway = false;
-          }
-        }
-        renderer.render(scene, camera);
-      }
-      animate();
-
-      bindSwipeEvents(container);
-    }
-
-    function bindSwipeEvents(targetEl) {
-      targetEl.addEventListener('touchstart', (e) => {
-        touchStartY = e.touches[0].clientY;
-      }, { passive: true });
-
-      targetEl.addEventListener('touchend', (e) => {
-        const deltaY = touchStartY - e.changedTouches[0].clientY;
-        if (deltaY > 50 && !isFlyingAway) isFlyingAway = true;
-      }, { passive: true });
-
-      let isMouseDown = false;
-      targetEl.addEventListener('mousedown', (e) => {
-        isMouseDown = true;
-        touchStartY = e.clientY;
-      });
-      targetEl.addEventListener('mouseup', (e) => {
-        if (!isMouseDown) return;
-        isMouseDown = false;
-        if ((touchStartY - e.clientY) > 50 && !isFlyingAway) isFlyingAway = true;
-      });
-    }
+    // 최초 렌더링
+    renderCurrentStep();
   </script>
 </body>
 </html>
