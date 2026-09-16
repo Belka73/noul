@@ -57,28 +57,30 @@
       filter: blur(60px);
     }
 
-    /* 배열 유지 + 알약 크기 및 글자 크기 확장 */
+    /* 알약 칩 크기 및 폰트 절대 유지 */
     .pill-chip {
-      background: rgba(255, 255, 255, 0.1);
-      border: 1px solid rgba(255, 255, 255, 0.22);
+      background: rgba(255, 255, 255, 0.11) !important;
+      border: 1px solid rgba(255, 255, 255, 0.22) !important;
       backdrop-filter: blur(10px);
       -webkit-backdrop-filter: blur(10px);
-      color: rgba(255, 255, 255, 0.95);
-      border-radius: 9999px;
-      padding: 0.54rem 0.95rem;
-      font-size: 0.92rem;
-      font-weight: 500;
+      color: rgba(255, 255, 255, 0.95) !important;
+      border-radius: 9999px !important;
+      min-height: 42px !important;
+      height: 42px !important;
+      padding: 0 1.15rem !important;
+      font-size: 0.96rem !important;
+      font-weight: 500 !important;
       letter-spacing: -0.025em;
-      line-height: 1.15;
       transition: all 0.15s ease;
-      box-shadow: 0 3px 8px rgba(0, 0, 0, 0.25);
-      display: inline-flex;
+      box-shadow: 0 3px 10px rgba(0, 0, 0, 0.3);
+      display: inline-flex !important;
       align-items: center;
       justify-content: center;
       text-align: center;
       white-space: nowrap;
       cursor: pointer;
-      flex-shrink: 0;
+      flex-shrink: 0 !important;
+      box-sizing: border-box;
     }
     .pill-chip:active {
       transform: scale(0.95);
@@ -87,9 +89,9 @@
       background: linear-gradient(135deg, #fb923c 0%, #f97316 60%, #ea580c 100%) !important;
       border-color: rgba(254, 215, 170, 0.95) !important;
       color: #ffffff !important;
-      font-weight: 700;
-      box-shadow: 0 3px 14px rgba(249, 115, 22, 0.55), inset 0 1px 1px rgba(255, 255, 255, 0.4);
-      transform: translateY(-1px);
+      font-weight: 700 !important;
+      box-shadow: 0 4px 16px rgba(249, 115, 22, 0.6), inset 0 1px 1px rgba(255, 255, 255, 0.4);
+      transform: translateY(-1.5px);
     }
 
     .keyword-highlight {
@@ -108,28 +110,29 @@
       line-height: 1.35;
     }
 
+    /* 좌우 화살표 버튼 */
     .arrow-nav-btn {
-      width: 34px;
-      height: 34px;
+      width: 36px;
+      height: 36px;
       border-radius: 9999px;
-      background: rgba(255, 255, 255, 0.12);
-      border: 1px solid rgba(255, 255, 255, 0.24);
-      backdrop-filter: blur(10px);
+      background: rgba(255, 255, 255, 0.14);
+      border: 1px solid rgba(255, 255, 255, 0.28);
+      backdrop-filter: blur(12px);
       color: #ffffff;
       display: flex;
       align-items: center;
       justify-content: center;
       transition: all 0.2s ease;
       cursor: pointer;
-      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.35);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
       flex-shrink: 0;
     }
     .arrow-nav-btn:active {
       transform: scale(0.92);
-      background: rgba(255, 255, 255, 0.25);
+      background: rgba(255, 255, 255, 0.3);
     }
     .arrow-nav-btn:disabled {
-      opacity: 0.15;
+      opacity: 0.12;
       pointer-events: none;
     }
 
@@ -181,7 +184,7 @@
     <div class="ambient-glow-2"></div>
   </div>
 
-  <main class="w-full max-w-md flex flex-col justify-between p-3 pb-4 relative z-10 h-[100dvh] box-border overflow-hidden">
+  <main class="w-full max-w-md flex flex-col justify-between p-3.5 pb-4 relative z-10 h-[100dvh] box-border overflow-hidden">
 
     <!-- [STEP 0] 도안 촬영 안내 -->
     <section id="screen-capture-guide" class="screen active flex-col flex-1 justify-between py-2 text-center">
@@ -247,21 +250,21 @@
       <header class="w-full pt-1 flex-shrink-0">
         <div class="flex justify-between items-center text-xs font-mono mb-2">
           <span id="step-indicator" class="text-orange-400 font-bold tracking-wider">STEP 01 / 07</span>
-          <span id="selection-badge" class="px-2 py-0.5 rounded-full bg-white/10 text-slate-300 text-[10px] backdrop-blur-md">다중 선택</span>
+          <span id="selection-badge" class="px-2.5 py-0.5 rounded-full bg-white/10 text-slate-300 text-[10px] backdrop-blur-md">다중 선택</span>
         </div>
         <div class="w-full h-1 bg-white/10 rounded-full overflow-hidden">
           <div id="progress-bar" class="h-full bg-gradient-to-r from-pink-500 to-orange-400 transition-all duration-300" style="width: 14.28%;"></div>
         </div>
       </header>
 
-      <!-- 질문 타이틀: 진행바와 간격 확보를 위해 mt-5 pt-2 적용 -->
-      <div class="text-center mt-5 mb-2 pt-2 flex-shrink-0">
-        <h1 id="question-title" class="text-xl font-bold text-white tracking-tight leading-snug">당신은 어떤 나비인가요?</h1>
+      <!-- 질문 문장 -->
+      <div class="text-center mt-6 mb-2 pt-2 flex-shrink-0">
+        <h1 id="question-title" class="text-2xl font-bold text-white tracking-tight leading-snug">당신은 어떤 나비인가요?</h1>
         <p id="question-desc" class="text-xs text-slate-300/80 mt-1 font-light">자신을 소개해 주세요. (다중 선택)</p>
       </div>
 
-      <!-- 키워드 영역: 화살표와 칩 컨테이너 분리 + 하단 페이지 표시 번호 삭제 -->
-      <div id="survey-chip-wrapper" class="flex-1 flex items-center justify-between w-full min-h-0 my-auto gap-0.5">
+      <!-- 키워드 영역: 가로 잘림 줄(2, 3행)을 4개→3개로 줄여 잘림 없는 20개 배치 -->
+      <div id="survey-chip-wrapper" class="flex-1 flex items-center justify-between w-full min-h-0 my-auto px-1 gap-2">
         
         <!-- 좌측 원형 화살표 -->
         <button id="btn-chip-prev" class="arrow-nav-btn" type="button" aria-label="이전 키워드">
@@ -270,9 +273,9 @@
           </svg>
         </button>
 
-        <!-- 중앙 키워드 컨테이너: 10줄 배열 유지 -->
-        <div class="flex-1 flex flex-col items-center justify-center px-0 overflow-hidden">
-          <div id="organic-chip-container" class="flex flex-col items-center justify-center gap-1.5 w-full"></div>
+        <!-- 중앙 키워드 컨테이너 -->
+        <div class="flex-1 flex flex-col items-center justify-center overflow-x-hidden">
+          <div id="organic-chip-container" class="flex flex-col items-center justify-center gap-2 w-full"></div>
         </div>
 
         <!-- 우측 원형 화살표 -->
@@ -505,9 +508,9 @@
     let currentStepIdx = 0;
     let chipPageIndex = 0;
 
-    // 10줄 [3-4-4-3-3-3-3-3-3-3] = 페이지당 32개
-    const ROW_PATTERN = [3, 4, 4, 3, 3, 3, 3, 3, 3, 3];
-    const CHIPS_PER_PAGE = 32;
+    // 가로로 잘리던 4개 행을 3개로 축소: [3-3-3-3-3-3-2] = 페이지당 20개 (잘림 완전 해소)
+    const ROW_PATTERN = [3, 3, 3, 3, 3, 3, 2];
+    const CHIPS_PER_PAGE = 20;
 
     const elTitle = document.getElementById('question-title');
     const elDesc = document.getElementById('question-desc');
