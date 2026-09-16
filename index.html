@@ -24,7 +24,6 @@
       user-select: none;
     }
 
-    /* 환기 화면 하단 강조 문장용 손글씨 폰트 */
     .handwriting-accent {
       font-family: 'Nanum Pen Script', cursive, sans-serif;
       font-size: 1.45rem;
@@ -111,41 +110,18 @@
       line-height: 1.35;
     }
 
-    /* 화면 전체 세로축 정중앙(50%) 고정 화살표 */
-    .arrow-nav-btn {
-      position: absolute;
-      top: 50% !important;
-      transform: translateY(-50%) !important;
-      width: 38px;
-      height: 38px;
-      border-radius: 9999px;
-      background: rgba(18, 12, 34, 0.85);
-      border: 1px solid rgba(255, 255, 255, 0.32);
-      backdrop-filter: blur(14px);
-      -webkit-backdrop-filter: blur(14px);
-      color: #ffffff;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      transition: all 0.2s ease;
-      cursor: pointer;
-      box-shadow: 0 4px 14px rgba(0, 0, 0, 0.5);
-      z-index: 50;
-      flex-shrink: 0;
+    /* 상하 스크롤 영역: 스크롤바 숨김 및 페이드 마스크 */
+    .vertical-scroll-chips {
+      overflow-y: auto;
+      overflow-x: hidden;
+      -webkit-overflow-scrolling: touch;
+      scrollbar-width: none; /* Firefox */
+      -ms-overflow-style: none; /* IE/Edge */
+      mask-image: linear-gradient(to bottom, transparent 0%, black 6%, black 94%, transparent 100%);
+      -webkit-mask-image: linear-gradient(to bottom, transparent 0%, black 6%, black 94%, transparent 100%);
     }
-    .arrow-nav-btn.btn-prev {
-      left: 10px;
-    }
-    .arrow-nav-btn.btn-next {
-      right: 10px;
-    }
-    .arrow-nav-btn:active {
-      transform: translateY(-50%) scale(0.92) !important;
-      background: rgba(255, 255, 255, 0.3);
-    }
-    .arrow-nav-btn:disabled {
-      opacity: 0.12;
-      pointer-events: none;
+    .vertical-scroll-chips::-webkit-scrollbar {
+      display: none; /* Chrome, Safari */
     }
 
     .btn-next-action {
@@ -255,8 +231,8 @@
       </footer>
     </section>
 
-    <!-- [STEP 1] 설문 화면 -->
-    <section id="screen-survey" class="screen flex-col flex-1 justify-between overflow-visible relative h-full">
+    <!-- [STEP 1] 설문 화면 (화살표 제거 & 상하 스크롤) -->
+    <section id="screen-survey" class="screen flex-col flex-1 justify-between overflow-hidden relative h-full">
       
       <!-- 상단 진행바 -->
       <header class="w-full pt-1 flex-shrink-0">
@@ -265,32 +241,15 @@
         </div>
       </header>
 
-      <!-- 좌우 화살표: 화면 전체 세로축 정중앙에 고정 -->
-      <button id="btn-chip-prev" class="arrow-nav-btn btn-prev" type="button" aria-label="이전 키워드">
-        <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M15 19l-7-7 7-7"></path>
-        </svg>
-      </button>
+      <!-- 질문 문장 -->
+      <div class="text-center mt-3 mb-2 flex-shrink-0">
+        <h1 id="question-title" class="text-2xl font-bold text-white tracking-tight leading-snug">당신은 어떤 나비인가요?</h1>
+        <p id="question-desc" class="text-xs text-slate-300/80 mt-1 font-light">자신을 소개해 주세요. (다중 선택)</p>
+      </div>
 
-      <button id="btn-chip-next" class="arrow-nav-btn btn-next" type="button" aria-label="다음 키워드">
-        <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 5l7 7-7 7"></path>
-        </svg>
-      </button>
-
-      <!-- 중앙 메인 영역 -->
-      <div class="flex-1 flex flex-col justify-center items-center w-full min-h-0 pt-4 pb-2">
-        <div class="text-center mb-[18px] flex-shrink-0">
-          <h1 id="question-title" class="text-2xl font-bold text-white tracking-tight leading-snug">당신은 어떤 나비인가요?</h1>
-          <p id="question-desc" class="text-xs text-slate-300/80 mt-1 font-light">자신을 소개해 주세요. (다중 선택)</p>
-        </div>
-
-        <!-- 키워드 영역 -->
-        <div id="survey-chip-wrapper" class="relative flex items-center justify-center w-full overflow-visible px-10">
-          <div class="w-full flex flex-col items-center justify-center overflow-visible">
-            <div id="organic-chip-container" class="flex flex-col items-center justify-center gap-2 w-full overflow-visible"></div>
-          </div>
-        </div>
+      <!-- 상하 스크롤 키워드 영역 -->
+      <div id="survey-chip-wrapper" class="flex-1 w-full min-h-0 py-2 vertical-scroll-chips px-2">
+        <div id="organic-chip-container" class="flex flex-col items-center gap-2.5 w-full py-3"></div>
       </div>
 
       <!-- [Q6] 일시 / 이메일 설정 -->
@@ -309,7 +268,7 @@
           </div>
         </div>
         <p class="text-[11px] text-slate-400 italic text-center px-2 leading-relaxed">
-          "가장 헐겁게 떠났던 나비가 모든 무게를 털어내고, 약속된 시간에 맞춰 가장 찬란한 모습으로 당신의 문을 두드립니다."[cite: 1]
+          "가장 헐겁게 떠났던 나비가 모든 무게를 털어내고, 약속된 시간에 맞춰 가장 찬란한 모습으로 당신의 문을 두드립니다."
         </p>
       </div>
 
@@ -325,7 +284,7 @@
           </div>
         </div>
         <p class="text-[11px] text-slate-400 italic text-center px-2 leading-relaxed">
-          "이름을 부르는 순간, 나비는 비로소 당신만의 분신이 되어 거대한 하늘 너울 속으로 날아오를 준비를 마칩니다."[cite: 1]
+          "이름을 부르는 순간, 나비는 비로소 당신만의 분신이 되어 거대한 하늘 너울 속으로 날아오를 준비를 마칩니다."
         </p>
       </div>
 
@@ -341,10 +300,9 @@
       </footer>
     </section>
 
-    <!-- [STEP 2] 동화적 환기 화면 (Interlude) - 나비와 문장 간격 유지하며 전체적으로 살짝 위로 이동 (-translate-y-7) -->
+    <!-- [STEP 2] 동화적 환기 화면 (Interlude) -->
     <section id="screen-interlude" class="screen flex-col flex-1 justify-between items-center py-4 text-center overflow-hidden">
       
-      <!-- 나비 + 문장 통합 컨테이너: my-auto에서 -translate-y-7 적용으로 자연스럽게 살짝 상향 배치 -->
       <div class="my-auto flex flex-col items-center justify-center w-full transform -translate-y-7">
         <!-- 3D 나비 -->
         <div class="flex flex-col items-center justify-center flex-shrink-0">
@@ -353,7 +311,7 @@
           </div>
         </div>
 
-        <!-- 문장 영역 (나비와의 간격 mt-3 완벽 유지) -->
+        <!-- 문장 영역 -->
         <div class="flex flex-col justify-center items-center px-4 mt-3">
           <div id="interlude-text-box" class="space-y-3 text-slate-100 break-keep max-w-[325px] mx-auto text-center font-normal"></div>
         </div>
@@ -374,7 +332,7 @@
           내면의 고유한 모습을 담아<br>나비를 깨우고 있습니다.
         </h2>
         <p class="text-xs text-orange-300/80 mt-2 font-light tracking-wide">
-          종이의 무게를 지우고 빛의 날개를 입히는 중입니다.[cite: 1]
+          종이의 무게를 지우고 빛의 날개를 입히는 중입니다.
         </p>
       </div>
 
@@ -394,7 +352,7 @@
       <header class="text-center pt-2 z-10">
         <span class="text-xs font-mono text-white/90 font-semibold tracking-wider uppercase drop-shadow">NOUL 3D BUTTERFLY</span>
         <h2 id="preview-butterfly-name" class="text-2xl font-black text-white mt-0.5 drop-shadow-md tracking-tight">‘나비’</h2>
-        <p class="text-xs text-white/85 mt-0.5 font-light drop-shadow">화면을 위로 쓸어 올려 대형 화면으로 날려보내세요.[cite: 1]</p>
+        <p class="text-xs text-white/85 mt-0.5 font-light drop-shadow">화면을 위로 쓸어 올려 대형 화면으로 날려보내세요.</p>
       </header>
 
       <div id="three-container" class="flex-1 w-full h-full absolute inset-0 z-0"></div>
@@ -419,7 +377,7 @@
       <h2 class="text-2xl font-bold text-white mb-2">하늘 위로 날아올랐습니다</h2>
       <p id="complete-desc" class="text-sm text-slate-300 leading-relaxed mb-8">
         마음의 무게를 털어낸 나비가<br>
-        전면 대형 스크린의 너울 속으로 합류했습니다.[cite: 1]
+        전면 대형 스크린의 너울 속으로 합류했습니다.
       </p>
       <button onclick="location.reload()" type="button" class="px-8 py-3.5 rounded-2xl border border-white/20 text-slate-200 text-xs font-medium active:scale-95 transition-all">
         새로운 나비 띄우기
@@ -502,7 +460,7 @@
       },
       {
         title: "먼 하늘 너울 속으로 날아오를 나비의 이름은?",
-        desc: "나비에게 고유한 이름을 붙여주세요.[cite: 1]"
+        desc: "나비에게 고유한 이름을 붙여주세요."
       }
     ];
 
@@ -513,53 +471,26 @@
     };
 
     let currentStepIdx = 0;
-    let chipPageIndex = 0;
 
-    function buildAdaptiveRows(items) {
+    /* 상하 스크롤용 적응형 줄바꿈: 튀어나옴 방지 (글자 수 기준 2~3개 자동 정렬) */
+    function buildAdaptiveVerticalRows(items) {
       const rows = [];
       let i = 0;
-      let rowIndex = 0;
-
       while (i < items.length) {
         let targetCount = 3;
-        if (rowIndex === 3 || rowIndex === 4) {
-          targetCount = 2;
-        }
-
         const candidate = items.slice(i, i + targetCount);
         const totalChars = candidate.reduce((sum, word) => sum + word.length, 0);
 
-        if (targetCount === 3 && totalChars > 12 && candidate.length > 2) {
+        // 글자 수 합계가 12자를 넘으면 안전하게 2개로 줄바꿈
+        if (totalChars > 12 && candidate.length > 2) {
           targetCount = 2;
         }
 
         const actualRow = items.slice(i, i + targetCount);
         rows.push(actualRow);
         i += actualRow.length;
-        rowIndex++;
-
-        if (rows.length >= 8) {
-          break;
-        }
       }
-      return { rows, consumedCount: i };
-    }
-
-    function getPagedItemsForQuestion(qIndex) {
-      const allOptions = surveyQuestions[qIndex].options || [];
-      const pages = [];
-      let cursor = 0;
-
-      while (cursor < allOptions.length) {
-        const remaining = allOptions.slice(cursor);
-        const { rows, consumedCount } = buildAdaptiveRows(remaining);
-        pages.push({
-          rows: rows,
-          items: remaining.slice(0, consumedCount)
-        });
-        cursor += consumedCount;
-      }
-      return pages;
+      return rows;
     }
 
     const elTitle = document.getElementById('question-title');
@@ -567,8 +498,6 @@
     const elProgressBar = document.getElementById('progress-bar');
     const surveyChipWrapper = document.getElementById('survey-chip-wrapper');
     const elOrganicContainer = document.getElementById('organic-chip-container');
-    const btnChipPrev = document.getElementById('btn-chip-prev');
-    const btnChipNext = document.getElementById('btn-chip-next');
 
     const elField6 = document.getElementById('field-step-6');
     const elField7 = document.getElementById('field-step-7');
@@ -590,22 +519,15 @@
 
       if (currentStepIdx < 5) {
         surveyChipWrapper.classList.remove('hidden');
-        btnChipPrev.classList.remove('hidden');
-        btnChipNext.classList.remove('hidden');
         elField6.classList.add('hidden');
         elField7.classList.add('hidden');
-        chipPageIndex = 0;
-        renderPagedChips();
+        renderVerticalScrollChips();
       } else if (currentStepIdx === 5) {
         surveyChipWrapper.classList.add('hidden');
-        btnChipPrev.classList.add('hidden');
-        btnChipNext.classList.add('hidden');
         elField6.classList.remove('hidden');
         elField7.classList.add('hidden');
       } else {
         surveyChipWrapper.classList.add('hidden');
-        btnChipPrev.classList.add('hidden');
-        btnChipNext.classList.add('hidden');
         elField6.classList.add('hidden');
         elField7.classList.remove('hidden');
       }
@@ -613,20 +535,18 @@
       validateSurveyStep();
     }
 
-    function renderPagedChips() {
-      const pages = getPagedItemsForQuestion(currentStepIdx);
-      const totalPages = pages.length;
-      if (chipPageIndex >= totalPages) chipPageIndex = totalPages - 1;
-      if (chipPageIndex < 0) chipPageIndex = 0;
-
-      const currentPage = pages[chipPageIndex];
+    function renderVerticalScrollChips() {
+      const q = surveyQuestions[currentStepIdx];
+      const allOptions = q.options || [];
+      const rows = buildAdaptiveVerticalRows(allOptions);
       const stateKey = `q${currentStepIdx + 1}`;
 
       elOrganicContainer.innerHTML = '';
+      surveyChipWrapper.scrollTop = 0; // 새 질문 시 최상단 리셋
 
-      currentPage.rows.forEach((rowItems) => {
+      rows.forEach((rowItems) => {
         const rowDiv = document.createElement('div');
-        rowDiv.className = 'flex items-center justify-center gap-1.5 w-full overflow-visible';
+        rowDiv.className = 'flex items-center justify-center gap-1.5 w-full';
 
         rowItems.forEach((item) => {
           const chip = document.createElement('button');
@@ -651,25 +571,7 @@
 
         elOrganicContainer.appendChild(rowDiv);
       });
-
-      btnChipPrev.disabled = (chipPageIndex === 0);
-      btnChipNext.disabled = (chipPageIndex >= totalPages - 1);
     }
-
-    btnChipPrev.addEventListener('click', () => {
-      if (chipPageIndex > 0) {
-        chipPageIndex--;
-        renderPagedChips();
-      }
-    });
-
-    btnChipNext.addEventListener('click', () => {
-      const pages = getPagedItemsForQuestion(currentStepIdx);
-      if (chipPageIndex < pages.length - 1) {
-        chipPageIndex++;
-        renderPagedChips();
-      }
-    });
 
     function validateSurveyStep() {
       let isValid = false;
@@ -736,8 +638,8 @@
       } else if (stepFrom === 4) {
         html = `
           <p class="text-slate-100 text-[0.95rem] leading-relaxed font-normal">시원한 ${formatKeywordBadges(userSelections.q5)} 한마디에, 날개를 옥죄던 어두운 그림자들이 허공으로 맥없이 흩어져 사라집니다.</p>
-          <p class="text-slate-100 text-[0.95rem] leading-relaxed font-normal">온갖 무게를 털어내고 한결 가벼워진 나비는 이제 거대한 하늘 너울 속으로 온전히 날아오릅니다.[cite: 1]</p>
-          <p class="text-orange-200 handwriting-accent pt-2">모든 상처를 비워낸 나비가 가장 눈부신 빛이 되어 당신의 품으로 다시 돌아올 날은 언제일까요?[cite: 1]</p>
+          <p class="text-slate-100 text-[0.95rem] leading-relaxed font-normal">온갖 무게를 털어내고 한결 가벼워진 나비는 이제 거대한 하늘 너울 속으로 온전히 날아오릅니다.</p>
+          <p class="text-orange-200 handwriting-accent pt-2">모든 상처를 비워낸 나비가 가장 눈부신 빛이 되어 당신의 품으로 다시 돌아올 날은 언제일까요?</p>
         `;
       } else if (stepFrom === 5) {
         const formattedDate = userSelections.q6_time ? userSelections.q6_time.replace('T', ' ') : '약속된 그날';
@@ -1122,7 +1024,7 @@
           if (fullGroup.position.y > 8.5) {
             const completeDesc = document.getElementById('complete-desc');
             if (completeDesc) {
-              completeDesc.innerHTML = `마음의 무게를 털어낸 <strong>‘${userSelections.q7_name || "나비"}’</strong>(이)가<br>전면 대형 스크린의 너울 속으로 합류했습니다.[cite: 1]`;
+              completeDesc.innerHTML = `마음의 무게를 털어낸 <strong>‘${userSelections.q7_name || "나비"}’</strong>(이)가<br>전면 대형 스크린의 너울 속으로 합류했습니다.`;
             }
             showScreen('screen-complete');
             isFlyingAway = false;
