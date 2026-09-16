@@ -341,11 +341,11 @@
       </footer>
     </section>
 
-    <!-- [STEP 2] 동화적 환기 화면 (Interlude) - 나비와 문장 묶음을 세로 정중앙(my-auto)으로 배치 -->
+    <!-- [STEP 2] 동화적 환기 화면 (Interlude) - 나비와 문장 간격 유지하며 전체적으로 살짝 위로 이동 (-translate-y-7) -->
     <section id="screen-interlude" class="screen flex-col flex-1 justify-between items-center py-4 text-center overflow-hidden">
       
-      <!-- 나비 + 문장 통합 중앙 컨테이너 (간격 유지 및 정중앙 배치) -->
-      <div class="my-auto flex flex-col items-center justify-center w-full">
+      <!-- 나비 + 문장 통합 컨테이너: my-auto에서 -translate-y-7 적용으로 자연스럽게 살짝 상향 배치 -->
+      <div class="my-auto flex flex-col items-center justify-center w-full transform -translate-y-7">
         <!-- 3D 나비 -->
         <div class="flex flex-col items-center justify-center flex-shrink-0">
           <div class="w-[130px] h-[105px] relative flex items-center justify-center">
@@ -353,7 +353,7 @@
           </div>
         </div>
 
-        <!-- 문장 영역 (나비와의 간격 mt-3 유지) -->
+        <!-- 문장 영역 (나비와의 간격 mt-3 완벽 유지) -->
         <div class="flex flex-col justify-center items-center px-4 mt-3">
           <div id="interlude-text-box" class="space-y-3 text-slate-100 break-keep max-w-[325px] mx-auto text-center font-normal"></div>
         </div>
