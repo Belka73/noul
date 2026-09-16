@@ -24,9 +24,10 @@
       user-select: none;
     }
 
-    .handwriting-text {
+    /* 환기 화면 하단 강조 문장용 손글씨 폰트 */
+    .handwriting-accent {
       font-family: 'Nanum Pen Script', cursive, sans-serif;
-      font-size: 1.4rem;
+      font-size: 1.45rem;
       line-height: 1.5;
       letter-spacing: 0.02em;
     }
@@ -57,7 +58,7 @@
       filter: blur(60px);
     }
 
-    /* 알약 칩 크기, 폰트, 두께 절대 유지 */
+    /* 알약 칩 크기, 폰트, 두께 100% 절대 유지 */
     .pill-chip {
       background: rgba(255, 255, 255, 0.11) !important;
       border: 1px solid rgba(255, 255, 255, 0.22) !important;
@@ -277,14 +278,14 @@
         </svg>
       </button>
 
-      <!-- 중앙 메인 영역: 질문 문장과 키워드를 감싸며 적절한 여백 유지 -->
+      <!-- 중앙 메인 영역 -->
       <div class="flex-1 flex flex-col justify-center items-center w-full min-h-0 pt-4 pb-2">
         <div class="text-center mb-[18px] flex-shrink-0">
           <h1 id="question-title" class="text-2xl font-bold text-white tracking-tight leading-snug">당신은 어떤 나비인가요?</h1>
           <p id="question-desc" class="text-xs text-slate-300/80 mt-1 font-light">자신을 소개해 주세요. (다중 선택)</p>
         </div>
 
-        <!-- 키워드 영역: 아이폰 17 화면 너비에 맞춘 패딩 적용 -->
+        <!-- 키워드 영역 -->
         <div id="survey-chip-wrapper" class="relative flex items-center justify-center w-full overflow-visible px-10">
           <div class="w-full flex flex-col items-center justify-center overflow-visible">
             <div id="organic-chip-container" class="flex flex-col items-center justify-center gap-2 w-full overflow-visible"></div>
@@ -340,7 +341,7 @@
       </footer>
     </section>
 
-    <!-- [STEP 2] 동화적 환기 화면 (Interlude) -->
+    <!-- [STEP 2] 동화적 환기 화면 (Interlude) - 기본 폰트 + 노란색 폰트 분리 -->
     <section id="screen-interlude" class="screen flex-col flex-1 justify-start items-center py-4 text-center overflow-hidden">
       <div class="flex flex-col items-center justify-center mt-6 flex-shrink-0">
         <div class="w-[130px] h-[105px] relative flex items-center justify-center">
@@ -349,7 +350,7 @@
       </div>
 
       <div class="flex-1 flex flex-col justify-start items-center px-4 pt-3 my-auto">
-        <div id="interlude-text-box" class="space-y-3 text-slate-100 handwriting-text break-keep max-w-[325px] mx-auto text-center"></div>
+        <div id="interlude-text-box" class="space-y-3 text-slate-100 break-keep max-w-[325px] mx-auto text-center font-normal"></div>
       </div>
 
       <footer class="w-full pt-1 flex-shrink-0">
@@ -507,29 +508,20 @@
     let currentStepIdx = 0;
     let chipPageIndex = 0;
 
-    /* 
-       [아이폰 17 화면 맞춤 동적 줄바꿈 렌더러]
-       - 키워드 칩의 크기, 폰트, 패딩은 절대 변경하지 않습니다.
-       - 한 줄에 3개를 배치하려 할 때, 단어들의 글자 수 합계가 아이폰 17 가로 폭(약 393px - 화살표 및 패딩 제외 가용 폭 300px)을
-         초과하는 긴 단어 조합이면 자동으로 2개로 줄바꿈하여 화면 밖으로 튀어나가지 않게 안전하게 배치합니다.
-    */
     function buildAdaptiveRows(items) {
       const rows = [];
       let i = 0;
       let rowIndex = 0;
 
       while (i < items.length) {
-        // 화살표가 있는 3~4번째 라인 주변이거나 남은 아이템이 2개 이하일 때
         let targetCount = 3;
         if (rowIndex === 3 || rowIndex === 4) {
-          targetCount = 2; // 화살표 영역과 맞닿는 줄은 2개로 유지
+          targetCount = 2;
         }
 
         const candidate = items.slice(i, i + targetCount);
-        // 단어들의 글자 수 총합 계산
         const totalChars = candidate.reduce((sum, word) => sum + word.length, 0);
 
-        // 글자 수 합계가 12자를 초과하면 3개가 한 줄에 들어갈 때 튀어나오므로 2개로 제한
         if (targetCount === 3 && totalChars > 12 && candidate.length > 2) {
           targetCount = 2;
         }
@@ -539,7 +531,6 @@
         i += actualRow.length;
         rowIndex++;
 
-        // 한 화면에 최대 7~8줄이 차면 한 페이지로 분할
         if (rows.length >= 8) {
           break;
         }
@@ -547,7 +538,6 @@
       return { rows, consumedCount: i };
     }
 
-    // 질문별 페이지 단위 분할 계산
     function getPagedItemsForQuestion(qIndex) {
       const allOptions = surveyQuestions[qIndex].options || [];
       const pages = [];
@@ -705,7 +695,7 @@
       validateSurveyStep();
     });
 
-    /* 환기 페이지(Interlude) 렌더링 */
+    /* 환기 페이지(Interlude) 렌더링 - 흰색 글씨: 기본 고딕, 노란색 글씨: 손글씨 폰트 유지 */
     const interludeTextBox = document.getElementById('interlude-text-box');
     const btnInterludeNext = document.getElementById('btn-interlude-next');
 
@@ -713,41 +703,41 @@
       let html = "";
       if (stepFrom === 0) {
         html = `
-          <p>깊은 잠에서 깨어나 눈부신 햇살과 잔잔한 바람을 맞이한 당신.</p>
-          <p>당신은 ${formatKeywordBadges(userSelections.q1)}의 모습을 품은 작은 나비가 되어 마침내 세상 밖으로 날개를 펼쳤습니다.</p>
-          <p class="text-orange-200/90 pt-1">당신만의 온전한 날갯짓으로, 이제 어떤 하늘을 향해 날아가 보고 싶나요?</p>
+          <p class="text-slate-100 text-[0.95rem] leading-relaxed font-normal">깊은 잠에서 깨어나 눈부신 햇살과 잔잔한 바람을 맞이한 당신.</p>
+          <p class="text-slate-100 text-[0.95rem] leading-relaxed font-normal">당신은 ${formatKeywordBadges(userSelections.q1)}의 모습을 품은 작은 나비가 되어 마침내 세상 밖으로 날개를 펼쳤습니다.</p>
+          <p class="text-orange-200 handwriting-accent pt-2">당신만의 온전한 날갯짓으로, 이제 어떤 하늘을 향해 날아가 보고 싶나요?</p>
         `;
       } else if (stepFrom === 1) {
         html = `
-          <p>저 멀리 반짝이는 ${formatKeywordBadges(userSelections.q2)}을 가슴에 품었습니다.</p>
-          <p>가고 싶은 곳이 생긴 나비의 마음속엔 작고 따뜻한 불꽃이 피어오릅니다.</p>
-          <p class="text-slate-300 text-sm">먼 길을 가다 보면 세찬 바람과 차가운 비를 만나기도 하겠지요.</p>
-          <p class="text-orange-200/90 pt-1">그 긴 비행 동안 날개가 지치지 않도록, 날개 안쪽에 품고 갈 단단한 마음은 무엇인가요?</p>
+          <p class="text-slate-100 text-[0.95rem] leading-relaxed font-normal">저 멀리 반짝이는 ${formatKeywordBadges(userSelections.q2)}을 가슴에 품었습니다.</p>
+          <p class="text-slate-100 text-[0.95rem] leading-relaxed font-normal">가고 싶은 곳이 생긴 나비의 마음속엔 작고 따뜻한 불꽃이 피어오릅니다.</p>
+          <p class="text-slate-300 text-[0.88rem] leading-relaxed font-normal">먼 길을 가다 보면 세찬 바람과 차가운 비를 만나기도 하겠지요.</p>
+          <p class="text-orange-200 handwriting-accent pt-2">그 긴 비행 동안 날개가 지치지 않도록, 날개 안쪽에 품고 갈 단단한 마음은 무엇인가요?</p>
         `;
       } else if (stepFrom === 2) {
         html = `
-          <p>${formatKeywordBadges(userSelections.q3)}을 가만히 챙겨 넣었습니다.</p>
-          <p>이제 당신은 세상의 조급한 시계에 쫓기지 않고, 오직 당신만의 보폭으로 하늘을 날 준비를 마쳤습니다.</p>
-          <p class="text-orange-200/90 pt-1">그런데 저 앞의 짙은 구름 속에서, 오래전부터 당신의 비행을 무겁게 가로막던 그림자가 서서히 모습을 드러냅니다.</p>
+          <p class="text-slate-100 text-[0.95rem] leading-relaxed font-normal">${formatKeywordBadges(userSelections.q3)}을 가만히 챙겨 넣었습니다.</p>
+          <p class="text-slate-100 text-[0.95rem] leading-relaxed font-normal">이제 당신은 세상의 조급한 시계에 쫓기지 않고, 오직 당신만의 보폭으로 하늘을 날 준비를 마쳤습니다.</p>
+          <p class="text-orange-200 handwriting-accent pt-2">그런데 저 앞의 짙은 구름 속에서, 오래전부터 당신의 비행을 무겁게 가로막던 그림자가 서서히 모습을 드러냅니다.</p>
         `;
       } else if (stepFrom === 3) {
         html = `
-          <p>먹구름처럼 불쑥 나타나 앞길을 막아선 ${formatKeywordBadges(userSelections.q4)}.</p>
-          <p>작고 여린 날개가 잠시 파르르 떨리며 숨을 고릅니다.</p>
-          <p class="text-orange-200/90 pt-1">하지만 두려워할 필요는 없습니다. 당신에겐 이 끈질긴 그림자를 가볍게 털어내고 지나갈 당신만의 지혜가 있으니까요.</p>
+          <p class="text-slate-100 text-[0.95rem] leading-relaxed font-normal">먹구름처럼 불쑥 나타나 앞길을 막아선 ${formatKeywordBadges(userSelections.q4)}.</p>
+          <p class="text-slate-100 text-[0.95rem] leading-relaxed font-normal">작고 여린 날개가 잠시 파르르 떨리며 숨을 고릅니다.</p>
+          <p class="text-orange-200 handwriting-accent pt-2">하지만 두려워할 필요는 없습니다. 당신에겐 이 끈질긴 그림자를 가볍게 털어내고 지나갈 당신만의 지혜가 있으니까요.</p>
         `;
       } else if (stepFrom === 4) {
         html = `
-          <p>시원한 ${formatKeywordBadges(userSelections.q5)} 한마디에, 날개를 옥죄던 어두운 그림자들이 허공으로 맥없이 흩어져 사라집니다.</p>
-          <p>온갖 무게를 털어내고 한결 가벼워진 나비는 이제 거대한 하늘 너울 속으로 온전히 날아오릅니다.[cite: 1]</p>
-          <p class="text-orange-200/90 pt-1">모든 상처를 비워낸 나비가 가장 눈부신 빛이 되어 당신의 품으로 다시 돌아올 날은 언제일까요?[cite: 1]</p>
+          <p class="text-slate-100 text-[0.95rem] leading-relaxed font-normal">시원한 ${formatKeywordBadges(userSelections.q5)} 한마디에, 날개를 옥죄던 어두운 그림자들이 허공으로 맥없이 흩어져 사라집니다.</p>
+          <p class="text-slate-100 text-[0.95rem] leading-relaxed font-normal">온갖 무게를 털어내고 한결 가벼워진 나비는 이제 거대한 하늘 너울 속으로 온전히 날아오릅니다.[cite: 1]</p>
+          <p class="text-orange-200 handwriting-accent pt-2">모든 상처를 비워낸 나비가 가장 눈부신 빛이 되어 당신의 품으로 다시 돌아올 날은 언제일까요?[cite: 1]</p>
         `;
       } else if (stepFrom === 5) {
         const formattedDate = userSelections.q6_time ? userSelections.q6_time.replace('T', ' ') : '약속된 그날';
         html = `
           <p><span class="keyword-highlight">${formattedDate}</span></p>
-          <p>지친 계절의 끝자락, 가장 따뜻한 위로가 필요한 바로 그 순간으로 소중한 약속을 띄워 보냈습니다.</p>
-          <p class="text-orange-200/90 pt-1">이제 이 모든 여정과 당신의 깊은 마음을 대신 품고 날아갈, 세상에 단 하나뿐인 이 작은 분신에게 다정한 이름을 선물해 주세요.</p>
+          <p class="text-slate-100 text-[0.95rem] leading-relaxed font-normal">지친 계절의 끝자락, 가장 따뜻한 위로가 필요한 바로 그 순간으로 소중한 약속을 띄워 보냈습니다.</p>
+          <p class="text-orange-200 handwriting-accent pt-2">이제 이 모든 여정과 당신의 깊은 마음을 대신 품고 날아갈, 세상에 단 하나뿐인 이 작은 분신에게 다정한 이름을 선물해 주세요.</p>
         `;
       }
 
