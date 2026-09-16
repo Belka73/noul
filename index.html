@@ -244,27 +244,23 @@
     </section>
 
     <!-- [STEP 1] 설문 화면 -->
-    <section id="screen-survey" class="screen flex-col flex-1 justify-between overflow-hidden">
+    <section id="screen-survey" class="screen flex-col flex-1 justify-between overflow-visible">
       
-      <!-- 상단 진행바 -->
-      <header class="w-full pt-1 flex-shrink-0">
-        <div class="flex justify-between items-center text-xs font-mono mb-2">
-          <span id="step-indicator" class="text-orange-400 font-bold tracking-wider">STEP 01 / 07</span>
-          <span id="selection-badge" class="px-2.5 py-0.5 rounded-full bg-white/10 text-slate-300 text-[10px] backdrop-blur-md">다중 선택</span>
-        </div>
+      <!-- 상단 진행바 (STEP 표기 삭제, 상단 여백 확보) -->
+      <header class="w-full pt-0 flex-shrink-0">
         <div class="w-full h-1 bg-white/10 rounded-full overflow-hidden">
           <div id="progress-bar" class="h-full bg-gradient-to-r from-pink-500 to-orange-400 transition-all duration-300" style="width: 14.28%;"></div>
         </div>
       </header>
 
-      <!-- 질문 문장 -->
-      <div class="text-center mt-6 mb-2 pt-2 flex-shrink-0">
+      <!-- 질문 문장: 진행바와 함께 위쪽으로 끌어올려 키워드 수용 공간 극대화 -->
+      <div class="text-center mt-2 mb-1 pt-0 flex-shrink-0">
         <h1 id="question-title" class="text-2xl font-bold text-white tracking-tight leading-snug">당신은 어떤 나비인가요?</h1>
-        <p id="question-desc" class="text-xs text-slate-300/80 mt-1 font-light">자신을 소개해 주세요. (다중 선택)</p>
+        <p id="question-desc" class="text-xs text-slate-300/80 mt-0.5 font-light">자신을 소개해 주세요. (다중 선택)</p>
       </div>
 
-      <!-- 키워드 영역: 가로 잘림 줄(2, 3행)을 4개→3개로 줄여 잘림 없는 20개 배치 -->
-      <div id="survey-chip-wrapper" class="flex-1 flex items-center justify-between w-full min-h-0 my-auto px-1 gap-2">
+      <!-- 키워드 영역: overflow-visible로 경계를 완전히 없앰 -->
+      <div id="survey-chip-wrapper" class="flex-1 flex items-center justify-between w-full min-h-0 my-auto px-1 gap-2 overflow-visible">
         
         <!-- 좌측 원형 화살표 -->
         <button id="btn-chip-prev" class="arrow-nav-btn" type="button" aria-label="이전 키워드">
@@ -273,9 +269,9 @@
           </svg>
         </button>
 
-        <!-- 중앙 키워드 컨테이너 -->
-        <div class="flex-1 flex flex-col items-center justify-center overflow-x-hidden">
-          <div id="organic-chip-container" class="flex flex-col items-center justify-center gap-2 w-full"></div>
+        <!-- 중앙 키워드 컨테이너 (경계선 완전 제거, overflow-visible) -->
+        <div class="flex-1 flex flex-col items-center justify-center overflow-visible">
+          <div id="organic-chip-container" class="flex flex-col items-center justify-center gap-2 w-full overflow-visible"></div>
         </div>
 
         <!-- 우측 원형 화살표 -->
@@ -323,7 +319,7 @@
       </div>
 
       <!-- 하단 액션 바 버튼 -->
-      <footer class="w-full pt-2 flex flex-col gap-1.5 flex-shrink-0">
+      <footer class="w-full pt-1 flex flex-col gap-1.5 flex-shrink-0">
         <button id="btn-survey-next" type="button" disabled 
                 class="btn-next-action w-full py-3.5 rounded-2xl font-bold text-sm tracking-wide active:scale-[0.98] transition-all">
           다음 질문으로
@@ -430,7 +426,6 @@
       {
         title: "당신은 어떤 나비인가요?",
         desc: "자신을 소개해 주세요. (다중 선택)",
-        badge: "다중 선택",
         options: [
           "야행성", "아침형", "집돌이·집순이", "외향형", "계획파", "즉흥파", "사색가", "행동파", "마이웨이", "눈치러",
           "완벽주의", "단순명쾌", "유리멘탈", "무념무상", "일벌레", "게으른 완벽주의", "벼락치기파", "루틴러", "커피수액러", "산책러",
@@ -442,7 +437,6 @@
       {
         title: "고치에서 나온 당신, 어떤 여정을 떠날 건가요?",
         desc: "향하고 싶은 방향을 골라주세요. (다중 선택)",
-        badge: "다중 선택",
         options: [
           "취업 뽀개기", "칼퇴 보장", "자취방 독립", "내 작은 카페", "자격증 합격", "목표 어학 점수", "해외 한 달 살기", "1,000만 원 저축", "내 브랜드 론칭", "숙면 8시간",
           "콘서트 올콘", "운동 습관화", "포트폴리오 완성", "악연 손절", "첫 월급 선물", "창작물 완판", "바다 여행", "완벽주의 탈출", "채널 1만 구독", "면접 당당함",
@@ -454,7 +448,6 @@
       {
         title: "긴 여정을 위해 챙겨가야 할 것은?",
         desc: "비행 동안 나비가 품고 갈 마음을 골라주세요. (다중 선택)",
-        badge: "다중 선택",
         options: [
           "흔들려도 그냥 둠", "남 눈치 안 보고 멍때림", "망해도 별일 아니라고 넘김", "내 속도대로 천천히 감", "할 만큼 했다고 인정함", "억지로 애쓰지 않음", "싫은 건 싫다고 생각함", "오늘 하루만 버텨봄", "완벽하지 않아도 만족함", "혼자만의 침묵을 즐김",
           "남의 말 한 귀로 흘림", "당장 답을 찾지 않음", "아무 계획 없이 흘러감", "내 감정에 솔직해짐", "쉬는 것에 당당해짐", "안 되는 건 쿨하게 포기함", "넘어져도 급하게 안 일어남", "나를 가장 먼저 챙김", "작은 틈을 내어 숨을 쉼", "그때그때 마음 가는 대로 함",
@@ -466,7 +459,6 @@
       {
         title: "비행 중 마주친 나의 천적은?",
         desc: "날갯짓을 가로막는 것은 무엇일까요? (다중 선택)",
-        badge: "다중 선택",
         options: [
           "비교중독", "만성 피로", "텅 빈 잔고", "완벽주의 강박", "미래 막막함", "거절 공포", "지나간 후회", "가면 증후군", "스마트폰 중독", "결정 장애",
           "눈치 보기", "벼락치기 습관", "타인 인정 욕구", "번아웃 무기력", "억지 미소", "취업 압박감", "수면 부족", "실패 공포증", "잦은 감정 기복", "뒤처짐 조급함",
@@ -478,7 +470,6 @@
       {
         title: "그 천적을 맞닥뜨렸을 때, 어떻게 맞설 건가요?",
         desc: "비장의 한 수를 골라주세요. (다중 선택)",
-        badge: "다중 선택",
         options: [
           '"어쩌라고" 마인드', "일단 푹 자기", "칼같은 단호함", "한 귀로 흘리기", "연락 차단 모드", "뻔뻔한 배짱", '"그럴 수 있지"', "빠른 손절", "나만의 속도", "미련 없는 포기",
           "쿨한 넘김", "거절하는 용기", "침묵의 멍때리기", "스스로 토닥이기", "당당한 마이웨이", "무반응과 무관심", "셀프 칭찬", "혼자만의 고요", "딴청 피우기", "근거 없는 자신감",
@@ -489,13 +480,11 @@
       },
       {
         title: "더욱 찬란해진 나비가 돌아올 날은?",
-        desc: "다시 날아앉을 시간을 정해 주세요.",
-        badge: "시간 예약"
+        desc: "다시 날아앉을 시간을 정해 주세요."
       },
       {
         title: "먼 하늘 너울 속으로 날아오를 나비의 이름은?",
-        desc: "나비에게 고유한 이름을 붙여주세요.[cite: 1]",
-        badge: "이름 입력"
+        desc: "나비에게 고유한 이름을 붙여주세요.[cite: 1]"
       }
     ];
 
@@ -508,14 +497,13 @@
     let currentStepIdx = 0;
     let chipPageIndex = 0;
 
-    // 가로로 잘리던 4개 행을 3개로 축소: [3-3-3-3-3-3-2] = 페이지당 20개 (잘림 완전 해소)
-    const ROW_PATTERN = [3, 3, 3, 3, 3, 3, 2];
-    const CHIPS_PER_PAGE = 20;
+    // 화살표와 닿는 줄(4행)을 2개로 줄여 화살표와 겹침을 방지하고 위아래 8줄로 꽉 채운 21개 배치
+    // [3 - 3 - 3 - 2(화살표라인) - 2(화살표라인) - 3 - 3 - 2]
+    const ROW_PATTERN = [3, 3, 3, 2, 2, 3, 3, 2];
+    const CHIPS_PER_PAGE = 21;
 
     const elTitle = document.getElementById('question-title');
     const elDesc = document.getElementById('question-desc');
-    const elBadge = document.getElementById('selection-badge');
-    const elStepIndicator = document.getElementById('step-indicator');
     const elProgressBar = document.getElementById('progress-bar');
     const surveyChipWrapper = document.getElementById('survey-chip-wrapper');
     const elOrganicContainer = document.getElementById('organic-chip-container');
@@ -535,8 +523,6 @@
       const q = surveyQuestions[currentStepIdx];
       elTitle.innerText = q.title;
       elDesc.innerText = q.desc;
-      elBadge.innerText = q.badge;
-      elStepIndicator.innerText = `STEP 0${currentStepIdx + 1} / 07`;
       elProgressBar.style.width = `${((currentStepIdx + 1) / 7) * 100}%`;
 
       btnSurveyPrev.classList.toggle('hidden', currentStepIdx === 0);
@@ -577,7 +563,7 @@
         if (itemCursor >= currentItems.length) return;
 
         const rowDiv = document.createElement('div');
-        rowDiv.className = 'flex items-center justify-center gap-1.5 w-full';
+        rowDiv.className = 'flex items-center justify-center gap-1.5 w-full overflow-visible';
 
         const rowItems = currentItems.slice(itemCursor, itemCursor + countInRow);
         itemCursor += countInRow;
