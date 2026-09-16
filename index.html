@@ -57,7 +57,7 @@
       filter: blur(60px);
     }
 
-    /* 배열 유지 + 알약 크기 및 폰트 확장 */
+    /* 배열 유지 + 알약 크기 및 글자 크기 확장 */
     .pill-chip {
       background: rgba(255, 255, 255, 0.1);
       border: 1px solid rgba(255, 255, 255, 0.22);
@@ -65,8 +65,8 @@
       -webkit-backdrop-filter: blur(10px);
       color: rgba(255, 255, 255, 0.95);
       border-radius: 9999px;
-      padding: 0.46rem 0.85rem;
-      font-size: 0.86rem;
+      padding: 0.54rem 0.95rem;
+      font-size: 0.92rem;
       font-weight: 500;
       letter-spacing: -0.025em;
       line-height: 1.15;
@@ -109,8 +109,8 @@
     }
 
     .arrow-nav-btn {
-      width: 32px;
-      height: 32px;
+      width: 34px;
+      height: 34px;
       border-radius: 9999px;
       background: rgba(255, 255, 255, 0.12);
       border: 1px solid rgba(255, 255, 255, 0.24);
@@ -181,7 +181,7 @@
     <div class="ambient-glow-2"></div>
   </div>
 
-  <main class="w-full max-w-md flex flex-col justify-between p-3.5 pb-4 relative z-10 h-[100dvh] box-border overflow-hidden">
+  <main class="w-full max-w-md flex flex-col justify-between p-3 pb-4 relative z-10 h-[100dvh] box-border overflow-hidden">
 
     <!-- [STEP 0] 도안 촬영 안내 -->
     <section id="screen-capture-guide" class="screen active flex-col flex-1 justify-between py-2 text-center">
@@ -244,8 +244,8 @@
     <section id="screen-survey" class="screen flex-col flex-1 justify-between overflow-hidden">
       
       <!-- 상단 진행바 -->
-      <header class="w-full pt-0.5 flex-shrink-0">
-        <div class="flex justify-between items-center text-xs font-mono mb-1.5">
+      <header class="w-full pt-1 flex-shrink-0">
+        <div class="flex justify-between items-center text-xs font-mono mb-2">
           <span id="step-indicator" class="text-orange-400 font-bold tracking-wider">STEP 01 / 07</span>
           <span id="selection-badge" class="px-2 py-0.5 rounded-full bg-white/10 text-slate-300 text-[10px] backdrop-blur-md">다중 선택</span>
         </div>
@@ -254,13 +254,13 @@
         </div>
       </header>
 
-      <!-- 질문 타이틀 -->
-      <div class="text-center mt-1 mb-0.5 flex-shrink-0">
-        <h1 id="question-title" class="text-lg font-bold text-white tracking-tight leading-tight">당신은 어떤 나비인가요?</h1>
-        <p id="question-desc" class="text-[11px] text-slate-300/80 mt-0.5 font-light">자신을 소개해 주세요. (다중 선택)</p>
+      <!-- 질문 타이틀: 진행바와 간격 확보를 위해 mt-5 pt-2 적용 -->
+      <div class="text-center mt-5 mb-2 pt-2 flex-shrink-0">
+        <h1 id="question-title" class="text-xl font-bold text-white tracking-tight leading-snug">당신은 어떤 나비인가요?</h1>
+        <p id="question-desc" class="text-xs text-slate-300/80 mt-1 font-light">자신을 소개해 주세요. (다중 선택)</p>
       </div>
 
-      <!-- 키워드 영역: 화살표와 중앙 컨테이너 분리 + 키워드 크기 확대 -->
+      <!-- 키워드 영역: 화살표와 칩 컨테이너 분리 + 하단 페이지 표시 번호 삭제 -->
       <div id="survey-chip-wrapper" class="flex-1 flex items-center justify-between w-full min-h-0 my-auto gap-0.5">
         
         <!-- 좌측 원형 화살표 -->
@@ -273,10 +273,6 @@
         <!-- 중앙 키워드 컨테이너: 10줄 배열 유지 -->
         <div class="flex-1 flex flex-col items-center justify-center px-0 overflow-hidden">
           <div id="organic-chip-container" class="flex flex-col items-center justify-center gap-1.5 w-full"></div>
-          
-          <div id="chip-page-indicator" class="text-[10px] font-mono text-slate-400 mt-1 tracking-widest bg-white/5 px-2 py-0.5 rounded-full border border-white/10">
-            1 / 2
-          </div>
         </div>
 
         <!-- 우측 원형 화살표 -->
@@ -324,7 +320,7 @@
       </div>
 
       <!-- 하단 액션 바 버튼 -->
-      <footer class="w-full pt-1.5 flex flex-col gap-1 flex-shrink-0">
+      <footer class="w-full pt-2 flex flex-col gap-1.5 flex-shrink-0">
         <button id="btn-survey-next" type="button" disabled 
                 class="btn-next-action w-full py-3.5 rounded-2xl font-bold text-sm tracking-wide active:scale-[0.98] transition-all">
           다음 질문으로
@@ -520,7 +516,6 @@
     const elProgressBar = document.getElementById('progress-bar');
     const surveyChipWrapper = document.getElementById('survey-chip-wrapper');
     const elOrganicContainer = document.getElementById('organic-chip-container');
-    const elChipPageIndicator = document.getElementById('chip-page-indicator');
     const btnChipPrev = document.getElementById('btn-chip-prev');
     const btnChipNext = document.getElementById('btn-chip-next');
 
@@ -610,7 +605,6 @@
 
       btnChipPrev.disabled = (chipPageIndex === 0);
       btnChipNext.disabled = (chipPageIndex >= totalPages - 1);
-      elChipPageIndicator.innerText = `${chipPageIndex + 1} / ${totalPages}`;
     }
 
     btnChipPrev.addEventListener('click', () => {
