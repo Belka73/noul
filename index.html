@@ -24,6 +24,7 @@
       user-select: none;
     }
 
+    /* 환기 화면 하단 강조 문장용 손글씨 폰트 */
     .handwriting-accent {
       font-family: 'Nanum Pen Script', cursive, sans-serif;
       font-size: 1.45rem;
@@ -110,18 +111,18 @@
       line-height: 1.35;
     }
 
-    /* 상하 스크롤 영역: 스크롤바 숨김 및 페이드 마스크 */
+    /* 상하 스크롤 영역 */
     .vertical-scroll-chips {
       overflow-y: auto;
       overflow-x: hidden;
       -webkit-overflow-scrolling: touch;
-      scrollbar-width: none; /* Firefox */
-      -ms-overflow-style: none; /* IE/Edge */
+      scrollbar-width: none;
+      -ms-overflow-style: none;
       mask-image: linear-gradient(to bottom, transparent 0%, black 6%, black 94%, transparent 100%);
       -webkit-mask-image: linear-gradient(to bottom, transparent 0%, black 6%, black 94%, transparent 100%);
     }
     .vertical-scroll-chips::-webkit-scrollbar {
-      display: none; /* Chrome, Safari */
+      display: none;
     }
 
     .btn-next-action {
@@ -158,10 +159,14 @@
     }
     .pulse-animation { animation: pulseGlow 2.4s infinite ease-in-out; }
 
-    input[type="datetime-local"]::-webkit-calendar-picker-indicator {
-      filter: invert(1);
-      opacity: 0.75;
-      cursor: pointer;
+    /* 년/월/일 숫자 인풋 스핀 버튼 제거 */
+    input[type=number]::-webkit-inner-spin-button, 
+    input[type=number]::-webkit-outer-spin-button { 
+      -webkit-appearance: none; 
+      margin: 0; 
+    }
+    input[type=number] {
+      -moz-appearance: textfield;
     }
   </style>
 </head>
@@ -231,7 +236,7 @@
       </footer>
     </section>
 
-    <!-- [STEP 1] 설문 화면 (화살표 제거 & 상하 스크롤) -->
+    <!-- [STEP 1] 설문 화면 -->
     <section id="screen-survey" class="screen flex-col flex-1 justify-between overflow-hidden relative h-full">
       
       <!-- 상단 진행바 -->
@@ -247,29 +252,46 @@
         <p id="question-desc" class="text-xs text-slate-300/80 mt-1 font-light">자신을 소개해 주세요. (다중 선택)</p>
       </div>
 
-      <!-- 상하 스크롤 키워드 영역 -->
+      <!-- 상하 스크롤 키워드 영역 (Q1~Q5) -->
       <div id="survey-chip-wrapper" class="flex-1 w-full min-h-0 py-2 vertical-scroll-chips px-2">
         <div id="organic-chip-container" class="flex flex-col items-center gap-2.5 w-full py-3"></div>
       </div>
 
-      <!-- [Q6] 일시 / 이메일 설정 -->
-      <div id="field-step-6" class="hidden flex-col justify-center flex-1 py-2 px-1 gap-3 my-auto">
-        <div class="bg-white/5 border border-white/15 backdrop-blur-xl rounded-3xl p-4 space-y-3 shadow-lg">
+      <!-- [Q6] 날짜(년/월/일 3칸) / 이메일 설정 - 세로 정중앙(my-auto) 배치 및 하단 문구 제거 -->
+      <div id="field-step-6" class="hidden flex-col justify-center flex-1 w-full px-2 my-auto">
+        <div class="bg-white/5 border border-white/15 backdrop-blur-xl rounded-3xl p-5 space-y-4 shadow-xl">
+          <!-- 년, 월, 일 3칸 입력란 -->
           <div>
-            <label class="block text-xs font-mono text-orange-300 mb-1 font-medium">찬란한 재회의 시간 (datetime-local)</label>
-            <input id="input-q6-time" type="datetime-local" class="w-full bg-white/10 border border-white/20 rounded-2xl px-3.5 py-2.5 text-sm text-white focus:outline-none focus:border-orange-400">
-            <span class="text-[10.5px] text-slate-400 mt-1 block leading-relaxed">
+            <label class="block text-xs font-mono text-orange-300 mb-1.5 font-medium">찬란한 재회의 날</label>
+            <div class="grid grid-cols-3 gap-2">
+              <div class="relative">
+                <input id="input-q6-year" type="number" placeholder="2026" min="2024" max="2099" 
+                       class="w-full bg-white/10 border border-white/20 rounded-2xl px-3 py-2.5 text-center text-sm text-white focus:outline-none focus:border-orange-400 placeholder-slate-500 font-medium">
+                <span class="absolute right-2.5 top-1/2 -translate-y-1/2 text-xs text-slate-400 pointer-events-none">년</span>
+              </div>
+              <div class="relative">
+                <input id="input-q6-month" type="number" placeholder="10" min="1" max="12" 
+                       class="w-full bg-white/10 border border-white/20 rounded-2xl px-3 py-2.5 text-center text-sm text-white focus:outline-none focus:border-orange-400 placeholder-slate-500 font-medium">
+                <span class="absolute right-2.5 top-1/2 -translate-y-1/2 text-xs text-slate-400 pointer-events-none">월</span>
+              </div>
+              <div class="relative">
+                <input id="input-q6-day" type="number" placeholder="24" min="1" max="31" 
+                       class="w-full bg-white/10 border border-white/20 rounded-2xl px-3 py-2.5 text-center text-sm text-white focus:outline-none focus:border-orange-400 placeholder-slate-500 font-medium">
+                <span class="absolute right-2.5 top-1/2 -translate-y-1/2 text-xs text-slate-400 pointer-events-none">일</span>
+              </div>
+            </div>
+            <span class="text-[11px] text-slate-400 mt-2 block leading-relaxed font-light">
               새로운 다짐이 필요할 때, 지친 계절의 끝, 혹은 1년 뒤 오늘처럼 찬란한 위로가 닿길 바라는 순간을 약속해 주세요.
             </span>
           </div>
+
+          <!-- 이메일 입력란 -->
           <div>
-            <label class="block text-xs font-mono text-orange-300 mb-1 font-medium">나비를 맞이할 이메일</label>
-            <input id="input-q6-email" type="email" placeholder="example@email.com" class="w-full bg-white/10 border border-white/20 rounded-2xl px-3.5 py-2.5 text-sm text-white focus:outline-none focus:border-orange-400 placeholder-slate-500">
+            <label class="block text-xs font-mono text-orange-300 mb-1.5 font-medium">나비를 맞이할 이메일</label>
+            <input id="input-q6-email" type="email" placeholder="example@email.com" 
+                   class="w-full bg-white/10 border border-white/20 rounded-2xl px-3.5 py-2.5 text-sm text-white focus:outline-none focus:border-orange-400 placeholder-slate-500">
           </div>
         </div>
-        <p class="text-[11px] text-slate-400 italic text-center px-2 leading-relaxed">
-          "가장 헐겁게 떠났던 나비가 모든 무게를 털어내고, 약속된 시간에 맞춰 가장 찬란한 모습으로 당신의 문을 두드립니다."
-        </p>
       </div>
 
       <!-- [Q7] 나비 이름 설정 -->
@@ -302,22 +324,18 @@
 
     <!-- [STEP 2] 동화적 환기 화면 (Interlude) -->
     <section id="screen-interlude" class="screen flex-col flex-1 justify-between items-center py-4 text-center overflow-hidden">
-      
       <div class="my-auto flex flex-col items-center justify-center w-full transform -translate-y-7">
-        <!-- 3D 나비 -->
         <div class="flex flex-col items-center justify-center flex-shrink-0">
           <div class="w-[130px] h-[105px] relative flex items-center justify-center">
             <div id="interlude-canvas-container" class="w-full h-full"></div>
           </div>
         </div>
 
-        <!-- 문장 영역 -->
         <div class="flex flex-col justify-center items-center px-4 mt-3">
           <div id="interlude-text-box" class="space-y-3 text-slate-100 break-keep max-w-[325px] mx-auto text-center font-normal"></div>
         </div>
       </div>
 
-      <!-- 하단 버튼 -->
       <footer class="w-full pt-1 flex-shrink-0">
         <button id="btn-interlude-next" type="button" class="btn-next-action w-full py-3.5 rounded-2xl font-bold text-sm tracking-wide active:scale-[0.98] transition-all">
           다음 여정으로
@@ -466,13 +484,12 @@
 
     const userSelections = {
       q1: [], q2: [], q3: [], q4: [], q5: [],
-      q6_time: "", q6_email: "",
+      q6_year: "", q6_month: "", q6_day: "", q6_email: "",
       q7_name: ""
     };
 
     let currentStepIdx = 0;
 
-    /* 상하 스크롤용 적응형 줄바꿈: 튀어나옴 방지 (글자 수 기준 2~3개 자동 정렬) */
     function buildAdaptiveVerticalRows(items) {
       const rows = [];
       let i = 0;
@@ -481,7 +498,6 @@
         const candidate = items.slice(i, i + targetCount);
         const totalChars = candidate.reduce((sum, word) => sum + word.length, 0);
 
-        // 글자 수 합계가 12자를 넘으면 안전하게 2개로 줄바꿈
         if (totalChars > 12 && candidate.length > 2) {
           targetCount = 2;
         }
@@ -503,8 +519,12 @@
     const elField7 = document.getElementById('field-step-7');
     const btnSurveyNext = document.getElementById('btn-survey-next');
     const btnSurveyPrev = document.getElementById('btn-survey-prev');
-    const inputQ6Time = document.getElementById('input-q6-time');
+
+    const inputQ6Year = document.getElementById('input-q6-year');
+    const inputQ6Month = document.getElementById('input-q6-month');
+    const inputQ6Day = document.getElementById('input-q6-day');
     const inputQ6Email = document.getElementById('input-q6-email');
+
     const inputQ7Name = document.getElementById('input-q7-name');
     const charCounter = document.getElementById('char-counter');
 
@@ -542,7 +562,7 @@
       const stateKey = `q${currentStepIdx + 1}`;
 
       elOrganicContainer.innerHTML = '';
-      surveyChipWrapper.scrollTop = 0; // 새 질문 시 최상단 리셋
+      surveyChipWrapper.scrollTop = 0;
 
       rows.forEach((rowItems) => {
         const rowDiv = document.createElement('div');
@@ -581,15 +601,30 @@
       else if (currentStepIdx === 3) isValid = userSelections.q4.length > 0;
       else if (currentStepIdx === 4) isValid = userSelections.q5.length > 0;
       else if (currentStepIdx === 5) {
-        isValid = !!userSelections.q6_time && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(userSelections.q6_email);
+        const y = parseInt(userSelections.q6_year, 10);
+        const m = parseInt(userSelections.q6_month, 10);
+        const d = parseInt(userSelections.q6_day, 10);
+        const isDateValid = !isNaN(y) && y >= 2024 && !isNaN(m) && m >= 1 && m <= 12 && !isNaN(d) && d >= 1 && d <= 31;
+        const isEmailValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(userSelections.q6_email);
+        isValid = isDateValid && isEmailValid;
       } else if (currentStepIdx === 6) {
         isValid = userSelections.q7_name.trim().length > 0;
       }
       btnSurveyNext.disabled = !isValid;
     }
 
-    inputQ6Time.addEventListener('input', (e) => {
-      userSelections.q6_time = e.target.value;
+    inputQ6Year.addEventListener('input', (e) => {
+      userSelections.q6_year = e.target.value.trim();
+      validateSurveyStep();
+    });
+
+    inputQ6Month.addEventListener('input', (e) => {
+      userSelections.q6_month = e.target.value.trim();
+      validateSurveyStep();
+    });
+
+    inputQ6Day.addEventListener('input', (e) => {
+      userSelections.q6_day = e.target.value.trim();
       validateSurveyStep();
     });
 
@@ -642,9 +677,11 @@
           <p class="text-orange-200 handwriting-accent pt-2">모든 상처를 비워낸 나비가 가장 눈부신 빛이 되어 당신의 품으로 다시 돌아올 날은 언제일까요?</p>
         `;
       } else if (stepFrom === 5) {
-        const formattedDate = userSelections.q6_time ? userSelections.q6_time.replace('T', ' ') : '약속된 그날';
+        const dateStr = (userSelections.q6_year && userSelections.q6_month && userSelections.q6_day) 
+          ? `${userSelections.q6_year}년 ${userSelections.q6_month}월 ${userSelections.q6_day}일` 
+          : '약속된 그날';
         html = `
-          <p><span class="keyword-highlight">${formattedDate}</span></p>
+          <p><span class="keyword-highlight">${dateStr}</span></p>
           <p class="text-slate-100 text-[0.95rem] leading-relaxed font-normal">지친 계절의 끝자락, 가장 따뜻한 위로가 필요한 바로 그 순간으로 소중한 약속을 띄워 보냈습니다.</p>
           <p class="text-orange-200 handwriting-accent pt-2">이제 이 모든 여정과 당신의 깊은 마음을 대신 품고 날아갈, 세상에 단 하나뿐인 이 작은 분신에게 다정한 이름을 선물해 주세요.</p>
         `;
