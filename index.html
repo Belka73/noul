@@ -21,12 +21,11 @@
       border: 1px solid rgba(255, 255, 255, 0.15);
       backdrop-filter: blur(8px);
       transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
-      user-select: none;
     }
     .chip.selected {
-      background: rgba(147, 197, 253, 0.25) !important;
-      border-color: #93c5fd !important;
-      color: #ffffff !important;
+      background: rgba(147, 197, 253, 0.25);
+      border-color: #93c5fd;
+      color: #ffffff;
       box-shadow: 0 0 15px rgba(147, 197, 253, 0.4);
       transform: translateY(-2px);
     }
@@ -62,7 +61,7 @@
 
     input[type="datetime-local"]::-webkit-calendar-picker-indicator {
       filter: invert(1);
-      opacity: 0.7;
+      opacity: 0.8;
       cursor: pointer;
     }
   </style>
@@ -76,7 +75,7 @@
       <header class="w-full mb-3">
         <div class="flex justify-between text-xs text-gray-400 mb-2 font-mono">
           <span id="step-indicator" class="text-blue-400 font-semibold">STEP 1 / 7</span>
-          <span id="selection-type">다중 선택 가능</span>
+          <span id="selection-type">다중 선택</span>
         </div>
         <div class="w-full h-1 bg-gray-800 rounded-full overflow-hidden">
           <div id="progress-bar" class="h-full bg-blue-400 transition-all duration-300" style="width: 14.28%;"></div>
@@ -85,45 +84,45 @@
 
       <div class="flex-1 flex flex-col justify-center overflow-y-auto pr-1">
         <!-- 1번 질문: 성향 -->
-        <div id="substep-1" class="substep flex flex-col">
+        <div id="substep-1" class="substep flex-col flex">
           <h2 class="text-xl font-bold mb-1 text-white">당신은 어떤 나비인가요?</h2>
-          <p class="text-xs text-gray-400 mb-4">일상 속 내 모습을 가장 잘 나타내는 성향을 골라주세요. (다중 선택)</p>
+          <p class="text-xs text-gray-400 mb-5">일상 속 내 모습을 가장 잘 나타내는 성향을 골라주세요. (다중 선택)</p>
           <div class="flex flex-wrap gap-2.5 max-h-[50vh] overflow-y-auto py-1" id="list-step-1"></div>
         </div>
 
         <!-- 2번 질문: 여정 목표 -->
         <div id="substep-2" class="substep flex-col hidden">
           <h2 class="text-xl font-bold mb-1 text-white">고치에서 나온 당신, 어떤 여정을 떠날 건가요?</h2>
-          <p class="text-xs text-gray-400 mb-4">향하고 싶은 방향을 골라주세요. (다중 선택)</p>
+          <p class="text-xs text-gray-400 mb-5">향하고 싶은 방향을 골라주세요. (다중 선택)</p>
           <div class="flex flex-wrap gap-2.5 max-h-[50vh] overflow-y-auto py-1" id="list-step-2"></div>
         </div>
 
         <!-- 3번 질문: 챙겨갈 태도 -->
         <div id="substep-3" class="substep flex-col hidden">
           <h2 class="text-xl font-bold mb-1 text-white">긴 여정을 위해 챙겨가야 할 것은?</h2>
-          <p class="text-xs text-gray-400 mb-4">비행 동안 나비가 품고 갈 마음의 결을 골라주세요. (다중 선택)</p>
+          <p class="text-xs text-gray-400 mb-5">비행 동안 나비가 품고 갈 마음의 결을 골라주세요. (다중 선택)</p>[cite: 1, 2]
           <div class="flex flex-wrap gap-2.5 max-h-[50vh] overflow-y-auto py-1" id="list-step-3"></div>
         </div>
 
         <!-- 4번 질문: 천적 -->
         <div id="substep-4" class="substep flex-col hidden">
           <h2 class="text-xl font-bold mb-1 text-white">비행 중 마주친 나의 천적은?</h2>
-          <p class="text-xs text-gray-400 mb-4 leading-relaxed">사마귀? 거미? 작은 새? 당신의 날갯짓을 가로막는 것은 무엇일까요? (다중 선택)</p>
+          <p class="text-xs text-gray-400 mb-5 leading-relaxed">사마귀? 거미? 작은 새? 당신의 날갯짓을 가로막는 것은 무엇일까요? (다중 선택)</p>
           <div class="flex flex-wrap gap-2.5 max-h-[50vh] overflow-y-auto py-1" id="list-step-4"></div>
         </div>
 
         <!-- 5번 질문: 돌파 무기 -->
         <div id="substep-5" class="substep flex-col hidden">
           <h2 class="text-xl font-bold mb-1 text-white">그 천적을 맞닥뜨렸을 때, 어떻게 맞설 건가요?</h2>
-          <p class="text-xs text-gray-400 mb-4">어떤 공격에도 흔들리지 않을 비장의 한 수를 골라주세요. (다중 선택)</p>
+          <p class="text-xs text-gray-400 mb-5">어떤 공격에도 흔들리지 않을 비장의 한 수를 골라주세요. (다중 선택)</p>
           <div class="flex flex-wrap gap-2.5 max-h-[50vh] overflow-y-auto py-1" id="list-step-5"></div>
         </div>
 
-        <!-- 6번 질문: 타임캡슐 귀환 예약 -->
+        <!-- 6번 질문: 타임캡슐 예약 -->
         <div id="substep-6" class="substep flex-col hidden">
           <h2 class="text-xl font-bold mb-1 text-white leading-snug">여정을 무사히 마치고,<br>더욱 찬란해진 나비가 돌아올 날은?</h2>
           <p class="text-xs text-gray-400 mb-5 leading-relaxed">
-            하늘의 파도(너울)를 건너며 상처를 비워낸 나비가, 가장 눈부신 빛을 품고 당신의 품으로 다시 날아앉을 시간을 정해 주세요.[cite: 1, 2]
+            하늘 너울을 건너며 상처를 비워낸 나비가 다시 당신을 찾아갈 시간을 정해 주세요.[cite: 1, 2]
           </p>
           <div class="flex flex-col gap-4">
             <div>
@@ -136,22 +135,22 @@
               <input id="input-step-6-email" type="email" placeholder="example@email.com" 
                 class="w-full bg-white/5 border border-white/20 rounded-2xl px-4 py-3.5 text-sm text-white focus:outline-none focus:border-blue-400 placeholder-gray-500">[cite: 1]
             </div>
-            <p class="text-[11px] text-gray-400/90 leading-relaxed mt-1 italic">
-              * 약속된 시간에 맞춰, 마음의 무게를 털어낸 나비의 여정 기록이 이메일로 도착합니다.[cite: 1, 2]
+            <p class="text-[11px] text-gray-400/90 leading-relaxed italic">
+              * 약속된 시간에 맞춰, 마음의 무게를 털어낸 나비의 기록이 편지로 도착합니다.[cite: 1, 2]
             </p>
           </div>
         </div>
 
         <!-- 7번 질문: 나비 이름 짓기 -->
         <div id="substep-7" class="substep flex-col hidden">
-          <h2 class="text-xl font-bold mb-1 text-white leading-snug">먼 하늘 너울 속으로 날아오를,<br>이 나비의 이름은?</h2>
-          <p class="text-xs text-gray-400 mb-5">당신의 깊은 마음을 대신 품고 비행을 떠날 나비에게 고유한 이름을 붙여주세요.[cite: 1]</p>
+          <h2 class="text-xl font-bold mb-1 text-white">먼 하늘 너울 속으로 날아오를, 이 나비의 이름은?</h2>
+          <p class="text-xs text-gray-400 mb-5">비행을 떠날 나비에게 고유한 이름을 붙여주세요.[cite: 1, 2]</p>
           <div class="flex flex-col gap-3">
             <input id="input-step-7-name" type="text" maxlength="10" 
               placeholder="예: 윤슬, 쉼표, 칼퇴, 다정, 시온, 바람..." 
-              class="w-full bg-white/5 border border-white/20 rounded-2xl px-4 py-3.5 text-base text-white focus:outline-none focus:border-blue-400 placeholder-gray-500 tracking-wide font-medium">[cite: 1]
+              class="w-full bg-white/5 border border-white/20 rounded-2xl px-4 py-3.5 text-base text-white focus:outline-none focus:border-blue-400 placeholder-gray-500 tracking-wide font-medium">[cite: 1, 2]
             <div class="flex justify-between items-center px-1 text-xs text-gray-500 font-mono">
-              <span>한글/영문 10자 이내</span>[cite: 1]
+              <span>한글/영문 10자 이내</span>[cite: 1, 2]
               <span id="char-count-7">0 / 10</span>
             </div>
           </div>
@@ -159,798 +158,767 @@
       </div>
 
       <footer class="w-full pt-4 flex gap-3">
-        <button id="btn-prev" type="button" class="w-1/3 py-3.5 rounded-xl border border-white/20 text-gray-300 font-medium text-sm hidden active:scale-95 transition-all">이전</button>
-        <button id="btn-next" type="button" disabled class="flex-1 py-3.5 rounded-xl bg-blue-500 text-white font-medium text-sm disabled:opacity-40 disabled:pointer-events-none active:scale-95 transition-all shadow-lg shadow-blue-500/20">다음 단계</button>
+        <button id="btn-prev" type="button" class="w-1/3 py-3.5 rounded-xl border border-white/20 text-gray-300 font-medium text-sm hidden active:scale-95 transition-all">이전</button>[cite: 1, 2]
+        <button id="btn-next" type="button" disabled class="flex-1 py-3.5 rounded-xl bg-blue-500 text-white font-medium text-sm disabled:opacity-40 disabled:pointer-events-none active:scale-95 transition-all shadow-lg shadow-blue-500/20">다음 단계</button>[cite: 1, 2]
       </footer>
     </section>
 
     <!-- ================= [STEP 2] 수직 촬영 안내 ================= -->
-    <section id="screen-capture" class="screen flex-col flex-1 justify-between py-4 text-center">
-      <header class="mt-2">
-        <span class="text-xs font-mono text-blue-400 tracking-wider uppercase">Noul Archive Step 02</span>
-        <h1 class="text-2xl font-bold mt-1 text-white">나비 도안 촬영하기</h1>
+    <section id="screen-capture" class="screen flex-col flex-1 justify-between py-4 text-center">[cite: 1, 2]
+      <header class="mt-2">[cite: 1, 2]
+        <span class="text-xs font-mono text-blue-400 tracking-wider uppercase">Noul Archive Step 02</span>[cite: 1, 2]
+        <h1 class="text-2xl font-bold mt-1 text-white">나비 도안 촬영하기</h1>[cite: 1, 2]
       </header>
 
-      <div class="w-full bg-blue-500/10 border border-blue-400/30 rounded-2xl p-6 text-center my-auto shadow-lg">
-        <div class="w-16 h-16 mx-auto rounded-full bg-blue-500/20 flex items-center justify-center mb-4 text-blue-300">
-          <svg class="w-9 h-9" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"></path>
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"></path>
+      <div class="w-full bg-blue-500/10 border border-blue-400/30 rounded-2xl p-6 text-center my-auto shadow-lg">[cite: 1, 2]
+        <div class="w-16 h-16 mx-auto rounded-full bg-blue-500/20 flex items-center justify-center mb-4 text-blue-300">[cite: 1, 2]
+          <svg class="w-9 h-9" fill="none" stroke="currentColor" viewBox="0 0 24 24">[cite: 1, 2]
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"></path>[cite: 1, 2]
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"></path>[cite: 1, 2]
           </svg>
         </div>
-        <h3 class="text-lg font-bold text-white mb-2">💡 꼭 수직(위에서 똑바로)으로 찍어주세요</h3>
-        <p class="text-xs text-gray-300 leading-relaxed">
-          종이가 기울어지지 않도록 스마트폰을<br>
-          <strong>종이와 평행하게 정면 위에서</strong> 촬영해 주세요.<br><br>
-          <span class="text-blue-300 font-medium">※ 다음 화면에서 손가락 터치로 사진을 직접 밀고 당겨<br>도안 나비틀에 맞출 수 있습니다!</span>
+        <h3 class="text-lg font-bold text-white mb-2">💡 꼭 수직(위에서 똑바로)으로 찍어주세요</h3>[cite: 1, 2]
+        <p class="text-xs text-gray-300 leading-relaxed">[cite: 1, 2]
+          종이가 기울어지지 않도록 스마트폰을<br>[cite: 1, 2]
+          <strong>종이와 평행하게 정면 위에서</strong> 촬영해 주세요.<br><br>[cite: 1, 2]
+          <span class="text-blue-300 font-medium">※ 다음 화면에서 손가락 터치로 사진을 직접 밀고 당겨<br>도안 나비틀에 맞출 수 있습니다!</span>[cite: 1, 2]
         </p>
       </div>
 
-      <footer class="flex flex-col gap-2.5 w-full mb-1">
-        <label class="w-full py-4 rounded-xl bg-blue-500 text-white font-medium text-sm cursor-pointer active:scale-95 transition-all text-center block shadow-lg shadow-blue-500/25">
-          카메라로 도안 촬영하기
-          <input type="file" id="camera-input" accept="image/*" capture="environment" class="hidden">
+      <footer class="flex flex-col gap-2.5 w-full mb-1">[cite: 1, 2]
+        <label class="w-full py-4 rounded-xl bg-blue-500 text-white font-medium text-sm cursor-pointer active:scale-95 transition-all text-center block shadow-lg shadow-blue-500/25">[cite: 1, 2]
+          카메라로 도안 촬영하기[cite: 1, 2]
+          <input type="file" id="camera-input" accept="image/*" capture="environment" class="hidden">[cite: 1, 2]
         </label>
-        <label class="w-full py-3 rounded-xl border border-white/20 text-gray-300 font-medium text-xs cursor-pointer active:scale-95 transition-all text-center block">
-          앨범에서 사진 선택
-          <input type="file" id="album-input" accept="image/*" class="hidden">
+        <label class="w-full py-3 rounded-xl border border-white/20 text-gray-300 font-medium text-xs cursor-pointer active:scale-95 transition-all text-center block">[cite: 1, 2]
+          앨범에서 사진 선택[cite: 1, 2]
+          <input type="file" id="album-input" accept="image/*" class="hidden">[cite: 1, 2]
         </label>
-        <button id="btn-back-to-survey" type="button" class="w-full py-1 text-xs text-gray-500">← 질문 수정하기</button>
+        <button id="btn-back-to-survey" type="button" class="w-full py-1 text-xs text-gray-500">← 질문 수정하기</button>[cite: 1, 2]
       </footer>
     </section>
 
     <!-- ================= [STEP 3] 도안 나비틀 맞춤 ================= -->
-    <section id="screen-align" class="screen flex-col flex-1 justify-between py-2 text-center">
-      <header class="pt-2">
-        <h2 class="text-lg font-bold text-white">나비틀에 사진 맞추기</h2>
-        <p class="text-xs text-blue-300/90 mt-0.5"><strong>[한 손가락 드래그]</strong>로 이동, <strong>[두 손가락 핀치]</strong>로 크기를 조절하세요.</p>
+    <section id="screen-align" class="screen flex-col flex-1 justify-between py-2 text-center">[cite: 1, 2]
+      <header class="pt-2">[cite: 1, 2]
+        <h2 class="text-lg font-bold text-white">나비틀에 사진 맞추기</h2>[cite: 1, 2]
+        <p class="text-xs text-blue-300/90 mt-0.5"><strong>[한 손가락 드래그]</strong>로 이동, <strong>[두 손가락 핀치]</strong>로 크기를 조절하세요.</p>[cite: 1, 2]
       </header>
 
-      <div class="relative w-[320px] h-[320px] mx-auto my-auto overflow-hidden bg-black/60 rounded-2xl flex items-center justify-center">
-        <canvas id="align-canvas" width="640" height="640" class="w-full h-full"></canvas>
+      <div class="relative w-[320px] h-[320px] mx-auto my-auto overflow-hidden bg-black/60 rounded-2xl flex items-center justify-center">[cite: 1, 2]
+        <canvas id="align-canvas" width="640" height="640" class="w-full h-full"></canvas>[cite: 1, 2]
         
-        <div class="absolute inset-0 pointer-events-none flex items-center justify-center p-3">
-          <svg class="w-full h-full text-blue-400 drop-shadow-[0_0_12px_rgba(96,165,250,0.9)]" viewBox="0 0 100 100" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M 50,33 C 51.5,33 53,35 53,38 C 58,35 75,18 89,20 C 97,22 99,35 91,48 C 84,59 79,62 76,64 C 81,67 87,74 86,83 C 84,93 69,96 61,87 C 55,80 53,74 53,71 C 53,74 51.5,77 50,77 C 48.5,77 47,74 47,71 C 47,74 45,80 39,87 C 31,96 16,93 14,83 C 13,74 19,67 24,64 C 21,62 16,59 9,48 C 1,35 3,22 11,20 C 25,18 42,35 47,38 C 47,35 48.5,33 50,33 Z"/>
-            <line x1="50" y1="26" x2="50" y2="80" stroke-dasharray="2 2" stroke-width="1.2" stroke="#93c5fd" opacity="0.6"/>
+        <div class="absolute inset-0 pointer-events-none flex items-center justify-center p-3">[cite: 1, 2]
+          <svg class="w-full h-full text-blue-400 drop-shadow-[0_0_12px_rgba(96,165,250,0.9)]" viewBox="0 0 100 100" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">[cite: 1, 2]
+            <path d="M 50,33 C 51.5,33 53,35 53,38 C 58,35 75,18 89,20 C 97,22 99,35 91,48 C 84,59 79,62 76,64 C 81,67 87,74 86,83 C 84,93 69,96 61,87 C 55,80 53,74 53,71 C 53,74 51.5,77 50,77 C 48.5,77 47,74 47,71 C 47,74 45,80 39,87 C 31,96 16,93 14,83 C 13,74 19,67 24,64 C 21,62 16,59 9,48 C 1,35 3,22 11,20 C 25,18 42,35 47,38 C 47,35 48.5,33 50,33 Z"/>[cite: 1, 2]
+            <line x1="50" y1="26" x2="50" y2="80" stroke-dasharray="2 2" stroke-width="1.2" stroke="#93c5fd" opacity="0.6"/>[cite: 1, 2]
           </svg>
         </div>
       </div>
 
-      <footer class="flex gap-3 w-full mb-1">
-        <button id="btn-rephoto" type="button" class="w-1/3 py-3.5 rounded-xl border border-white/20 text-gray-300 text-sm active:scale-95 transition-all">다시 촬영</button>
-        <button id="btn-confirm-align" type="button" class="flex-1 py-3.5 rounded-xl bg-blue-500 text-white font-medium text-sm active:scale-95 transition-all shadow-lg shadow-blue-500/25">이 위치로 확정하기</button>
+      <footer class="flex gap-3 w-full mb-1">[cite: 1, 2]
+        <button id="btn-rephoto" type="button" class="w-1/3 py-3.5 rounded-xl border border-white/20 text-gray-300 text-sm active:scale-95 transition-all">다시 촬영</button>[cite: 1, 2]
+        <button id="btn-confirm-align" type="button" class="flex-1 py-3.5 rounded-xl bg-blue-500 text-white font-medium text-sm active:scale-95 transition-all shadow-lg shadow-blue-500/25">이 위치로 확정하기</button>[cite: 1, 2]
       </footer>
     </section>
 
     <!-- ================= [STEP 4] 감성 로딩 화면 ================= -->
-    <section id="screen-loading" class="screen flex-col flex-1 justify-between items-center py-12 text-center relative overflow-hidden">
-      <div class="mt-8 z-10">
-        <h2 class="text-2xl font-bold text-white tracking-tight leading-snug">
-          내면의 고유한 결을 담아<br>나비를 깨우고 있습니다.
+    <section id="screen-loading" class="screen flex-col flex-1 justify-between items-center py-12 text-center relative overflow-hidden">[cite: 1, 2]
+      <div class="mt-8 z-10">[cite: 1, 2]
+        <h2 class="text-2xl font-bold text-white tracking-tight leading-snug">[cite: 1, 2]
+          내면의 고유한 결을 담아<br>나비를 깨우고 있습니다.[cite: 1, 2]
         </h2>
-        <p class="text-xs text-blue-300/80 mt-3 font-light tracking-wide">
-          종이의 무게를 지우고 빛의 날개를 입히는 중입니다.
+        <p class="text-xs text-blue-300/80 mt-3 font-light tracking-wide">[cite: 1, 2]
+          종이의 무게를 지우고 빛의 날개를 입히는 중입니다.[cite: 1, 2]
         </p>
       </div>
 
-      <div class="relative flex items-center justify-center my-auto pulse-animation">
-        <div class="w-44 h-72 rounded-full bg-gradient-to-b from-purple-500 via-fuchsia-500 to-rose-400 blur-2xl opacity-75"></div>
-        <svg class="absolute w-28 h-28 text-white/95 drop-shadow-[0_0_15px_rgba(255,255,255,0.8)]" viewBox="0 0 100 100" fill="none" stroke="currentColor" stroke-width="2.5">
-          <path d="M 50,33 C 51.5,33 53,35 53,38 C 58,35 75,18 89,20 C 97,22 99,35 91,48 C 84,59 79,62 76,64 C 81,67 87,74 86,83 C 84,93 69,96 61,87 C 55,80 53,74 53,71 C 53,74 51.5,77 50,77 C 48.5,77 47,74 47,71 C 47,74 45,80 39,87 C 31,96 16,93 14,83 C 13,74 19,67 24,64 C 21,62 16,59 9,48 C 1,35 3,22 11,20 C 25,18 42,35 47,38 C 47,35 48.5,33 50,33 Z"/>
+      <div class="relative flex items-center justify-center my-auto pulse-animation">[cite: 1, 2]
+        <div class="w-44 h-72 rounded-full bg-gradient-to-b from-purple-500 via-fuchsia-500 to-rose-400 blur-2xl opacity-75"></div>[cite: 1, 2]
+        <svg class="absolute w-28 h-28 text-white/95 drop-shadow-[0_0_15px_rgba(255,255,255,0.8)]" viewBox="0 0 100 100" fill="none" stroke="currentColor" stroke-width="2.5">[cite: 1, 2]
+          <path d="M 50,33 C 51.5,33 53,35 53,38 C 58,35 75,18 89,20 C 97,22 99,35 91,48 C 84,59 79,62 76,64 C 81,67 87,74 86,83 C 84,93 69,96 61,87 C 55,80 53,74 53,71 C 53,74 51.5,77 50,77 C 48.5,77 47,74 47,71 C 47,74 45,80 39,87 C 31,96 16,93 14,83 C 13,74 19,67 24,64 C 21,62 16,59 9,48 C 1,35 3,22 11,20 C 25,18 42,35 47,38 C 47,35 48.5,33 50,33 Z"/>[cite: 1, 2]
         </svg>
       </div>
 
-      <div class="text-xs font-mono text-blue-200/80 tracking-widest z-10">NOUL METAMORPHOSIS...</div>
+      <div class="text-xs font-mono text-blue-200/80 tracking-widest z-10">NOUL METAMORPHOSIS...</div>[cite: 1, 2]
     </section>
 
     <!-- ================= [STEP 5] 3D 나비 프리뷰 ================= -->
     <section id="screen-preview" class="screen flex-col flex-1 justify-between py-2 relative"
-      style="background: linear-gradient(180deg, #5b9bf8 0%, #8ac0ff 40%, #edd8f8 100%) !important;">
-      <header class="text-center pt-2 z-10">
-        <span class="text-xs font-mono text-white/90 font-semibold tracking-wider uppercase drop-shadow">NOUL 3D BUTTERFLY</span>
-        <h2 id="preview-butterfly-name" class="text-2xl font-black text-white mt-0.5 drop-shadow-md tracking-tight">‘나비’</h2>
-        <p class="text-xs text-white/85 mt-0.5 font-light drop-shadow">화면을 위로 쓸어 올려 대형 화면으로 날려보내세요.</p>
+      style="background: linear-gradient(180deg, #5b9bf8 0%, #8ac0ff 40%, #edd8f8 100%) !important;">[cite: 1, 2]
+      <header class="text-center pt-2 z-10">[cite: 1, 2]
+        <span class="text-xs font-mono text-white/90 font-semibold tracking-wider uppercase drop-shadow">NOUL 3D BUTTERFLY</span>[cite: 1, 2]
+        <h2 id="preview-butterfly-name" class="text-2xl font-black text-white mt-0.5 drop-shadow-md tracking-tight">‘나비’</h2>[cite: 1]
+        <p class="text-xs text-white/85 mt-0.5 font-light drop-shadow">화면을 위로 쓸어 올려 대형 화면으로 날려보내세요.</p>[cite: 1]
       </header>
 
-      <div id="three-container" class="flex-1 w-full h-full absolute inset-0 z-0"></div>
+      <div id="three-container" class="flex-1 w-full h-full absolute inset-0 z-0"></div>[cite: 1, 2]
 
-      <footer class="w-full pb-6 flex flex-col items-center gap-2 z-10 pointer-events-none">
-        <div class="bounce-guide flex flex-col items-center">
-          <svg class="w-7 h-7 text-white drop-shadow" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 15l7-7 7 7"></path>
+      <footer class="w-full pb-6 flex flex-col items-center gap-2 z-10 pointer-events-none">[cite: 1, 2]
+        <div class="bounce-guide flex flex-col items-center">[cite: 1, 2]
+          <svg class="w-7 h-7 text-white drop-shadow" fill="none" stroke="currentColor" viewBox="0 0 24 24">[cite: 1, 2]
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 15l7-7 7 7"></path>[cite: 1, 2]
           </svg>
-          <span class="text-xs font-semibold text-white tracking-widest drop-shadow">SWIPE UP TO FLY</span>
+          <span class="text-xs font-semibold text-white tracking-widest drop-shadow">SWIPE UP TO FLY</span>[cite: 1, 2]
         </div>
       </footer>
     </section>
 
     <!-- ================= [STEP 6] 비행 완료 화면 ================= -->
-    <section id="screen-complete" class="screen flex-col flex-1 justify-center items-center text-center p-6">
-      <div class="w-20 h-20 rounded-full bg-blue-400/20 border border-blue-300/40 flex items-center justify-center mb-6">
-        <svg class="w-10 h-10 text-blue-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+    <section id="screen-complete" class="screen flex-col flex-1 justify-center items-center text-center p-6">[cite: 1, 2]
+      <div class="w-20 h-20 rounded-full bg-blue-400/20 border border-blue-300/40 flex items-center justify-center mb-6">[cite: 1, 2]
+        <svg class="w-10 h-10 text-blue-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">[cite: 1, 2]
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>[cite: 1, 2]
         </svg>
       </div>
-      <h2 class="text-2xl font-bold text-white mb-2">하늘 위로 날아올랐습니다</h2>
-      <p id="complete-desc" class="text-sm text-gray-300 leading-relaxed mb-8">
-        마음의 무게를 털어낸 나비가<br>
+      <h2 class="text-2xl font-bold text-white mb-2">하늘 위로 날아올랐습니다</h2>[cite: 1, 2]
+      <p id="complete-desc" class="text-sm text-gray-300 leading-relaxed mb-8">[cite: 1]
+        마음의 무게를 털어낸 나비가<br>[cite: 1, 2]
         전면 대형 스크린의 너울 속으로 합류했습니다.[cite: 1, 2]
       </p>
-      <button onclick="location.reload()" type="button" class="px-8 py-3.5 rounded-xl border border-white/20 text-gray-200 text-xs font-medium active:scale-95 transition-all">
-        새로운 나비 띄우기
+      <button onclick="location.reload()" type="button" class="px-8 py-3.5 rounded-xl border border-white/20 text-gray-200 text-xs font-medium active:scale-95 transition-all">[cite: 1, 2]
+        새로운 나비 띄우기[cite: 1, 2]
       </button>
     </section>
 
   </main>
 
   <script>
-    document.addEventListener("DOMContentLoaded", () => {
-      /* ============================================================
-         Supabase 연동 설정
-         ============================================================ */
-      const SUPABASE_URL = 'https://YOUR_PROJECT_ID.supabase.co';
-      const SUPABASE_ANON_KEY = 'YOUR_ANON_KEY_HERE';
+    function showScreen(screenId) {
+      document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+      const target = document.getElementById(screenId);
+      if (target) target.classList.add('active');
+    }
+
+    const optionsData = {
+      step1: [
+        "프로 멍때림러", "즉흥 여행러", "새벽 감성러", "침대 지박령", "완벽주의 지향", 
+        "프로 자책러", "활력 넘치는 에너자이저", "조용한 관찰자", "독립적인 마이웨이", "남 눈치 만렙", 
+        "다정한 경청자", "단호박 거절러", "감정 기복 롤러코스터", "잔잔한 호수", "번아웃 직전", 
+        "갓생 지향러", "배터리 3%", "호기심 천국", "쿨한 덤덤러", "섬세한 유리멘탈", 
+        "은둔형 집순이/집돌이", "외유내강형", "리액션 봇", "침묵의 평화주의자", "앞만 보는 직진러", 
+        "벼락치기 장인", "사소한 것에 행복러", "생각이 꼬리를 무는 타입", "겉바속촉 외강내유", "따뜻한 오지라퍼", 
+        "혼밥 마스터", "유리알 감수성", "세상만사 귀차니즘", "은근한 야망가", "철벽 방어형", 
+        "자유로운 방랑자", "잔걱정 인형", "충동적 행동파", "차분한 정리러", "무덤덤한 로봇", 
+        "소심한 투덜이", "포용력 바다", "팩트 폭격기", "자발적 아싸", "파워 인싸", 
+        "멘탈 바위", "일희일비러", "유쾌한 개그캐", "고독한 미식가", "나만의 페이스 유지러"
+      ],
+      step2: [
+        "취업 뽀개기", "칼퇴 보장", "자취방 독립", "내 작은 카페", "자격증 합격", 
+        "목표 어학 점수", "해외 한 달 살기", "1,000만 원 저축", "내 브랜드 론칭", "숙면 8시간", 
+        "콘서트 올콘", "운동 습관화", "포트폴리오 완성", "악연 손절", "첫 월급 선물", 
+        "창작물 완판", "바다 여행", "완벽주의 탈출", "채널 1만 구독", "면접 당당함", 
+        "학자금 완납", "좋아하는 일로 밥벌이", "운전면허 드라이브", "온전한 호캉스", "완독 10권", 
+        "바디프로필", "나만의 작업실", "타인 시선 무시", "팀 프로젝트 대박", "쿨한 멘탈", 
+        "내 집 마련 기반", "악기 마스터", "고요한 밤산책", "다정한 연애", "단골 아지트", 
+        "집밥 챙겨먹기", "번아웃 브레이크", "거절하는 용기", "내 스타일대로", "워홀·교환학생", 
+        "매일 셀프 칭찬", "개인 전시·팝업", "수면 패턴 정상화", "공모전 수상", "대범한 배짱", 
+        "주말 카페 멍때리기", "가족 여행 보내기", "하루 종일 넷플릭스", "비교 끊기", "그냥 오늘 행복"
+      ],
+      step3: [
+        "흔들려도 그냥 둠", "남 눈치 안 보고 멍때림", "망해도 별일 아니라고 넘김", "내 속도대로 천천히 감", "할 만큼 했다고 인정함",[cite: 1, 2]
+        "억지로 애쓰지 않음", "싫은 건 싫다고 생각함", "오늘 하루만 버텨봄", "완벽하지 않아도 만족함", "혼자만의 침묵을 즐김",[cite: 1, 2]
+        "남의 말 한 귀로 흘림", "당장 답을 찾지 않음", "아무 계획 없이 흘러감", "내 감정에 솔직해짐", "쉬는 것에 당당해짐",[cite: 1, 2]
+        "안 되는 건 쿨하게 포기함", "넘어져도 급하게 안 일어남", "나를 가장 먼저 챙김", "작은 틈을 내어 숨을 쉼", "그때그때 마음 가는 대로 함",[cite: 1, 2]
+        "타인의 기대에서 한 발 물러섬", "서두르지 않는 뻔뻔함", "실수해도 씩씩하게 웃기", "지금 이대로 충분하다는 안도", "세상 참견 차단하기",[cite: 1, 2]
+        "실패를 경험으로 치기", "내 선택을 끝까지 믿기", "억지 인연 붙잡지 않기", "감정 기복에 휘둘리지 않기", "나만의 속도 존중하기", 
+        "작은 일에 일희일비 안 하기", "거절 앞에 당당해지기", "지나간 일 곱씹지 않기", "타인과의 비교 단호히 끊기", "힘 빼고 유연하게 살기", 
+        "있는 그대로의 나 사랑하기", "번아웃 전에 먼저 멈추기", "단단한 자기 확신 갖기", "굳이 설명하지 않는 대범함", "안 풀릴 땐 일단 자고 보기", 
+        "세상 기준에 나를 맞추지 않기", "사소한 즐거움 먼저 찾기", "묵묵히 내 보폭 유지하기", "미움받을 약간의 용기", "쓸데없는 자책 지우기", 
+        "혼자만의 시간 지켜내기", "무리한 부탁 딱 자르기", "앞날을 기대하는 설렘", "어떤 순간에도 자책하지 않기", "그냥 오늘 하루 즐기기"
+      ],
+      step4: [
+        "비교중독", "만성 피로", "텅 빈 잔고", "완벽주의 강박", "미래 막막함", 
+        "거절 공포", "지나간 후회", "가면 증후군", "스마트폰 중독", "결정 장애", 
+        "눈치 보기", "벼락치기 습관", "타인 인정 욕구", "번아웃 무기력", "억지 미소", 
+        "취업 압박감", "수면 부족", "실패 공포증", "잦은 감정 기복", "뒤처짐 조급함", 
+        "고립감과 외로움", "쓸데없는 잡생각", "꼰대와 갑질", "자책과 자기 비하", "억지 인연 유지", 
+        "학점·스펙 압박", "충동구매 후회", "시작의 두려움", "단톡방 알림 감옥", "과도한 책임감", 
+        "부모님 잔소리", "과열된 머릿속", "애매한 재능", "만성 무기력", "타인의 무례함", 
+        "겉도는 관계", "질투와 열등감", "끝없는 미루기", "건강 악화", "타인의 오해", 
+        "월세·생활비 압박", "도파민 중독", "좁아진 시야", "낮은 자존감", "겉만 번지르르함", 
+        "감정 쓰레기통 역할", "무리한 부탁", "고립된 혼밥", "흐려진 목표", "그냥 온갖 귀찮음"
+      ],
+      step5: [
+        "어쩌라고 마인드", "일단 푹 자기", "칼같은 단호함", "한 귀로 흘리기", "연락 차단 모드", 
+        "뻔뻔한 배짱", "그럴 수 있지", "빠른 손절", "나만의 속도", "미련 없는 포기", 
+        "쿨한 넘김", "거절하는 용기", "침묵의 멍때리기", "스스로 토닥이기", "당당한 마이웨이", 
+        "무반응과 무관심", "셀프 칭찬", "혼자만의 고요", "딴청 피우기", "근거 없는 자신감", 
+        "할 말은 하기", "맛있는 한 끼", "단단한 자기 확신", "일희일비 안 하기", "억지 웃음 멈추기", 
+        "타인 기대 던지기", "내 보폭 지키기", "씩씩한 리셋", "망해도 고(Go)", "즉각 브레이크", 
+        "시선 차단 선글라스", "감정 분리하기", "지나간 일 잊기", "힘 빼고 유연함", "눈치 안 보기", 
+        "있는 그대로 긍정", "선 긋기", "방어막 치기", "소신 지키기", "작은 일탈", 
+        "유쾌한 무시", "대범한 무덤덤함", "질문 가볍게 넘기기", "내 기분 우선", "무리한 부탁 쳐내기", 
+        "혼밥의 자유", "심호흡 한 번", "비교 스위치 끄기", "굳은살 멘탈", "그냥 오늘 하루 즐기기"
+      ]
+    };
+
+    const userAnswers = { 
+      step1: [],
+      step2: [],
+      step3: [],
+      step4: [],
+      step5: [],
+      step6_time: "",
+      step6_email: "",
+      step7_name: ""
+    };
+    let currentStep = 1;
+    const totalSteps = 7;
+
+    const btnNext = document.getElementById('btn-next');
+    const btnPrev = document.getElementById('btn-prev');
+    const progressBar = document.getElementById('progress-bar');
+    const stepIndicator = document.getElementById('step-indicator');
+    const selectionType = document.getElementById('selection-type');
+    const inputTime = document.getElementById('input-step-6-time');
+    const inputEmail = document.getElementById('input-step-6-email');
+    const inputName = document.getElementById('input-step-7-name');
+    const charCount7 = document.getElementById('char-count-7');
+
+    function renderOptionBubbles(containerId, items, stateKey) {
+      const container = document.getElementById(containerId);
+      if (!container) return;
+      container.innerHTML = '';
+      items.forEach(text => {
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'chip text-xs md:text-sm px-3.5 py-2 rounded-full cursor-pointer text-gray-300 active:scale-95';[cite: 1, 2]
+        btn.innerText = text;[cite: 1, 2]
+        btn.addEventListener('click', () => {
+          btn.classList.toggle('selected');
+          const idx = userAnswers[stateKey].indexOf(text);
+          if (idx > -1) userAnswers[stateKey].splice(idx, 1);
+          else userAnswers[stateKey].push(text);
+          checkStepValidity();
+        });
+        container.appendChild(btn);[cite: 1, 2]
+      });
+    }
+
+    renderOptionBubbles('list-step-1', optionsData.step1, 'step1');
+    renderOptionBubbles('list-step-2', optionsData.step2, 'step2');
+    renderOptionBubbles('list-step-3', optionsData.step3, 'step3');
+    renderOptionBubbles('list-step-4', optionsData.step4, 'step4');
+    renderOptionBubbles('list-step-5', optionsData.step5, 'step5');
+
+    inputTime.addEventListener('input', (e) => {
+      userAnswers.step6_time = e.target.value;
+      checkStepValidity();
+    });
+
+    inputEmail.addEventListener('input', (e) => {
+      userAnswers.step6_email = e.target.value.trim();
+      checkStepValidity();
+    });
+
+    inputName.addEventListener('input', (e) => {
+      userAnswers.step7_name = e.target.value.trim();
+      charCount7.innerText = `${e.target.value.length} / 10`;
+      checkStepValidity();
+    });
+
+    function isValidEmail(email) {
+      return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+    }
+
+    function checkStepValidity() {
+      let valid = false;
+      if (currentStep === 1) valid = userAnswers.step1.length > 0;
+      else if (currentStep === 2) valid = userAnswers.step2.length > 0;
+      else if (currentStep === 3) valid = userAnswers.step3.length > 0;
+      else if (currentStep === 4) valid = userAnswers.step4.length > 0;
+      else if (currentStep === 5) valid = userAnswers.step5.length > 0;
+      else if (currentStep === 6) valid = !!userAnswers.step6_time && isValidEmail(userAnswers.step6_email);
+      else if (currentStep === 7) valid = userAnswers.step7_name.length > 0;
+      btnNext.disabled = !valid;[cite: 1, 2]
+    }
+
+    function refreshStepScreen() {
+      document.querySelectorAll('.substep').forEach((el, idx) => {
+        el.classList.toggle('hidden', idx + 1 !== currentStep);[cite: 1, 2]
+        el.classList.toggle('flex', idx + 1 === currentStep);[cite: 1, 2]
+      });
+      progressBar.style.width = `${(currentStep / totalSteps) * 100}%`;[cite: 1, 2]
+      stepIndicator.innerText = `STEP ${currentStep} / ${totalSteps}`;[cite: 1, 2]
       
-      let supabase = null;
-      try {
-        if (window.supabase && SUPABASE_URL.indexOf('YOUR_PROJECT_ID') === -1) {
-          supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-          console.log("🦋 Supabase 연결 준비 완료");
-        }
-      } catch (e) {
-        console.warn("Supabase 키 미설정 상태 (로컬 테스트 모드):", e);
-      }
-
-      let currentExtractedTexture = null;
-
-      function showScreen(screenId) {
-        document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
-        const target = document.getElementById(screenId);
-        if (target) target.classList.add('active');
-      }
-
-      /* ============================================================
-         정제된 7단계 문답 풀 (특수문자 충돌 방지 완료)
-         ============================================================ */
-      const optionsData = {
-        step1: [
-          "프로 멍때림러", "즉흥 여행러", "새벽 감성러", "침대 지박령", "완벽주의 지향", 
-          "프로 자책러", "활력 넘치는 에너자이저", "조용한 관찰자", "독립적인 마이웨이", "남 눈치 만렙", 
-          "다정한 경청자", "단호박 거절러", "감정 기복 롤러코스터", "잔잔한 호수", "번아웃 직전", 
-          "갓생 지향러", "배터리 3%", "호기심 천국", "쿨한 덤덤러", "섬세한 유리멘탈", 
-          "은둔형 집순이/집돌이", "외유내강형", "리액션 봇", "침묵의 평화주의자", "앞만 보는 직진러", 
-          "벼락치기 장인", "사소한 것에 행복러", "생각이 꼬리를 무는 타입", "겉바속촉 외강내유", "따뜻한 오지라퍼", 
-          "혼밥 마스터", "유리알 감수성", "세상만사 귀차니즘", "은근한 야망가", "철벽 방어형", 
-          "자유로운 방랑자", "잔걱정 인형", "충동적 행동파", "차분한 정리러", "무덤덤한 로봇", 
-          "소심한 투덜이", "포용력 바다", "팩트 폭격기", "자발적 아싸", "파워 인싸", 
-          "멘탈 바위", "일희일비러", "유쾌한 개그캐", "고독한 미식가", "나만의 페이스 유지러"
-        ],
-        step2: [
-          "취업 뽀개기", "칼퇴 보장", "자취방 독립", "내 작은 카페", "자격증 합격", 
-          "목표 어학 점수", "해외 한 달 살기", "1,000만 원 저축", "내 브랜드 론칭", "숙면 8시간", 
-          "콘서트 올콘", "운동 습관화", "포트폴리오 완성", "악연 손절", "첫 월급 선물", 
-          "창작물 완판", "바다 여행", "완벽주의 탈출", "채널 1만 구독", "면접 당당함", 
-          "학자금 완납", "좋아하는 일로 밥벌이", "운전면허 드라이브", "온전한 호캉스", "완독 10권", 
-          "바디프로필", "나만의 작업실", "타인 시선 무시", "팀 프로젝트 대박", "쿨한 멘탈", 
-          "내 집 마련 기반", "악기 마스터", "고요한 밤산책", "다정한 연애", "단골 아지트", 
-          "집밥 챙겨먹기", "번아웃 브레이크", "거절하는 용기", "내 스타일대로", "워홀·교환학생", 
-          "매일 셀프 칭찬", "개인 전시·팝업", "수면 패턴 정상화", "공모전 수상", "대범한 배짱", 
-          "주말 카페 멍때리기", "가족 여행 보내기", "하루 종일 넷플릭스", "비교 끊기", "그냥 오늘 행복"
-        ],
-        step3: [
-          "흔들려도 그냥 둠", "남 눈치 안 보고 멍때림", "망해도 별일 아니라고 넘김", "내 속도대로 천천히 감", "할 만큼 했다고 인정함",[cite: 1]
-          "억지로 애쓰지 않음", "싫은 건 싫다고 생각함", "오늘 하루만 버텨봄", "완벽하지 않아도 만족함", "혼자만의 침묵을 즐김",[cite: 1]
-          "남의 말 한 귀로 흘림", "당장 답을 찾지 않음", "아무 계획 없이 흘러감", "내 감정에 솔직해짐", "쉬는 것에 당당해짐",[cite: 1]
-          "안 되는 건 쿨하게 포기함", "넘어져도 급하게 안 일어남", "나를 가장 먼저 챙김", "작은 틈을 내어 숨을 쉼", "그때그때 마음 가는 대로 함",[cite: 1]
-          "타인의 기대에서 한 발 물러섬", "서두르지 않는 뻔뻔함", "실수해도 씩씩하게 웃기", "지금 이대로 충분하다는 안도", "세상 참견 차단하기",[cite: 1]
-          "실패를 경험으로 치기", "내 선택을 끝까지 믿기", "억지 인연 붙잡지 않기", "감정 기복에 휘둘리지 않기", "나만의 속도 존중하기", 
-          "작은 일에 일희일비 안 하기", "거절 앞에 당당해지기", "지나간 일 곱씹지 않기", "타인과의 비교 단호히 끊기", "힘 빼고 유연하게 살기", 
-          "있는 그대로의 나 사랑하기", "번아웃 전에 먼저 멈추기", "단단한 자기 확신 갖기", "굳이 설명하지 않는 대범함", "안 풀릴 땐 일단 자고 보기", 
-          "세상 기준에 나를 맞추지 않기", "사소한 즐거움 먼저 찾기", "묵묵히 내 보폭 유지하기", "미움받을 약간의 용기", "쓸데없는 자책 지우기", 
-          "혼자만의 시간 지켜내기", "무리한 부탁 딱 자르기", "앞날을 기대하는 설렘", "어떤 순간에도 자책하지 않기", "그냥 오늘 하루 즐기기"
-        ],
-        step4: [
-          "비교중독", "만성 피로", "텅 빈 잔고", "완벽주의 강박", "미래 막막함", 
-          "거절 공포", "지나간 후회", "가면 증후군", "스마트폰 중독", "결정 장애", 
-          "눈치 보기", "벼락치기 습관", "타인 인정 욕구", "번아웃 무기력", "억지 미소", 
-          "취업 압박감", "수면 부족", "실패 공포증", "잦은 감정 기복", "뒤처짐 조급함", 
-          "고립감과 외로움", "쓸데없는 잡생각", "꼰대와 갑질", "자책과 자기 비하", "억지 인연 유지", 
-          "학점·스펙 압박", "충동구매 후회", "시작의 두려움", "단톡방 알림 감옥", "과도한 책임감", 
-          "부모님 잔소리", "과열된 머릿속", "애매한 재능", "만성 무기력", "타인의 무례함", 
-          "겉도는 관계", "질투와 열등감", "끝없는 미루기", "건강 악화", "타인의 오해", 
-          "월세·생활비 압박", "도파민 중독", "좁아진 시야", "낮은 자존감", "겉만 번지르르함", 
-          "감정 쓰레기통 역할", "무리한 부탁", "고립된 혼밥", "흐려진 목표", "그냥 온갖 귀찮음"
-        ],
-        step5: [
-          "어쩌라고 마인드", "일단 푹 자기", "칼같은 단호함", "한 귀로 흘리기", "연락 차단 모드", 
-          "뻔뻔한 배짱", "그럴 수 있지", "빠른 손절", "나만의 속도", "미련 없는 포기", 
-          "쿨한 넘김", "거절하는 용기", "침묵의 멍때리기", "스스로 토닥이기", "당당한 마이웨이", 
-          "무반응과 무관심", "셀프 칭찬", "혼자만의 고요", "딴청 피우기", "근거 없는 자신감", 
-          "할 말은 하기", "맛있는 한 끼", "단단한 자기 확신", "일희일비 안 하기", "억지 웃음 멈추기", 
-          "타인 기대 던지기", "내 보폭 지키기", "씩씩한 리셋", "망해도 고(Go)", "즉각 브레이크", 
-          "시선 차단 선글라스", "감정 분리하기", "지나간 일 잊기", "힘 빼고 유연함", "눈치 안 보기", 
-          "있는 그대로 긍정", "선 긋기", "방어막 치기", "소신 지키기", "작은 일탈", 
-          "유쾌한 무시", "대범한 무덤덤함", "질문 가볍게 넘기기", "내 기분 우선", "무리한 부탁 쳐내기", 
-          "혼밥의 자유", "심호흡 한 번", "비교 스위치 끄기", "굳은살 멘탈", "그냥 오늘 하루 즐기기"
-        ]
-      };
-
-      const userAnswers = { 
-        step1_identity: [],
-        step2_journey: [],
-        step3_attitude: [],
-        step4_nemesis: [],
-        step5_weapon: [],
-        step6_return_time: "",
-        step6_email: "",
-        step7_butterfly_name: ""
-      };
-
-      let currentStep = 1;
-      const totalSteps = 7;
-
-      const btnNext = document.getElementById('btn-next');
-      const btnPrev = document.getElementById('btn-prev');
-      const progressBar = document.getElementById('progress-bar');
-      const stepIndicator = document.getElementById('step-indicator');
-      const selectionType = document.getElementById('selection-type');
-      const inputTime = document.getElementById('input-step-6-time');
-      const inputEmail = document.getElementById('input-step-6-email');
-      const inputName = document.getElementById('input-step-7-name');
-      const charCount7 = document.getElementById('char-count-7');
-
-      function isValidEmail(email) {
-        return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
-      }
-
-      function checkStepValidity() {
-        let valid = false;
-        if (currentStep === 1) valid = userAnswers.step1_identity.length > 0;
-        else if (currentStep === 2) valid = userAnswers.step2_journey.length > 0;
-        else if (currentStep === 3) valid = userAnswers.step3_attitude.length > 0;
-        else if (currentStep === 4) valid = userAnswers.step4_nemesis.length > 0;
-        else if (currentStep === 5) valid = userAnswers.step5_weapon.length > 0;
-        else if (currentStep === 6) valid = !!userAnswers.step6_return_time && isValidEmail(userAnswers.step6_email);
-        else if (currentStep === 7) valid = userAnswers.step7_butterfly_name.length > 0;
-        
-        btnNext.disabled = !valid;
-      }
-
-      function refreshStepScreen() {
-        document.querySelectorAll('.substep').forEach((el, idx) => {
-          el.classList.toggle('hidden', idx + 1 !== currentStep);
-          el.classList.toggle('flex', idx + 1 === currentStep);
-        });
-        progressBar.style.width = `${(currentStep / totalSteps) * 100}%`;
-        stepIndicator.innerText = `STEP ${currentStep} / ${totalSteps}`;
-        
-        if (currentStep <= 5) selectionType.innerText = "다중 선택 가능";
-        else if (currentStep === 6) selectionType.innerText = "예약 일시 및 메일 입력";
-        else selectionType.innerText = "직접 입력";
-
-        btnPrev.classList.toggle('hidden', currentStep === 1);
-        btnNext.innerText = currentStep === totalSteps ? "도안 촬영하러 가기" : "다음 단계";
-        checkStepValidity();
-      }
-
-      function renderOptionBubbles(containerId, items, stateKey) {
-        const container = document.getElementById(containerId);
-        if (!container) return;
-        container.innerHTML = '';
-        items.forEach(text => {
-          const btn = document.createElement('button');
-          btn.type = 'button';
-          btn.className = 'chip text-xs md:text-sm px-3.5 py-2 rounded-full cursor-pointer text-gray-300 active:scale-95';
-          btn.innerText = text;
-          
-          btn.onclick = function() {
-            const arr = userAnswers[stateKey];
-            const idx = arr.indexOf(text);
-            if (idx > -1) {
-              arr.splice(idx, 1);
-              btn.classList.remove('selected');
-            } else {
-              arr.push(text);
-              btn.classList.add('selected');
-            }
-            checkStepValidity();
-          };
-          container.appendChild(btn);
-        });
-      }
-
-      // 5개 설문 리스트 렌더링
-      renderOptionBubbles('list-step-1', optionsData.step1, 'step1_identity');
-      renderOptionBubbles('list-step-2', optionsData.step2, 'step2_journey');
-      renderOptionBubbles('list-step-3', optionsData.step3, 'step3_attitude');
-      renderOptionBubbles('list-step-4', optionsData.step4, 'step4_nemesis');
-      renderOptionBubbles('list-step-5', optionsData.step5, 'step5_weapon');
-
-      inputTime.addEventListener('input', (e) => {
-        userAnswers.step6_return_time = e.target.value;
-        checkStepValidity();
-      });
-
-      inputEmail.addEventListener('input', (e) => {
-        userAnswers.step6_email = e.target.value.trim();
-        checkStepValidity();
-      });
-
-      inputName.addEventListener('input', (e) => {
-        userAnswers.step7_butterfly_name = e.target.value.trim();
-        charCount7.innerText = `${e.target.value.length} / 10`;
-        checkStepValidity();
-      });
-
-      btnNext.addEventListener('click', () => {
-        if (currentStep < totalSteps) {
-          currentStep++;
-          refreshStepScreen();
-        } else {
-          showScreen('screen-capture');
-        }
-      });
-
-      btnPrev.addEventListener('click', () => {
-        if (currentStep > 1) {
-          currentStep--;
-          refreshStepScreen();
-        }
-      });
-
-      document.getElementById('btn-back-to-survey').addEventListener('click', () => {
-        showScreen('screen-survey');
-      });
-
-      // 첫 화면 표시 갱신
-      refreshStepScreen();
-
-      /* ============================================================
-         사진 조작 (Canvas)
-         ============================================================ */
-      let rawImage = new Image();
-      const alignCanvas = document.getElementById('align-canvas');
-      const actx = alignCanvas.getContext('2d');
-
-      let imgX = 0, imgY = 0, imgScale = 1.0;
-      let isDragging = false;
-      let startX = 0, startY = 0;
-      let startPinchDist = 0, pinchStartScale = 1.0;
-
-      function onImageLoaded(e) {
-        const file = e.target.files[0];
-        if (!file) return;
-
-        const reader = new FileReader();
-        reader.onload = (evt) => {
-          rawImage = new Image();
-          rawImage.onload = () => {
-            initAlignUI();
-            showScreen('screen-align');
-          };
-          rawImage.src = evt.target.result;
-        };
-        reader.readAsDataURL(file);
-      }
-
-      document.getElementById('camera-input').addEventListener('change', onImageLoaded);
-      document.getElementById('album-input').addEventListener('change', onImageLoaded);
-
-      document.getElementById('btn-rephoto').addEventListener('click', () => {
-        showScreen('screen-capture');
-      });
-
-      function initAlignUI() {
-        const baseScale = alignCanvas.width / Math.min(rawImage.width, rawImage.height);
-        imgScale = baseScale;
-        imgX = (alignCanvas.width - rawImage.width * imgScale) / 2;
-        imgY = (alignCanvas.height - rawImage.height * imgScale) / 2;
-        drawAlignCanvas();
-      }
-
-      function drawAlignCanvas() {
-        actx.clearRect(0, 0, alignCanvas.width, alignCanvas.height);
-        actx.save();
-        actx.drawImage(rawImage, imgX, imgY, rawImage.width * imgScale, rawImage.height * imgScale);
-        actx.restore();
-      }
-
-      alignCanvas.addEventListener('mousedown', (e) => {
-        isDragging = true;
-        const rect = alignCanvas.getBoundingClientRect();
-        const scaleFactor = alignCanvas.width / rect.width;
-        startX = (e.clientX - rect.left) * scaleFactor - imgX;
-        startY = (e.clientY - rect.top) * scaleFactor - imgY;
-      });
-
-      window.addEventListener('mousemove', (e) => {
-        if (!isDragging) return;
-        const rect = alignCanvas.getBoundingClientRect();
-        const scaleFactor = alignCanvas.width / rect.width;
-        imgX = (e.clientX - rect.left) * scaleFactor - startX;
-        imgY = (e.clientY - rect.top) * scaleFactor - startY;
-        drawAlignCanvas();
-      });
-
-      window.addEventListener('mouseup', () => { isDragging = false; });
-
-      alignCanvas.addEventListener('wheel', (e) => {
-        e.preventDefault();
-        const zoom = e.deltaY < 0 ? 1.05 : 0.95;
-        imgScale *= zoom;
-        drawAlignCanvas();
-      }, { passive: false });
-
-      alignCanvas.addEventListener('touchstart', (e) => {
-        const rect = alignCanvas.getBoundingClientRect();
-        const scaleFactor = alignCanvas.width / rect.width;
-
-        if (e.touches.length === 1) {
-          isDragging = true;
-          startX = (e.touches[0].clientX - rect.left) * scaleFactor - imgX;
-          startY = (e.touches[0].clientY - rect.top) * scaleFactor - imgY;
-        } else if (e.touches.length === 2) {
-          isDragging = false;
-          startPinchDist = Math.hypot(
-            e.touches[0].clientX - e.touches[1].clientX,
-            e.touches[0].clientY - e.touches[1].clientY
-          );
-          pinchStartScale = imgScale;
-        }
-      }, { passive: false });
-
-      window.addEventListener('touchmove', (e) => {
-        if (!document.getElementById('screen-align').classList.contains('active')) return;
-        if (e.cancelable) e.preventDefault();
-
-        const rect = alignCanvas.getBoundingClientRect();
-        const scaleFactor = alignCanvas.width / rect.width;
-
-        if (e.touches.length === 1 && isDragging) {
-          imgX = (e.touches[0].clientX - rect.left) * scaleFactor - startX;
-          imgY = (e.touches[0].clientY - rect.top) * scaleFactor - startY;
-          drawAlignCanvas();
-        } else if (e.touches.length === 2 && startPinchDist > 0) {
-          const currentDist = Math.hypot(
-            e.touches[0].clientX - e.touches[1].clientX,
-            e.touches[0].clientY - e.touches[1].clientY
-          );
-          const factor = currentDist / startPinchDist;
-          imgScale = pinchStartScale * factor;
-          drawAlignCanvas();
-        }
-      }, { passive: false });
-
-      window.addEventListener('touchend', () => {
-        isDragging = false;
-        startPinchDist = 0;
-      });
-
-      document.getElementById('btn-confirm-align').addEventListener('click', () => {
-        const exportCanvas = document.createElement('canvas');
-        exportCanvas.width = 1024;
-        exportCanvas.height = 1024;
-        const ectx = exportCanvas.getContext('2d');
-
-        const scaleRatio = 1024 / alignCanvas.width;
-        ectx.fillStyle = "#ffffff";
-        ectx.fillRect(0, 0, 1024, 1024);
-        ectx.drawImage(rawImage, imgX * scaleRatio, imgY * scaleRatio, rawImage.width * imgScale * scaleRatio, rawImage.height * imgScale * scaleRatio);
-
-        currentExtractedTexture = exportCanvas.toDataURL('image/jpeg', 0.92);
-        showScreen('screen-loading');
-
-        setTimeout(() => {
-          const nameHeader = document.getElementById('preview-butterfly-name');
-          if (nameHeader) {
-            nameHeader.innerText = `‘${userAnswers.step7_butterfly_name || "나비"}’`;
-          }
-          showScreen('screen-preview');
-          initExactButterfly(currentExtractedTexture);
-        }, 2200);
-      });
-
-      /* ============================================================
-         Supabase 데이터 전송
-         ============================================================ */
-      function dataURLtoBlob(dataurl) {
-        const arr = dataurl.split(',');
-        const mime = arr[0].match(/:(.*?);/)[1];
-        const bstr = atob(arr[1]);
-        let n = bstr.length;
-        const u8arr = new Uint8Array(n);
-        while (n--) {
-          u8arr[n] = bstr.charCodeAt(n);
-        }
-        return new Blob([u8arr], { type: mime });
-      }
-
-      async function sendButterflyToSupabase(textureBase64) {
-        if (!supabase) return;
-
-        try {
-          const fileName = `butterfly_${Date.now()}_${Math.random().toString(36).substring(2, 7)}.jpg`;
-          const blob = dataURLtoBlob(textureBase64);
-
-          const { error: uploadError } = await supabase.storage
-            .from('butterflies')
-            .upload(fileName, blob, { contentType: 'image/jpeg' });
-
-          if (uploadError) throw uploadError;
-
-          const { data: publicUrlData } = supabase.storage
-            .from('butterflies')
-            .getPublicUrl(fileName);
-
-          const texturePublicUrl = publicUrlData.publicUrl;
-
-          const { error: dbError } = await supabase
-            .from('butterflies')
-            .insert([{
-              butterfly_name: userAnswers.step7_butterfly_name || '이름 없음',
-              texture_url: texturePublicUrl,
-              step1_identity: userAnswers.step1_identity,
-              step2_journey: userAnswers.step2_journey,
-              step3_attitude: userAnswers.step3_attitude,
-              step4_nemesis: userAnswers.step4_nemesis,
-              step5_weapon: userAnswers.step5_weapon,
-              scheduled_at: userAnswers.step6_return_time,
-              recipient_email: userAnswers.step6_email
-            }]);
-
-          if (dbError) throw dbError;
-          console.log(`✨ [${userAnswers.step7_butterfly_name}] 나비가 Supabase에 성공적으로 저장되었습니다!`);
-        } catch (err) {
-          console.error("Supabase 전송 에러:", err);
-        }
-      }
-
-      /* ============================================================
-         3D 나비 렌더러 및 스와이프
-         ============================================================ */
-      let scene, camera, renderer, butterflyGroup, leftWingMesh, rightWingMesh;
-      let isFlyingAway = false, touchStartY = 0;
-
-      function bindSwipeEvents(targetEl) {
-        targetEl.addEventListener('touchstart', (e) => {
-          touchStartY = e.touches[0].clientY;
-        }, { passive: true });
-
-        targetEl.addEventListener('touchend', (e) => {
-          const deltaY = touchStartY - e.changedTouches[0].clientY;
-          if (deltaY > 50 && !isFlyingAway) isFlyingAway = true;
-        }, { passive: true });
-
-        let isMouseDown = false;
-        targetEl.addEventListener('mousedown', (e) => {
-          isMouseDown = true;
-          touchStartY = e.clientY;
-        });
-        targetEl.addEventListener('mouseup', (e) => {
-          if (!isMouseDown) return;
-          isMouseDown = false;
-          if ((touchStartY - e.clientY) > 50 && !isFlyingAway) isFlyingAway = true;
-        });
-      }
-
-      function createChubbyCuteWingShape(isRight) {
-        const shape = new THREE.Shape();
-        const s = isRight ? 1 : -1;
-
-        shape.moveTo(0, 0.45);
-        shape.bezierCurveTo(s * 0.45, 0.95, s * 1.15, 1.75, s * 1.9, 1.7);
-        shape.bezierCurveTo(s * 2.5, 1.65, s * 2.7, 1.15, s * 2.45, 0.6);
-        shape.bezierCurveTo(s * 2.2, 0.2, s * 1.8, 0.0, s * 1.35, -0.1);
-        shape.bezierCurveTo(s * 1.8, -0.35, s * 1.8, -1.05, s * 1.45, -1.5);
-        shape.bezierCurveTo(s * 1.05, -1.9, s * 0.55, -1.8, s * 0.35, -1.5);
-        shape.bezierCurveTo(s * 0.18, -1.15, s * 0.08, -0.7, 0, -0.45);
-        shape.closePath();
-
-        const geom = new THREE.ShapeGeometry(shape, 48);
-        const pos = geom.attributes.position;
-        const uvs = [];
-        const totalSpan = 5.4;
-        for (let i = 0; i < pos.count; i++) {
-          const x = pos.getX(i);
-          const y = pos.getY(i);
-          let u = 0.5 + (x / totalSpan);
-          let v = 0.5 + (y / totalSpan);
-          uvs.push(u, v);
-        }
-        geom.setAttribute('uv', new THREE.Float32BufferAttribute(uvs, 2));
-        geom.setAttribute('uv2', new THREE.Float32BufferAttribute(uvs, 2));
-        geom.computeVertexNormals();
-        return geom;
-      }
-
-      function createSegmentedBodyGeometry() {
-        const points = [];
-        points.push(new THREE.Vector2(0.001, 0.72));
-        points.push(new THREE.Vector2(0.12, 0.62));
-        points.push(new THREE.Vector2(0.085, 0.51));
-        points.push(new THREE.Vector2(0.165, 0.28));
-        points.push(new THREE.Vector2(0.105, 0.05));
-        points.push(new THREE.Vector2(0.13, -0.15));
-        points.push(new THREE.Vector2(0.11, -0.32));
-        points.push(new THREE.Vector2(0.115, -0.42));
-        points.push(new THREE.Vector2(0.07, -0.65));
-        points.push(new THREE.Vector2(0.001, -0.82));
-
-        const geom = new THREE.LatheGeometry(points, 32);
-        geom.computeVertexNormals();
-        return geom;
-      }
-
-      function generateBodyAOTexture() {
-        const canvas = document.createElement('canvas');
-        canvas.width = 128;
-        canvas.height = 512;
-        const ctx = canvas.getContext('2d');
-
-        ctx.fillStyle = '#ffffff';
-        ctx.fillRect(0, 0, 128, 512);
-
-        function drawDarkBand(yPercent, thickness, darkness) {
-          const y = yPercent * 512;
-          const grad = ctx.createLinearGradient(0, y - thickness, 0, y + thickness);
-          grad.addColorStop(0, 'rgba(255, 255, 255, 1)');
-          grad.addColorStop(0.5, `rgba(${darkness}, ${darkness}, ${darkness}, 1)`);
-          grad.addColorStop(1, 'rgba(255, 255, 255, 1)');
-          ctx.fillStyle = grad;
-          ctx.fillRect(0, y - thickness, 128, thickness * 2);
-        }
-
-        drawDarkBand(0.18, 16, 80);
-        drawDarkBand(0.48, 22, 50);
-        drawDarkBand(0.66, 15, 90);
-        drawDarkBand(0.78, 15, 90);
-
-        return new THREE.CanvasTexture(canvas);
-      }
-
-      function generateWingAOTexture() {
-        const canvas = document.createElement('canvas');
-        canvas.width = 512;
-        canvas.height = 512;
-        const ctx = canvas.getContext('2d');
-
-        ctx.fillStyle = '#ffffff';
-        ctx.fillRect(0, 0, 512, 512);
-
-        const grad = ctx.createLinearGradient(160, 0, 352, 0);
-        grad.addColorStop(0, '#ffffff');
-        grad.addColorStop(0.45, '#4a4a55');
-        grad.addColorStop(0.55, '#4a4a55');
-        grad.addColorStop(1, '#ffffff');
-
-        ctx.fillStyle = grad;
-        ctx.fillRect(160, 0, 192, 512);
-
-        return new THREE.CanvasTexture(canvas);
-      }
-
-      function initExactButterfly(textureURL) {
-        const container = document.getElementById('three-container');
-        container.innerHTML = '';
-
-        const width = container.clientWidth || window.innerWidth;
-        const height = container.clientHeight || window.innerHeight;
-
-        scene = new THREE.Scene();
-        camera = new THREE.PerspectiveCamera(38, width / height, 0.1, 1000);
-        camera.position.set(0, -0.1, 9.5);
-        camera.lookAt(0, 0, 0);
-
-        renderer = new THREE.WebGLRenderer({ alpha: true, antialias: true });
-        renderer.setSize(width, height);
-        renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-        renderer.toneMapping = THREE.ACESFilmicToneMapping;
-        renderer.toneMappingExposure = 1.15;
-        container.appendChild(renderer.domElement);
-
-        const ambLight = new THREE.AmbientLight(0xffffff, 0.35);
-        scene.add(ambLight);
-
-        const keyLight = new THREE.DirectionalLight(0xfff8ee, 1.95);
-        keyLight.position.set(4.5, 6, 7);
-        scene.add(keyLight);
-
-        const fillLight = new THREE.DirectionalLight(0xa5b4fc, 0.25);
-        fillLight.position.set(-5, -3, 3);
-        scene.add(fillLight);
-
-        const textureLoader = new THREE.TextureLoader();
-        const userTexture = textureLoader.load(textureURL);
-        userTexture.generateMipmaps = true;
-        userTexture.minFilter = THREE.LinearMipmapLinearFilter;
-        userTexture.magFilter = THREE.LinearFilter;
-
-        const wingAO = generateWingAOTexture();
-        const bodyAO = generateBodyAOTexture();
-
-        butterflyGroup = new THREE.Group();
-
-        const wingMaterial = new THREE.MeshStandardMaterial({
-          map: userTexture,
-          aoMap: wingAO,
-          aoMapIntensity: 1.4,
-          side: THREE.DoubleSide,
-          roughness: 0.35,
-          metalness: 0.05
-        });
-
-        leftWingMesh = new THREE.Mesh(createChubbyCuteWingShape(false), wingMaterial);
-        leftWingMesh.position.set(-0.06, 0.02, 0);
-        butterflyGroup.add(leftWingMesh);
-
-        rightWingMesh = new THREE.Mesh(createChubbyCuteWingShape(true), wingMaterial);
-        rightWingMesh.position.set(0.06, 0.02, 0);
-        butterflyGroup.add(rightWingMesh);
-
-        const bodyMat = new THREE.MeshStandardMaterial({ 
-          color: 0xf3f0ff, 
-          aoMap: bodyAO,
-          aoMapIntensity: 1.6,
-          roughness: 0.3, 
-          metalness: 0.08 
-        });
-
-        butterflyGroup.add(new THREE.Mesh(createSegmentedBodyGeometry(), bodyMat));
-
-        const antCurveL = new THREE.QuadraticBezierCurve3(
-          new THREE.Vector3(-0.03, 0.68, 0.02),
-          new THREE.Vector3(-0.16, 1.02, 0.1),
-          new THREE.Vector3(-0.35, 1.25, 0.02)
-        );
-        butterflyGroup.add(new THREE.Mesh(new THREE.TubeGeometry(antCurveL, 16, 0.012, 8, false), bodyMat));
-
-        const antCurveR = new THREE.QuadraticBezierCurve3(
-          new THREE.Vector3(0.03, 0.68, 0.02),
-          new THREE.Vector3(0.16, 1.02, 0.1),
-          new THREE.Vector3(0.35, 1.25, 0.02)
-        );
-        butterflyGroup.add(new THREE.Mesh(new THREE.TubeGeometry(antCurveR, 16, 0.012, 8, false), bodyMat));
-
-        butterflyGroup.scale.set(0.58, 0.58, 0.58);
-        scene.add(butterflyGroup);
-
-        let clock = new THREE.Clock();
-        function animate() {
-          requestAnimationFrame(animate);
-          const time = clock.getElapsedTime();
-
-          if (!isFlyingAway) {
-            const flap = Math.sin(time * 5.0) * 0.48;
-            leftWingMesh.rotation.y = flap;
-            rightWingMesh.rotation.y = -flap;
-            butterflyGroup.position.y = Math.sin(time * 1.8) * 0.12;
-          } else {
-            const fastFlap = Math.sin(time * 22) * 0.7;
-            leftWingMesh.rotation.y = fastFlap;
-            rightWingMesh.rotation.y = -fastFlap;
-            butterflyGroup.position.y += 0.15;
-            butterflyGroup.position.z -= 0.07;
-
-            if (butterflyGroup.position.y > 8.5) {
-              if (currentExtractedTexture) {
-                sendButterflyToSupabase(currentExtractedTexture);
-              }
-              const completeDesc = document.getElementById('complete-desc');
-              if (completeDesc) {
-                completeDesc.innerHTML = `마음의 무게를 털어낸 <strong>‘${userAnswers.step7_butterfly_name || "나비"}’</strong>(이)가<br>전면 대형 스크린의 너울 속으로 합류했습니다.`;
-              }
-              showScreen('screen-complete');
-              isFlyingAway = false;
-            }
-          }
-          renderer.render(scene, camera);
-        }
-        animate();
-
-        bindSwipeEvents(container);
+      if (currentStep <= 5) selectionType.innerText = "다중 선택";
+      else if (currentStep === 6) selectionType.innerText = "일시 / 이메일 입력";
+      else selectionType.innerText = "직접 입력";[cite: 1, 2]
+
+      btnPrev.classList.toggle('hidden', currentStep === 1);[cite: 1, 2]
+      btnNext.innerText = currentStep === totalSteps ? "도안 촬영하러 가기" : "다음 단계";[cite: 1, 2]
+      checkStepValidity();[cite: 1, 2]
+    }
+
+    btnNext.addEventListener('click', () => {
+      if (currentStep < totalSteps) {
+        currentStep++;[cite: 1, 2]
+        refreshStepScreen();[cite: 1, 2]
+      } else {
+        showScreen('screen-capture');[cite: 1, 2]
       }
     });
+
+    btnPrev.addEventListener('click', () => {
+      if (currentStep > 1) {
+        currentStep--;[cite: 1, 2]
+        refreshStepScreen();[cite: 1, 2]
+      }
+    });
+
+    document.getElementById('btn-back-to-survey').addEventListener('click', () => {
+      showScreen('screen-survey');[cite: 1, 2]
+    });
+
+    refreshStepScreen();
+
+    /* ============================================================
+       사진 직접 터치 조작 (1손가락 이동 + 2손가락 핀치 줌)
+       ============================================================ */
+    let rawImage = new Image();[cite: 1, 2]
+    const alignCanvas = document.getElementById('align-canvas');[cite: 1, 2]
+    const actx = alignCanvas.getContext('2d');[cite: 1, 2]
+
+    let imgX = 0, imgY = 0, imgScale = 1.0;[cite: 1, 2]
+    let isDragging = false;[cite: 1, 2]
+    let startX = 0, startY = 0;[cite: 1, 2]
+    let startPinchDist = 0, pinchStartScale = 1.0;[cite: 1, 2]
+    let currentExtractedTexture = null;[cite: 2]
+
+    function onImageLoaded(e) {
+      const file = e.target.files[0];[cite: 1, 2]
+      if (!file) return;[cite: 1, 2]
+
+      const reader = new FileReader();[cite: 1, 2]
+      reader.onload = (evt) => {
+        rawImage = new Image();[cite: 1, 2]
+        rawImage.onload = () => {
+          initAlignUI();[cite: 1, 2]
+          showScreen('screen-align');[cite: 1, 2]
+        };
+        rawImage.src = evt.target.result;[cite: 1, 2]
+      };
+      reader.readAsDataURL(file);[cite: 1, 2]
+    }
+
+    document.getElementById('camera-input').addEventListener('change', onImageLoaded);[cite: 1, 2]
+    document.getElementById('album-input').addEventListener('change', onImageLoaded);[cite: 1, 2]
+
+    document.getElementById('btn-rephoto').addEventListener('click', () => {
+      showScreen('screen-capture');[cite: 1, 2]
+    });
+
+    function initAlignUI() {
+      const baseScale = alignCanvas.width / Math.min(rawImage.width, rawImage.height);[cite: 1, 2]
+      imgScale = baseScale;[cite: 1, 2]
+      imgX = (alignCanvas.width - rawImage.width * imgScale) / 2;[cite: 1, 2]
+      imgY = (alignCanvas.height - rawImage.height * imgScale) / 2;[cite: 1, 2]
+      drawAlignCanvas();[cite: 1, 2]
+    }
+
+    function drawAlignCanvas() {
+      actx.clearRect(0, 0, alignCanvas.width, alignCanvas.height);[cite: 1, 2]
+      actx.save();[cite: 1, 2]
+      actx.drawImage(rawImage, imgX, imgY, rawImage.width * imgScale, rawImage.height * imgScale);[cite: 1, 2]
+      actx.restore();[cite: 1, 2]
+    }
+
+    alignCanvas.addEventListener('mousedown', (e) => {
+      isDragging = true;[cite: 1, 2]
+      const rect = alignCanvas.getBoundingClientRect();[cite: 1, 2]
+      const scaleFactor = alignCanvas.width / rect.width;[cite: 1, 2]
+      startX = (e.clientX - rect.left) * scaleFactor - imgX;[cite: 1, 2]
+      startY = (e.clientY - rect.top) * scaleFactor - imgY;[cite: 1, 2]
+    });
+
+    window.addEventListener('mousemove', (e) => {
+      if (!isDragging) return;[cite: 1, 2]
+      const rect = alignCanvas.getBoundingClientRect();[cite: 1, 2]
+      const scaleFactor = alignCanvas.width / rect.width;[cite: 1, 2]
+      imgX = (e.clientX - rect.left) * scaleFactor - startX;[cite: 1, 2]
+      imgY = (e.clientY - rect.top) * scaleFactor - startY;[cite: 1, 2]
+      drawAlignCanvas();[cite: 1, 2]
+    });
+
+    window.addEventListener('mouseup', () => { isDragging = false; });[cite: 1, 2]
+
+    alignCanvas.addEventListener('wheel', (e) => {
+      e.preventDefault();[cite: 1, 2]
+      const zoom = e.deltaY < 0 ? 1.05 : 0.95;[cite: 1, 2]
+      imgScale *= zoom;[cite: 1, 2]
+      drawAlignCanvas();[cite: 1, 2]
+    }, { passive: false });[cite: 1, 2]
+
+    alignCanvas.addEventListener('touchstart', (e) => {
+      const rect = alignCanvas.getBoundingClientRect();[cite: 1, 2]
+      const scaleFactor = alignCanvas.width / rect.width;[cite: 1, 2]
+
+      if (e.touches.length === 1) {
+        isDragging = true;[cite: 1, 2]
+        startX = (e.touches[0].clientX - rect.left) * scaleFactor - imgX;[cite: 1, 2]
+        startY = (e.touches[0].clientY - rect.top) * scaleFactor - imgY;[cite: 1, 2]
+      } else if (e.touches.length === 2) {
+        isDragging = false;[cite: 1, 2]
+        startPinchDist = Math.hypot(
+          e.touches[0].clientX - e.touches[1].clientX,
+          e.touches[0].clientY - e.touches[1].clientY
+        );[cite: 1, 2]
+        pinchStartScale = imgScale;[cite: 1, 2]
+      }
+    }, { passive: false });[cite: 1, 2]
+
+    window.addEventListener('touchmove', (e) => {
+      if (!document.getElementById('screen-align').classList.contains('active')) return;[cite: 1, 2]
+      if (e.cancelable) e.preventDefault();[cite: 1, 2]
+
+      const rect = alignCanvas.getBoundingClientRect();[cite: 1, 2]
+      const scaleFactor = alignCanvas.width / rect.width;[cite: 1, 2]
+
+      if (e.touches.length === 1 && isDragging) {
+        imgX = (e.touches[0].clientX - rect.left) * scaleFactor - startX;[cite: 1, 2]
+        imgY = (e.touches[0].clientY - rect.top) * scaleFactor - startY;[cite: 1, 2]
+        drawAlignCanvas();[cite: 1, 2]
+      } else if (e.touches.length === 2 && startPinchDist > 0) {
+        const currentDist = Math.hypot(
+          e.touches[0].clientX - e.touches[1].clientX,
+          e.touches[0].clientY - e.touches[1].clientY
+        );[cite: 1, 2]
+        const factor = currentDist / startPinchDist;[cite: 1, 2]
+        imgScale = pinchStartScale * factor;[cite: 1, 2]
+        drawAlignCanvas();[cite: 1, 2]
+      }
+    }, { passive: false });[cite: 1, 2]
+
+    window.addEventListener('touchend', () => {
+      isDragging = false;[cite: 1, 2]
+      startPinchDist = 0;[cite: 1, 2]
+    });
+
+    document.getElementById('btn-confirm-align').addEventListener('click', () => {
+      const exportCanvas = document.createElement('canvas');[cite: 1, 2]
+      exportCanvas.width = 1024;[cite: 1, 2]
+      exportCanvas.height = 1024;[cite: 1, 2]
+      const ectx = exportCanvas.getContext('2d');[cite: 1, 2]
+
+      const scaleRatio = 1024 / alignCanvas.width;[cite: 1, 2]
+      ectx.fillStyle = "#ffffff";[cite: 1, 2]
+      ectx.fillRect(0, 0, 1024, 1024);[cite: 1, 2]
+      ectx.drawImage(rawImage, imgX * scaleRatio, imgY * scaleRatio, rawImage.width * imgScale * scaleRatio, rawImage.height * imgScale * scaleRatio);[cite: 1, 2]
+
+      currentExtractedTexture = exportCanvas.toDataURL('image/jpeg', 0.95);[cite: 1, 2]
+      showScreen('screen-loading');[cite: 1, 2]
+
+      setTimeout(() => {
+        const nameHeader = document.getElementById('preview-butterfly-name');[cite: 1]
+        if (nameHeader) {
+          nameHeader.innerText = `‘${userAnswers.step7_name || "나비"}’`;[cite: 1]
+        }
+        showScreen('screen-preview');[cite: 1, 2]
+        initExactButterfly(currentExtractedTexture);[cite: 1, 2]
+      }, 2200);[cite: 1, 2]
+    });
+
+    /* ============================================================
+       Supabase 연동 함수
+       ============================================================ */
+    const SUPABASE_URL = 'https://YOUR_PROJECT_ID.supabase.co';[cite: 2]
+    const SUPABASE_ANON_KEY = 'YOUR_ANON_KEY_HERE';[cite: 2]
+    let supabase = null;[cite: 2]
+    try {
+      if (window.supabase && SUPABASE_URL.indexOf('YOUR_PROJECT_ID') === -1) {
+        supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);[cite: 2]
+      }
+    } catch (e) {}
+
+    function dataURLtoBlob(dataurl) {
+      const arr = dataurl.split(',');[cite: 2]
+      const mime = arr[0].match(/:(.*?);/)[1];[cite: 2]
+      const bstr = atob(arr[1]);[cite: 2]
+      let n = bstr.length;[cite: 2]
+      const u8arr = new Uint8Array(n);[cite: 2]
+      while (n--) {
+        u8arr[n] = bstr.charCodeAt(n);[cite: 2]
+      }
+      return new Blob([u8arr], { type: mime });[cite: 2]
+    }
+
+    async function sendButterflyToSupabase(textureBase64) {
+      if (!supabase) return;[cite: 2]
+      try {
+        const fileName = `butterfly_${Date.now()}_${Math.random().toString(36).substring(2, 7)}.jpg`;[cite: 2]
+        const blob = dataURLtoBlob(textureBase64);[cite: 2]
+
+        const { error: uploadError } = await supabase.storage
+          .from('butterflies')
+          .upload(fileName, blob, { contentType: 'image/jpeg' });[cite: 2]
+
+        if (uploadError) throw uploadError;[cite: 2]
+
+        const { data: publicUrlData } = supabase.storage
+          .from('butterflies')
+          .getPublicUrl(fileName);[cite: 2]
+
+        await supabase.from('butterflies').insert([{
+          butterfly_name: userAnswers.step7_name || '이름 없음',
+          texture_url: publicUrlData.publicUrl,
+          step1_identity: userAnswers.step1,
+          step2_journey: userAnswers.step2,
+          step3_attitude: userAnswers.step3,
+          step4_nemesis: userAnswers.step4,
+          step5_weapon: userAnswers.step5,
+          scheduled_at: userAnswers.step6_time,
+          recipient_email: userAnswers.step6_email
+        }]);
+      } catch (err) {
+        console.error("Supabase 에러:", err);[cite: 2]
+      }
+    }
+
+    /* ============================================================
+       몸통 마디 음영 및 날개 접합부 AO 3D 나비 렌더러
+       ============================================================ */
+    let scene, camera, renderer, butterflyGroup, leftWingMesh, rightWingMesh;[cite: 1, 2]
+    let isFlyingAway = false, touchStartY = 0;[cite: 1, 2]
+
+    function createChubbyCuteWingShape(isRight) {
+      const shape = new THREE.Shape();[cite: 1, 2]
+      const s = isRight ? 1 : -1;[cite: 1, 2]
+
+      shape.moveTo(0, 0.45);[cite: 1, 2]
+      shape.bezierCurveTo(s * 0.45, 0.95, s * 1.15, 1.75, s * 1.9, 1.7);[cite: 1, 2]
+      shape.bezierCurveTo(s * 2.5, 1.65, s * 2.7, 1.15, s * 2.45, 0.6);[cite: 1, 2]
+      shape.bezierCurveTo(s * 2.2, 0.2, s * 1.8, 0.0, s * 1.35, -0.1);[cite: 1, 2]
+      shape.bezierCurveTo(s * 1.8, -0.35, s * 1.8, -1.05, s * 1.45, -1.5);[cite: 1, 2]
+      shape.bezierCurveTo(s * 1.05, -1.9, s * 0.55, -1.8, s * 0.35, -1.5);[cite: 1, 2]
+      shape.bezierCurveTo(s * 0.18, -1.15, s * 0.08, -0.7, 0, -0.45);[cite: 1, 2]
+      shape.closePath();[cite: 1, 2]
+
+      const geom = new THREE.ShapeGeometry(shape, 48);[cite: 1, 2]
+      const pos = geom.attributes.position;[cite: 1, 2]
+      const uvs = [];[cite: 1, 2]
+      const totalSpan = 5.4;[cite: 1, 2]
+      for (let i = 0; i < pos.count; i++) {
+        const x = pos.getX(i);[cite: 1, 2]
+        const y = pos.getY(i);[cite: 1, 2]
+        let u = 0.5 + (x / totalSpan);[cite: 1, 2]
+        let v = 0.5 + (y / totalSpan);[cite: 1, 2]
+        uvs.push(u, v);[cite: 1, 2]
+      }
+      geom.setAttribute('uv', new THREE.Float32BufferAttribute(uvs, 2));[cite: 1, 2]
+      geom.setAttribute('uv2', new THREE.Float32BufferAttribute(uvs, 2));[cite: 1, 2]
+      geom.computeVertexNormals();[cite: 1, 2]
+      return geom;[cite: 1, 2]
+    }
+
+    function createSegmentedBodyGeometry() {
+      const points = [];[cite: 1, 2]
+      points.push(new THREE.Vector2(0.001, 0.72));[cite: 1, 2]
+      points.push(new THREE.Vector2(0.12, 0.62));[cite: 1, 2]
+      points.push(new THREE.Vector2(0.085, 0.51));[cite: 1, 2]
+      points.push(new THREE.Vector2(0.165, 0.28));[cite: 1, 2]
+      points.push(new THREE.Vector2(0.105, 0.05));[cite: 1, 2]
+      points.push(new THREE.Vector2(0.13, -0.15));[cite: 1, 2]
+      points.push(new THREE.Vector2(0.11, -0.32));[cite: 1, 2]
+      points.push(new THREE.Vector2(0.115, -0.42));[cite: 1, 2]
+      points.push(new THREE.Vector2(0.07, -0.65));[cite: 1, 2]
+      points.push(new THREE.Vector2(0.001, -0.82));[cite: 1, 2]
+
+      const geom = new THREE.LatheGeometry(points, 32);[cite: 1, 2]
+      geom.computeVertexNormals();[cite: 1, 2]
+      return geom;[cite: 1, 2]
+    }
+
+    function generateBodyAOTexture() {
+      const canvas = document.createElement('canvas');[cite: 1, 2]
+      canvas.width = 128;[cite: 1, 2]
+      canvas.height = 512;[cite: 1, 2]
+      const ctx = canvas.getContext('2d');[cite: 1, 2]
+
+      ctx.fillStyle = '#ffffff';[cite: 1, 2]
+      ctx.fillRect(0, 0, 128, 512);[cite: 1, 2]
+
+      function drawDarkBand(yPercent, thickness, darkness) {
+        const y = yPercent * 512;[cite: 1, 2]
+        const grad = ctx.createLinearGradient(0, y - thickness, 0, y + thickness);[cite: 1, 2]
+        grad.addColorStop(0, 'rgba(255, 255, 255, 1)');[cite: 1, 2]
+        grad.addColorStop(0.5, `rgba(${darkness}, ${darkness}, ${darkness}, 1)`);[cite: 1, 2]
+        grad.addColorStop(1, 'rgba(255, 255, 255, 1)');[cite: 1, 2]
+        ctx.fillStyle = grad;[cite: 1, 2]
+        ctx.fillRect(0, y - thickness, 128, thickness * 2);[cite: 1, 2]
+      }
+
+      drawDarkBand(0.18, 16, 80);[cite: 1, 2]
+      drawDarkBand(0.48, 22, 50);[cite: 1, 2]
+      drawDarkBand(0.66, 15, 90);[cite: 1, 2]
+      drawDarkBand(0.78, 15, 90);[cite: 1, 2]
+
+      return new THREE.CanvasTexture(canvas);[cite: 1, 2]
+    }
+
+    function generateWingAOTexture() {
+      const canvas = document.createElement('canvas');[cite: 1, 2]
+      canvas.width = 512;[cite: 1, 2]
+      canvas.height = 512;[cite: 1, 2]
+      const ctx = canvas.getContext('2d');[cite: 1, 2]
+
+      ctx.fillStyle = '#ffffff';[cite: 1, 2]
+      ctx.fillRect(0, 0, 512, 512);[cite: 1, 2]
+
+      const grad = ctx.createLinearGradient(160, 0, 352, 0);[cite: 1, 2]
+      grad.addColorStop(0, '#ffffff');[cite: 1, 2]
+      grad.addColorStop(0.45, '#4a4a55');[cite: 1, 2]
+      grad.addColorStop(0.55, '#4a4a55');[cite: 1, 2]
+      grad.addColorStop(1, '#ffffff');[cite: 1, 2]
+
+      ctx.fillStyle = grad;[cite: 1, 2]
+      ctx.fillRect(160, 0, 192, 512);[cite: 1, 2]
+
+      return new THREE.CanvasTexture(canvas);[cite: 1, 2]
+    }
+
+    function initExactButterfly(textureURL) {
+      const container = document.getElementById('three-container');[cite: 1, 2]
+      container.innerHTML = '';[cite: 1, 2]
+
+      const width = container.clientWidth || window.innerWidth;[cite: 1, 2]
+      const height = container.clientHeight || window.innerHeight;[cite: 1, 2]
+
+      scene = new THREE.Scene();[cite: 1, 2]
+      camera = new THREE.PerspectiveCamera(38, width / height, 0.1, 1000);[cite: 1, 2]
+      camera.position.set(0, -0.1, 9.5);[cite: 1, 2]
+      camera.lookAt(0, 0, 0);[cite: 1, 2]
+
+      renderer = new THREE.WebGLRenderer({ alpha: true, antialias: true });[cite: 1, 2]
+      renderer.setSize(width, height);[cite: 1, 2]
+      renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));[cite: 1, 2]
+      renderer.toneMapping = THREE.ACESFilmicToneMapping;[cite: 1, 2]
+      renderer.toneMappingExposure = 1.15;[cite: 1, 2]
+      container.appendChild(renderer.domElement);[cite: 1, 2]
+
+      const ambLight = new THREE.AmbientLight(0xffffff, 0.35);[cite: 1, 2]
+      scene.add(ambLight);[cite: 1, 2]
+
+      const keyLight = new THREE.DirectionalLight(0xfff8ee, 1.95);[cite: 1, 2]
+      keyLight.position.set(4.5, 6, 7);[cite: 1, 2]
+      scene.add(keyLight);[cite: 1, 2]
+
+      const fillLight = new THREE.DirectionalLight(0xa5b4fc, 0.25);[cite: 1, 2]
+      fillLight.position.set(-5, -3, 3);[cite: 1, 2]
+      scene.add(fillLight);[cite: 1, 2]
+
+      const textureLoader = new THREE.TextureLoader();[cite: 1, 2]
+      const userTexture = textureLoader.load(textureURL);[cite: 1, 2]
+      userTexture.generateMipmaps = true;[cite: 1, 2]
+      userTexture.minFilter = THREE.LinearMipmapLinearFilter;[cite: 1, 2]
+      userTexture.magFilter = THREE.LinearFilter;[cite: 1, 2]
+
+      const wingAO = generateWingAOTexture();[cite: 1, 2]
+      const bodyAO = generateBodyAOTexture();[cite: 1, 2]
+
+      butterflyGroup = new THREE.Group();[cite: 1, 2]
+
+      const wingMaterial = new THREE.MeshStandardMaterial({
+        map: userTexture,
+        aoMap: wingAO,
+        aoMapIntensity: 1.4,
+        side: THREE.DoubleSide,
+        roughness: 0.35,
+        metalness: 0.05
+      });[cite: 1, 2]
+
+      leftWingMesh = new THREE.Mesh(createChubbyCuteWingShape(false), wingMaterial);[cite: 1, 2]
+      leftWingMesh.position.set(-0.06, 0.02, 0);[cite: 1, 2]
+      butterflyGroup.add(leftWingMesh);[cite: 1, 2]
+
+      rightWingMesh = new THREE.Mesh(createChubbyCuteWingShape(true), wingMaterial);[cite: 1, 2]
+      rightWingMesh.position.set(0.06, 0.02, 0);[cite: 1, 2]
+      butterflyGroup.add(rightWingMesh);[cite: 1, 2]
+
+      const bodyMat = new THREE.MeshStandardMaterial({ 
+        color: 0xf3f0ff, 
+        aoMap: bodyAO,
+        aoMapIntensity: 1.6,
+        roughness: 0.3, 
+        metalness: 0.08 
+      });[cite: 1, 2]
+
+      butterflyGroup.add(new THREE.Mesh(createSegmentedBodyGeometry(), bodyMat));[cite: 1, 2]
+
+      const antCurveL = new THREE.QuadraticBezierCurve3(
+        new THREE.Vector3(-0.03, 0.68, 0.02),
+        new THREE.Vector3(-0.16, 1.02, 0.1),
+        new THREE.Vector3(-0.35, 1.25, 0.02)
+      );[cite: 1, 2]
+      butterflyGroup.add(new THREE.Mesh(new THREE.TubeGeometry(antCurveL, 16, 0.012, 8, false), bodyMat));[cite: 1, 2]
+
+      const antCurveR = new THREE.QuadraticBezierCurve3(
+        new THREE.Vector3(0.03, 0.68, 0.02),
+        new THREE.Vector3(0.16, 1.02, 0.1),
+        new THREE.Vector3(0.35, 1.25, 0.02)
+      );[cite: 1, 2]
+      butterflyGroup.add(new THREE.Mesh(new THREE.TubeGeometry(antCurveR, 16, 0.012, 8, false), bodyMat));[cite: 1, 2]
+
+      butterflyGroup.scale.set(0.58, 0.58, 0.58);[cite: 1, 2]
+      scene.add(butterflyGroup);[cite: 1, 2]
+
+      let clock = new THREE.Clock();[cite: 1, 2]
+      function animate() {
+        requestAnimationFrame(animate);[cite: 1, 2]
+        const time = clock.getElapsedTime();[cite: 1, 2]
+
+        if (!isFlyingAway) {
+          const flap = Math.sin(time * 5.0) * 0.48;[cite: 1, 2]
+          leftWingMesh.rotation.y = flap;[cite: 1, 2]
+          rightWingMesh.rotation.y = -flap;[cite: 1, 2]
+          butterflyGroup.position.y = Math.sin(time * 1.8) * 0.12;[cite: 1, 2]
+        } else {
+          const fastFlap = Math.sin(time * 22) * 0.7;[cite: 1, 2]
+          leftWingMesh.rotation.y = fastFlap;[cite: 1, 2]
+          rightWingMesh.rotation.y = -fastFlap;[cite: 1, 2]
+          butterflyGroup.position.y += 0.15;[cite: 1, 2]
+          butterflyGroup.position.z -= 0.07;[cite: 1, 2]
+
+          if (butterflyGroup.position.y > 8.5) {
+            if (currentExtractedTexture) {
+              sendButterflyToSupabase(currentExtractedTexture);
+            }
+            const completeDesc = document.getElementById('complete-desc');[cite: 1]
+            if (completeDesc) {
+              completeDesc.innerHTML = `마음의 무게를 털어낸 <strong>‘${userAnswers.step7_name || "나비"}’</strong>(이)가<br>전면 대형 스크린의 너울 속으로 합류했습니다.`;[cite: 1, 2]
+            }
+            showScreen('screen-complete');[cite: 1, 2]
+            isFlyingAway = false;[cite: 1, 2]
+          }
+        }
+        renderer.render(scene, camera);[cite: 1, 2]
+      }
+      animate();[cite: 1, 2]
+
+      bindSwipeEvents(container);[cite: 1, 2]
+    }
+
+    function bindSwipeEvents(targetEl) {
+      targetEl.addEventListener('touchstart', (e) => {
+        touchStartY = e.touches[0].clientY;[cite: 1, 2]
+      }, { passive: true });[cite: 1, 2]
+
+      targetEl.addEventListener('touchend', (e) => {
+        const deltaY = touchStartY - e.changedTouches[0].clientY;[cite: 1, 2]
+        if (deltaY > 50 && !isFlyingAway) isFlyingAway = true;[cite: 1, 2]
+      }, { passive: true });[cite: 1, 2]
+
+      let isMouseDown = false;[cite: 1, 2]
+      targetEl.addEventListener('mousedown', (e) => {
+        isMouseDown = true;[cite: 1, 2]
+        touchStartY = e.clientY;[cite: 1, 2]
+      });
+      targetEl.addEventListener('mouseup', (e) => {
+        if (!isMouseDown) return;[cite: 1, 2]
+        isMouseDown = false;[cite: 1, 2]
+        if ((touchStartY - e.clientY) > 50 && !isFlyingAway) isFlyingAway = true;[cite: 1, 2]
+      });
+    }
   </script>
 </body>
 </html>
