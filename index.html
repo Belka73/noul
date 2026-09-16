@@ -253,7 +253,7 @@
         <div id="organic-chip-container" class="flex flex-col items-center gap-2.5 w-full py-3"></div>
       </div>
 
-      <!-- [Q6] 날짜(년/월/일 3칸) / 이메일 설정 - 완벽한 세로 정중앙 배치 -->
+      <!-- [Q6] 날짜(년/월/일 3칸) / 이메일 설정 -->
       <div id="field-step-6" class="hidden flex-1 w-full flex-col justify-center items-center px-2 min-h-0">
         <div class="w-full bg-white/5 border border-white/15 backdrop-blur-xl rounded-3xl p-5 space-y-4 shadow-xl">
           <div>
@@ -288,7 +288,7 @@
         </div>
       </div>
 
-      <!-- [Q7] 나비 이름 설정 - 큰 네모 틀을 완전히 없애고 깔끔하게 세로 정중앙 배치 -->
+      <!-- [Q7] 나비 이름 설정 -->
       <div id="field-step-7" class="hidden flex-1 w-full flex-col justify-center items-center px-4 min-h-0">
         <div class="w-full space-y-2">
           <label class="block text-xs font-mono text-orange-300 font-medium text-left px-1">나비의 고유한 이름</label>
@@ -355,18 +355,17 @@
       <div class="text-xs font-mono text-orange-200/80 tracking-widest z-10">NOUL METAMORPHOSIS...</div>
     </section>
 
-    <!-- [STEP 4] 최종 3D 뷰어 -->
-    <section id="screen-preview" class="screen flex-col flex-1 justify-between py-2 relative"
-      style="background: linear-gradient(180deg, #1e1b4b 0%, #312e81 40%, #431407 100%) !important;">
-      <header class="text-center pt-2 z-10">
+    <!-- [STEP 4] 최종 3D 뷰어 (사각형 테두리 경계 완전 제거 및 전체화면 일체화) -->
+    <section id="screen-preview" class="screen fixed inset-0 z-50 flex-col justify-between py-6 overflow-hidden">
+      <header class="text-center pt-3 z-10">
         <span class="text-xs font-mono text-white/90 font-semibold tracking-wider uppercase drop-shadow">NOUL 3D BUTTERFLY</span>
-        <h2 id="preview-butterfly-name" class="text-2xl font-black text-white mt-0.5 drop-shadow-md tracking-tight">‘나비’</h2>
-        <p class="text-xs text-white/85 mt-0.5 font-light drop-shadow">화면을 위로 쓸어 올려 대형 화면으로 날려보내세요.</p>
+        <h2 id="preview-butterfly-name" class="text-3xl font-black text-white mt-1 drop-shadow-md tracking-tight">‘나비’</h2>
+        <p class="text-xs text-white/85 mt-1 font-light drop-shadow">화면을 위로 쓸어 올려 대형 화면으로 날려보내세요.</p>
       </header>
 
-      <div id="three-container" class="flex-1 w-full h-full absolute inset-0 z-0"></div>
+      <div id="three-container" class="w-full h-full absolute inset-0 z-0 pointer-events-auto"></div>
 
-      <footer class="w-full pb-4 flex flex-col items-center gap-2 z-10 pointer-events-none">
+      <footer class="w-full pb-6 flex flex-col items-center gap-2 z-10 pointer-events-none">
         <div class="bounce-guide flex flex-col items-center">
           <svg class="w-7 h-7 text-white drop-shadow" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 15l7-7 7 7"></path>
@@ -681,7 +680,6 @@
     }
 
     btnSurveyNext.addEventListener('click', () => {
-      // Q1~Q5: 환기 화면 표시, Q6(날짜 입력): 중간 환기 화면 없이 바로 Q7(이름 짓기)로 이동
       if (currentStepIdx < 5) {
         showInterludeScreen(currentStepIdx);
       } else if (currentStepIdx === 5) {
@@ -708,7 +706,11 @@
 
     btnSurveyPrev.addEventListener('click', () => {
       if (currentStepIdx > 0) {
-        currentStepIdx--;
+        if (currentStepIdx === 6) {
+          currentStepIdx = 5;
+        } else {
+          currentStepIdx--;
+        }
         renderSurveyStep();
       }
     });
@@ -839,7 +841,7 @@
       showScreen('screen-survey');
     });
 
-    /* 3D 엔진 */
+    /* 3D 엔진 & 나비 모델링 */
     function createChubbyCuteWingShape(isRight) {
       const shape = new THREE.Shape();
       const s = isRight ? 1 : -1;
@@ -886,6 +888,30 @@
       const geom = new THREE.LatheGeometry(points, 32);
       geom.computeVertexNormals();
       return geom;
+    }
+
+    // 나비 더듬이 생성 함수 (곡선 줄기 + 끝부분 둥근 방울)
+    function createAntennaGroup(isRight, material) {
+      const group = new THREE.Group();
+      const s = isRight ? 1 : -1;
+
+      const curve = new THREE.CubicBezierCurve3(
+        new THREE.Vector3(0, 0, 0),
+        new THREE.Vector3(s * 0.15, 0.45, 0.08),
+        new THREE.Vector3(s * 0.42, 0.75, 0.14),
+        new THREE.Vector3(s * 0.52, 0.98, 0.2)
+      );
+
+      const tubeGeom = new THREE.TubeGeometry(curve, 24, 0.024, 8, false);
+      const tubeMesh = new THREE.Mesh(tubeGeom, material);
+      group.add(tubeMesh);
+
+      const tipGeom = new THREE.SphereGeometry(0.055, 16, 16);
+      const tipMesh = new THREE.Mesh(tipGeom, material);
+      tipMesh.position.set(s * 0.52, 0.98, 0.2);
+      group.add(tipMesh);
+
+      return group;
     }
 
     function generateWingAOTexture() {
@@ -958,6 +984,15 @@
       const bodyMat = new THREE.MeshStandardMaterial({ color: 0xffedd5, roughness: 0.3, metalness: 0.1 });
       miniGroup.add(new THREE.Mesh(createSegmentedBodyGeometry(), bodyMat));
 
+      // 미니 나비 더듬이 부착
+      const antennaLeft = createAntennaGroup(false, bodyMat);
+      antennaLeft.position.set(-0.04, 0.58, 0.06);
+      miniGroup.add(antennaLeft);
+
+      const antennaRight = createAntennaGroup(true, bodyMat);
+      antennaRight.position.set(0.04, 0.58, 0.06);
+      miniGroup.add(antennaRight);
+
       miniGroup.scale.set(0.48, 0.48, 0.48);
       miniGroup.rotation.x = 0.1;
       miniScene.add(miniGroup);
@@ -982,8 +1017,8 @@
       const container = document.getElementById('three-container');
       container.innerHTML = '';
 
-      const width = container.clientWidth || window.innerWidth;
-      const height = container.clientHeight || window.innerHeight;
+      const width = window.innerWidth;
+      const height = window.innerHeight;
 
       fullScene = new THREE.Scene();
       fullCamera = new THREE.PerspectiveCamera(38, width / height, 0.1, 1000);
@@ -1029,6 +1064,15 @@
 
       const bodyMat = new THREE.MeshStandardMaterial({ color: 0xffedd5, roughness: 0.3, metalness: 0.08 });
       fullGroup.add(new THREE.Mesh(createSegmentedBodyGeometry(), bodyMat));
+
+      // 최종 3D 뷰어 나비 더듬이 부착
+      const antennaLeft = createAntennaGroup(false, bodyMat);
+      antennaLeft.position.set(-0.04, 0.58, 0.06);
+      fullGroup.add(antennaLeft);
+
+      const antennaRight = createAntennaGroup(true, bodyMat);
+      antennaRight.position.set(0.04, 0.58, 0.06);
+      fullGroup.add(antennaRight);
 
       fullGroup.scale.set(0.62, 0.62, 0.62);
       fullScene.add(fullGroup);
