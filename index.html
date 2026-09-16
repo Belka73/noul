@@ -6,7 +6,6 @@
   <title>너울 : NOUL - 내면의 나비 띄우기</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-  <!-- Supabase 공식 클라이언트 라이브러리 -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <style>
     body {
@@ -22,11 +21,12 @@
       border: 1px solid rgba(255, 255, 255, 0.15);
       backdrop-filter: blur(8px);
       transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+      user-select: none;
     }
     .chip.selected {
-      background: rgba(147, 197, 253, 0.25);
-      border-color: #93c5fd;
-      color: #ffffff;
+      background: rgba(147, 197, 253, 0.25) !important;
+      border-color: #93c5fd !important;
+      color: #ffffff !important;
       box-shadow: 0 0 15px rgba(147, 197, 253, 0.4);
       transform: translateY(-2px);
     }
@@ -60,7 +60,6 @@
     }
     .bounce-guide { animation: bounceUp 1.8s infinite ease-in-out; }
 
-    /* 다크모드 대응 달력 인풋 스타일링 */
     input[type="datetime-local"]::-webkit-calendar-picker-indicator {
       filter: invert(1);
       opacity: 0.7;
@@ -77,22 +76,22 @@
       <header class="w-full mb-3">
         <div class="flex justify-between text-xs text-gray-400 mb-2 font-mono">
           <span id="step-indicator" class="text-blue-400 font-semibold">STEP 1 / 7</span>
-          <span id="selection-type">다중 선택</span>
+          <span id="selection-type">다중 선택 가능</span>
         </div>
         <div class="w-full h-1 bg-gray-800 rounded-full overflow-hidden">
-          <div id="progress-bar" class="h-full bg-blue-400 transition-all duration-300 w-1/7"></div>
+          <div id="progress-bar" class="h-full bg-blue-400 transition-all duration-300" style="width: 14.28%;"></div>
         </div>
       </header>
 
       <div class="flex-1 flex flex-col justify-center overflow-y-auto pr-1">
-        <!-- 1번 질문: 나의 성향 -->
-        <div id="substep-1" class="substep flex-col flex">
+        <!-- 1번 질문: 성향 -->
+        <div id="substep-1" class="substep flex flex-col">
           <h2 class="text-xl font-bold mb-1 text-white">당신은 어떤 나비인가요?</h2>
           <p class="text-xs text-gray-400 mb-4">일상 속 내 모습을 가장 잘 나타내는 성향을 골라주세요. (다중 선택)</p>
           <div class="flex flex-wrap gap-2.5 max-h-[50vh] overflow-y-auto py-1" id="list-step-1"></div>
         </div>
 
-        <!-- 2번 질문: 여정의 목표 -->
+        <!-- 2번 질문: 여정 목표 -->
         <div id="substep-2" class="substep flex-col hidden">
           <h2 class="text-xl font-bold mb-1 text-white">고치에서 나온 당신, 어떤 여정을 떠날 건가요?</h2>
           <p class="text-xs text-gray-400 mb-4">향하고 싶은 방향을 골라주세요. (다중 선택)</p>
@@ -311,7 +310,7 @@
     }
 
     /* ============================================================
-       정제된 7단계 문답 풀 (각 50개 키워드)
+       정제된 7단계 문답 풀 (특수문자 에러 수정 완료)
        ============================================================ */
     const optionsData = {
       step1: [
@@ -363,8 +362,8 @@
         "감정 쓰레기통 역할", "무리한 부탁", "고립된 혼밥", "흐려진 목표", "그냥 온갖 귀찮음"
       ],
       step5: [
-        "\"어쩌라고\" 마인드", "일단 푹 자기", "칼같은 단호함", "한 귀로 흘리기", "연락 차단 모드", 
-        "뻔뻔한 배짱", "\"그럴 수 있지\"", "빠른 손절", "나만의 속도", "미련 없는 포기", 
+        "어쩌라고 마인드", "일단 푹 자기", "칼같은 단호함", "한 귀로 흘리기", "연락 차단 모드", 
+        "뻔뻔한 배짱", "그럴 수 있지", "빠른 손절", "나만의 속도", "미련 없는 포기", 
         "쿨한 넘김", "거절하는 용기", "침묵의 멍때리기", "스스로 토닥이기", "당당한 마이웨이", 
         "무반응과 무관심", "셀프 칭찬", "혼자만의 고요", "딴청 피우기", "근거 없는 자신감", 
         "할 말은 하기", "맛있는 한 끼", "단단한 자기 확신", "일희일비 안 하기", "억지 웃음 멈추기", 
@@ -402,19 +401,26 @@
 
     function renderOptionBubbles(containerId, items, stateKey) {
       const container = document.getElementById(containerId);
+      if (!container) return;
       container.innerHTML = '';
       items.forEach(text => {
         const btn = document.createElement('button');
         btn.type = 'button';
         btn.className = 'chip text-xs md:text-sm px-3.5 py-2 rounded-full cursor-pointer text-gray-300 active:scale-95';
         btn.innerText = text;
-        btn.addEventListener('click', () => {
-          btn.classList.toggle('selected');
-          const idx = userAnswers[stateKey].indexOf(text);
-          if (idx > -1) userAnswers[stateKey].splice(idx, 1);
-          else userAnswers[stateKey].push(text);
+        
+        btn.onclick = function() {
+          const arr = userAnswers[stateKey];
+          const idx = arr.indexOf(text);
+          if (idx > -1) {
+            arr.splice(idx, 1);
+            btn.classList.remove('selected');
+          } else {
+            arr.push(text);
+            btn.classList.add('selected');
+          }
           checkStepValidity();
-        });
+        };
         container.appendChild(btn);
       });
     }
@@ -454,6 +460,7 @@
       else if (currentStep === 5) valid = userAnswers.step5_weapon.length > 0;
       else if (currentStep === 6) valid = !!userAnswers.step6_return_time && isValidEmail(userAnswers.step6_email);
       else if (currentStep === 7) valid = userAnswers.step7_butterfly_name.length > 0;
+      
       btnNext.disabled = !valid;
     }
 
@@ -493,6 +500,9 @@
     document.getElementById('btn-back-to-survey').addEventListener('click', () => {
       showScreen('screen-survey');
     });
+
+    // 화면 진입 시 초기 검사 실행
+    refreshStepScreen();
 
     /* ============================================================
        사진 직접 터치 조작 (1손가락 이동 + 2손가락 핀치 줌)
