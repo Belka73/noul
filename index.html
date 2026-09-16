@@ -253,10 +253,9 @@
         <div id="organic-chip-container" class="flex flex-col items-center gap-2.5 w-full py-3"></div>
       </div>
 
-      <!-- [Q6] 날짜(년/월/일 3칸) / 이메일 설정 - 질문과 하단 버튼 사이 공간의 완벽한 세로 정중앙 배치 -->
+      <!-- [Q6] 날짜(년/월/일 3칸) / 이메일 설정 - 완벽한 세로 정중앙 배치 -->
       <div id="field-step-6" class="hidden flex-1 w-full flex-col justify-center items-center px-2 min-h-0">
         <div class="w-full bg-white/5 border border-white/15 backdrop-blur-xl rounded-3xl p-5 space-y-4 shadow-xl">
-          <!-- 년, 월, 일 3칸 입력란 -->
           <div>
             <label class="block text-xs font-mono text-orange-300 mb-1.5 font-medium">찬란한 재회의 날</label>
             <div class="grid grid-cols-3 gap-2">
@@ -281,7 +280,6 @@
             </span>
           </div>
 
-          <!-- 이메일 입력란 -->
           <div>
             <label class="block text-xs font-mono text-orange-300 mb-1.5 font-medium">나비를 맞이할 이메일</label>
             <input id="input-q6-email" type="email" placeholder="example@email.com" 
@@ -290,20 +288,17 @@
         </div>
       </div>
 
-      <!-- [Q7] 나비 이름 설정 -->
-      <div id="field-step-7" class="hidden flex-col justify-center flex-1 py-2 px-1 gap-3 my-auto">
-        <div class="bg-white/5 border border-white/15 backdrop-blur-xl rounded-3xl p-4 space-y-2.5 shadow-lg">
-          <label class="block text-xs font-mono text-orange-300 font-medium">나비의 고유한 이름</label>
+      <!-- [Q7] 나비 이름 설정 - 큰 네모 틀을 완전히 없애고 깔끔하게 세로 정중앙 배치 -->
+      <div id="field-step-7" class="hidden flex-1 w-full flex-col justify-center items-center px-4 min-h-0">
+        <div class="w-full space-y-2">
+          <label class="block text-xs font-mono text-orange-300 font-medium text-left px-1">나비의 고유한 이름</label>
           <input id="input-q7-name" type="text" maxlength="10" placeholder="예: 윤슬, 쉼표, 칼퇴, 다정, 시온, 바람..." 
-                 class="w-full bg-white/10 border border-white/20 rounded-2xl px-3.5 py-3 text-base text-white focus:outline-none focus:border-orange-400 placeholder-slate-500 tracking-wide font-medium">
-          <div class="flex justify-between items-center text-[11px] text-slate-400 font-mono px-1">
+                 class="w-full bg-white/10 border border-white/20 rounded-2xl px-4 py-3.5 text-base text-white focus:outline-none focus:border-orange-400 placeholder-slate-500 tracking-wide font-medium shadow-lg backdrop-blur-md">
+          <div class="flex justify-between items-center text-[11px] text-slate-400 font-mono px-2 pt-0.5">
             <span>한글/영문 10자 이내</span>
             <span id="char-counter">0 / 10</span>
           </div>
         </div>
-        <p class="text-[11px] text-slate-400 italic text-center px-2 leading-relaxed">
-          "이름을 부르는 순간, 나비는 비로소 당신만의 분신이 되어 거대한 하늘 너울 속으로 날아오를 준비를 마칩니다."
-        </p>
       </div>
 
       <!-- 하단 액션 바 버튼 -->
@@ -538,17 +533,20 @@
         elField6.classList.add('hidden');
         elField6.classList.remove('flex');
         elField7.classList.add('hidden');
+        elField7.classList.remove('flex');
         renderVerticalScrollChips();
       } else if (currentStepIdx === 5) {
         surveyChipWrapper.classList.add('hidden');
         elField6.classList.remove('hidden');
         elField6.classList.add('flex');
         elField7.classList.add('hidden');
+        elField7.classList.remove('flex');
       } else {
         surveyChipWrapper.classList.add('hidden');
         elField6.classList.add('hidden');
         elField6.classList.remove('flex');
         elField7.classList.remove('hidden');
+        elField7.classList.add('flex');
       }
 
       validateSurveyStep();
@@ -675,15 +673,6 @@
           <p class="text-slate-100 text-[0.95rem] leading-relaxed font-normal">온갖 무게를 털어내고 한결 가벼워진 나비는 이제 거대한 하늘 너울 속으로 온전히 날아오릅니다.</p>
           <p class="text-orange-200 handwriting-accent pt-2">모든 상처를 비워낸 나비가 가장 눈부신 빛이 되어 당신의 품으로 다시 돌아올 날은 언제일까요?</p>
         `;
-      } else if (stepFrom === 5) {
-        const dateStr = (userSelections.q6_year && userSelections.q6_month && userSelections.q6_day) 
-          ? `${userSelections.q6_year}년 ${userSelections.q6_month}월 ${userSelections.q6_day}일` 
-          : '약속된 그날';
-        html = `
-          <p><span class="keyword-highlight">${dateStr}</span></p>
-          <p class="text-slate-100 text-[0.95rem] leading-relaxed font-normal">지친 계절의 끝자락, 가장 따뜻한 위로가 필요한 바로 그 순간으로 소중한 약속을 띄워 보냈습니다.</p>
-          <p class="text-orange-200 handwriting-accent pt-2">이제 이 모든 여정과 당신의 깊은 마음을 대신 품고 날아갈, 세상에 단 하나뿐인 이 작은 분신에게 다정한 이름을 선물해 주세요.</p>
-        `;
       }
 
       interludeTextBox.innerHTML = html;
@@ -692,8 +681,12 @@
     }
 
     btnSurveyNext.addEventListener('click', () => {
-      if (currentStepIdx < 6) {
+      // Q1~Q5: 환기 화면 표시, Q6(날짜 입력): 중간 환기 화면 없이 바로 Q7(이름 짓기)로 이동
+      if (currentStepIdx < 5) {
         showInterludeScreen(currentStepIdx);
+      } else if (currentStepIdx === 5) {
+        currentStepIdx = 6;
+        renderSurveyStep();
       } else {
         showScreen('screen-loading');
         setTimeout(() => {
