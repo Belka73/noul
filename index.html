@@ -57,7 +57,7 @@
       filter: blur(60px);
     }
 
-    /* 알약 칩 크기, 폰트, 두께 100% 절대 유지 */
+    /* 알약 칩 크기, 폰트, 두께 절대 유지 */
     .pill-chip {
       background: rgba(255, 255, 255, 0.11) !important;
       border: 1px solid rgba(255, 255, 255, 0.22) !important;
@@ -277,16 +277,15 @@
         </svg>
       </button>
 
-      <!-- 중앙 메인 영역: 상단 여백을 주어 질문 문장을 진행바에서 떼고 아래 키워드와 밀착 배치 -->
-      <div class="flex-1 flex flex-col justify-center items-center w-full min-h-0 pt-6 pb-2">
-        <!-- 질문 문장: mb-2를 주어 아래 키워드 칩과 자연스럽게 가깝게 연결 -->
-        <div class="text-center mb-2 flex-shrink-0">
+      <!-- 중앙 메인 영역: 질문 문장과 키워드를 감싸며 적절한 여백 유지 -->
+      <div class="flex-1 flex flex-col justify-center items-center w-full min-h-0 pt-4 pb-2">
+        <div class="text-center mb-[18px] flex-shrink-0">
           <h1 id="question-title" class="text-2xl font-bold text-white tracking-tight leading-snug">당신은 어떤 나비인가요?</h1>
-          <p id="question-desc" class="text-xs text-slate-300/80 mt-0.5 font-light">자신을 소개해 주세요. (다중 선택)</p>
+          <p id="question-desc" class="text-xs text-slate-300/80 mt-1 font-light">자신을 소개해 주세요. (다중 선택)</p>
         </div>
 
-        <!-- 키워드 영역 -->
-        <div id="survey-chip-wrapper" class="relative flex items-center justify-center w-full overflow-visible px-8">
+        <!-- 키워드 영역: 아이폰 17 화면 너비에 맞춘 패딩 적용 -->
+        <div id="survey-chip-wrapper" class="relative flex items-center justify-center w-full overflow-visible px-10">
           <div class="w-full flex flex-col items-center justify-center overflow-visible">
             <div id="organic-chip-container" class="flex flex-col items-center justify-center gap-2 w-full overflow-visible"></div>
           </div>
@@ -508,8 +507,63 @@
     let currentStepIdx = 0;
     let chipPageIndex = 0;
 
-    const ROW_PATTERN = [3, 3, 3, 2, 2, 3, 3, 2];
-    const CHIPS_PER_PAGE = 21;
+    /* 
+       [아이폰 17 화면 맞춤 동적 줄바꿈 렌더러]
+       - 키워드 칩의 크기, 폰트, 패딩은 절대 변경하지 않습니다.
+       - 한 줄에 3개를 배치하려 할 때, 단어들의 글자 수 합계가 아이폰 17 가로 폭(약 393px - 화살표 및 패딩 제외 가용 폭 300px)을
+         초과하는 긴 단어 조합이면 자동으로 2개로 줄바꿈하여 화면 밖으로 튀어나가지 않게 안전하게 배치합니다.
+    */
+    function buildAdaptiveRows(items) {
+      const rows = [];
+      let i = 0;
+      let rowIndex = 0;
+
+      while (i < items.length) {
+        // 화살표가 있는 3~4번째 라인 주변이거나 남은 아이템이 2개 이하일 때
+        let targetCount = 3;
+        if (rowIndex === 3 || rowIndex === 4) {
+          targetCount = 2; // 화살표 영역과 맞닿는 줄은 2개로 유지
+        }
+
+        const candidate = items.slice(i, i + targetCount);
+        // 단어들의 글자 수 총합 계산
+        const totalChars = candidate.reduce((sum, word) => sum + word.length, 0);
+
+        // 글자 수 합계가 12자를 초과하면 3개가 한 줄에 들어갈 때 튀어나오므로 2개로 제한
+        if (targetCount === 3 && totalChars > 12 && candidate.length > 2) {
+          targetCount = 2;
+        }
+
+        const actualRow = items.slice(i, i + targetCount);
+        rows.push(actualRow);
+        i += actualRow.length;
+        rowIndex++;
+
+        // 한 화면에 최대 7~8줄이 차면 한 페이지로 분할
+        if (rows.length >= 8) {
+          break;
+        }
+      }
+      return { rows, consumedCount: i };
+    }
+
+    // 질문별 페이지 단위 분할 계산
+    function getPagedItemsForQuestion(qIndex) {
+      const allOptions = surveyQuestions[qIndex].options || [];
+      const pages = [];
+      let cursor = 0;
+
+      while (cursor < allOptions.length) {
+        const remaining = allOptions.slice(cursor);
+        const { rows, consumedCount } = buildAdaptiveRows(remaining);
+        pages.push({
+          rows: rows,
+          items: remaining.slice(0, consumedCount)
+        });
+        cursor += consumedCount;
+      }
+      return pages;
+    }
 
     const elTitle = document.getElementById('question-title');
     const elDesc = document.getElementById('question-desc');
@@ -563,25 +617,19 @@
     }
 
     function renderPagedChips() {
-      const q = surveyQuestions[currentStepIdx];
-      const allOptions = q.options || [];
-      const totalPages = Math.ceil(allOptions.length / CHIPS_PER_PAGE);
-      const start = chipPageIndex * CHIPS_PER_PAGE;
-      const end = start + CHIPS_PER_PAGE;
-      const currentItems = allOptions.slice(start, end);
+      const pages = getPagedItemsForQuestion(currentStepIdx);
+      const totalPages = pages.length;
+      if (chipPageIndex >= totalPages) chipPageIndex = totalPages - 1;
+      if (chipPageIndex < 0) chipPageIndex = 0;
+
+      const currentPage = pages[chipPageIndex];
       const stateKey = `q${currentStepIdx + 1}`;
 
       elOrganicContainer.innerHTML = '';
 
-      let itemCursor = 0;
-      ROW_PATTERN.forEach((countInRow) => {
-        if (itemCursor >= currentItems.length) return;
-
+      currentPage.rows.forEach((rowItems) => {
         const rowDiv = document.createElement('div');
         rowDiv.className = 'flex items-center justify-center gap-1.5 w-full overflow-visible';
-
-        const rowItems = currentItems.slice(itemCursor, itemCursor + countInRow);
-        itemCursor += countInRow;
 
         rowItems.forEach((item) => {
           const chip = document.createElement('button');
@@ -619,9 +667,8 @@
     });
 
     btnChipNext.addEventListener('click', () => {
-      const q = surveyQuestions[currentStepIdx];
-      const totalPages = Math.ceil((q.options || []).length / CHIPS_PER_PAGE);
-      if (chipPageIndex < totalPages - 1) {
+      const pages = getPagedItemsForQuestion(currentStepIdx);
+      if (chipPageIndex < pages.length - 1) {
         chipPageIndex++;
         renderPagedChips();
       }
