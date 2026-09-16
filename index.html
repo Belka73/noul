@@ -6,7 +6,7 @@
   <title>너울 : NOUL</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-  <!-- 감성 손글씨 필기체 폰트 불러오기 -->
+  <!-- 감성 손글씨 필기체 폰트 -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Nanum+Pen+Script&display=swap" rel="stylesheet">
@@ -28,8 +28,8 @@
     /* 환기 화면에 적용될 부드러운 필기체 */
     .handwriting-text {
       font-family: 'Nanum Pen Script', cursive, sans-serif;
-      font-size: 1.38rem;
-      line-height: 1.45;
+      font-size: 1.4rem;
+      line-height: 1.5;
       letter-spacing: 0.02em;
     }
 
@@ -60,7 +60,7 @@
       filter: blur(60px);
     }
 
-    /* 레퍼런스 스타일 자연스러운 알약형 캡슐 칩 */
+    /* 정확히 8줄 맞춤용 컴팩트 알약형 캡슐 칩 */
     .pill-chip {
       background: rgba(255, 255, 255, 0.12);
       border: 1px solid rgba(255, 255, 255, 0.22);
@@ -68,18 +68,19 @@
       -webkit-backdrop-filter: blur(12px);
       color: rgba(255, 255, 255, 0.92);
       border-radius: 9999px;
-      padding: 0.42rem 0.85rem;
+      padding: 0.38rem 0.6rem;
       font-size: 0.78rem;
       letter-spacing: -0.02em;
-      line-height: 1.2;
+      line-height: 1.15;
       transition: all 0.18s cubic-bezier(0.16, 1, 0.3, 1);
       box-shadow: 0 3px 8px rgba(0, 0, 0, 0.14);
-      display: inline-flex;
+      display: flex;
       align-items: center;
       justify-content: center;
       text-align: center;
       white-space: nowrap;
       cursor: pointer;
+      width: 100%;
     }
     .pill-chip:active {
       transform: scale(0.95);
@@ -89,28 +90,28 @@
       border-color: rgba(254, 215, 170, 0.95) !important;
       color: #ffffff !important;
       font-weight: 600;
-      box-shadow: 0 4px 16px rgba(249, 115, 22, 0.5), inset 0 1px 1px rgba(255, 255, 255, 0.4);
+      box-shadow: 0 4px 14px rgba(249, 115, 22, 0.5), inset 0 1px 1px rgba(255, 255, 255, 0.4);
       transform: translateY(-1.5px);
     }
 
-    /* 문장 속 키워드 강조 배지 (괄호 없이 네온 캡슐 형태로 돋보이게) */
+    /* 문장 속 키워드 강조 배지 (괄호 없이 오렌지 네온 캡슐) */
     .keyword-highlight {
       display: inline-block;
       font-family: -apple-system, BlinkMacSystemFont, "Pretendard", sans-serif;
       font-weight: 700;
       font-size: 0.85rem;
       color: #fed7aa;
-      background: rgba(249, 115, 22, 0.22);
-      border: 1px solid rgba(251, 146, 60, 0.55);
+      background: rgba(249, 115, 22, 0.25);
+      border: 1px solid rgba(251, 146, 60, 0.6);
       border-radius: 9999px;
-      padding: 0.12rem 0.55rem;
-      margin: 0 0.2rem;
+      padding: 0.1rem 0.55rem;
+      margin: 0.1rem 0.15rem;
       vertical-align: middle;
-      box-shadow: 0 0 10px rgba(249, 115, 22, 0.3);
+      box-shadow: 0 0 10px rgba(249, 115, 22, 0.35);
       line-height: 1.35;
     }
 
-    /* 레퍼런스 좌·우 원형 화살표 버튼 */
+    /* 좌·우 원형 화살표 버튼 */
     .arrow-nav-btn {
       width: 36px;
       height: 36px;
@@ -228,10 +229,10 @@
       </footer>
     </section>
 
-    <!-- ================= [STEP 1] 설문 화면 (자연스러운 엇갈림 지그재그 배열) ================= -->
+    <!-- ================= [STEP 1] 설문 화면 (정확히 8줄 그리드) ================= -->
     <section id="screen-survey" class="screen flex-col flex-1 justify-between overflow-hidden">
       
-      <!-- 상단 프로그레스 바 -->
+      <!-- 상단 진행바 -->
       <header class="w-full pt-1 flex-shrink-0">
         <div class="flex justify-between items-center text-xs font-mono mb-2">
           <span id="step-indicator" class="text-orange-400 font-bold tracking-wider">STEP 01 / 07</span>
@@ -242,13 +243,13 @@
         </div>
       </header>
 
-      <!-- 질문 타이틀: 진행바와 간격을 넉넉히 벌려 아래쪽으로 배치 -->
+      <!-- 질문 타이틀 -->
       <div class="text-center mt-5 mb-1 flex-shrink-0">
         <h1 id="question-title" class="text-xl font-bold text-white tracking-tight leading-snug">당신은 어떤 나비인가요?</h1>
         <p id="question-desc" class="text-xs text-slate-300/80 mt-1 font-light">자신을 소개해 주세요. (다중 선택)</p>
       </div>
 
-      <!-- 키워드 선택 영역: 레퍼런스 스타일 엇갈린 자연스러운 클러스터 배치 -->
+      <!-- 키워드 선택 영역: 좌·우 화살표 + 8줄(16개) 2열 그리드 -->
       <div id="survey-chip-wrapper" class="flex-1 flex items-center justify-between gap-1 w-full min-h-0 my-auto">
         <!-- 좌측 화살표 -->
         <button id="btn-chip-prev" class="arrow-nav-btn z-10" type="button" aria-label="이전 키워드">
@@ -257,9 +258,9 @@
           </svg>
         </button>
 
-        <!-- 중앙 알약 칩 영역 (레퍼런스처럼 3개-4개-4개-3개 유기적으로 뭉쳐지는 flex wrap 컨테이너) -->
+        <!-- 중앙 알약 칩 영역: 2열 × 8행 = 8줄 16개 완벽 고정 -->
         <div class="flex-1 flex flex-col justify-center items-center px-1">
-          <div id="chip-grid" class="flex flex-wrap justify-center content-center gap-2 max-w-[310px] w-full py-1"></div>
+          <div id="chip-grid" class="grid grid-cols-2 gap-x-2 gap-y-1.5 w-full max-w-[280px]"></div>
           
           <div id="chip-page-indicator" class="text-[10px] font-mono text-slate-400 mt-2 tracking-widest bg-white/5 px-2 py-0.5 rounded-full border border-white/10">
             1 / 4
@@ -318,19 +319,19 @@
     </section>
 
     <!-- ================= [STEP 2] 동화적 환기 화면 (Interlude) ================= -->
-    <!-- 나비와 문장 간격 축소, 문장 살짝 상향, 필기체 폰트, 키워드 오렌지 배지 강조 -->
-    <section id="screen-interlude" class="screen flex-col flex-1 justify-start items-center py-2 text-center overflow-hidden">
+    <!-- 나비와 문장을 전체적으로 살짝 아래로 배치 (mt-8 + pt-4 적용) -->
+    <section id="screen-interlude" class="screen flex-col flex-1 justify-start items-center py-4 text-center overflow-hidden">
       
-      <!-- 상단 3D 나비: 문장과 딱 붙도록 마진 축소 -->
-      <div class="flex flex-col items-center justify-center mt-3 flex-shrink-0">
+      <!-- 3D 나비: 상단에 붙지 않고 편안하게 내려오도록 mt-8 설정 -->
+      <div class="flex flex-col items-center justify-center mt-8 flex-shrink-0">
         <div class="w-[130px] h-[105px] relative flex items-center justify-center">
           <div id="interlude-canvas-container" class="w-full h-full"></div>
         </div>
       </div>
 
-      <!-- 중앙 동화 문장: 나비 바로 아래로 바짝 끌어올리고, 감성 필기체 적용 -->
-      <div class="flex-1 flex flex-col justify-start items-center px-4 pt-2 my-auto">
-        <div id="interlude-text-box" class="space-y-2.5 text-slate-100 handwriting-text break-keep max-w-[325px] mx-auto text-center"></div>
+      <!-- 동화 문장: 나비와 함께 전체적으로 살짝 아래쪽으로 배치 (pt-4) -->
+      <div class="flex-1 flex flex-col justify-start items-center px-4 pt-4 my-auto">
+        <div id="interlude-text-box" class="space-y-3 text-slate-100 handwriting-text break-keep max-w-[325px] mx-auto text-center"></div>
       </div>
 
       <!-- 하단 버튼 -->
@@ -409,7 +410,7 @@
       if (target) target.classList.add('active');
     }
 
-    /* 괄호 대신 오렌지 네온 캡슐 배지로 돋보이게 렌더링 */
+    /* 괄호 대신 오렌지 네온 캡슐 배지 */
     function formatKeywordBadges(words) {
       if (!words || words.length === 0) return "";
       return words.map(w => `<span class="keyword-highlight">${w}</span>`).join(' ');
@@ -496,7 +497,8 @@
 
     let currentStepIdx = 0;
     let chipPageIndex = 0;
-    const CHIPS_PER_PAGE = 14;
+    /* 정확히 2열 × 8행 = 8줄(16개) */
+    const CHIPS_PER_PAGE = 16;
 
     const elTitle = document.getElementById('question-title');
     const elDesc = document.getElementById('question-desc');
@@ -632,7 +634,7 @@
     });
 
     /* ============================================================
-       환기 페이지(Interlude) 렌더링 - 괄호 제거 & 배지화 & 필기체
+       환기 페이지(Interlude) 렌더링
        ============================================================ */
     const interludeTextBox = document.getElementById('interlude-text-box');
     const btnInterludeNext = document.getElementById('btn-interlude-next');
