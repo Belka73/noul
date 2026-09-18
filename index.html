@@ -103,10 +103,10 @@
       display: none;
     }
 
-    /* 캐러셀: 상하 스크롤 완전 방지 & 좌우(pan-x) 전용 스크롤 스냅 */
+    /* 캐러셀: 좌우 전용 스크롤 + 터치 스냅 */
     .horizontal-scroll-carousel {
       overflow-x: auto;
-      overflow-y: hidden !important;
+      overflow-y: visible !important;
       touch-action: pan-x !important;
       -webkit-overflow-scrolling: touch;
       scrollbar-width: none;
@@ -166,7 +166,7 @@
       overflow: visible;
     }
 
-    /* 하단 도크 영역 */
+    /* 하단 도크 영역: 안정된 바닥 고정 */
     .shape-bottom-fixed-dock {
       position: absolute;
       bottom: 0;
@@ -179,12 +179,15 @@
       z-index: 20;
     }
 
-    /* 캐러셀 아이템: Y축 이동 없이 안정적인 정렬 유지 */
+    /* 굴곡형 캐러셀 아이템: 일그러짐 없이 부드러운 곡선 유지 */
     .arch-track-item {
       scroll-snap-align: center;
-      transition: none; /* 상하 출렁임 방지 */
-      transform: none !important;
-      contain: layout;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      flex-shrink: 0;
+      will-change: transform;
+      position: relative;
     }
 
     .shape-thumb-btn {
@@ -224,24 +227,24 @@
 
     /* 선택된 중앙 나비 */
     .shape-thumb-btn.active .shape-circle-badge {
-      width: 84px;
-      height: 84px;
+      width: 86px;
+      height: 86px;
       background: #e0f2fe;
       border: none !important;
-      box-shadow: 0 12px 28px -4px rgba(56, 189, 248, 0.45);
+      box-shadow: 0 14px 30px -4px rgba(56, 189, 248, 0.45);
       transform: scale(1.18);
     }
 
     .shape-thumb-btn.active .shape-circle-badge svg {
-      width: 48px;
-      height: 48px;
+      width: 50px;
+      height: 50px;
       fill: #38bdf8;
       filter: drop-shadow(0 4px 8px rgba(56, 189, 248, 0.35));
     }
 
     .shape-item-label {
-      height: 16px;
-      line-height: 16px;
+      height: 18px;
+      line-height: 18px;
       display: block;
       text-align: center;
       white-space: nowrap;
@@ -434,16 +437,16 @@
         </div>
       </div>
 
-      <!-- 하단 도크 영역 (좌우로만 매끄럽게 움직이도록 수정) -->
+      <!-- 하단 도크 영역: 아치형 곡선과 자동 중앙 선택 지원 -->
       <div class="shape-bottom-fixed-dock">
         <!-- 배경 원형 그라데이션 돔 -->
         <div class="custom-arch-gradient-dome"></div>
 
-        <!-- 옵션 나비 캐러셀 (overflow-y: hidden, touch-action: pan-x 적용) -->
-        <div id="arch-carousel-container" class="horizontal-scroll-carousel flex items-center gap-3.5 pt-4 pb-1.5 w-full relative z-10 box-border -mt-[4px]">
+        <!-- 옵션 나비 캐러셀 (높이 130px 확보로 찌그러짐 방지) -->
+        <div id="arch-carousel-container" class="horizontal-scroll-carousel flex items-start gap-4 pt-1 pb-1 w-full h-[130px] relative z-10 box-border -mt-[4px]">
           
           <!-- 0. 기본 날개 -->
-          <div class="arch-track-item flex flex-col items-center gap-1 flex-shrink-0">
+          <div class="arch-track-item">
             <button type="button" class="shape-thumb-btn" data-shape="default" data-name="기본 날개">
               <div class="shape-circle-badge">
                 <svg viewBox="0 0 100 100" preserveAspectRatio="xMidYMid meet">
@@ -455,7 +458,7 @@
           </div>
 
           <!-- 1. 뾰족 날개 -->
-          <div class="arch-track-item flex flex-col items-center gap-1 flex-shrink-0">
+          <div class="arch-track-item">
             <button type="button" class="shape-thumb-btn" data-shape="pointy" data-name="뾰족 날개">
               <div class="shape-circle-badge">
                 <svg viewBox="0 0 100 100" preserveAspectRatio="xMidYMid meet">
@@ -467,7 +470,7 @@
           </div>
 
           <!-- 2. 나풀 날개 -->
-          <div class="arch-track-item flex flex-col items-center gap-1 flex-shrink-0">
+          <div class="arch-track-item">
             <button type="button" class="shape-thumb-btn" data-shape="flutter" data-name="나풀 날개">
               <div class="shape-circle-badge">
                 <svg viewBox="0 0 100 100" preserveAspectRatio="xMidYMid meet">
@@ -479,7 +482,7 @@
           </div>
 
           <!-- 3. 동글 날개 (기본 선택) -->
-          <div class="arch-track-item flex flex-col items-center gap-1 flex-shrink-0">
+          <div class="arch-track-item">
             <button type="button" class="shape-thumb-btn active" data-shape="round" data-name="동글 날개">
               <div class="shape-circle-badge">
                 <svg viewBox="0 0 100 100" preserveAspectRatio="xMidYMid meet">
@@ -491,7 +494,7 @@
           </div>
 
           <!-- 4. 요정 날개 -->
-          <div class="arch-track-item flex flex-col items-center gap-1 flex-shrink-0">
+          <div class="arch-track-item">
             <button type="button" class="shape-thumb-btn" data-shape="fairy" data-name="요정 날개">
               <div class="shape-circle-badge">
                 <svg viewBox="0 0 100 100" preserveAspectRatio="xMidYMid meet">
@@ -503,7 +506,7 @@
           </div>
 
           <!-- 5. 제왕 날개 -->
-          <div class="arch-track-item flex flex-col items-center gap-1 flex-shrink-0">
+          <div class="arch-track-item">
             <button type="button" class="shape-thumb-btn" data-shape="monarch" data-name="제왕 날개">
               <div class="shape-circle-badge">
                 <svg viewBox="0 0 100 100" preserveAspectRatio="xMidYMid meet">
@@ -515,7 +518,7 @@
           </div>
 
           <!-- 6. 물결 날개 -->
-          <div class="arch-track-item flex flex-col items-center gap-1 flex-shrink-0">
+          <div class="arch-track-item">
             <button type="button" class="shape-thumb-btn" data-shape="wave" data-name="물결 날개">
               <div class="shape-circle-badge">
                 <svg viewBox="0 0 100 100" preserveAspectRatio="xMidYMid meet">
@@ -732,15 +735,85 @@
       }
     }
 
-    let isInternalScrolling = false;
-    let scrollAnimFrame = null;
+    /* 3. 부드러운 아치형 곡선 높낮이 유지 (찌그러짐 방지) */
+    function applyArchCurve() {
+      if (!carouselContainer) return;
+      const cRect = carouselContainer.getBoundingClientRect();
+      const centerX = cRect.left + cRect.width / 2;
+      const items = carouselContainer.querySelectorAll('.arch-track-item');
 
-    function smoothScrollTo(element, target, duration = 280) {
+      items.forEach(item => {
+        const itemRect = item.getBoundingClientRect();
+        const itemCenter = itemRect.left + itemRect.width / 2;
+        const dist = Math.abs(centerX - itemCenter);
+        const maxDist = cRect.width * 0.52;
+        const normDist = Math.min(dist / maxDist, 1.25);
+        
+        // 2차 베지어 곡률로 자연스러운 능선 형성
+        const translateY = Math.pow(normDist, 2.0) * 36;
+        item.style.transform = `translate3d(0, ${translateY}px, 0)`;
+      });
+    }
+
+    let isManualScrolling = false;
+    let scrollDebounceTimer = null;
+
+    /* 1. 스크롤하면서 중앙에 가장 가까운 나비를 자동 감지하여 선택 */
+    function detectCenterItemAndSelect() {
+      if (!carouselContainer) return;
+      const cRect = carouselContainer.getBoundingClientRect();
+      const centerX = cRect.left + cRect.width / 2;
+      const items = carouselContainer.querySelectorAll('.arch-track-item');
+
+      let closestItem = null;
+      let minDistance = Infinity;
+
+      items.forEach(item => {
+        const itemRect = item.getBoundingClientRect();
+        const itemCenter = itemRect.left + itemRect.width / 2;
+        const dist = Math.abs(centerX - itemCenter);
+        if (dist < minDistance) {
+          minDistance = dist;
+          closestItem = item;
+        }
+      });
+
+      if (closestItem) {
+        const btn = closestItem.querySelector('.shape-thumb-btn');
+        if (btn && !btn.classList.contains('active')) {
+          setActiveItemVisual(btn);
+        }
+      }
+    }
+
+    function setActiveItemVisual(btn) {
+      document.querySelectorAll('.shape-thumb-btn').forEach(b => {
+        b.classList.remove('active');
+        const txt = b.parentElement.querySelector('.shape-item-label');
+        if (txt) {
+          txt.classList.remove('font-bold', 'text-sky-600');
+          txt.classList.add('font-medium', 'text-slate-300');
+        }
+      });
+
+      btn.classList.add('active');
+      const activeTxt = btn.parentElement.querySelector('.shape-item-label');
+      if (activeTxt) {
+        activeTxt.classList.add('font-bold', 'text-sky-600');
+        activeTxt.classList.remove('font-medium', 'text-slate-300');
+      }
+
+      selectedButterflyShape = btn.getAttribute('data-shape');
+      updateHeroPreview(selectedButterflyShape);
+    }
+
+    let scrollAnimFrame = null;
+    function smoothScrollTo(element, target, duration = 300) {
       if (scrollAnimFrame) cancelAnimationFrame(scrollAnimFrame);
       const start = element.scrollLeft;
       const change = target - start;
       const startTime = performance.now();
-      isInternalScrolling = true;
+      isManualScrolling = true;
 
       function easeOutCubic(t) {
         return (--t) * t * t + 1;
@@ -750,29 +823,48 @@
         const elapsed = currentTime - startTime;
         const progress = Math.min(elapsed / duration, 1);
         element.scrollLeft = start + change * easeOutCubic(progress);
+        applyArchCurve();
 
         if (progress < 1) {
           scrollAnimFrame = requestAnimationFrame(animateScroll);
         } else {
           scrollAnimFrame = null;
           element.scrollLeft = target;
-          setTimeout(() => { isInternalScrolling = false; }, 50);
+          applyArchCurve();
+          setTimeout(() => { isManualScrolling = false; }, 50);
         }
       }
       scrollAnimFrame = requestAnimationFrame(animateScroll);
     }
 
-    /* 좌우 수평 기준으로만 정확하게 정중앙에 맞추는 계산 */
+    /* 2. 사용자가 클릭(터치)했을 때 정확한 중앙으로 자동 이동 */
     function scrollItemToCenter(itemElement) {
       if (!carouselContainer || !itemElement) return;
       const cWidth = carouselContainer.clientWidth;
       const itemWidth = itemElement.offsetWidth;
       const targetScroll = itemElement.offsetLeft - ((cWidth - itemWidth) / 2);
-      smoothScrollTo(carouselContainer, targetScroll, 260);
+      smoothScrollTo(carouselContainer, targetScroll, 280);
+    }
+
+    if (carouselContainer) {
+      carouselContainer.addEventListener('scroll', () => {
+        applyArchCurve();
+
+        // 스크롤 시 중앙 나비 실시간 감지
+        if (!isManualScrolling) {
+          detectCenterItemAndSelect();
+        }
+
+        clearTimeout(scrollDebounceTimer);
+        scrollDebounceTimer = setTimeout(() => {
+          detectCenterItemAndSelect();
+        }, 80);
+      }, { passive: true });
     }
 
     window.addEventListener('resize', () => {
       updateCarouselPadding();
+      applyArchCurve();
     });
 
     function showScreen(screenId) {
@@ -783,6 +875,7 @@
         if (screenId === 'screen-shape-select') {
           setTimeout(() => {
             updateCarouselPadding();
+            applyArchCurve();
             const activeItem = carouselContainer.querySelector('.shape-thumb-btn.active')?.closest('.arch-track-item');
             if (activeItem) scrollItemToCenter(activeItem);
           }, 40);
@@ -790,27 +883,10 @@
       }
     }
 
+    /* 터치 클릭 이벤트 핸들러 */
     document.querySelectorAll('.shape-thumb-btn').forEach(btn => {
       btn.addEventListener('click', () => {
-        document.querySelectorAll('.shape-thumb-btn').forEach(b => {
-          b.classList.remove('active');
-          const txt = b.parentElement.querySelector('.shape-item-label');
-          if (txt) {
-            txt.classList.remove('font-bold', 'text-sky-600');
-            txt.classList.add('font-medium', 'text-slate-300');
-          }
-        });
-
-        btn.classList.add('active');
-        const activeTxt = btn.parentElement.querySelector('.shape-item-label');
-        if (activeTxt) {
-          activeTxt.classList.add('font-bold', 'text-sky-600');
-          activeTxt.classList.remove('font-medium', 'text-slate-300');
-        }
-
-        selectedButterflyShape = btn.getAttribute('data-shape');
-        updateHeroPreview(selectedButterflyShape);
-
+        setActiveItemVisual(btn);
         scrollItemToCenter(btn.closest('.arch-track-item'));
       });
     });
