@@ -133,11 +133,11 @@
       flex-shrink: 0;
     }
 
-    /* 프레임 내 나비 레이어 */
+    /* [수정] 프레임 안 나비 크기 극대화 (280px 꽉 채움) */
     .bounded-butterfly-layer {
       position: absolute;
-      width: 275px;
-      height: 275px;
+      width: 280px;
+      height: 280px;
       top: 50%;
       left: 50%;
       transform: translate(-50%, -50%);
@@ -177,20 +177,20 @@
       justify-content: center;
     }
 
-    /* [수정] 원래 규격(390px x 200px) 복원 + 외곽 전체가 자연스럽게 번지도록 그라데이션 수정 */
+    /* [수정] 그라데이션 원형의 상단 경계가 선택된 나비 중심(90px 지점)에 딱 닿도록 하향 배치 및 부드러운 페이드 */
     .custom-arch-gradient-dome {
       position: absolute;
       left: 50%;
-      bottom: 12px;
+      top: 90px; /* 나비 배지(84px)의 정확한 세로축 중앙 */
       transform: translateX(-50%);
-      width: 390px;
-      height: 200px;
+      width: 400px;
+      height: 180px;
       border-radius: 200px 200px 0 0;
-      background: radial-gradient(ellipse at 50% 32%, 
+      background: radial-gradient(ellipse at 50% 0%, 
         rgba(186, 230, 253, 0.75) 0%, 
         rgba(224, 242, 254, 0.45) 45%, 
-        rgba(240, 249, 255, 0.18) 70%, 
-        rgba(255, 255, 255, 0) 95%
+        rgba(240, 249, 255, 0.15) 75%, 
+        rgba(255, 255, 255, 0) 100%
       );
       border: none !important;
       outline: none !important;
@@ -429,7 +429,8 @@
                   <feDropShadow dx="0" dy="10" stdDeviation="14" flood-color="#38bdf8" flood-opacity="0.35" />
                 </filter>
               </defs>
-              <g id="hero-path-container" transform="translate(30, 30)" filter="url(#soft-butterfly-shadow)">
+              <!-- [수정] scale(1.38)로 확대하여 프레임 안을 시원하게 채움 -->
+              <g id="hero-path-container" transform="translate(11, 11) scale(1.38)" filter="url(#soft-butterfly-shadow)">
               </g>
             </svg>
           </div>
@@ -439,7 +440,7 @@
       <div class="shape-bottom-fixed-dock">
         
         <div class="carousel-stage-wrapper">
-          <!-- 배경 원형 그라데이션 돔 (원래 크기 390px x 200px) -->
+          <!-- [수정] 나비 중앙에 라인이 닿도록 배치한 그라데이션 돔 -->
           <div class="custom-arch-gradient-dome"></div>
           
           <div class="center-fixed-target-zone"></div>
