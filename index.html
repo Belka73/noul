@@ -173,7 +173,7 @@
       flex-shrink: 0;
     }
 
-    /* 하단 도크 영역 */
+    /* 하단 도크 영역: 전체 섹션을 아래로 내려 모바일 Safe Area 여백 확보 */
     .shape-bottom-fixed-dock {
       position: absolute;
       bottom: 0;
@@ -182,7 +182,7 @@
       display: flex;
       flex-direction: column;
       align-items: center;
-      padding-bottom: 24px;
+      padding-bottom: max(12px, env(safe-area-inset-bottom));
       z-index: 20;
     }
 
@@ -253,11 +253,11 @@
       white-space: nowrap;
     }
 
-    /* 배경 아치형 그라데이션 돔: 기존 위치 및 크기 절대 유지 */
+    /* 배경 아치형 그라데이션 돔: 하단 섹션 하강에 맞춰 자연스럽게 조정 */
     .custom-arch-gradient-dome {
       position: absolute;
       left: 50%;
-      bottom: 30px;
+      bottom: 20px;
       transform: translateX(-50%);
       width: 370px;
       height: 185px;
@@ -277,7 +277,7 @@
       align-items: center;
       justify-content: center;
       gap: 10px;
-      padding-top: 10px;
+      padding-top: 8px;
     }
 
     .deco-pill-btn {
@@ -414,7 +414,7 @@
       </footer>
     </section>
 
-    <!-- [STEP 0.8] 날개 형태 고르기 -->
+    <!-- [STEP 0.8] 날개 형태 고르기 (아래로 내려 모바일 여백 최적화) -->
     <section id="screen-shape-select" class="screen flex-1 relative z-10 w-full h-full bg-white overflow-hidden">
       
       <!-- 상단 고정 영역 -->
@@ -439,13 +439,13 @@
         </div>
       </div>
 
-      <!-- 하단 도크 영역 -->
+      <!-- 하단 도크 영역: 전체적으로 아래로 이동 -->
       <div class="shape-bottom-fixed-dock">
-        <!-- 배경 원형 그라데이션 돔 (위치/크기 절대 불변) -->
+        <!-- 배경 원형 그라데이션 돔 -->
         <div class="custom-arch-gradient-dome"></div>
 
-        <!-- 옵션 나비 캐러셀 (음수 마진으로 옵션 나비만 위로 올려 배치) -->
-        <div id="arch-carousel-container" class="horizontal-scroll-carousel flex items-end gap-3.5 pt-6 pb-2 w-full relative z-10 box-border -mt-[34px]">
+        <!-- 옵션 나비 캐러셀 (상단 음수 마진을 축소하여 전체를 아래로 배치) -->
+        <div id="arch-carousel-container" class="horizontal-scroll-carousel flex items-end gap-3.5 pt-4 pb-1.5 w-full relative z-10 box-border -mt-[14px]">
           
           <!-- 0. 기본 날개 -->
           <div class="arch-track-item flex flex-col items-center gap-1 flex-shrink-0">
@@ -540,7 +540,7 @@
           <button type="button" class="deco-pill-btn" style="transform: translateY(6px);">나비 무늬</button>
         </div>
 
-        <footer class="flex gap-2.5 w-[84%] mx-auto flex-shrink-0 pt-4 relative z-20">
+        <footer class="flex gap-2.5 w-[84%] mx-auto flex-shrink-0 pt-3 relative z-20">
           <button id="btn-back-to-align" type="button" class="w-1/3 py-3.5 rounded-2xl border border-slate-200 bg-slate-50 text-slate-600 text-sm active:scale-95 transition-all shadow-sm">이전</button>
           <button id="btn-confirm-shape" type="button" class="flex-1 py-3.5 rounded-2xl bg-white border border-slate-200 text-slate-800 font-semibold text-sm active:scale-95 transition-all shadow-sm">이 형태로 질문 시작</button>
         </footer>
@@ -669,7 +669,7 @@
       <header class="text-center pt-3 z-10">
         <span class="text-xs font-mono text-white font-semibold tracking-wider uppercase drop-shadow-[0_1px_4px_rgba(0,0,0,0.25)]">NOUL LUMINOUS BUTTERFLY</span>
         <h2 id="preview-butterfly-name" class="text-3xl font-black text-white mt-1 drop-shadow-[0_2px_8px_rgba(0,0,0,0.25)] tracking-tight">‘나비’</h2>
-        <p class="text-xs text-white/95 mt-1 font-normal drop-shadow-[0_1px_4px_rgba(0,0,0,0.25)]">화면을 위로 쓸어 올려 눈부신 하늘로 날려보내세요.[cite: 1]</p>
+        <p class="text-xs text-white/95 mt-1 font-normal drop-shadow-[0_1px_4px_rgba(0,0,0,0.25)]">화면을 위로 쓸어 올려 눈부신 하늘로 날려보내세요.</p>
       </header>
 
       <div id="three-container" class="w-full h-full absolute inset-0 z-0 pointer-events-auto"></div>
@@ -694,7 +694,7 @@
       <h2 class="text-2xl font-bold text-slate-900 mb-2">하늘 위로 눈부시게 날아올랐습니다</h2>
       <p id="complete-desc" class="text-sm text-slate-600 leading-relaxed mb-8">
         빛의 날개를 얻은 나비가<br>
-        전면 대형 스크린의 찬란한 너울 속으로 합류했습니다.[cite: 1]
+        전면 대형 스크린의 찬란한 너울 속으로 합류했습니다.
       </p>
       <button onclick="location.reload()" type="button" class="w-[84%] py-3.5 rounded-2xl border border-sky-200 bg-white text-slate-800 text-xs font-semibold shadow-sm active:scale-95 transition-all">
         새로운 나비 띄우기
@@ -730,7 +730,6 @@
 
     const carouselContainer = document.getElementById('arch-carousel-container');
 
-    /* 정확한 수평 정중앙 정렬을 위한 양끝 마진/패딩 계산 */
     function updateCarouselPadding() {
       if (!carouselContainer) return;
       const cWidth = carouselContainer.clientWidth;
@@ -789,7 +788,6 @@
       scrollAnimFrame = requestAnimationFrame(animateScroll);
     }
 
-    /* 선택된 아이템의 뷰포트 절대 중심을 캐러셀 뷰포트 중심과 정확히 일치시키는 정밀 정렬 */
     function scrollItemToCenter(itemElement) {
       if (!carouselContainer || !itemElement) return;
       const cRect = carouselContainer.getBoundingClientRect();
@@ -921,7 +919,7 @@
       },
       {
         title: "먼 하늘 너울 속으로 날아오를 나비의 이름은?",
-        desc: "나비에게 고유한 이름을 붙여주세요.[cite: 1]"
+        desc: "나비에게 고유한 이름을 붙여주세요."
       }
     ];
 
@@ -1551,7 +1549,7 @@
           if (fullGroup.position.y > 8.5) {
             const completeDesc = document.getElementById('complete-desc');
             if (completeDesc) {
-              completeDesc.innerHTML = `마음의 무게를 털어낸 <strong>‘${userSelections.q7_name || "나비"}’</strong>(이)가<br>빛의 날개를 펴고 전면 대형 스크린의 너울 속으로 합류했습니다.[cite: 1]`;
+              completeDesc.innerHTML = `마음의 무게를 털어낸 <strong>‘${userSelections.q7_name || "나비"}’</strong>(이)가<br>빛의 날개를 펴고 전면 대형 스크린의 너울 속으로 합류했습니다.`;
             }
             showScreen('screen-complete');
             isFlyingAway = false;
