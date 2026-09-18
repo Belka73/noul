@@ -176,15 +176,15 @@
       justify-content: center;
     }
 
-    /* [수정] 완벽한 정원(Circle) 형태 유지 + 레퍼런스 스타일의 극도로 부드러운 외곽 페이드아웃 */
+    /* 정원 형태 및 소프트 블러 처리된 그라데이션 원 */
     .custom-arch-gradient-dome {
       position: absolute;
       left: 50%;
-      top: 90px; /* 나비 배지의 수직 중앙 라인 */
+      top: 90px;
       transform: translateX(-50%);
       width: 460px;
       height: 460px;
-      border-radius: 50%; /* 1:1 완벽한 원형 유지 */
+      border-radius: 50%;
       background: radial-gradient(circle at 50% 50%, 
         rgba(186, 230, 253, 0.82) 0%, 
         rgba(215, 239, 254, 0.65) 28%, 
@@ -192,7 +192,7 @@
         rgba(245, 251, 255, 0.15) 68%, 
         rgba(255, 255, 255, 0) 84%
       );
-      filter: blur(16px); /* 레퍼런스처럼 경계선을 완전히 풀어주는 소프트 블러 */
+      filter: blur(16px);
       border: none !important;
       outline: none !important;
       pointer-events: none;
@@ -440,13 +440,13 @@
       <div class="shape-bottom-fixed-dock">
         
         <div class="carousel-stage-wrapper">
-          <!-- 정원(Circle) 형태 유지 및 블러 처리된 그라데이션 원 -->
           <div class="custom-arch-gradient-dome"></div>
           
           <div class="center-fixed-target-zone"></div>
 
           <div id="arch-carousel-container" class="horizontal-scroll-carousel flex items-start gap-4 pt-12 pb-2 box-border">
             
+            <!-- 0. 기본 날개 -->
             <div class="arch-track-item">
               <button type="button" class="shape-thumb-btn" data-shape="default" data-name="기본 날개">
                 <div class="shape-circle-badge">
@@ -458,66 +458,72 @@
               <span class="shape-item-label text-[11px] font-medium text-slate-300 tracking-tight">기본 날개</span>
             </div>
 
+            <!-- 1. 뾰족 날개 -->
             <div class="arch-track-item">
               <button type="button" class="shape-thumb-btn" data-shape="pointy" data-name="뾰족 날개">
                 <div class="shape-circle-badge">
                   <svg viewBox="0 0 100 100" preserveAspectRatio="xMidYMid meet">
-                    <path d="M 50,33 C 51.5,33 53,35 53,38 C 53,44 51.5,49 53,52 L 73,10 C 78,38 78,54 65,61 C 74,74 72,86 66,88 C 56,80 53,68 53,71 C 53,74 51.5,77 50,77 C 48.5,77 47,74 47,71 C 47,68 44,80 34,88 C 28,86 26,74 35,61 C 22,54 22,38 27,10 L 47,52 C 48.5,49 47,44 47,38 C 47,35 48.5,33 50,33 Z"/>
+                    <path d="M 50,33 C 51.5,33 53,35 53,38 C 58,34 72,12 87,14 C 95,20 86,46 78,56 C 84,68 83,86 73,88 C 61,86 54,74 53,71 C 53,74 51.5,77 50,77 C 48.5,77 47,74 47,71 C 46,74 39,86 27,88 C 17,86 16,68 22,56 C 14,46 5,20 13,14 C 28,12 42,34 47,38 C 47,35 48.5,33 50,33 Z"/>
                   </svg>
                 </div>
               </button>
               <span class="shape-item-label text-[11px] font-medium text-slate-300 tracking-tight">뾰족 날개</span>
             </div>
 
+            <!-- 2. 나풀 날개 -->
             <div class="arch-track-item">
               <button type="button" class="shape-thumb-btn" data-shape="flutter" data-name="나풀 날개">
                 <div class="shape-circle-badge">
                   <svg viewBox="0 0 100 100" preserveAspectRatio="xMidYMid meet">
-                    <path d="M 50,33 C 51.5,33 53,35 53,38 C 53,42 51.5,45 53,47 C 62,30 84,14 93,20 C 97,32 82,53 76,57 C 82,72 80,84 69,87 C 54,89 53,74 53,71 C 53,74 51.5,77 50,77 C 48.5,77 47,74 47,71 C 47,74 46,89 31,87 C 20,84 18,72 24,57 C 18,53 3,32 7,20 C 16,14 38,30 47,47 C 48.5,45 47,42 47,38 C 47,35 48.5,33 50,33 Z"/>
+                    <path d="M 50,33 C 51.5,33 53,35 53,38 C 60,34 82,16 93,20 C 97,32 82,53 76,57 C 82,72 80,84 69,87 C 56,86 53,74 53,71 C 53,74 51.5,77 50,77 C 48.5,77 47,74 47,71 C 47,74 44,86 31,87 C 20,84 18,72 24,57 C 18,53 3,32 7,20 C 18,16 40,34 47,38 C 47,35 48.5,33 50,33 Z"/>
                   </svg>
                 </div>
               </button>
               <span class="shape-item-label text-[11px] font-medium text-slate-300 tracking-tight">나풀 날개</span>
             </div>
 
+            <!-- 3. 동글 날개 -->
             <div class="arch-track-item">
               <button type="button" class="shape-thumb-btn active" data-shape="round" data-name="동글 날개">
                 <div class="shape-circle-badge">
                   <svg viewBox="0 0 100 100" preserveAspectRatio="xMidYMid meet">
-                    <path d="M 50,33 C 51.5,33 53,35 53,38 C 53,44 51.5,48 53,50 C 55,20 85,12 95,30 C 99,54 78,68 64,69 C 78,75 75,91 63,94 C 53,95 53,75 53,71 C 53,74 51.5,77 50,77 C 48.5,77 47,74 47,71 C 47,75 47,95 37,94 C 25,91 22,75 36,69 C 22,68 1,54 5,30 C 15,12 45,20 47,50 C 48.5,48 47,44 47,38 C 47,35 48.5,33 50,33 Z"/>
+                    <path d="M 50,33 C 51.5,33 53,35 53,38 C 58,35 84,14 95,28 C 99,52 79,66 75,67 C 80,75 77,91 65,94 C 55,93 53,75 53,71 C 53,74 51.5,77 50,77 C 48.5,77 47,74 47,71 C 47,75 45,93 35,94 C 23,91 20,75 25,67 C 21,66 1,52 5,28 C 16,14 42,35 47,38 C 47,35 48.5,33 50,33 Z"/>
                   </svg>
                 </div>
               </button>
               <span class="shape-item-label text-[11px] font-bold text-sky-600 tracking-tight">동글 날개</span>
             </div>
 
+            <!-- 4. 요정 날개 -->
             <div class="arch-track-item">
               <button type="button" class="shape-thumb-btn" data-shape="fairy" data-name="요정 날개">
                 <div class="shape-circle-badge">
                   <svg viewBox="0 0 100 100" preserveAspectRatio="xMidYMid meet">
-                    <path d="M 50,33 C 51.5,33 53,35 53,38 C 53,42 51.5,45 53,47 C 54,39 71,20 87,6.5 C 84,21 75,34 77.5,43.5 C 79.5,50.5 80.5,53.5 78.5,57.5 C 74,60.5 67,59 63,60.5 C 68,67 76,77 79.5,87 C 65,85 55,73 53,71 C 53,74 51.5,77 50,77 C 48.5,77 47,74 47,71 C 45,73 35,85 20.5,87 C 24,77 32,67 37,60.5 C 33,59 26,60.5 21.5,57.5 C 19.5,53.5 20.5,50.5 22.5,43.5 C 25,34 16,21 13,6.5 C 29,20 46,39 47,47 C 48.5,45 47,42 47,38 C 47,35 48.5,33 50,33 Z"/>
+                    <path d="M 50,33 C 51.5,33 53,35 53,38 C 58,34 78,14 91,12 C 87,28 77,42 77,49 C 81,56 82,60 76,64 C 74,70 78,82 74,88 C 64,88 56,76 53,71 C 53,74 51.5,77 50,77 C 48.5,77 47,74 47,71 C 44,76 36,88 26,88 C 22,82 26,70 24,64 C 18,60 19,56 23,49 C 23,42 13,28 9,12 C 22,14 42,34 47,38 C 47,35 48.5,33 50,33 Z"/>
                   </svg>
                 </div>
               </button>
               <span class="shape-item-label text-[11px] font-medium text-slate-300 tracking-tight">요정 날개</span>
             </div>
 
+            <!-- 5. 제왕 날개 -->
             <div class="arch-track-item">
               <button type="button" class="shape-thumb-btn" data-shape="monarch" data-name="제왕 날개">
                 <div class="shape-circle-badge">
                   <svg viewBox="0 0 100 100" preserveAspectRatio="xMidYMid meet">
-                    <path d="M 50,33 C 53,33 53.5,36 53.5,39 C 64,30 84,10 95,12 C 100,22 92,54 80,57 C 88,72 86,90 70,92 C 55,93 54,75 53.5,70 C 53.5,77 52,80 50,80 C 48,80 46.5,77 46.5,70 C 46,75 45,93 30,92 C 14,90 12,72 20,57 C 8,54 0,22 5,12 C 16,10 36,30 46.5,39 C 46.5,36 47,33 50,33 Z"/>
+                    <path d="M 50,33 C 51.5,33 53,35 53,38 C 60,33 82,12 94,14 C 99,26 91,52 79,57 C 86,72 84,89 71,91 C 58,91 54,76 53,71 C 53,74 51.5,77 50,77 C 48.5,77 47,74 47,71 C 46,76 42,91 29,91 C 16,89 14,72 21,57 C 9,52 1,26 6,14 C 18,12 40,33 47,38 C 47,35 48.5,33 50,33 Z"/>
                   </svg>
                 </div>
               </button>
               <span class="shape-item-label text-[11px] font-medium text-slate-300 tracking-tight">제왕 날개</span>
             </div>
 
+            <!-- 6. 물결 날개 -->
             <div class="arch-track-item">
               <button type="button" class="shape-thumb-btn" data-shape="wave" data-name="물결 날개">
                 <div class="shape-circle-badge">
                   <svg viewBox="0 0 100 100" preserveAspectRatio="xMidYMid meet">
-                    <path d="M 50,33 C 51.5,33 53,35 53,38 C 53,41 51.5,43 53,43.5 C 58,32 77,18.5 88,19 C 94.5,21.5 93,33 83.5,50 C 82,53.5 83.5,56 84.5,59 C 76.5,63.5 73.5,61.5 75.5,68 C 80,82 82,92 73.5,95.5 C 64.5,99.5 54,77 53,71 C 53,74 51.5,77 50,77 C 48.5,77 47,74 47,71 C 46,77 35.5,99.5 26.5,95.5 C 18,92 20,82 24.5,68 C 26.5,61.5 23.5,63.5 15.5,59 C 16.5,56 18,53.5 16.5,50 C 7,33 5.5,21.5 12,19 C 23,18.5 42,32 47,43.5 C 48.5,43 47,41 47,38 C 47,35 48.5,33 50,33 Z"/>
+                    <path d="M 50,33 C 51.5,33 53,35 53,38 C 58,34 76,18 88,19 C 94,22 93,33 84,49 C 85,55 83,59 78,63 C 81,75 81,89 72,94 C 62,94 54,77 53,71 C 53,74 51.5,77 50,77 C 48.5,77 47,74 47,71 C 46,77 38,94 28,94 C 19,89 19,75 22,63 C 17,59 15,55 16,49 C 7,33 6,22 12,19 C 24,18 42,34 47,38 C 47,35 48.5,33 50,33 Z"/>
                   </svg>
                 </div>
               </button>
@@ -680,7 +686,7 @@
       <h2 class="text-2xl font-bold text-slate-900 mb-2">하늘 위로 눈부시게 날아올랐습니다</h2>
       <p id="complete-desc" class="text-sm text-slate-600 leading-relaxed mb-8">
         빛의 날개를 얻은 나비가<br>
-        전면 대형 스크린의 찬란한 너울 속으로 합류했습니다.[cite: 4]
+        전면 대형 스크린의 찬란한 너울 속으로 합류했습니다.[cite: 1]
       </p>
       <button onclick="location.reload()" type="button" class="w-[84%] py-3.5 rounded-2xl border border-sky-200 bg-white text-slate-800 text-xs font-semibold shadow-sm active:scale-95 transition-all">
         새로운 나비 띄우기
@@ -692,14 +698,15 @@
   <script>
     let selectedButterflyShape = 'round';
 
+    /* [수정] 몸통 접합부를 기본 날개처럼 길고 안정되게 수정한 SVG 패스 데이터 */
     const butterflyPathData = {
       default: "M 50,33 C 51.5,33 53,35 53,38 C 58,35 75,18 89,20 C 97,22 99,35 91,48 C 84,59 79,62 76,64 C 81,67 87,74 86,83 C 84,93 69,96 61,87 C 55,80 53,74 53,71 C 53,74 51.5,77 50,77 C 48.5,77 47,74 47,71 C 47,74 45,80 39,87 C 31,96 16,93 14,83 C 13,74 19,67 24,64 C 21,62 16,59 9,48 C 1,35 3,22 11,20 C 25,18 42,35 47,38 C 47,35 48.5,33 50,33 Z",
-      pointy: "M 50,33 C 51.5,33 53,35 53,38 C 53,44 51.5,49 53,52 L 73,10 C 78,38 78,54 65,61 C 74,74 72,86 66,88 C 56,80 53,68 53,71 C 53,74 51.5,77 50,77 C 48.5,77 47,74 47,71 C 47,68 44,80 34,88 C 28,86 26,74 35,61 C 22,54 22,38 27,10 L 47,52 C 48.5,49 47,44 47,38 C 47,35 48.5,33 50,33 Z",
-      flutter: "M 50,33 C 51.5,33 53,35 53,38 C 53,42 51.5,45 53,47 C 62,30 84,14 93,20 C 97,32 82,53 76,57 C 82,72 80,84 69,87 C 54,89 53,74 53,71 C 53,74 51.5,77 50,77 C 48.5,77 47,74 47,71 C 47,74 46,89 31,87 C 20,84 18,72 24,57 C 18,53 3,32 7,20 C 16,14 38,30 47,47 C 48.5,45 47,42 47,38 C 47,35 48.5,33 50,33 Z",
-      round: "M 50,33 C 51.5,33 53,35 53,38 C 53,44 51.5,48 53,50 C 55,20 85,12 95,30 C 99,54 78,68 64,69 C 78,75 75,91 63,94 C 53,95 53,75 53,71 C 53,74 51.5,77 50,77 C 48.5,77 47,74 47,71 C 47,75 47,95 37,94 C 25,91 22,75 36,69 C 22,68 1,54 5,30 C 15,12 45,20 47,50 C 48.5,48 47,44 47,38 C 47,35 48.5,33 50,33 Z",
-      fairy: "M 50,33 C 51.5,33 53,35 53,38 C 53,42 51.5,45 53,47 C 54,39 71,20 87,6.5 C 84,21 75,34 77.5,43.5 C 79.5,50.5 80.5,53.5 78.5,57.5 C 74,60.5 67,59 63,60.5 C 68,67 76,77 79.5,87 C 65,85 55,73 53,71 C 53,74 51.5,77 50,77 C 48.5,77 47,74 47,71 C 45,73 35,85 20.5,87 C 24,77 32,67 37,60.5 C 33,59 26,60.5 21.5,57.5 C 19.5,53.5 20.5,50.5 22.5,43.5 C 25,34 16,21 13,6.5 C 29,20 46,39 47,47 C 48.5,45 47,42 47,38 C 47,35 48.5,33 50,33 Z",
-      monarch: "M 50,33 C 53,33 53.5,36 53.5,39 C 64,30 84,10 95,12 C 100,22 92,54 80,57 C 88,72 86,90 70,92 C 55,93 54,75 53.5,70 C 53.5,77 52,80 50,80 C 48,80 46.5,77 46.5,70 C 46,75 45,93 30,92 C 14,90 12,72 20,57 C 8,54 0,22 5,12 C 16,10 36,30 46.5,39 C 46.5,36 47,33 50,33 Z",
-      wave: "M 50,33 C 51.5,33 53,35 53,38 C 53,41 51.5,43 53,43.5 C 58,32 77,18.5 88,19 C 94.5,21.5 93,33 83.5,50 C 82,53.5 83.5,56 84.5,59 C 76.5,63.5 73.5,61.5 75.5,68 C 80,82 82,92 73.5,95.5 C 64.5,99.5 54,77 53,71 C 53,74 51.5,77 50,77 C 48.5,77 47,74 47,71 C 46,77 35.5,99.5 26.5,95.5 C 18,92 20,82 24.5,68 C 26.5,61.5 23.5,63.5 15.5,59 C 16.5,56 18,53.5 16.5,50 C 7,33 5.5,21.5 12,19 C 23,18.5 42,32 47,43.5 C 48.5,43 47,41 47,38 C 47,35 48.5,33 50,33 Z"
+      pointy: "M 50,33 C 51.5,33 53,35 53,38 C 58,34 72,12 87,14 C 95,20 86,46 78,56 C 84,68 83,86 73,88 C 61,86 54,74 53,71 C 53,74 51.5,77 50,77 C 48.5,77 47,74 47,71 C 46,74 39,86 27,88 C 17,86 16,68 22,56 C 14,46 5,20 13,14 C 28,12 42,34 47,38 C 47,35 48.5,33 50,33 Z",
+      flutter: "M 50,33 C 51.5,33 53,35 53,38 C 60,34 82,16 93,20 C 97,32 82,53 76,57 C 82,72 80,84 69,87 C 56,86 53,74 53,71 C 53,74 51.5,77 50,77 C 48.5,77 47,74 47,71 C 47,74 44,86 31,87 C 20,84 18,72 24,57 C 18,53 3,32 7,20 C 18,16 40,34 47,38 C 47,35 48.5,33 50,33 Z",
+      round: "M 50,33 C 51.5,33 53,35 53,38 C 58,35 84,14 95,28 C 99,52 79,66 75,67 C 80,75 77,91 65,94 C 55,93 53,75 53,71 C 53,74 51.5,77 50,77 C 48.5,77 47,74 47,71 C 47,75 45,93 35,94 C 23,91 20,75 25,67 C 21,66 1,52 5,28 C 16,14 42,35 47,38 C 47,35 48.5,33 50,33 Z",
+      fairy: "M 50,33 C 51.5,33 53,35 53,38 C 58,34 78,14 91,12 C 87,28 77,42 77,49 C 81,56 82,60 76,64 C 74,70 78,82 74,88 C 64,88 56,76 53,71 C 53,74 51.5,77 50,77 C 48.5,77 47,74 47,71 C 44,76 36,88 26,88 C 22,82 26,70 24,64 C 18,60 19,56 23,49 C 23,42 13,28 9,12 C 22,14 42,34 47,38 C 47,35 48.5,33 50,33 Z",
+      monarch: "M 50,33 C 51.5,33 53,35 53,38 C 60,33 82,12 94,14 C 99,26 91,52 79,57 C 86,72 84,89 71,91 C 58,91 54,76 53,71 C 53,74 51.5,77 50,77 C 48.5,77 47,74 47,71 C 46,76 42,91 29,91 C 16,89 14,72 21,57 C 9,52 1,26 6,14 C 18,12 40,33 47,38 C 47,35 48.5,33 50,33 Z",
+      wave: "M 50,33 C 51.5,33 53,35 53,38 C 58,34 76,18 88,19 C 94,22 93,33 84,49 C 85,55 83,59 78,63 C 81,75 81,89 72,94 C 62,94 54,77 53,71 C 53,74 51.5,77 50,77 C 48.5,77 47,74 47,71 C 46,77 38,94 28,94 C 19,89 19,75 22,63 C 17,59 15,55 16,49 C 7,33 6,22 12,19 C 24,18 42,34 47,38 C 47,35 48.5,33 50,33 Z"
     };
 
     function updateHeroPreview(shapeKey) {
@@ -723,7 +730,6 @@
       }
     }
 
-    /* [수정] 세게 넘겨도 궤도를 이탈하지 않도록 엄격한 클램핑 및 원형 곡선 로직 */
     function applyArchCurveAndSelection() {
       if (!carouselContainer) return;
       const cWidth = carouselContainer.clientWidth;
@@ -746,12 +752,10 @@
           centerDetectedItem = item;
         }
 
-        // 급격한 스크롤 관성 시 R값을 초과하여 수학적 에러가 생기지 않도록 방어(클램핑)
         const safeDist = Math.min(dist, R - 6);
         const translateY = R - Math.sqrt((R * R) - (safeDist * safeDist));
         item.style.transform = `translate3d(0, ${translateY.toFixed(2)}px, 0)`;
 
-        // 외곽으로 멀어질수록 자연스럽게 페이드
         const opacityRatio = Math.max(0.35, 1 - (dist / (cWidth * 0.42)));
         item.style.opacity = opacityRatio.toFixed(2);
       });
@@ -1295,6 +1299,7 @@
       showScreen('screen-shape-select');
     });
 
+    /* [수정] 몸통 접합부(Y 0.45 ~ -0.45)를 넓고 단단하게 밀착시킨 3D 날개 지오메트리 */
     function createCustomWingShape(shapeType, isRight) {
       const shape = new THREE.Shape();
       const s = isRight ? 1 : -1;
@@ -1308,19 +1313,19 @@
         shape.bezierCurveTo(s * 1.05, -1.9, s * 0.55, -1.8, s * 0.35, -1.5);
         shape.bezierCurveTo(s * 0.18, -1.15, s * 0.08, -0.7, 0, -0.45);
       } else if (shapeType === 'pointy') {
-        shape.moveTo(0, 0.48);
-        shape.bezierCurveTo(s * 0.4, 0.85, s * 0.7, 1.8, s * 1.35, 2.35);
-        shape.bezierCurveTo(s * 1.7, 1.65, s * 1.8, 0.8, s * 1.25, 0.15);
-        shape.bezierCurveTo(s * 1.7, -0.2, s * 1.9, -1.0, s * 1.5, -1.75);
-        shape.bezierCurveTo(s * 1.15, -2.0, s * 0.65, -1.5, s * 0.38, -1.1);
-        shape.bezierCurveTo(s * 0.18, -0.85, s * 0.08, -0.6, 0, -0.45);
+        shape.moveTo(0, 0.45);
+        shape.bezierCurveTo(s * 0.42, 0.92, s * 0.85, 2.0, s * 1.52, 2.35);
+        shape.bezierCurveTo(s * 1.85, 1.75, s * 1.9, 0.95, s * 1.38, 0.12);
+        shape.bezierCurveTo(s * 1.75, -0.22, s * 1.85, -1.1, s * 1.45, -1.68);
+        shape.bezierCurveTo(s * 1.05, -1.95, s * 0.55, -1.75, s * 0.35, -1.45);
+        shape.bezierCurveTo(s * 0.18, -1.15, s * 0.08, -0.7, 0, -0.45);
       } else if (shapeType === 'flutter') {
         shape.moveTo(0, 0.45);
-        shape.bezierCurveTo(s * 0.5, 0.8, s * 1.4, 1.65, s * 2.35, 1.55);
-        shape.bezierCurveTo(s * 2.7, 1.2, s * 2.5, 0.5, s * 1.85, 0.05);
-        shape.bezierCurveTo(s * 2.3, -0.35, s * 2.2, -1.15, s * 1.75, -1.55);
-        shape.bezierCurveTo(s * 1.2, -1.8, s * 0.6, -1.6, s * 0.35, -1.25);
-        shape.bezierCurveTo(s * 0.18, -0.9, s * 0.08, -0.6, 0, -0.45);
+        shape.bezierCurveTo(s * 0.48, 0.92, s * 1.35, 1.72, s * 2.3, 1.62);
+        shape.bezierCurveTo(s * 2.68, 1.25, s * 2.48, 0.55, s * 1.82, 0.08);
+        shape.bezierCurveTo(s * 2.25, -0.32, s * 2.18, -1.12, s * 1.72, -1.52);
+        shape.bezierCurveTo(s * 1.15, -1.78, s * 0.58, -1.65, s * 0.35, -1.42);
+        shape.bezierCurveTo(s * 0.18, -1.15, s * 0.08, -0.7, 0, -0.45);
       } else if (shapeType === 'round') {
         shape.moveTo(0, 0.45);
         shape.bezierCurveTo(s * 0.45, 0.95, s * 1.15, 1.75, s * 1.95, 1.7);
@@ -1330,27 +1335,27 @@
         shape.bezierCurveTo(s * 1.05, -1.9, s * 0.55, -1.8, s * 0.35, -1.5);
         shape.bezierCurveTo(s * 0.18, -1.15, s * 0.08, -0.7, 0, -0.45);
       } else if (shapeType === 'fairy') {
-        shape.moveTo(0, 0.47);
-        shape.bezierCurveTo(s * 0.25, 0.75, s * 0.8, 1.65, s * 1.85, 2.35);
-        shape.bezierCurveTo(s * 1.65, 1.5, s * 1.25, 0.8, s * 1.4, 0.3);
-        shape.bezierCurveTo(s * 1.15, 0.0, s * 0.85, -0.15, s * 0.95, -0.4);
-        shape.bezierCurveTo(s * 1.35, -0.9, s * 1.8, -1.5, s * 1.95, -1.9);
-        shape.bezierCurveTo(s * 1.35, -1.8, s * 0.75, -1.15, s * 0.35, -0.9);
-        shape.bezierCurveTo(s * 0.18, -0.7, s * 0.08, -0.55, 0, -0.45);
+        shape.moveTo(0, 0.45);
+        shape.bezierCurveTo(s * 0.38, 0.88, s * 1.05, 1.85, s * 1.92, 2.38);
+        shape.bezierCurveTo(s * 1.75, 1.58, s * 1.32, 0.88, s * 1.45, 0.32);
+        shape.bezierCurveTo(s * 1.25, 0.0, s * 0.92, -0.15, s * 1.02, -0.38);
+        shape.bezierCurveTo(s * 1.45, -0.88, s * 1.88, -1.48, s * 1.95, -1.85);
+        shape.bezierCurveTo(s * 1.35, -1.82, s * 0.72, -1.25, s * 0.35, -1.45);
+        shape.bezierCurveTo(s * 0.18, -1.15, s * 0.08, -0.7, 0, -0.45);
       } else if (shapeType === 'monarch') {
         shape.moveTo(0, 0.45);
-        shape.bezierCurveTo(s * 0.5, 0.95, s * 1.4, 1.7, s * 2.45, 1.55);
-        shape.bezierCurveTo(s * 2.9, 1.15, s * 2.75, 0.4, s * 1.9, -0.05);
-        shape.bezierCurveTo(s * 2.2, -0.45, s * 1.95, -1.25, s * 1.5, -1.55);
-        shape.bezierCurveTo(s * 1.0, -1.75, s * 0.5, -1.55, s * 0.35, -1.2);
-        shape.bezierCurveTo(s * 0.18, -0.9, s * 0.08, -0.6, 0, -0.45);
+        shape.bezierCurveTo(s * 0.48, 0.95, s * 1.35, 1.72, s * 2.4, 1.58);
+        shape.bezierCurveTo(s * 2.85, 1.18, s * 2.72, 0.45, s * 1.88, -0.02);
+        shape.bezierCurveTo(s * 2.18, -0.42, s * 1.92, -1.22, s * 1.48, -1.52);
+        shape.bezierCurveTo(s * 0.98, -1.72, s * 0.52, -1.6, s * 0.35, -1.42);
+        shape.bezierCurveTo(s * 0.18, -1.15, s * 0.08, -0.7, 0, -0.45);
       } else {
-        shape.moveTo(0, 0.435);
-        shape.bezierCurveTo(s * 0.5, 0.85, s * 1.45, 1.8, s * 2.35, 1.75);
-        shape.bezierCurveTo(s * 2.8, 1.55, s * 2.5, 0.65, s * 1.95, 0.2);
-        shape.bezierCurveTo(s * 2.3, -0.1, s * 2.35, -1.0, s * 1.85, -1.7);
-        shape.bezierCurveTo(s * 1.35, -2.0, s * 0.75, -1.4, s * 0.35, -1.05);
-        shape.bezierCurveTo(s * 0.18, -0.85, s * 0.08, -0.6, 0, -0.45);
+        shape.moveTo(0, 0.45);
+        shape.bezierCurveTo(s * 0.46, 0.92, s * 1.38, 1.78, s * 2.32, 1.72);
+        shape.bezierCurveTo(s * 2.76, 1.52, s * 2.48, 0.68, s * 1.92, 0.22);
+        shape.bezierCurveTo(s * 2.25, -0.08, s * 2.32, -0.98, s * 1.82, -1.65);
+        shape.bezierCurveTo(s * 1.32, -1.95, s * 0.72, -1.48, s * 0.35, -1.42);
+        shape.bezierCurveTo(s * 0.18, -1.15, s * 0.08, -0.7, 0, -0.45);
       }
       shape.closePath();
 
@@ -1560,7 +1565,7 @@
           if (fullGroup.position.y > 8.5) {
             const completeDesc = document.getElementById('complete-desc');
             if (completeDesc) {
-              completeDesc.innerHTML = `마음의 무게를 털어낸 <strong>‘${userSelections.q7_name || "나비"}’</strong>(이)가<br>빛의 날개를 펴고 전면 대형 스크린의 너울 속으로 합류했습니다.[cite: 4]`;
+              completeDesc.innerHTML = `마음의 무게를 털어낸 <strong>‘${userSelections.q7_name || "나비"}’</strong>(이)가<br>빛의 날개를 펴고 전면 대형 스크린의 너울 속으로 합류했습니다.[cite: 1]`;
             }
             showScreen('screen-complete');
             isFlyingAway = false;
