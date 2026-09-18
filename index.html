@@ -17,7 +17,7 @@
       margin: 0;
       padding: 0;
       overflow: hidden;
-      background-color: #f8fafc;
+      background-color: #ffffff;
       color: #0f172a;
       font-family: -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", "Pretendard", sans-serif;
       -webkit-tap-highlight-color: transparent;
@@ -27,7 +27,7 @@
     .app-viewport {
       width: 100%;
       height: 100dvh;
-      background: linear-gradient(180deg, #ffffff 0%, #ffffff 50%, #f0f9ff 75%, #e0f2fe 88%, #bae6fd 100%);
+      background: #ffffff;
       position: relative;
       overflow: hidden;
       display: flex;
@@ -40,43 +40,15 @@
         display: flex;
         align-items: center;
         justify-content: center;
-        background: radial-gradient(circle at 50% 50%, #f8fafc 0%, #e2e8f0 100%);
+        background: #f8fafc;
       }
       .app-viewport {
         max-width: 420px;
         height: min(880px, 94dvh);
         border-radius: 44px;
         border: 1px solid rgba(226, 232, 240, 0.8);
-        box-shadow: 0 25px 60px -15px rgba(15, 23, 42, 0.08), 0 0 0 1px rgba(255, 255, 255, 0.9) inset;
+        box-shadow: 0 25px 60px -15px rgba(15, 23, 42, 0.08);
       }
-    }
-
-    .survey-aurora-bg {
-      position: absolute;
-      inset: 0;
-      pointer-events: none;
-      z-index: 0;
-      overflow: hidden;
-    }
-
-    .aurora-dome-layer {
-      position: absolute;
-      width: 140%;
-      height: 60%;
-      left: -20%;
-      bottom: -6%;
-      border-radius: 50% 50% 0 0 / 70% 70% 0 0;
-      background: radial-gradient(
-        circle at 50% 95%,
-        #7dd3fc 0%,
-        #bae6fd 40%,
-        #e0f2fe 65%,
-        rgba(255, 255, 255, 0.9) 82%,
-        #ffffff 100%
-      );
-      filter: blur(32px);
-      opacity: 0.85;
-      transform: translate3d(0, 0, 0);
     }
 
     .chip-base {
@@ -105,13 +77,11 @@
     }
 
     .chip-unselected {
-      background-color: rgba(255, 255, 255, 0.92) !important;
-      border: none !important;
+      background-color: rgba(248, 250, 252, 0.95) !important;
+      border: 1px solid #f1f5f9 !important;
       color: #334155 !important;
       font-weight: 500 !important;
-      box-shadow: 0 4px 14px rgba(148, 163, 184, 0.14) !important;
-      backdrop-filter: blur(10px);
-      -webkit-backdrop-filter: blur(10px);
+      box-shadow: 0 2px 8px rgba(148, 163, 184, 0.08) !important;
     }
 
     .chip-selected {
@@ -128,8 +98,6 @@
       -webkit-overflow-scrolling: touch;
       scrollbar-width: none;
       -ms-overflow-style: none;
-      mask-image: none !important;
-      -webkit-mask-image: none !important;
     }
     .vertical-scroll-chips::-webkit-scrollbar {
       display: none;
@@ -137,7 +105,7 @@
 
     .horizontal-scroll-carousel {
       overflow-x: auto;
-      overflow-y: hidden;
+      overflow-y: visible;
       -webkit-overflow-scrolling: touch;
       scrollbar-width: none;
       -ms-overflow-style: none;
@@ -146,33 +114,189 @@
       display: none;
     }
 
-    /* 원형 테두리를 제거하고 순수 흰색 아이콘 + 자연스러운 입체 그림자 */
-    .shape-thumb-btn {
-      width: 72px;
-      height: 72px;
+    /* 상단 고정 영역 */
+    .hero-fixed-anchor {
+      position: absolute;
+      top: 18px;
+      left: 0;
+      right: 0;
       display: flex;
+      flex-direction: column;
+      align-items: center;
+      pointer-events: none;
+      z-index: 10;
+    }
+
+    .reference-square-frame {
+      width: 330px;
+      height: 330px;
+      border-radius: 44px;
+      background-color: #eef6ff;
+      position: relative;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-sizing: border-box;
+      box-shadow: none !important;
+      border: none !important;
+      z-index: 1;
+      overflow: hidden;
+      flex-shrink: 0;
+    }
+
+    .bounded-butterfly-layer {
+      position: absolute;
+      width: 202px;
+      height: 202px;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 2;
+    }
+
+    .bounded-butterfly-layer svg {
+      width: 100%;
+      height: 100%;
+      overflow: visible;
+      filter: drop-shadow(0 12px 24px rgba(56, 189, 248, 0.28));
+    }
+
+    .hero-name-container {
+      height: 32px;
+      margin-top: 14px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+
+    /* 하단 도크 영역 */
+    .shape-bottom-fixed-dock {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding-bottom: 24px;
+      z-index: 20;
+    }
+
+    /* 굴곡형 캐러셀 아이템 */
+    .arch-track-item {
+      transition: transform 0.28s cubic-bezier(0.18, 0.9, 0.2, 1);
+      will-change: transform;
+      contain: layout;
+    }
+
+    .shape-thumb-btn {
+      display: flex;
+      flex-direction: column;
       align-items: center;
       justify-content: center;
       background: transparent;
       border: none;
-      transition: all 0.28s cubic-bezier(0.2, 0.8, 0.2, 1);
-      flex-shrink: 0;
+      padding: 0;
       cursor: pointer;
-      color: #ffffff;
-      filter: drop-shadow(0 6px 12px rgba(14, 116, 144, 0.32));
-    }
-    .shape-thumb-btn:active {
-      transform: scale(0.92);
-    }
-    .shape-thumb-btn.active {
-      transform: scale(1.18);
-      filter: drop-shadow(0 8px 18px rgba(2, 132, 199, 0.55));
+      outline: none;
+      transition: transform 0.25s cubic-bezier(0.2, 0.8, 0.2, 1);
     }
 
-    /* 둥근 원호 궤도(Arch Curve) 형태로 움직이는 캐러셀 아이템 */
-    .arch-track-item {
-      transition: transform 0.32s cubic-bezier(0.2, 0.8, 0.2, 1);
-      will-change: transform;
+    /* 미선택 옵션 나비 */
+    .shape-circle-badge {
+      width: 64px;
+      height: 64px;
+      border-radius: 50%;
+      background-color: #f8fafc;
+      border: 1px solid #f1f5f9;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.28s cubic-bezier(0.2, 0.8, 0.2, 1);
+      box-sizing: border-box;
+      box-shadow: 0 2px 8px rgba(148, 163, 184, 0.08);
+    }
+
+    .shape-circle-badge svg {
+      width: 38px;
+      height: 38px;
+      fill: #cbd5e1;
+      transition: all 0.28s cubic-bezier(0.2, 0.8, 0.2, 1);
+    }
+
+    /* 선택된 중앙 나비 */
+    .shape-thumb-btn.active .shape-circle-badge {
+      width: 86px;
+      height: 86px;
+      background: #e0f2fe;
+      border: none !important;
+      box-shadow: 0 14px 30px -4px rgba(56, 189, 248, 0.45);
+      transform: scale(1.22) translateY(-4px);
+    }
+
+    .shape-thumb-btn.active .shape-circle-badge svg {
+      width: 50px;
+      height: 50px;
+      fill: #38bdf8;
+      filter: drop-shadow(0 4px 8px rgba(56, 189, 248, 0.35));
+    }
+
+    .shape-item-label {
+      height: 16px;
+      line-height: 16px;
+      display: block;
+      text-align: center;
+      white-space: nowrap;
+    }
+
+    /* 배경 아치형 그라데이션 돔: 기존 위치 및 크기 절대 유지 */
+    .custom-arch-gradient-dome {
+      position: absolute;
+      left: 50%;
+      bottom: 30px;
+      transform: translateX(-50%);
+      width: 370px;
+      height: 185px;
+      border-radius: 185px 185px 0 0;
+      background: radial-gradient(circle at 50% 30%, rgba(186, 230, 253, 0.72) 0%, rgba(224, 242, 254, 0.38) 50%, rgba(255, 255, 255, 0) 80%);
+      border: none !important;
+      outline: none !important;
+      box-shadow: none !important;
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    .arch-pill-nav {
+      position: relative;
+      z-index: 5;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      padding-top: 10px;
+    }
+
+    .deco-pill-btn {
+      padding: 6.5px 15px;
+      border-radius: 9999px;
+      background: #ffffff;
+      border: 1.5px solid #bae6fd;
+      color: #0369a1;
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: -0.02em;
+      box-shadow: 0 4px 10px rgba(56, 189, 248, 0.12);
+      transition: all 0.2s cubic-bezier(0.2, 0.8, 0.2, 1);
+      cursor: pointer;
+    }
+
+    .deco-pill-btn:active {
+      transform: scale(0.95);
+      background: #f0f9ff;
     }
 
     .btn-next-action {
@@ -234,17 +358,13 @@
 
   <main class="app-viewport p-4 pb-6 box-border">
 
-    <div class="survey-aurora-bg">
-      <div class="aurora-dome-layer"></div>
-    </div>
-
     <!-- [STEP 0] 도안 촬영 안내 -->
     <section id="screen-capture-guide" class="screen active flex-col flex-1 justify-between py-2 text-center relative z-10 w-full">
       <header class="pt-4 flex-shrink-0">
         <h1 class="text-2xl font-bold mt-1 text-slate-900 tracking-tight">나비 담기</h1>
       </header>
 
-      <div class="w-full bg-white/90 border border-sky-100 backdrop-blur-xl rounded-3xl p-6 text-center my-auto shadow-xl shadow-slate-200/40 space-y-4">
+      <div class="w-full bg-white border border-sky-100 rounded-3xl p-6 text-center my-auto shadow-xl shadow-slate-100 space-y-4">
         <div class="w-14 h-14 mx-auto rounded-full bg-sky-50 border border-sky-200 flex items-center justify-center text-sky-600 shadow-sm">
           <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"></path>
@@ -262,7 +382,7 @@
           카메라로 도안 촬영하기
           <input type="file" id="camera-input" accept="image/*" capture="environment" class="hidden">
         </label>
-        <label class="w-full py-3 rounded-2xl border border-slate-200 bg-white/80 text-slate-700 font-medium text-xs cursor-pointer active:scale-95 transition-all text-center block shadow-sm">
+        <label class="w-full py-3 rounded-2xl border border-slate-200 bg-slate-50 text-slate-700 font-medium text-xs cursor-pointer active:scale-95 transition-all text-center block shadow-sm">
           앨범에서 사진 선택
           <input type="file" id="album-input" accept="image/*" class="hidden">
         </label>
@@ -276,7 +396,7 @@
         <p class="text-xs text-sky-600 font-medium mt-0.5"><strong>[드래그]</strong> 이동, <strong>[두 손가락 핀치]</strong> 확대/축소</p>
       </header>
 
-      <div class="relative w-[280px] h-[280px] mx-auto my-auto overflow-hidden bg-slate-900/10 rounded-3xl flex items-center justify-center border border-white/80 shadow-xl backdrop-blur-md">
+      <div class="relative w-[280px] h-[280px] mx-auto my-auto overflow-hidden bg-slate-100 rounded-3xl flex items-center justify-center border border-slate-200 shadow-xl">
         <canvas id="align-canvas" width="600" height="600" class="w-full h-full"></canvas>
         
         <div class="absolute inset-0 pointer-events-none w-full h-full">
@@ -289,117 +409,148 @@
       </div>
 
       <footer class="flex gap-2.5 w-[84%] mx-auto flex-shrink-0">
-        <button id="btn-rephoto" type="button" class="w-1/3 py-3.5 rounded-2xl border border-slate-200 bg-white/80 text-slate-600 text-sm active:scale-95 transition-all shadow-sm">다시 촬영</button>
+        <button id="btn-rephoto" type="button" class="w-1/3 py-3.5 rounded-2xl border border-slate-200 bg-slate-50 text-slate-600 text-sm active:scale-95 transition-all shadow-sm">다시 촬영</button>
         <button id="btn-confirm-align" type="button" class="flex-1 py-3.5 rounded-2xl bg-white border border-slate-200 text-slate-800 font-semibold text-sm active:scale-95 transition-all shadow-sm">날개 형태 고르기</button>
       </footer>
     </section>
 
-    <!-- [STEP 0.8] 날개 형태 고르기 (중앙 대형 라운드 사각형 + 위로 올린 원호 캐러셀) -->
-    <section id="screen-shape-select" class="screen flex-col flex-1 justify-between py-2 text-center relative z-10 w-full">
-      <header class="pt-5 pb-1 flex-shrink-0">
-        <h2 class="text-2xl font-bold text-slate-900 tracking-tight">날개 형태 고르기</h2>
-        <p class="text-xs text-slate-500 mt-1 font-normal">도안의 결을 담아낼 나비의 실루엣을 선택해 주세요.</p>
-      </header>
+    <!-- [STEP 0.8] 날개 형태 고르기 -->
+    <section id="screen-shape-select" class="screen flex-1 relative z-10 w-full h-full bg-white overflow-hidden">
+      
+      <!-- 상단 고정 영역 -->
+      <div class="hero-fixed-anchor">
+        <header class="pt-3 pb-2 text-center pointer-events-auto">
+          <h2 class="text-2xl font-bold text-slate-900 tracking-tight">날개 형태 고르기</h2>
+          <p class="text-xs text-slate-500 mt-1 font-normal">도안의 결을 담아낼 나비의 실루엣을 선택해 주세요.</p>
+        </header>
 
-      <!-- 중앙: 원형을 모두 지우고 세련된 라운드 네모 모형으로 변경 & 크기 대폭 확대 -->
-      <div class="my-auto flex flex-col items-center justify-center relative pt-1">
-        <div class="relative w-64 h-64 rounded-[36px] bg-gradient-to-tr from-sky-400 via-sky-500 to-blue-600 shadow-[0_20px_45px_-8px_rgba(2,132,199,0.38)] border border-white/60 flex items-center justify-center p-4 transition-all duration-300" id="hero-butterfly-dish">
-          <svg id="hero-butterfly-svg" viewBox="0 0 100 100" class="w-56 h-56 text-white filter drop-shadow-[0_10px_24px_rgba(255,255,255,0.65)]" fill="currentColor" stroke="currentColor" stroke-width="1.2">
-            <!-- JS를 통해 선택된 패스가 렌더링됩니다 -->
-          </svg>
+        <div class="reference-square-frame mt-3">
+          <div class="bounded-butterfly-layer">
+            <svg id="hero-butterfly-svg" viewBox="0 0 100 100" preserveAspectRatio="xMidYMid meet">
+              <g id="hero-path-container">
+                <!-- 나비 실루엣 패스 -->
+              </g>
+            </svg>
+          </div>
         </div>
-        <div class="mt-3.5">
-          <span id="hero-butterfly-name" class="text-lg font-bold text-slate-800 tracking-tight block">기본 날개</span>
+
+        <div class="hero-name-container pointer-events-auto">
+          <span id="hero-butterfly-name" class="text-lg font-bold text-slate-800 tracking-tight block leading-none">동글 날개</span>
         </div>
       </div>
 
-      <!-- 하단: 위치를 위로 올리고, 원형 궤도(Arch) 곡선으로 입체감 있게 흐르는 캐러셀 -->
-      <div class="w-full flex-shrink-0 pt-2 pb-3 relative">
-        <div id="arch-carousel-container" class="horizontal-scroll-carousel flex items-end gap-3 px-8 py-3 relative">
+      <!-- 하단 도크 영역 -->
+      <div class="shape-bottom-fixed-dock">
+        <!-- 배경 원형 그라데이션 돔 (위치/크기 절대 불변) -->
+        <div class="custom-arch-gradient-dome"></div>
+
+        <!-- 옵션 나비 캐러셀 (음수 마진으로 옵션 나비만 위로 올려 배치) -->
+        <div id="arch-carousel-container" class="horizontal-scroll-carousel flex items-end gap-3.5 pt-6 pb-2 w-full relative z-10 box-border -mt-[34px]">
           
-          <!-- 0. 기본 날개 (Archetype Canvas 도안 형태 복원) -->
-          <div class="arch-track-item flex flex-col items-center gap-1.5 flex-shrink-0">
-            <button type="button" class="shape-thumb-btn active" data-shape="default" data-name="기본 날개">
-              <svg viewBox="0 0 100 100" class="w-14 h-14" fill="currentColor" stroke="currentColor" stroke-width="1.2">
-                <path d="M 50,33 C 51.5,33 53,35 53,38 C 58,35 75,18 89,20 C 97,22 99,35 91,48 C 84,59 79,62 76,64 C 81,67 87,74 86,83 C 84,93 69,96 61,87 C 55,80 53,74 53,71 C 53,74 51.5,77 50,77 C 48.5,77 47,74 47,71 C 47,74 45,80 39,87 C 31,96 16,93 14,83 C 13,74 19,67 24,64 C 21,62 16,59 9,48 C 1,35 3,22 11,20 C 25,18 42,35 47,38 C 47,35 48.5,33 50,33 Z" stroke-linejoin="round"/>
-              </svg>
+          <!-- 0. 기본 날개 -->
+          <div class="arch-track-item flex flex-col items-center gap-1 flex-shrink-0">
+            <button type="button" class="shape-thumb-btn" data-shape="default" data-name="기본 날개">
+              <div class="shape-circle-badge">
+                <svg viewBox="0 0 100 100" preserveAspectRatio="xMidYMid meet">
+                  <path d="M 50,33 C 51.5,33 53,35 53,38 C 58,35 75,18 89,20 C 97,22 99,35 91,48 C 84,59 79,62 76,64 C 81,67 87,74 86,83 C 84,93 69,96 61,87 C 55,80 53,74 53,71 C 53,74 51.5,77 50,77 C 48.5,77 47,74 47,71 C 47,74 45,80 39,87 C 31,96 16,93 14,83 C 13,74 19,67 24,64 C 21,62 16,59 9,48 C 1,35 3,22 11,20 C 25,18 42,35 47,38 C 47,35 48.5,33 50,33 Z"/>
+                </svg>
+              </div>
             </button>
-            <span class="text-[11px] font-semibold text-sky-700 tracking-tight">기본 날개</span>
+            <span class="shape-item-label text-[11px] font-medium text-slate-300 tracking-tight mt-1">기본 날개</span>
           </div>
 
           <!-- 1. 뾰족 날개 -->
-          <div class="arch-track-item flex flex-col items-center gap-1.5 flex-shrink-0">
+          <div class="arch-track-item flex flex-col items-center gap-1 flex-shrink-0">
             <button type="button" class="shape-thumb-btn" data-shape="pointy" data-name="뾰족 날개">
-              <svg viewBox="0 0 100 100" class="w-14 h-14" fill="currentColor" stroke="currentColor" stroke-width="1.4">
-                <path d="M 50,53 L 73,10 C 78,38 78,54 65,61 C 74,74 72,86 66,88 C 56,80 50,66 50,63 C 50,66 44,80 34,88 C 28,86 26,74 35,61 C 22,54 22,38 27,10 Z" stroke-linejoin="round"/>
-              </svg>
+              <div class="shape-circle-badge">
+                <svg viewBox="0 0 100 100" preserveAspectRatio="xMidYMid meet">
+                  <path d="M 50,33 C 51.5,33 53,35 53,38 C 53,44 51.5,49 53,52 L 73,10 C 78,38 78,54 65,61 C 74,74 72,86 66,88 C 56,80 53,68 53,71 C 53,74 51.5,77 50,77 C 48.5,77 47,74 47,71 C 47,68 44,80 34,88 C 28,86 26,74 35,61 C 22,54 22,38 27,10 L 47,52 C 48.5,49 47,44 47,38 C 47,35 48.5,33 50,33 Z"/>
+                </svg>
+              </div>
             </button>
-            <span class="text-[11px] font-medium text-slate-600 tracking-tight">뾰족 날개</span>
+            <span class="shape-item-label text-[11px] font-medium text-slate-300 tracking-tight mt-1">뾰족 날개</span>
           </div>
 
           <!-- 2. 나풀 날개 -->
-          <div class="arch-track-item flex flex-col items-center gap-1.5 flex-shrink-0">
+          <div class="arch-track-item flex flex-col items-center gap-1 flex-shrink-0">
             <button type="button" class="shape-thumb-btn" data-shape="flutter" data-name="나풀 날개">
-              <svg viewBox="0 0 100 100" class="w-14 h-14" fill="currentColor" stroke="currentColor" stroke-width="1.4">
-                <path d="M 50,48 C 62,30 84,14 93,20 C 97,32 82,53 76,57 C 82,72 80,84 69,87 C 54,89 50,72 50,60 C 50,72 46,89 31,87 C 20,84 18,72 24,57 C 18,53 3,32 7,20 C 16,14 38,30 50,48 Z" stroke-linejoin="round"/>
-              </svg>
+              <div class="shape-circle-badge">
+                <svg viewBox="0 0 100 100" preserveAspectRatio="xMidYMid meet">
+                  <path d="M 50,33 C 51.5,33 53,35 53,38 C 53,42 51.5,45 53,47 C 62,30 84,14 93,20 C 97,32 82,53 76,57 C 82,72 80,84 69,87 C 54,89 53,74 53,71 C 53,74 51.5,77 50,77 C 48.5,77 47,74 47,71 C 47,74 46,89 31,87 C 20,84 18,72 24,57 C 18,53 3,32 7,20 C 16,14 38,30 47,47 C 48.5,45 47,42 47,38 C 47,35 48.5,33 50,33 Z"/>
+                </svg>
+              </div>
             </button>
-            <span class="text-[11px] font-medium text-slate-600 tracking-tight">나풀 날개</span>
+            <span class="shape-item-label text-[11px] font-medium text-slate-300 tracking-tight mt-1">나풀 날개</span>
           </div>
 
-          <!-- 3. 동글 날개 -->
-          <div class="arch-track-item flex flex-col items-center gap-1.5 flex-shrink-0">
-            <button type="button" class="shape-thumb-btn" data-shape="round" data-name="동글 날개">
-              <svg viewBox="0 0 100 100" class="w-14 h-14" fill="currentColor" stroke="currentColor" stroke-width="1.4">
-                <path d="M 50,50 C 55,20 85,12 95,30 C 99,54 78,68 64,69 C 78,75 75,91 63,94 C 50,95 50,81 50,73 C 50,81 50,95 37,94 C 25,91 22,75 36,69 C 22,68 1,54 5,30 C 15,12 45,20 50,50 Z" stroke-linejoin="round"/>
-              </svg>
+          <!-- 3. 동글 날개 (기본 선택) -->
+          <div class="arch-track-item flex flex-col items-center gap-1 flex-shrink-0">
+            <button type="button" class="shape-thumb-btn active" data-shape="round" data-name="동글 날개">
+              <div class="shape-circle-badge">
+                <svg viewBox="0 0 100 100" preserveAspectRatio="xMidYMid meet">
+                  <path d="M 50,33 C 51.5,33 53,35 53,38 C 53,44 51.5,48 53,50 C 55,20 85,12 95,30 C 99,54 78,68 64,69 C 78,75 75,91 63,94 C 53,95 53,75 53,71 C 53,74 51.5,77 50,77 C 48.5,77 47,74 47,71 C 47,75 47,95 37,94 C 25,91 22,75 36,69 C 22,68 1,54 5,30 C 15,12 45,20 47,50 C 48.5,48 47,44 47,38 C 47,35 48.5,33 50,33 Z"/>
+                </svg>
+              </div>
             </button>
-            <span class="text-[11px] font-medium text-slate-600 tracking-tight">동글 날개</span>
+            <span class="shape-item-label text-[11px] font-bold text-sky-600 tracking-tight mt-1">동글 날개</span>
           </div>
 
           <!-- 4. 요정 날개 -->
-          <div class="arch-track-item flex flex-col items-center gap-1.5 flex-shrink-0">
+          <div class="arch-track-item flex flex-col items-center gap-1 flex-shrink-0">
             <button type="button" class="shape-thumb-btn" data-shape="fairy" data-name="요정 날개">
-              <svg viewBox="0 0 100 100" class="w-14 h-14" fill="currentColor" stroke="currentColor" stroke-width="1.2">
-                <path d="M 50,47 C 53,39 71,20 87,6.5 C 84,21 75,34 77.5,43.5 C 79.5,50.5 80.5,53.5 78.5,57.5 C 74,60.5 67,59 63,60.5 C 68,67 76,77 79.5,87 C 65,85 57,72 50,65 C 43,72 35,85 20.5,87 C 24,77 32,67 37,60.5 C 33,59 26,60.5 21.5,57.5 C 19.5,53.5 20.5,50.5 22.5,43.5 C 25,34 16,21 13,6.5 C 29,20 47,39 50,47 Z" stroke-linejoin="round"/>
-              </svg>
+              <div class="shape-circle-badge">
+                <svg viewBox="0 0 100 100" preserveAspectRatio="xMidYMid meet">
+                  <path d="M 50,33 C 51.5,33 53,35 53,38 C 53,42 51.5,45 53,47 C 54,39 71,20 87,6.5 C 84,21 75,34 77.5,43.5 C 79.5,50.5 80.5,53.5 78.5,57.5 C 74,60.5 67,59 63,60.5 C 68,67 76,77 79.5,87 C 65,85 55,73 53,71 C 53,74 51.5,77 50,77 C 48.5,77 47,74 47,71 C 45,73 35,85 20.5,87 C 24,77 32,67 37,60.5 C 33,59 26,60.5 21.5,57.5 C 19.5,53.5 20.5,50.5 22.5,43.5 C 25,34 16,21 13,6.5 C 29,20 46,39 47,47 C 48.5,45 47,42 47,38 C 47,35 48.5,33 50,33 Z"/>
+                </svg>
+              </div>
             </button>
-            <span class="text-[11px] font-medium text-slate-600 tracking-tight">요정 날개</span>
+            <span class="shape-item-label text-[11px] font-medium text-slate-300 tracking-tight mt-1">요정 날개</span>
           </div>
 
           <!-- 5. 제왕 날개 -->
-          <div class="arch-track-item flex flex-col items-center gap-1.5 flex-shrink-0">
+          <div class="arch-track-item flex flex-col items-center gap-1 flex-shrink-0">
             <button type="button" class="shape-thumb-btn" data-shape="monarch" data-name="제왕 날개">
-              <svg viewBox="0 0 100 100" class="w-14 h-14" fill="currentColor" stroke="currentColor" stroke-width="1.4">
-                <path d="M 50,33 C 53,33 53.5,36 53.5,39 C 64,30 84,10 95,12 C 100,22 92,54 80,57 C 88,72 86,90 70,92 C 55,93 54,75 53.5,70 C 53.5,77 52,80 50,80 C 48,80 46.5,77 46.5,70 C 46,75 45,93 30,92 C 14,90 12,72 20,57 C 8,54 0,22 5,12 C 16,10 36,30 46.5,39 C 46.5,36 47,33 50,33 Z" stroke-linejoin="round"/>
-              </svg>
+              <div class="shape-circle-badge">
+                <svg viewBox="0 0 100 100" preserveAspectRatio="xMidYMid meet">
+                  <path d="M 50,33 C 53,33 53.5,36 53.5,39 C 64,30 84,10 95,12 C 100,22 92,54 80,57 C 88,72 86,90 70,92 C 55,93 54,75 53.5,70 C 53.5,77 52,80 50,80 C 48,80 46.5,77 46.5,70 C 46,75 45,93 30,92 C 14,90 12,72 20,57 C 8,54 0,22 5,12 C 16,10 36,30 46.5,39 C 46.5,36 47,33 50,33 Z"/>
+                </svg>
+              </div>
             </button>
-            <span class="text-[11px] font-medium text-slate-600 tracking-tight">제왕 날개</span>
+            <span class="shape-item-label text-[11px] font-medium text-slate-300 tracking-tight mt-1">제왕 날개</span>
           </div>
 
           <!-- 6. 물결 날개 -->
-          <div class="arch-track-item flex flex-col items-center gap-1.5 flex-shrink-0">
+          <div class="arch-track-item flex flex-col items-center gap-1 flex-shrink-0">
             <button type="button" class="shape-thumb-btn" data-shape="wave" data-name="물결 날개">
-              <svg viewBox="0 0 100 100" class="w-14 h-14" fill="currentColor" stroke="currentColor" stroke-width="1.2">
-                <path d="M 50,43.5 C 58,32 77,18.5 88,19 C 94.5,21.5 93,33 83.5,50 C 82,53.5 83.5,56 84.5,59 C 76.5,63.5 73.5,61.5 75.5,68 C 80,82 82,92 73.5,95.5 C 64.5,99.5 56.5,79 50,57 C 43.5,79 35.5,99.5 26.5,95.5 C 18,92 20,82 24.5,68 C 26.5,61.5 23.5,63.5 15.5,59 C 16.5,56 18,53.5 16.5,50 C 7,33 5.5,21.5 12,19 C 23,18.5 42,32 50,43.5 Z" stroke-linejoin="round"/>
-              </svg>
+              <div class="shape-circle-badge">
+                <svg viewBox="0 0 100 100" preserveAspectRatio="xMidYMid meet">
+                  <path d="M 50,33 C 51.5,33 53,35 53,38 C 53,41 51.5,43 53,43.5 C 58,32 77,18.5 88,19 C 94.5,21.5 93,33 83.5,50 C 82,53.5 83.5,56 84.5,59 C 76.5,63.5 73.5,61.5 75.5,68 C 80,82 82,92 73.5,95.5 C 64.5,99.5 54,77 53,71 C 53,74 51.5,77 50,77 C 48.5,77 47,74 47,71 C 46,77 35.5,99.5 26.5,95.5 C 18,92 20,82 24.5,68 C 26.5,61.5 23.5,63.5 15.5,59 C 16.5,56 18,53.5 16.5,50 C 7,33 5.5,21.5 12,19 C 23,18.5 42,32 47,43.5 C 48.5,43 47,41 47,38 C 47,35 48.5,33 50,33 Z"/>
+                </svg>
+              </div>
             </button>
-            <span class="text-[11px] font-medium text-slate-600 tracking-tight">물결 날개</span>
+            <span class="shape-item-label text-[11px] font-medium text-slate-300 tracking-tight mt-1">물결 날개</span>
           </div>
 
         </div>
-      </div>
 
-      <footer class="flex gap-2.5 w-[84%] mx-auto flex-shrink-0 pt-1 pb-1">
-        <button id="btn-back-to-align" type="button" class="w-1/3 py-3.5 rounded-2xl border border-slate-200 bg-white/80 text-slate-600 text-sm active:scale-95 transition-all shadow-sm">이전</button>
-        <button id="btn-confirm-shape" type="button" class="flex-1 py-3.5 rounded-2xl bg-white border border-slate-200 text-slate-800 font-semibold text-sm active:scale-95 transition-all shadow-sm">이 형태로 질문 시작</button>
-      </footer>
+        <!-- 3종 알약 버튼 -->
+        <div class="arch-pill-nav">
+          <button type="button" class="deco-pill-btn" style="transform: translateY(6px);">나비 날개</button>
+          <button type="button" class="deco-pill-btn" style="transform: translateY(0px); background: #f0f9ff; border-color: #38bdf8; color: #0284c7;">나비 더듬이</button>
+          <button type="button" class="deco-pill-btn" style="transform: translateY(6px);">나비 무늬</button>
+        </div>
+
+        <footer class="flex gap-2.5 w-[84%] mx-auto flex-shrink-0 pt-4 relative z-20">
+          <button id="btn-back-to-align" type="button" class="w-1/3 py-3.5 rounded-2xl border border-slate-200 bg-slate-50 text-slate-600 text-sm active:scale-95 transition-all shadow-sm">이전</button>
+          <button id="btn-confirm-shape" type="button" class="flex-1 py-3.5 rounded-2xl bg-white border border-slate-200 text-slate-800 font-semibold text-sm active:scale-95 transition-all shadow-sm">이 형태로 질문 시작</button>
+        </footer>
+      </div>
     </section>
 
     <!-- [STEP 1] 설문 화면 -->
-    <section id="screen-survey" class="screen flex-col flex-1 justify-between overflow-hidden relative z-10 h-full w-full">
+    <section id="screen-survey" class="screen flex-col flex-1 justify-between overflow-hidden relative z-10 h-full w-full bg-white">
       <header class="w-full pt-3 pb-0 flex-shrink-0 flex justify-center">
-        <div class="w-[84%] h-1 bg-slate-200/80 rounded-full overflow-hidden">
+        <div class="w-[84%] h-1 bg-slate-100 rounded-full overflow-hidden">
           <div id="progress-bar" class="h-full bg-sky-500 transition-all duration-300 rounded-full" style="width: 14.28%;"></div>
         </div>
       </header>
@@ -415,14 +566,14 @@
 
       <!-- [Q6] 돌아올 날 & 메모 -->
       <div id="field-step-6" class="hidden flex-1 w-full flex-col justify-center items-center px-4 min-h-0">
-        <div class="w-full bg-white/90 border border-sky-100 backdrop-blur-xl rounded-3xl p-5 space-y-3.5 shadow-xl shadow-slate-200/40">
+        <div class="w-full bg-white border border-sky-100 rounded-3xl p-5 space-y-3.5 shadow-xl shadow-slate-100">
           <div>
             <div class="flex justify-between items-center mb-1.5 px-0.5">
               <label class="block text-xs font-mono text-sky-700 font-semibold">나비에게 남기고 싶은 말 <span class="text-[10px] text-slate-400 font-normal">(선택)</span></label>
               <span id="memo-counter" class="text-[10px] text-slate-400 font-mono">0 / 50</span>
             </div>
             <textarea id="input-q6-memo" rows="2" maxlength="50" placeholder="먼 훗날 다시 찾아올 나비에게 전하고 싶은 한마디를 적어주세요." 
-                      class="w-full bg-slate-50/90 border border-slate-200 rounded-2xl px-3.5 py-2.5 text-xs text-slate-800 focus:outline-none focus:border-sky-500 placeholder-slate-400 font-medium resize-none leading-relaxed"></textarea>
+                      class="w-full bg-slate-50 border border-slate-200 rounded-2xl px-3.5 py-2.5 text-xs text-slate-800 focus:outline-none focus:border-sky-500 placeholder-slate-400 font-medium resize-none leading-relaxed"></textarea>
           </div>
 
           <div>
@@ -430,17 +581,17 @@
             <div class="grid grid-cols-3 gap-2">
               <div class="relative">
                 <input id="input-q6-year" type="number" placeholder="2026" min="2024" max="2099" 
-                       class="w-full bg-slate-50/80 border border-slate-200 rounded-2xl px-3 py-2.5 text-center text-sm text-slate-800 focus:outline-none focus:border-sky-500 placeholder-slate-400 font-medium">
+                       class="w-full bg-slate-50 border border-slate-200 rounded-2xl px-3 py-2.5 text-center text-sm text-slate-800 focus:outline-none focus:border-sky-500 placeholder-slate-400 font-medium">
                 <span class="absolute right-2.5 top-1/2 -translate-y-1/2 text-xs text-slate-400 pointer-events-none">년</span>
               </div>
               <div class="relative">
                 <input id="input-q6-month" type="number" placeholder="10" min="1" max="12" 
-                       class="w-full bg-slate-50/80 border border-slate-200 rounded-2xl px-3 py-2.5 text-center text-sm text-slate-800 focus:outline-none focus:border-sky-500 placeholder-slate-400 font-medium">
+                       class="w-full bg-slate-50 border border-slate-200 rounded-2xl px-3 py-2.5 text-center text-sm text-slate-800 focus:outline-none focus:border-sky-500 placeholder-slate-400 font-medium">
                 <span class="absolute right-2.5 top-1/2 -translate-y-1/2 text-xs text-slate-400 pointer-events-none">월</span>
               </div>
               <div class="relative">
                 <input id="input-q6-day" type="number" placeholder="24" min="1" max="31" 
-                       class="w-full bg-slate-50/80 border border-slate-200 rounded-2xl px-3 py-2.5 text-center text-sm text-slate-800 focus:outline-none focus:border-sky-500 placeholder-slate-400 font-medium">
+                       class="w-full bg-slate-50 border border-slate-200 rounded-2xl px-3 py-2.5 text-center text-sm text-slate-800 focus:outline-none focus:border-sky-500 placeholder-slate-400 font-medium">
                 <span class="absolute right-2.5 top-1/2 -translate-y-1/2 text-xs text-slate-400 pointer-events-none">일</span>
               </div>
             </div>
@@ -452,7 +603,7 @@
           <div>
             <label class="block text-xs font-mono text-sky-700 mb-1.5 font-semibold">나비를 맞이할 이메일</label>
             <input id="input-q6-email" type="email" placeholder="example@email.com" 
-                   class="w-full bg-slate-50/80 border border-slate-200 rounded-2xl px-3.5 py-2.5 text-sm text-slate-800 focus:outline-none focus:border-sky-500 placeholder-slate-400">
+                   class="w-full bg-slate-50 border border-slate-200 rounded-2xl px-3.5 py-2.5 text-sm text-slate-800 focus:outline-none focus:border-sky-500 placeholder-slate-400">
           </div>
         </div>
       </div>
@@ -462,7 +613,7 @@
         <div class="w-full space-y-2">
           <label class="block text-xs font-mono text-sky-700 font-semibold text-left px-1">나비의 고유한 이름</label>
           <input id="input-q7-name" type="text" maxlength="10" placeholder="예: 윤슬, 쉼표, 칼퇴, 다정, 시온, 바람..." 
-                 class="w-full bg-white/90 border border-slate-200 rounded-2xl px-4 py-3.5 text-base text-slate-900 focus:outline-none focus:border-sky-500 placeholder-slate-400 tracking-wide font-medium shadow-xl shadow-slate-200/40 backdrop-blur-md">
+                 class="w-full bg-white border border-slate-200 rounded-2xl px-4 py-3.5 text-base text-slate-900 focus:outline-none focus:border-sky-500 placeholder-slate-400 tracking-wide font-medium shadow-lg shadow-slate-100">
           <div class="flex justify-between items-center text-[11px] text-slate-500 font-mono px-2 pt-0.5">
             <span>한글/영문 10자 이내</span>
             <span id="char-counter">0 / 10</span>
@@ -483,11 +634,11 @@
     </section>
 
     <!-- [STEP 3] 나비 생성 로딩 화면 -->
-    <section id="screen-loading" class="screen flex-col flex-1 justify-between items-center py-10 text-center relative overflow-hidden z-10 w-full">
+    <section id="screen-loading" class="screen flex-col flex-1 justify-between items-center py-10 text-center relative overflow-hidden z-10 w-full bg-white">
       <div class="absolute inset-0 flex items-center justify-center pointer-events-none">
-        <div class="w-64 h-64 rounded-full bg-sky-200/40 dramatic-aura-core"></div>
-        <div class="absolute w-48 h-48 rounded-full border border-sky-300/35 dramatic-ring"></div>
-        <div class="absolute w-72 h-72 rounded-full border border-blue-200/25 dramatic-ring" style="animation-delay: 1.8s;"></div>
+        <div class="w-64 h-64 rounded-full bg-sky-100/60 dramatic-aura-core"></div>
+        <div class="absolute w-48 h-48 rounded-full border border-sky-200 dramatic-ring"></div>
+        <div class="absolute w-72 h-72 rounded-full border border-sky-100 dramatic-ring" style="animation-delay: 1.8s;"></div>
       </div>
 
       <div class="mt-6 z-10 space-y-1">
@@ -534,8 +685,8 @@
     </section>
 
     <!-- [STEP 5] 비행 완료 화면 -->
-    <section id="screen-complete" class="screen flex-col flex-1 justify-center items-center text-center p-6 relative z-10 w-full">
-      <div class="w-20 h-20 rounded-full bg-sky-100 border border-sky-300 flex items-center justify-center mb-6 shadow-[0_0_30px_rgba(56,189,248,0.25)]">
+    <section id="screen-complete" class="screen flex-col flex-1 justify-center items-center text-center p-6 relative z-10 w-full bg-white">
+      <div class="w-20 h-20 rounded-full bg-sky-50 border border-sky-200 flex items-center justify-center mb-6 shadow-md">
         <svg class="w-10 h-10 text-sky-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
         </svg>
@@ -553,55 +704,109 @@
   </main>
 
   <script>
-    let selectedButterflyShape = 'default';
+    let selectedButterflyShape = 'round';
 
-    // 나비 SVG 패스 데이터 맵 (기본 날개 포함 7종)
     const butterflyPathData = {
       default: "M 50,33 C 51.5,33 53,35 53,38 C 58,35 75,18 89,20 C 97,22 99,35 91,48 C 84,59 79,62 76,64 C 81,67 87,74 86,83 C 84,93 69,96 61,87 C 55,80 53,74 53,71 C 53,74 51.5,77 50,77 C 48.5,77 47,74 47,71 C 47,74 45,80 39,87 C 31,96 16,93 14,83 C 13,74 19,67 24,64 C 21,62 16,59 9,48 C 1,35 3,22 11,20 C 25,18 42,35 47,38 C 47,35 48.5,33 50,33 Z",
-      pointy: "M 50,53 L 73,10 C 78,38 78,54 65,61 C 74,74 72,86 66,88 C 56,80 50,66 50,63 C 50,66 44,80 34,88 C 28,86 26,74 35,61 C 22,54 22,38 27,10 Z",
-      flutter: "M 50,48 C 62,30 84,14 93,20 C 97,32 82,53 76,57 C 82,72 80,84 69,87 C 54,89 50,72 50,60 C 50,72 46,89 31,87 C 20,84 18,72 24,57 C 18,53 3,32 7,20 C 16,14 38,30 50,48 Z",
-      round: "M 50,50 C 55,20 85,12 95,30 C 99,54 78,68 64,69 C 78,75 75,91 63,94 C 50,95 50,81 50,73 C 50,81 50,95 37,94 C 25,91 22,75 36,69 C 22,68 1,54 5,30 C 15,12 45,20 50,50 Z",
-      fairy: "M 50,47 C 53,39 71,20 87,6.5 C 84,21 75,34 77.5,43.5 C 79.5,50.5 80.5,53.5 78.5,57.5 C 74,60.5 67,59 63,60.5 C 68,67 76,77 79.5,87 C 65,85 57,72 50,65 C 43,72 35,85 20.5,87 C 24,77 32,67 37,60.5 C 33,59 26,60.5 21.5,57.5 C 19.5,53.5 20.5,50.5 22.5,43.5 C 25,34 16,21 13,6.5 C 29,20 47,39 50,47 Z",
+      pointy: "M 50,33 C 51.5,33 53,35 53,38 C 53,44 51.5,49 53,52 L 73,10 C 78,38 78,54 65,61 C 74,74 72,86 66,88 C 56,80 53,68 53,71 C 53,74 51.5,77 50,77 C 48.5,77 47,74 47,71 C 47,68 44,80 34,88 C 28,86 26,74 35,61 C 22,54 22,38 27,10 L 47,52 C 48.5,49 47,44 47,38 C 47,35 48.5,33 50,33 Z",
+      flutter: "M 50,33 C 51.5,33 53,35 53,38 C 53,42 51.5,45 53,47 C 62,30 84,14 93,20 C 97,32 82,53 76,57 C 82,72 80,84 69,87 C 54,89 53,74 53,71 C 53,74 51.5,77 50,77 C 48.5,77 47,74 47,71 C 47,74 46,89 31,87 C 20,84 18,72 24,57 C 18,53 3,32 7,20 C 16,14 38,30 47,47 C 48.5,45 47,42 47,38 C 47,35 48.5,33 50,33 Z",
+      round: "M 50,33 C 51.5,33 53,35 53,38 C 53,44 51.5,48 53,50 C 55,20 85,12 95,30 C 99,54 78,68 64,69 C 78,75 75,91 63,94 C 53,95 53,75 53,71 C 53,74 51.5,77 50,77 C 48.5,77 47,74 47,71 C 47,75 47,95 37,94 C 25,91 22,75 36,69 C 22,68 1,54 5,30 C 15,12 45,20 47,50 C 48.5,48 47,44 47,38 C 47,35 48.5,33 50,33 Z",
+      fairy: "M 50,33 C 51.5,33 53,35 53,38 C 53,42 51.5,45 53,47 C 54,39 71,20 87,6.5 C 84,21 75,34 77.5,43.5 C 79.5,50.5 80.5,53.5 78.5,57.5 C 74,60.5 67,59 63,60.5 C 68,67 76,77 79.5,87 C 65,85 55,73 53,71 C 53,74 51.5,77 50,77 C 48.5,77 47,74 47,71 C 45,73 35,85 20.5,87 C 24,77 32,67 37,60.5 C 33,59 26,60.5 21.5,57.5 C 19.5,53.5 20.5,50.5 22.5,43.5 C 25,34 16,21 13,6.5 C 29,20 46,39 47,47 C 48.5,45 47,42 47,38 C 47,35 48.5,33 50,33 Z",
       monarch: "M 50,33 C 53,33 53.5,36 53.5,39 C 64,30 84,10 95,12 C 100,22 92,54 80,57 C 88,72 86,90 70,92 C 55,93 54,75 53.5,70 C 53.5,77 52,80 50,80 C 48,80 46.5,77 46.5,70 C 46,75 45,93 30,92 C 14,90 12,72 20,57 C 8,54 0,22 5,12 C 16,10 36,30 46.5,39 C 46.5,36 47,33 50,33 Z",
-      wave: "M 50,43.5 C 58,32 77,18.5 88,19 C 94.5,21.5 93,33 83.5,50 C 82,53.5 83.5,56 84.5,59 C 76.5,63.5 73.5,61.5 75.5,68 C 80,82 82,92 73.5,95.5 C 64.5,99.5 56.5,79 50,57 C 43.5,79 35.5,99.5 26.5,95.5 C 18,92 20,82 24.5,68 C 26.5,61.5 23.5,63.5 15.5,59 C 16.5,56 18,53.5 16.5,50 C 7,33 5.5,21.5 12,19 C 23,18.5 42,32 50,43.5 Z"
+      wave: "M 50,33 C 51.5,33 53,35 53,38 C 53,41 51.5,43 53,43.5 C 58,32 77,18.5 88,19 C 94.5,21.5 93,33 83.5,50 C 82,53.5 83.5,56 84.5,59 C 76.5,63.5 73.5,61.5 75.5,68 C 80,82 82,92 73.5,95.5 C 64.5,99.5 54,77 53,71 C 53,74 51.5,77 50,77 C 48.5,77 47,74 47,71 C 46,77 35.5,99.5 26.5,95.5 C 18,92 20,82 24.5,68 C 26.5,61.5 23.5,63.5 15.5,59 C 16.5,56 18,53.5 16.5,50 C 7,33 5.5,21.5 12,19 C 23,18.5 42,32 47,43.5 C 48.5,43 47,41 47,38 C 47,35 48.5,33 50,33 Z"
     };
 
     function updateHeroPreview(shapeKey, shapeName) {
-      const heroSvg = document.getElementById('hero-butterfly-svg');
+      const heroPathContainer = document.getElementById('hero-path-container');
       const heroName = document.getElementById('hero-butterfly-name');
-      const heroDish = document.getElementById('hero-butterfly-dish');
 
-      heroSvg.innerHTML = `<path d="${butterflyPathData[shapeKey]}" stroke-linejoin="round"/>`;
-      heroName.innerText = shapeName;
-
-      heroDish.classList.add('scale-95');
-      setTimeout(() => heroDish.classList.remove('scale-95'), 140);
+      if (heroPathContainer) {
+        heroPathContainer.innerHTML = `<path d="${butterflyPathData[shapeKey]}" fill="#ffffff"/>`;
+      }
+      if (heroName) {
+        heroName.innerText = shapeName;
+      }
     }
 
-    // 캐러셀 스크롤 시 중심점 기준 원호(Arc) 포물선 곡선 이동 연출
     const carouselContainer = document.getElementById('arch-carousel-container');
+
+    /* 정확한 수평 정중앙 정렬을 위한 양끝 마진/패딩 계산 */
+    function updateCarouselPadding() {
+      if (!carouselContainer) return;
+      const cWidth = carouselContainer.clientWidth;
+      const firstItem = carouselContainer.querySelector('.arch-track-item');
+      if (firstItem) {
+        const itemWidth = firstItem.offsetWidth;
+        const pad = Math.max(0, (cWidth - itemWidth) / 2);
+        carouselContainer.style.paddingLeft = `${pad}px`;
+        carouselContainer.style.paddingRight = `${pad}px`;
+      }
+    }
+
     function applyArchCurve() {
       if (!carouselContainer) return;
-      const rect = carouselContainer.getBoundingClientRect();
-      const centerX = rect.left + rect.width / 2;
+      const cRect = carouselContainer.getBoundingClientRect();
+      const centerX = cRect.left + cRect.width / 2;
       const items = carouselContainer.querySelectorAll('.arch-track-item');
 
       items.forEach(item => {
         const itemRect = item.getBoundingClientRect();
         const itemCenter = itemRect.left + itemRect.width / 2;
         const distFromCenter = Math.abs(centerX - itemCenter);
-        const maxDist = rect.width / 2;
-        const normDist = Math.min(distFromCenter / maxDist, 1);
+        const maxDist = cRect.width / 2;
+        const normDist = Math.min(distFromCenter / maxDist, 1.25);
         
-        // 레퍼런스처럼 중앙에 가까울수록 위로 둥글게 솟고, 양옆으로 갈수록 아래로 호를 그림
-        const translateY = Math.pow(normDist, 1.8) * 16;
+        const translateY = Math.pow(normDist, 2.3) * 52;
         item.style.transform = `translateY(${translateY}px)`;
       });
+    }
+
+    let scrollAnimFrame = null;
+    function smoothScrollTo(element, target, duration = 280) {
+      if (scrollAnimFrame) cancelAnimationFrame(scrollAnimFrame);
+      const start = element.scrollLeft;
+      const change = target - start;
+      const startTime = performance.now();
+
+      function easeOutCubic(t) {
+        return (--t) * t * t + 1;
+      }
+
+      function animateScroll(currentTime) {
+        const elapsed = currentTime - startTime;
+        const progress = Math.min(elapsed / duration, 1);
+        element.scrollLeft = start + change * easeOutCubic(progress);
+        applyArchCurve();
+
+        if (progress < 1) {
+          scrollAnimFrame = requestAnimationFrame(animateScroll);
+        } else {
+          scrollAnimFrame = null;
+          element.scrollLeft = target;
+          applyArchCurve();
+        }
+      }
+      scrollAnimFrame = requestAnimationFrame(animateScroll);
+    }
+
+    /* 선택된 아이템의 뷰포트 절대 중심을 캐러셀 뷰포트 중심과 정확히 일치시키는 정밀 정렬 */
+    function scrollItemToCenter(itemElement) {
+      if (!carouselContainer || !itemElement) return;
+      const cRect = carouselContainer.getBoundingClientRect();
+      const itemRect = itemElement.getBoundingClientRect();
+      const deltaX = (itemRect.left + itemRect.width / 2) - (cRect.left + cRect.width / 2);
+      const targetScroll = carouselContainer.scrollLeft + deltaX;
+      smoothScrollTo(carouselContainer, targetScroll, 260);
     }
 
     if (carouselContainer) {
       carouselContainer.addEventListener('scroll', applyArchCurve, { passive: true });
     }
+
+    window.addEventListener('resize', () => {
+      updateCarouselPadding();
+      applyArchCurve();
+    });
 
     function showScreen(screenId) {
       document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
@@ -609,33 +814,39 @@
       if (target) {
         target.classList.add('active');
         if (screenId === 'screen-shape-select') {
-          setTimeout(applyArchCurve, 50);
+          setTimeout(() => {
+            updateCarouselPadding();
+            applyArchCurve();
+            const activeItem = carouselContainer.querySelector('.shape-thumb-btn.active')?.closest('.arch-track-item');
+            if (activeItem) scrollItemToCenter(activeItem);
+          }, 40);
         }
       }
     }
 
-    // 하단 가로 스크롤 아이템 클릭
     document.querySelectorAll('.shape-thumb-btn').forEach(btn => {
       btn.addEventListener('click', () => {
         document.querySelectorAll('.shape-thumb-btn').forEach(b => {
           b.classList.remove('active');
-          const txt = b.parentElement.querySelector('span');
+          const txt = b.parentElement.querySelector('.shape-item-label');
           if (txt) {
-            txt.classList.remove('font-semibold', 'text-sky-700');
-            txt.classList.add('font-medium', 'text-slate-600');
+            txt.classList.remove('font-bold', 'text-sky-600');
+            txt.classList.add('font-medium', 'text-slate-300');
           }
         });
 
         btn.classList.add('active');
-        const activeTxt = btn.parentElement.querySelector('span');
+        const activeTxt = btn.parentElement.querySelector('.shape-item-label');
         if (activeTxt) {
-          activeTxt.classList.add('font-semibold', 'text-sky-700');
-          activeTxt.classList.remove('font-medium', 'text-slate-600');
+          activeTxt.classList.add('font-bold', 'text-sky-600');
+          activeTxt.classList.remove('font-medium', 'text-slate-300');
         }
 
         selectedButterflyShape = btn.getAttribute('data-shape');
         const shapeName = btn.getAttribute('data-name');
         updateHeroPreview(selectedButterflyShape, shapeName);
+
+        scrollItemToCenter(btn.closest('.arch-track-item'));
       });
     });
 
@@ -808,12 +1019,12 @@
       } else {
         chip.classList.remove('chip-selected');
         chip.classList.add('chip-unselected');
-        chip.style.setProperty('background', 'rgba(255, 255, 255, 0.92)', 'important');
-        chip.style.setProperty('border', 'none', 'important');
+        chip.style.setProperty('background', 'rgba(248, 250, 252, 0.95)', 'important');
+        chip.style.setProperty('border', '1px solid #f1f5f9', 'important');
         chip.style.setProperty('outline', 'none', 'important');
         chip.style.setProperty('color', '#334155', 'important');
         chip.style.setProperty('font-weight', '500', 'important');
-        chip.style.setProperty('box-shadow', '0 4px 14px rgba(148, 163, 184, 0.14)', 'important');
+        chip.style.setProperty('box-shadow', '0 2px 8px rgba(148, 163, 184, 0.08)', 'important');
       }
     }
 
@@ -1071,7 +1282,7 @@
       ectx.drawImage(rawImage, imgX * scaleRatio, imgY * scaleRatio, rawImage.width * imgScale * scaleRatio, rawImage.height * imgScale * scaleRatio);
 
       currentExtractedTexture = processClearDrawingTexture(exportCanvas);
-      updateHeroPreview(selectedButterflyShape, '기본 날개');
+      updateHeroPreview(selectedButterflyShape, '동글 날개');
       showScreen('screen-shape-select');
     });
 
@@ -1080,7 +1291,6 @@
       const s = isRight ? 1 : -1;
 
       if (shapeType === 'default') {
-        // [기본 날개] 오리지널 Archetype Canvas 도안 형태
         shape.moveTo(0, 0.45);
         shape.bezierCurveTo(s * 0.45, 0.95, s * 1.15, 1.75, s * 1.9, 1.7);
         shape.bezierCurveTo(s * 2.5, 1.65, s * 2.7, 1.15, s * 2.45, 0.6);
