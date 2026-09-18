@@ -103,18 +103,20 @@
       display: none;
     }
 
+    /* 캐러셀: 스크롤 스냅 기능 추가로 정확한 정중앙 고정 */
     .horizontal-scroll-carousel {
       overflow-x: auto;
       overflow-y: visible;
       -webkit-overflow-scrolling: touch;
       scrollbar-width: none;
       -ms-overflow-style: none;
+      scroll-snap-type: x mandatory;
     }
     .horizontal-scroll-carousel::-webkit-scrollbar {
       display: none;
     }
 
-    /* 상단 고정 영역 (이름 텍스트 제거로 여백 깔끔하게 확보) */
+    /* 상단 고정 영역 */
     .hero-fixed-anchor {
       position: absolute;
       top: 18px;
@@ -144,27 +146,27 @@
       flex-shrink: 0;
     }
 
+    /* 나비 레이어: 프레임 전체 크기를 활용해 그림자 잘림 원천 차단 */
     .bounded-butterfly-layer {
       position: absolute;
-      width: 202px;
-      height: 202px;
-      top: 50%;
-      left: 50%;
-      transform: translate(-50%, -50%);
+      width: 100%;
+      height: 100%;
+      top: 0;
+      left: 0;
       display: flex;
       align-items: center;
       justify-content: center;
       z-index: 2;
+      overflow: visible;
     }
 
     .bounded-butterfly-layer svg {
       width: 100%;
       height: 100%;
       overflow: visible;
-      filter: drop-shadow(0 12px 24px rgba(56, 189, 248, 0.28));
     }
 
-    /* 하단 도크 영역: 프레임과 닿지 않도록 확실하게 아래로 정돈 */
+    /* 하단 도크 영역: 프레임과 닿지 않도록 아래로 확실하게 배치 */
     .shape-bottom-fixed-dock {
       position: absolute;
       bottom: 0;
@@ -177,8 +179,9 @@
       z-index: 20;
     }
 
-    /* 굴곡형 캐러셀 아이템 */
+    /* 굴곡형 캐러셀 아이템: snap-align으로 정중앙 강제 안착 */
     .arch-track-item {
+      scroll-snap-align: center;
       transition: transform 0.28s cubic-bezier(0.18, 0.9, 0.2, 1);
       will-change: transform;
       contain: layout;
@@ -408,7 +411,7 @@
     <!-- [STEP 0.8] 날개 형태 고르기 -->
     <section id="screen-shape-select" class="screen flex-1 relative z-10 w-full h-full bg-white overflow-hidden">
       
-      <!-- 상단 고정 영역 (나비 이름 텍스트 제거됨) -->
+      <!-- 상단 고정 영역 (정사각형 프레임 및 자연스러운 그림자 필터) -->
       <div class="hero-fixed-anchor">
         <header class="pt-3 pb-2 text-center pointer-events-auto">
           <h2 class="text-2xl font-bold text-slate-900 tracking-tight">날개 형태 고르기</h2>
@@ -417,8 +420,15 @@
 
         <div class="reference-square-frame mt-3">
           <div class="bounded-butterfly-layer">
-            <svg id="hero-butterfly-svg" viewBox="0 0 100 100" preserveAspectRatio="xMidYMid meet">
-              <g id="hero-path-container">
+            <svg id="hero-butterfly-svg" viewBox="0 0 160 160">
+              <defs>
+                <!-- 잘림 없는 와이드 가우시안 그림자 필터 -->
+                <filter id="soft-butterfly-shadow" x="-40%" y="-40%" width="180%" height="180%">
+                  <feDropShadow dx="0" dy="10" stdDeviation="12" flood-color="#38bdf8" flood-opacity="0.32" />
+                </filter>
+              </defs>
+              <!-- 160x160 뷰박스 중앙(30, 30 오프셋)에 100x100 나비 배치 -->
+              <g id="hero-path-container" transform="translate(30, 30)" filter="url(#soft-butterfly-shadow)">
                 <!-- 나비 실루엣 패스 -->
               </g>
             </svg>
@@ -426,7 +436,7 @@
         </div>
       </div>
 
-      <!-- 하단 도크 영역 (전체적으로 아래로 재배치) -->
+      <!-- 하단 도크 영역: 프레임과 완벽 격리 & 정확한 중앙 스냅 적용 -->
       <div class="shape-bottom-fixed-dock">
         <!-- 배경 원형 그라데이션 돔 -->
         <div class="custom-arch-gradient-dome"></div>
@@ -520,7 +530,7 @@
 
         </div>
 
-        <!-- 3종 옵션 바 ('나비' 제거 및 '날개' 선택 상태로 변경) -->
+        <!-- 3종 옵션 바 -->
         <div class="arch-pill-nav">
           <button type="button" class="deco-pill-btn" style="transform: translateY(0px); background: #f0f9ff; border-color: #38bdf8; color: #0284c7;">날개</button>
           <button type="button" class="deco-pill-btn" style="transform: translateY(6px);">더듬이</button>
@@ -742,12 +752,15 @@
       });
     }
 
+    let isInternalScrolling = false;
     let scrollAnimFrame = null;
+
     function smoothScrollTo(element, target, duration = 280) {
       if (scrollAnimFrame) cancelAnimationFrame(scrollAnimFrame);
       const start = element.scrollLeft;
       const change = target - start;
       const startTime = performance.now();
+      isInternalScrolling = true;
 
       function easeOutCubic(t) {
         return (--t) * t * t + 1;
@@ -765,22 +778,26 @@
           scrollAnimFrame = null;
           element.scrollLeft = target;
           applyArchCurve();
+          setTimeout(() => { isInternalScrolling = false; }, 50);
         }
       }
       scrollAnimFrame = requestAnimationFrame(animateScroll);
     }
 
+    /* transform(translateY) 왜곡 없는 순수 DOM 좌표 기반 절대 중앙 스크롤 */
     function scrollItemToCenter(itemElement) {
       if (!carouselContainer || !itemElement) return;
-      const cRect = carouselContainer.getBoundingClientRect();
-      const itemRect = itemElement.getBoundingClientRect();
-      const deltaX = (itemRect.left + itemRect.width / 2) - (cRect.left + cRect.width / 2);
-      const targetScroll = carouselContainer.scrollLeft + deltaX;
+      const cWidth = carouselContainer.clientWidth;
+      const itemWidth = itemElement.offsetWidth;
+      // padding-left가 적용된 상태에서 순수 오프셋 기준으로 정중앙 스크롤 값 계산
+      const targetScroll = itemElement.offsetLeft - ((cWidth - itemWidth) / 2);
       smoothScrollTo(carouselContainer, targetScroll, 260);
     }
 
     if (carouselContainer) {
-      carouselContainer.addEventListener('scroll', applyArchCurve, { passive: true });
+      carouselContainer.addEventListener('scroll', () => {
+        applyArchCurve();
+      }, { passive: true });
     }
 
     window.addEventListener('resize', () => {
