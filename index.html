@@ -133,11 +133,11 @@
       flex-shrink: 0;
     }
 
-    /* [수정] 나비 레이어 크기 대폭 확대 (175px -> 220px) */
+    /* [수정] 프레임 내 나비 레이어 크기 대폭 확대 (275px) */
     .bounded-butterfly-layer {
       position: absolute;
-      width: 220px;
-      height: 220px;
+      width: 275px;
+      height: 275px;
       top: 50%;
       left: 50%;
       transform: translate(-50%, -50%);
@@ -177,7 +177,26 @@
       justify-content: center;
     }
 
-    /* [수정] 점선 기준 가이드 숨김 처리 */
+    /* [수정] 수학적으로 곡률 궤적과 일치하는 초대형 원형 그라데이션 (경계선 없음) */
+    .custom-arch-gradient-dome {
+      position: absolute;
+      left: 50%;
+      top: 330px; /* 나비 궤적 중심점에 완벽히 매칭된 좌표 */
+      transform: translate(-50%, -50%);
+      width: 660px;
+      height: 660px;
+      border-radius: 50%;
+      /* 가장자리가 완전히 투명(알파 0)으로 빠져서 하단 버튼 경계선을 완전히 없앰 */
+      background: radial-gradient(circle, 
+        rgba(224, 242, 254, 0.85) 0%, 
+        rgba(224, 242, 254, 0.55) 55%, 
+        rgba(186, 230, 253, 0.3) 72.7%, /* 곡선 반경(R=240)과 일치하는 72.7% 구간 */
+        rgba(255, 255, 255, 0) 85%
+      );
+      pointer-events: none;
+      z-index: 0;
+    }
+
     .center-fixed-target-zone {
       position: absolute;
       left: 50%;
@@ -186,7 +205,6 @@
       width: 86px;
       height: 86px;
       border-radius: 50%;
-      /* 보이지 않도록 테두리 및 배경색 제거 */
       border: none;
       background: transparent;
       pointer-events: none;
@@ -194,7 +212,6 @@
       box-shadow: none;
     }
 
-    /* 캐러셀: 자유로운 부드러운 스크롤 + JS 정밀 중앙 스냅 */
     .horizontal-scroll-carousel {
       overflow-x: auto;
       overflow-y: hidden !important;
@@ -233,7 +250,6 @@
       outline: none;
     }
 
-    /* 미선택 옵션 나비 기본형 */
     .shape-circle-badge {
       width: 58px;
       height: 58px;
@@ -258,7 +274,6 @@
       transition: all 0.2s cubic-bezier(0.2, 0.8, 0.2, 1);
     }
 
-    /* 중앙 포커스 범위에 정확히 안착한 활성 나비 */
     .shape-thumb-btn.active .shape-circle-badge {
       width: 84px;
       height: 84px;
@@ -282,22 +297,6 @@
       white-space: nowrap;
       margin-top: 8px;
       transition: color 0.2s ease, font-weight 0.2s ease;
-    }
-
-    /* [수정] 아치형 그라데이션 돔 하단으로 이동 */
-    .custom-arch-gradient-dome {
-      position: absolute;
-      left: 50%;
-      bottom: 12px; /* 40px -> 12px로 내려서 배치 */
-      transform: translateX(-50%);
-      width: 390px;
-      height: 200px;
-      border-radius: 200px 200px 0 0;
-      background: radial-gradient(circle at 50% 28%, rgba(186, 230, 253, 0.78) 0%, rgba(224, 242, 254, 0.42) 52%, rgba(255, 255, 255, 0) 80%);
-      border: none !important;
-      outline: none !important;
-      pointer-events: none;
-      z-index: 0;
     }
 
     .arch-pill-nav {
@@ -359,7 +358,6 @@
 
   <main class="app-viewport p-4 pb-6 box-border">
 
-    <!-- [STEP 0] 도안 촬영 안내 -->
     <section id="screen-capture-guide" class="screen active flex-col flex-1 justify-between py-2 text-center relative z-10 w-full">
       <header class="pt-4 flex-shrink-0">
         <h1 class="text-2xl font-bold mt-1 text-slate-900 tracking-tight">나비 담기</h1>
@@ -390,7 +388,6 @@
       </footer>
     </section>
 
-    <!-- [STEP 0.5] 나비틀 맞춤 -->
     <section id="screen-align" class="screen flex-col flex-1 justify-between py-2 text-center relative z-10 w-full">
       <header class="pt-2 flex-shrink-0">
         <h2 class="text-lg font-bold text-slate-900">나비틀에 사진 맞추기</h2>
@@ -415,10 +412,8 @@
       </footer>
     </section>
 
-    <!-- [STEP 0.8] 날개 형태 고르기 -->
     <section id="screen-shape-select" class="screen flex-1 relative z-10 w-full h-full bg-white overflow-hidden">
       
-      <!-- 상단 고정 영역 -->
       <div class="hero-fixed-anchor">
         <header class="pt-2 pb-1 text-center pointer-events-auto">
           <h2 class="text-2xl font-bold text-slate-900 tracking-tight">날개 형태 고르기</h2>
@@ -434,27 +429,23 @@
                 </filter>
               </defs>
               <g id="hero-path-container" transform="translate(30, 30)" filter="url(#soft-butterfly-shadow)">
-                <!-- 나비 패스 렌더링 -->
               </g>
             </svg>
           </div>
         </div>
       </div>
 
-      <!-- 하단 도크 영역 -->
       <div class="shape-bottom-fixed-dock">
-        <!-- 배경 원형 그라데이션 돔 -->
-        <div class="custom-arch-gradient-dome"></div>
-
-        <!-- 옵션 나비 캐러셀 영역 -->
+        
         <div class="carousel-stage-wrapper">
+          <!-- 배경 원형 그라데이션 돔 -->
+          <div class="custom-arch-gradient-dome"></div>
+          
           <!-- 중앙 고정 뷰파인더 링 -->
           <div class="center-fixed-target-zone"></div>
 
-          <!-- [수정] pt-8을 pt-12로 늘려 나비를 아래로 이동시킴 -->
           <div id="arch-carousel-container" class="horizontal-scroll-carousel flex items-start gap-4 pt-12 pb-2 box-border">
             
-            <!-- 0. 기본 날개 -->
             <div class="arch-track-item">
               <button type="button" class="shape-thumb-btn" data-shape="default" data-name="기본 날개">
                 <div class="shape-circle-badge">
@@ -466,7 +457,6 @@
               <span class="shape-item-label text-[11px] font-medium text-slate-300 tracking-tight">기본 날개</span>
             </div>
 
-            <!-- 1. 뾰족 날개 -->
             <div class="arch-track-item">
               <button type="button" class="shape-thumb-btn" data-shape="pointy" data-name="뾰족 날개">
                 <div class="shape-circle-badge">
@@ -478,7 +468,6 @@
               <span class="shape-item-label text-[11px] font-medium text-slate-300 tracking-tight">뾰족 날개</span>
             </div>
 
-            <!-- 2. 나풀 날개 -->
             <div class="arch-track-item">
               <button type="button" class="shape-thumb-btn" data-shape="flutter" data-name="나풀 날개">
                 <div class="shape-circle-badge">
@@ -490,7 +479,6 @@
               <span class="shape-item-label text-[11px] font-medium text-slate-300 tracking-tight">나풀 날개</span>
             </div>
 
-            <!-- 3. 동글 날개 (초기 선택) -->
             <div class="arch-track-item">
               <button type="button" class="shape-thumb-btn active" data-shape="round" data-name="동글 날개">
                 <div class="shape-circle-badge">
@@ -502,7 +490,6 @@
               <span class="shape-item-label text-[11px] font-bold text-sky-600 tracking-tight">동글 날개</span>
             </div>
 
-            <!-- 4. 요정 날개 -->
             <div class="arch-track-item">
               <button type="button" class="shape-thumb-btn" data-shape="fairy" data-name="요정 날개">
                 <div class="shape-circle-badge">
@@ -514,7 +501,6 @@
               <span class="shape-item-label text-[11px] font-medium text-slate-300 tracking-tight">요정 날개</span>
             </div>
 
-            <!-- 5. 제왕 날개 -->
             <div class="arch-track-item">
               <button type="button" class="shape-thumb-btn" data-shape="monarch" data-name="제왕 날개">
                 <div class="shape-circle-badge">
@@ -526,7 +512,6 @@
               <span class="shape-item-label text-[11px] font-medium text-slate-300 tracking-tight">제왕 날개</span>
             </div>
 
-            <!-- 6. 물결 날개 -->
             <div class="arch-track-item">
               <button type="button" class="shape-thumb-btn" data-shape="wave" data-name="물결 날개">
                 <div class="shape-circle-badge">
@@ -541,7 +526,6 @@
           </div>
         </div>
 
-        <!-- 3종 옵션 바 -->
         <div class="arch-pill-nav">
           <button type="button" class="deco-pill-btn" style="background: #f0f9ff; border-color: #38bdf8; color: #0284c7;">날개</button>
           <button type="button" class="deco-pill-btn">더듬이</button>
@@ -555,7 +539,6 @@
       </div>
     </section>
 
-    <!-- [STEP 1] 설문 화면 -->
     <section id="screen-survey" class="screen flex-col flex-1 justify-between overflow-hidden relative z-10 h-full w-full bg-white">
       <header class="w-full pt-3 pb-0 flex-shrink-0 flex justify-center">
         <div class="w-[84%] h-1 bg-slate-100 rounded-full overflow-hidden">
@@ -572,7 +555,6 @@
         <div id="organic-chip-container" class="flex flex-col items-center gap-2.5 w-full py-2"></div>
       </div>
 
-      <!-- [Q6] 돌아올 날 & 메모 -->
       <div id="field-step-6" class="hidden flex-1 w-full flex-col justify-center items-center px-4 min-h-0">
         <div class="w-full bg-white border border-sky-100 rounded-3xl p-5 space-y-3.5 shadow-xl shadow-slate-100">
           <div>
@@ -616,7 +598,6 @@
         </div>
       </div>
 
-      <!-- [Q7] 나비 이름 설정 -->
       <div id="field-step-7" class="hidden flex-1 w-full flex-col justify-center items-center px-4 min-h-0">
         <div class="w-full space-y-2">
           <label class="block text-xs font-mono text-sky-700 font-semibold text-left px-1">나비의 고유한 이름</label>
@@ -629,7 +610,6 @@
         </div>
       </div>
 
-      <!-- 하단 버튼 -->
       <footer class="w-full pt-1 flex flex-col items-center gap-1.5 flex-shrink-0">
         <button id="btn-survey-next" type="button" disabled 
                 class="btn-next-action w-[84%] py-3.5 rounded-2xl font-bold text-sm tracking-wide active:scale-[0.98] transition-all">
@@ -641,7 +621,6 @@
       </footer>
     </section>
 
-    <!-- [STEP 3] 나비 생성 로딩 화면 -->
     <section id="screen-loading" class="screen flex-col flex-1 justify-between items-center py-10 text-center relative overflow-hidden z-10 w-full bg-white">
       <div class="absolute inset-0 flex items-center justify-center pointer-events-none">
         <div class="w-64 h-64 rounded-full bg-sky-100/60 dramatic-aura-core"></div>
@@ -671,7 +650,6 @@
       </div>
     </section>
 
-    <!-- [STEP 4] 최종 3D 뷰어 -->
     <section id="screen-preview" class="screen fixed inset-0 z-50 flex-col justify-between py-6 overflow-hidden"
       style="background: linear-gradient(180deg, #38bdf8 0%, #60a5fa 45%, #e0f2fe 90%, #f8fafc 100%) !important;">
       <header class="text-center pt-3 z-10">
@@ -692,7 +670,6 @@
       </footer>
     </section>
 
-    <!-- [STEP 5] 비행 완료 화면 -->
     <section id="screen-complete" class="screen flex-col flex-1 justify-center items-center text-center p-6 relative z-10 w-full bg-white">
       <div class="w-20 h-20 rounded-full bg-sky-50 border border-sky-200 flex items-center justify-center mb-6 shadow-md">
         <svg class="w-10 h-10 text-sky-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -702,7 +679,7 @@
       <h2 class="text-2xl font-bold text-slate-900 mb-2">하늘 위로 눈부시게 날아올랐습니다</h2>
       <p id="complete-desc" class="text-sm text-slate-600 leading-relaxed mb-8">
         빛의 날개를 얻은 나비가<br>
-        전면 대형 스크린의 찬란한 너울 속으로 합류했습니다.
+        전면 대형 스크린의 찬란한 너울 속으로 합류했습니다.[cite: 4]
       </p>
       <button onclick="location.reload()" type="button" class="w-[84%] py-3.5 rounded-2xl border border-sky-200 bg-white text-slate-800 text-xs font-semibold shadow-sm active:scale-95 transition-all">
         새로운 나비 띄우기
@@ -733,7 +710,6 @@
 
     const carouselContainer = document.getElementById('arch-carousel-container');
 
-    // 양 끝 아이템도 화면 정중앙에 정확히 올 수 있도록 패딩 동적 설정
     function updateCarouselPadding() {
       if (!carouselContainer) return;
       const cWidth = carouselContainer.clientWidth;
@@ -746,10 +722,6 @@
       }
     }
 
-    /* 
-      중앙 고정 영역 판정 및 궤적 곡선 제어:
-      중앙 범위(CENTER_THRESHOLD)에 진입한 나비만 active 상태로 실시간 전환
-    */
     function applyArchCurveAndSelection() {
       if (!carouselContainer) return;
       const cWidth = carouselContainer.clientWidth;
@@ -757,8 +729,9 @@
       const centerX = scrollLeft + (cWidth / 2);
       
       const items = carouselContainer.querySelectorAll('.arch-track-item');
-      const R = 280; // 곡률 반경
-      const CENTER_THRESHOLD = 38; // 중앙 고정 범위 허용 오차(px)
+      // [수정] 배경 돔의 곡률(72.7% 구간)과 100% 일치하도록 반경 R을 240px로 수정
+      const R = 240; 
+      const CENTER_THRESHOLD = 38;
 
       let centerDetectedItem = null;
       let minDistance = Infinity;
@@ -772,17 +745,14 @@
           centerDetectedItem = item;
         }
 
-        // 원형 아치 궤적 보정
         const clampedDist = Math.min(dist, R - 10);
         const translateY = R - Math.sqrt((R * R) - (clampedDist * clampedDist));
         item.style.transform = `translate3d(0, ${translateY.toFixed(2)}px, 0)`;
 
-        // 중앙 영역 바깥의 나비는 투명도를 살짝 낮춰 중앙 고정 영역을 더욱 돋보이게 함
         const opacityRatio = Math.max(0.4, 1 - (dist / (cWidth * 0.45)));
         item.style.opacity = opacityRatio.toFixed(2);
       });
 
-      // 가장 중앙에 접근한 나비가 고정 범위(Threshold) 이내일 때 선택 활성화
       if (centerDetectedItem && minDistance <= CENTER_THRESHOLD) {
         const btn = centerDetectedItem.querySelector('.shape-thumb-btn');
         if (btn && !btn.classList.contains('active')) {
@@ -812,7 +782,6 @@
       updateHeroPreview(selectedButterflyShape);
     }
 
-    // 대상 나비를 정중앙에 1픽셀 오차도 없이 고정(Snap) 정렬
     function snapItemToExactCenter(itemElement) {
       if (!carouselContainer || !itemElement) return;
       const cWidth = carouselContainer.clientWidth;
@@ -821,7 +790,6 @@
       carouselContainer.scrollTo({ left: targetScroll, behavior: 'smooth' });
     }
 
-    // 스크롤 종료 후 가장 가까운 나비를 중앙 고정 포커스 존으로 즉시 자석 스냅
     function autoSnapToNearestCenter() {
       if (!carouselContainer) return;
       const cWidth = carouselContainer.clientWidth;
@@ -854,7 +822,6 @@
         applyArchCurveAndSelection();
         
         clearTimeout(scrollTimer);
-        // 사용자가 손을 떼고 스크롤 감속이 멈추면 중앙 고정 위치로 자석 안착
         scrollTimer = setTimeout(() => {
           autoSnapToNearestCenter();
         }, 120);
@@ -882,7 +849,6 @@
       }
     }
 
-    // 나비 썸네일 클릭 시에도 중앙 고정 프레임 안으로 즉시 이동
     document.querySelectorAll('.shape-thumb-btn').forEach(btn => {
       btn.addEventListener('click', () => {
         setActiveItemVisual(btn);
@@ -1591,7 +1557,7 @@
           if (fullGroup.position.y > 8.5) {
             const completeDesc = document.getElementById('complete-desc');
             if (completeDesc) {
-              completeDesc.innerHTML = `마음의 무게를 털어낸 <strong>‘${userSelections.q7_name || "나비"}’</strong>(이)가<br>빛의 날개를 펴고 전면 대형 스크린의 너울 속으로 합류했습니다.`;
+              completeDesc.innerHTML = `마음의 무게를 털어낸 <strong>‘${userSelections.q7_name || "나비"}’</strong>(이)가<br>빛의 날개를 펴고 전면 대형 스크린의 너울 속으로 합류했습니다.[cite: 4]`;
             }
             showScreen('screen-complete');
             isFlyingAway = false;
