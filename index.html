@@ -103,7 +103,7 @@
       display: none;
     }
 
-    /* 캐러셀: 좌우 전용 스크롤 + 터치 스냅 */
+    /* 캐러셀: 상하 스크롤 완전 차단, 좌우 터치만 허용, 상단 잘림 방지 */
     .horizontal-scroll-carousel {
       overflow-x: auto;
       overflow-y: visible !important;
@@ -120,7 +120,7 @@
     /* 상단 고정 영역 */
     .hero-fixed-anchor {
       position: absolute;
-      top: 18px;
+      top: 14px;
       left: 0;
       right: 0;
       display: flex;
@@ -130,10 +130,11 @@
       z-index: 10;
     }
 
+    /* 3. 정사각형 프레임: 살짝 축소(295px)하여 하단과의 간격 확보 */
     .reference-square-frame {
-      width: 330px;
-      height: 330px;
-      border-radius: 44px;
+      width: 295px;
+      height: 295px;
+      border-radius: 40px;
       background-color: #eef6ff;
       position: relative;
       display: flex;
@@ -166,20 +167,20 @@
       overflow: visible;
     }
 
-    /* 하단 도크 영역: 프레임과 겹치지 않도록 전체적으로 확실하게 내림 */
+    /* 1. 하단 도크 영역: 전체 요소를 확실하게 아래로 내림 */
     .shape-bottom-fixed-dock {
       position: absolute;
-      bottom: 0;
+      bottom: -4px;
       left: 0;
       right: 0;
       display: flex;
       flex-direction: column;
       align-items: center;
-      padding-bottom: max(10px, env(safe-area-inset-bottom));
+      padding-bottom: max(14px, env(safe-area-inset-bottom));
       z-index: 20;
     }
 
-    /* 굴곡형 캐러셀 아이템 */
+    /* 원 궤적 아이템 */
     .arch-track-item {
       scroll-snap-align: center;
       display: flex;
@@ -200,39 +201,39 @@
       padding: 0;
       cursor: pointer;
       outline: none;
-      transition: transform 0.25s cubic-bezier(0.2, 0.8, 0.2, 1);
+      transition: transform 0.2s cubic-bezier(0.2, 0.8, 0.2, 1);
     }
 
     /* 미선택 옵션 나비 */
     .shape-circle-badge {
-      width: 64px;
-      height: 64px;
+      width: 60px;
+      height: 60px;
       border-radius: 50%;
       background-color: #f8fafc;
       border: 1px solid #f1f5f9;
       display: flex;
       align-items: center;
       justify-content: center;
-      transition: all 0.25s cubic-bezier(0.2, 0.8, 0.2, 1);
+      transition: all 0.22s cubic-bezier(0.2, 0.8, 0.2, 1);
       box-sizing: border-box;
       box-shadow: 0 2px 8px rgba(148, 163, 184, 0.08);
     }
 
     .shape-circle-badge svg {
-      width: 38px;
-      height: 38px;
+      width: 36px;
+      height: 36px;
       fill: #cbd5e1;
-      transition: all 0.25s cubic-bezier(0.2, 0.8, 0.2, 1);
+      transition: all 0.22s cubic-bezier(0.2, 0.8, 0.2, 1);
     }
 
-    /* 선택된 중앙 나비 */
+    /* 5. 선택된 중앙 나비: 잘림 없이 확대 */
     .shape-thumb-btn.active .shape-circle-badge {
       width: 84px;
       height: 84px;
       background: #e0f2fe;
       border: none !important;
       box-shadow: 0 14px 30px -4px rgba(56, 189, 248, 0.45);
-      transform: scale(1.18);
+      transform: scale(1.16);
     }
 
     .shape-thumb-btn.active .shape-circle-badge svg {
@@ -250,16 +251,16 @@
       white-space: nowrap;
     }
 
-    /* 배경 아치형 그라데이션 돔 */
+    /* 2. 배경 아치형 그라데이션 돔: 나비와 함께 아래로 배치 */
     .custom-arch-gradient-dome {
       position: absolute;
       left: 50%;
-      bottom: 10px;
+      bottom: 22px;
       transform: translateX(-50%);
-      width: 370px;
-      height: 185px;
-      border-radius: 185px 185px 0 0;
-      background: radial-gradient(circle at 50% 30%, rgba(186, 230, 253, 0.72) 0%, rgba(224, 242, 254, 0.38) 50%, rgba(255, 255, 255, 0) 80%);
+      width: 380px;
+      height: 200px;
+      border-radius: 200px 200px 0 0;
+      background: radial-gradient(circle at 50% 28%, rgba(186, 230, 253, 0.78) 0%, rgba(224, 242, 254, 0.42) 52%, rgba(255, 255, 255, 0) 80%);
       border: none !important;
       outline: none !important;
       box-shadow: none !important;
@@ -274,11 +275,11 @@
       align-items: center;
       justify-content: center;
       gap: 10px;
-      padding-top: 6px;
+      padding-top: 4px;
     }
 
     .deco-pill-btn {
-      padding: 6.5px 15px;
+      padding: 6px 15px;
       border-radius: 9999px;
       background: #ffffff;
       border: 1.5px solid #bae6fd;
@@ -414,19 +415,19 @@
     <!-- [STEP 0.8] 날개 형태 고르기 -->
     <section id="screen-shape-select" class="screen flex-1 relative z-10 w-full h-full bg-white overflow-hidden">
       
-      <!-- 상단 고정 영역 -->
+      <!-- 상단 고정 영역: 프레임 크기 축소(295px) 적용 -->
       <div class="hero-fixed-anchor">
-        <header class="pt-3 pb-2 text-center pointer-events-auto">
+        <header class="pt-2 pb-1 text-center pointer-events-auto">
           <h2 class="text-2xl font-bold text-slate-900 tracking-tight">날개 형태 고르기</h2>
-          <p class="text-xs text-slate-500 mt-1 font-normal">도안의 결을 담아낼 나비의 실루엣을 선택해 주세요.</p>
+          <p class="text-xs text-slate-500 mt-0.5 font-normal">도안의 결을 담아낼 나비의 실루엣을 선택해 주세요.</p>
         </header>
 
-        <div class="reference-square-frame mt-3">
+        <div class="reference-square-frame mt-2">
           <div class="bounded-butterfly-layer">
             <svg id="hero-butterfly-svg" viewBox="0 0 160 160">
               <defs>
-                <filter id="soft-butterfly-shadow" x="-40%" y="-40%" width="180%" height="180%">
-                  <feDropShadow dx="0" dy="10" stdDeviation="12" flood-color="#38bdf8" flood-opacity="0.32" />
+                <filter id="soft-butterfly-shadow" x="-50%" y="-50%" width="200%" height="200%">
+                  <feDropShadow dx="0" dy="10" stdDeviation="14" flood-color="#38bdf8" flood-opacity="0.35" />
                 </filter>
               </defs>
               <g id="hero-path-container" transform="translate(30, 30)" filter="url(#soft-butterfly-shadow)">
@@ -437,13 +438,13 @@
         </div>
       </div>
 
-      <!-- 하단 도크 영역: 프레임과 거리두고 하강 배치 -->
+      <!-- 하단 도크 영역: 확실히 아래로 내리고 프레임과 거리 확보 -->
       <div class="shape-bottom-fixed-dock">
         <!-- 배경 원형 그라데이션 돔 -->
         <div class="custom-arch-gradient-dome"></div>
 
-        <!-- 옵션 나비 캐러셀 -->
-        <div id="arch-carousel-container" class="horizontal-scroll-carousel flex items-start gap-4 pt-1 pb-1 w-full h-[120px] relative z-10 box-border mt-0">
+        <!-- 옵션 나비 캐러셀 (높이 155px 확보 + pt-6 패딩으로 위쪽 잘림 완벽 해결) -->
+        <div id="arch-carousel-container" class="horizontal-scroll-carousel flex items-start gap-4 pt-6 pb-2 w-full h-[155px] relative z-10 box-border">
           
           <!-- 0. 기본 날개 -->
           <div class="arch-track-item">
@@ -538,7 +539,7 @@
           <button type="button" class="deco-pill-btn">무늬</button>
         </div>
 
-        <footer class="flex gap-2.5 w-[84%] mx-auto flex-shrink-0 pt-3.5 relative z-20">
+        <footer class="flex gap-2.5 w-[84%] mx-auto flex-shrink-0 pt-3 relative z-20">
           <button id="btn-back-to-align" type="button" class="w-1/3 py-3.5 rounded-2xl border border-slate-200 bg-slate-50 text-slate-600 text-sm active:scale-95 transition-all shadow-sm">이전</button>
           <button id="btn-confirm-shape" type="button" class="flex-1 py-3.5 rounded-2xl bg-white border border-slate-200 text-slate-800 font-semibold text-sm active:scale-95 transition-all shadow-sm">이 형태로 질문 시작</button>
         </footer>
@@ -667,7 +668,7 @@
       <header class="text-center pt-3 z-10">
         <span class="text-xs font-mono text-white font-semibold tracking-wider uppercase drop-shadow-[0_1px_4px_rgba(0,0,0,0.25)]">NOUL LUMINOUS BUTTERFLY</span>
         <h2 id="preview-butterfly-name" class="text-3xl font-black text-white mt-1 drop-shadow-[0_2px_8px_rgba(0,0,0,0.25)] tracking-tight">‘나비’</h2>
-        <p class="text-xs text-white/95 mt-1 font-normal drop-shadow-[0_1px_4px_rgba(0,0,0,0.25)]">화면을 위로 쓸어 올려 눈부신 하늘로 날려보내세요.</p>
+        <p class="text-xs text-white/95 mt-1 font-normal drop-shadow-[0_1px_4px_rgba(0,0,0,0.25)]">화면을 위로 쓸어 올려 눈부신 하늘로 날려보내세요.[cite: 1]</p>
       </header>
 
       <div id="three-container" class="w-full h-full absolute inset-0 z-0 pointer-events-auto"></div>
@@ -692,7 +693,7 @@
       <h2 class="text-2xl font-bold text-slate-900 mb-2">하늘 위로 눈부시게 날아올랐습니다</h2>
       <p id="complete-desc" class="text-sm text-slate-600 leading-relaxed mb-8">
         빛의 날개를 얻은 나비가<br>
-        전면 대형 스크린의 찬란한 너울 속으로 합류했습니다.
+        전면 대형 스크린의 찬란한 너울 속으로 합류했습니다.[cite: 1]
       </p>
       <button onclick="location.reload()" type="button" class="w-[84%] py-3.5 rounded-2xl border border-sky-200 bg-white text-slate-800 text-xs font-semibold shadow-sm active:scale-95 transition-all">
         새로운 나비 띄우기
@@ -735,27 +736,32 @@
       }
     }
 
+    /* 4. 원형 테두리를 완벽히 타고 흐르는 기하학적 원호 곡선 공식 (R = 260px) */
     function applyArchCurve() {
       if (!carouselContainer) return;
       const cRect = carouselContainer.getBoundingClientRect();
       const centerX = cRect.left + cRect.width / 2;
       const items = carouselContainer.querySelectorAll('.arch-track-item');
+      const R = 260; // 곡률 반경 (원형 돔의 굴곡과 일치)
 
       items.forEach(item => {
         const itemRect = item.getBoundingClientRect();
         const itemCenter = itemRect.left + itemRect.width / 2;
         const dist = Math.abs(centerX - itemCenter);
-        const maxDist = cRect.width * 0.52;
-        const normDist = Math.min(dist / maxDist, 1.25);
         
-        const translateY = Math.pow(normDist, 2.0) * 36;
-        item.style.transform = `translate3d(0, ${translateY}px, 0)`;
+        // 원의 방정식: y = R - sqrt(R^2 - x^2)
+        const clampedDist = Math.min(dist, R - 10);
+        const translateY = R - Math.sqrt((R * R) - (clampedDist * clampedDist));
+        
+        // 오직 수평 위치(x)에 의해 계산된 Y 높이만 적용 (상하 흔들림 배제)
+        item.style.transform = `translate3d(0, ${translateY.toFixed(2)}px, 0)`;
       });
     }
 
     let isManualScrolling = false;
     let scrollDebounceTimer = null;
 
+    /* 중앙에 위치한 나비 감지 및 자동 활성화 */
     function detectCenterItemAndSelect() {
       if (!carouselContainer) return;
       const cRect = carouselContainer.getBoundingClientRect();
@@ -805,7 +811,7 @@
     }
 
     let scrollAnimFrame = null;
-    function smoothScrollTo(element, target, duration = 300) {
+    function smoothScrollTo(element, target, duration = 280) {
       if (scrollAnimFrame) cancelAnimationFrame(scrollAnimFrame);
       const start = element.scrollLeft;
       const change = target - start;
@@ -834,6 +840,7 @@
       scrollAnimFrame = requestAnimationFrame(animateScroll);
     }
 
+    /* 터치 클릭 시 선택 나비 중앙 부드러운 스크롤 */
     function scrollItemToCenter(itemElement) {
       if (!carouselContainer || !itemElement) return;
       const cWidth = carouselContainer.clientWidth;
@@ -1586,7 +1593,7 @@
           if (fullGroup.position.y > 8.5) {
             const completeDesc = document.getElementById('complete-desc');
             if (completeDesc) {
-              completeDesc.innerHTML = `마음의 무게를 털어낸 <strong>‘${userSelections.q7_name || "나비"}’</strong>(이)가<br>빛의 날개를 펴고 전면 대형 스크린의 너울 속으로 합류했습니다.`;
+              completeDesc.innerHTML = `마음의 무게를 털어낸 <strong>‘${userSelections.q7_name || "나비"}’</strong>(이)가<br>빛의 날개를 펴고 전면 대형 스크린의 너울 속으로 합류했습니다.[cite: 1]`;
             }
             showScreen('screen-complete');
             isFlyingAway = false;
