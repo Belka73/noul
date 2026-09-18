@@ -114,7 +114,7 @@
       display: none;
     }
 
-    /* 상단 고정 영역 */
+    /* 상단 고정 영역 (이름 텍스트 제거로 여백 깔끔하게 확보) */
     .hero-fixed-anchor {
       position: absolute;
       top: 18px;
@@ -164,16 +164,7 @@
       filter: drop-shadow(0 12px 24px rgba(56, 189, 248, 0.28));
     }
 
-    .hero-name-container {
-      height: 32px;
-      margin-top: 14px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      flex-shrink: 0;
-    }
-
-    /* 하단 도크 영역: 전체 섹션을 아래로 내려 모바일 Safe Area 여백 확보 */
+    /* 하단 도크 영역: 프레임과 닿지 않도록 확실하게 아래로 정돈 */
     .shape-bottom-fixed-dock {
       position: absolute;
       bottom: 0;
@@ -182,7 +173,7 @@
       display: flex;
       flex-direction: column;
       align-items: center;
-      padding-bottom: max(12px, env(safe-area-inset-bottom));
+      padding-bottom: max(16px, env(safe-area-inset-bottom));
       z-index: 20;
     }
 
@@ -253,11 +244,11 @@
       white-space: nowrap;
     }
 
-    /* 배경 아치형 그라데이션 돔: 하단 섹션 하강에 맞춰 자연스럽게 조정 */
+    /* 배경 아치형 그라데이션 돔 */
     .custom-arch-gradient-dome {
       position: absolute;
       left: 50%;
-      bottom: 20px;
+      bottom: 25px;
       transform: translateX(-50%);
       width: 370px;
       height: 185px;
@@ -277,7 +268,7 @@
       align-items: center;
       justify-content: center;
       gap: 10px;
-      padding-top: 8px;
+      padding-top: 10px;
     }
 
     .deco-pill-btn {
@@ -414,10 +405,10 @@
       </footer>
     </section>
 
-    <!-- [STEP 0.8] 날개 형태 고르기 (아래로 내려 모바일 여백 최적화) -->
+    <!-- [STEP 0.8] 날개 형태 고르기 -->
     <section id="screen-shape-select" class="screen flex-1 relative z-10 w-full h-full bg-white overflow-hidden">
       
-      <!-- 상단 고정 영역 -->
+      <!-- 상단 고정 영역 (나비 이름 텍스트 제거됨) -->
       <div class="hero-fixed-anchor">
         <header class="pt-3 pb-2 text-center pointer-events-auto">
           <h2 class="text-2xl font-bold text-slate-900 tracking-tight">날개 형태 고르기</h2>
@@ -433,19 +424,15 @@
             </svg>
           </div>
         </div>
-
-        <div class="hero-name-container pointer-events-auto">
-          <span id="hero-butterfly-name" class="text-lg font-bold text-slate-800 tracking-tight block leading-none">동글 날개</span>
-        </div>
       </div>
 
-      <!-- 하단 도크 영역: 전체적으로 아래로 이동 -->
+      <!-- 하단 도크 영역 (전체적으로 아래로 재배치) -->
       <div class="shape-bottom-fixed-dock">
         <!-- 배경 원형 그라데이션 돔 -->
         <div class="custom-arch-gradient-dome"></div>
 
-        <!-- 옵션 나비 캐러셀 (상단 음수 마진을 축소하여 전체를 아래로 배치) -->
-        <div id="arch-carousel-container" class="horizontal-scroll-carousel flex items-end gap-3.5 pt-4 pb-1.5 w-full relative z-10 box-border -mt-[14px]">
+        <!-- 옵션 나비 캐러셀 -->
+        <div id="arch-carousel-container" class="horizontal-scroll-carousel flex items-end gap-3.5 pt-4 pb-1.5 w-full relative z-10 box-border -mt-[4px]">
           
           <!-- 0. 기본 날개 -->
           <div class="arch-track-item flex flex-col items-center gap-1 flex-shrink-0">
@@ -533,14 +520,14 @@
 
         </div>
 
-        <!-- 3종 알약 버튼 -->
+        <!-- 3종 옵션 바 ('나비' 제거 및 '날개' 선택 상태로 변경) -->
         <div class="arch-pill-nav">
-          <button type="button" class="deco-pill-btn" style="transform: translateY(6px);">나비 날개</button>
-          <button type="button" class="deco-pill-btn" style="transform: translateY(0px); background: #f0f9ff; border-color: #38bdf8; color: #0284c7;">나비 더듬이</button>
-          <button type="button" class="deco-pill-btn" style="transform: translateY(6px);">나비 무늬</button>
+          <button type="button" class="deco-pill-btn" style="transform: translateY(0px); background: #f0f9ff; border-color: #38bdf8; color: #0284c7;">날개</button>
+          <button type="button" class="deco-pill-btn" style="transform: translateY(6px);">더듬이</button>
+          <button type="button" class="deco-pill-btn" style="transform: translateY(6px);">무늬</button>
         </div>
 
-        <footer class="flex gap-2.5 w-[84%] mx-auto flex-shrink-0 pt-3 relative z-20">
+        <footer class="flex gap-2.5 w-[84%] mx-auto flex-shrink-0 pt-3.5 relative z-20">
           <button id="btn-back-to-align" type="button" class="w-1/3 py-3.5 rounded-2xl border border-slate-200 bg-slate-50 text-slate-600 text-sm active:scale-95 transition-all shadow-sm">이전</button>
           <button id="btn-confirm-shape" type="button" class="flex-1 py-3.5 rounded-2xl bg-white border border-slate-200 text-slate-800 font-semibold text-sm active:scale-95 transition-all shadow-sm">이 형태로 질문 시작</button>
         </footer>
@@ -716,15 +703,10 @@
       wave: "M 50,33 C 51.5,33 53,35 53,38 C 53,41 51.5,43 53,43.5 C 58,32 77,18.5 88,19 C 94.5,21.5 93,33 83.5,50 C 82,53.5 83.5,56 84.5,59 C 76.5,63.5 73.5,61.5 75.5,68 C 80,82 82,92 73.5,95.5 C 64.5,99.5 54,77 53,71 C 53,74 51.5,77 50,77 C 48.5,77 47,74 47,71 C 46,77 35.5,99.5 26.5,95.5 C 18,92 20,82 24.5,68 C 26.5,61.5 23.5,63.5 15.5,59 C 16.5,56 18,53.5 16.5,50 C 7,33 5.5,21.5 12,19 C 23,18.5 42,32 47,43.5 C 48.5,43 47,41 47,38 C 47,35 48.5,33 50,33 Z"
     };
 
-    function updateHeroPreview(shapeKey, shapeName) {
+    function updateHeroPreview(shapeKey) {
       const heroPathContainer = document.getElementById('hero-path-container');
-      const heroName = document.getElementById('hero-butterfly-name');
-
       if (heroPathContainer) {
         heroPathContainer.innerHTML = `<path d="${butterflyPathData[shapeKey]}" fill="#ffffff"/>`;
-      }
-      if (heroName) {
-        heroName.innerText = shapeName;
       }
     }
 
@@ -841,8 +823,7 @@
         }
 
         selectedButterflyShape = btn.getAttribute('data-shape');
-        const shapeName = btn.getAttribute('data-name');
-        updateHeroPreview(selectedButterflyShape, shapeName);
+        updateHeroPreview(selectedButterflyShape);
 
         scrollItemToCenter(btn.closest('.arch-track-item'));
       });
@@ -1280,7 +1261,7 @@
       ectx.drawImage(rawImage, imgX * scaleRatio, imgY * scaleRatio, rawImage.width * imgScale * scaleRatio, rawImage.height * imgScale * scaleRatio);
 
       currentExtractedTexture = processClearDrawingTexture(exportCanvas);
-      updateHeroPreview(selectedButterflyShape, '동글 날개');
+      updateHeroPreview(selectedButterflyShape);
       showScreen('screen-shape-select');
     });
 
