@@ -166,7 +166,7 @@
       overflow: visible;
     }
 
-    /* 하단 도크 영역: 안정된 바닥 고정 */
+    /* 하단 도크 영역: 프레임과 겹치지 않도록 전체적으로 확실하게 내림 */
     .shape-bottom-fixed-dock {
       position: absolute;
       bottom: 0;
@@ -175,11 +175,11 @@
       display: flex;
       flex-direction: column;
       align-items: center;
-      padding-bottom: max(16px, env(safe-area-inset-bottom));
+      padding-bottom: max(10px, env(safe-area-inset-bottom));
       z-index: 20;
     }
 
-    /* 굴곡형 캐러셀 아이템: 일그러짐 없이 부드러운 곡선 유지 */
+    /* 굴곡형 캐러셀 아이템 */
     .arch-track-item {
       scroll-snap-align: center;
       display: flex;
@@ -227,8 +227,8 @@
 
     /* 선택된 중앙 나비 */
     .shape-thumb-btn.active .shape-circle-badge {
-      width: 86px;
-      height: 86px;
+      width: 84px;
+      height: 84px;
       background: #e0f2fe;
       border: none !important;
       box-shadow: 0 14px 30px -4px rgba(56, 189, 248, 0.45);
@@ -236,8 +236,8 @@
     }
 
     .shape-thumb-btn.active .shape-circle-badge svg {
-      width: 50px;
-      height: 50px;
+      width: 48px;
+      height: 48px;
       fill: #38bdf8;
       filter: drop-shadow(0 4px 8px rgba(56, 189, 248, 0.35));
     }
@@ -254,7 +254,7 @@
     .custom-arch-gradient-dome {
       position: absolute;
       left: 50%;
-      bottom: 25px;
+      bottom: 10px;
       transform: translateX(-50%);
       width: 370px;
       height: 185px;
@@ -274,7 +274,7 @@
       align-items: center;
       justify-content: center;
       gap: 10px;
-      padding-top: 10px;
+      padding-top: 6px;
     }
 
     .deco-pill-btn {
@@ -437,13 +437,13 @@
         </div>
       </div>
 
-      <!-- 하단 도크 영역: 아치형 곡선과 자동 중앙 선택 지원 -->
+      <!-- 하단 도크 영역: 프레임과 거리두고 하강 배치 -->
       <div class="shape-bottom-fixed-dock">
         <!-- 배경 원형 그라데이션 돔 -->
         <div class="custom-arch-gradient-dome"></div>
 
-        <!-- 옵션 나비 캐러셀 (높이 130px 확보로 찌그러짐 방지) -->
-        <div id="arch-carousel-container" class="horizontal-scroll-carousel flex items-start gap-4 pt-1 pb-1 w-full h-[130px] relative z-10 box-border -mt-[4px]">
+        <!-- 옵션 나비 캐러셀 -->
+        <div id="arch-carousel-container" class="horizontal-scroll-carousel flex items-start gap-4 pt-1 pb-1 w-full h-[120px] relative z-10 box-border mt-0">
           
           <!-- 0. 기본 날개 -->
           <div class="arch-track-item">
@@ -735,7 +735,6 @@
       }
     }
 
-    /* 3. 부드러운 아치형 곡선 높낮이 유지 (찌그러짐 방지) */
     function applyArchCurve() {
       if (!carouselContainer) return;
       const cRect = carouselContainer.getBoundingClientRect();
@@ -749,7 +748,6 @@
         const maxDist = cRect.width * 0.52;
         const normDist = Math.min(dist / maxDist, 1.25);
         
-        // 2차 베지어 곡률로 자연스러운 능선 형성
         const translateY = Math.pow(normDist, 2.0) * 36;
         item.style.transform = `translate3d(0, ${translateY}px, 0)`;
       });
@@ -758,7 +756,6 @@
     let isManualScrolling = false;
     let scrollDebounceTimer = null;
 
-    /* 1. 스크롤하면서 중앙에 가장 가까운 나비를 자동 감지하여 선택 */
     function detectCenterItemAndSelect() {
       if (!carouselContainer) return;
       const cRect = carouselContainer.getBoundingClientRect();
@@ -837,7 +834,6 @@
       scrollAnimFrame = requestAnimationFrame(animateScroll);
     }
 
-    /* 2. 사용자가 클릭(터치)했을 때 정확한 중앙으로 자동 이동 */
     function scrollItemToCenter(itemElement) {
       if (!carouselContainer || !itemElement) return;
       const cWidth = carouselContainer.clientWidth;
@@ -850,7 +846,6 @@
       carouselContainer.addEventListener('scroll', () => {
         applyArchCurve();
 
-        // 스크롤 시 중앙 나비 실시간 감지
         if (!isManualScrolling) {
           detectCenterItemAndSelect();
         }
@@ -883,7 +878,6 @@
       }
     }
 
-    /* 터치 클릭 이벤트 핸들러 */
     document.querySelectorAll('.shape-thumb-btn').forEach(btn => {
       btn.addEventListener('click', () => {
         setActiveItemVisual(btn);
