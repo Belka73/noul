@@ -133,7 +133,6 @@
       flex-shrink: 0;
     }
 
-    /* [수정] 프레임 안 나비 크기 극대화 (280px 꽉 채움) */
     .bounded-butterfly-layer {
       position: absolute;
       width: 280px;
@@ -177,21 +176,23 @@
       justify-content: center;
     }
 
-    /* [수정] 그라데이션 원형의 상단 경계가 선택된 나비 중심(90px 지점)에 딱 닿도록 하향 배치 및 부드러운 페이드 */
+    /* [수정] 완벽한 정원(Circle) 형태 유지 + 레퍼런스 스타일의 극도로 부드러운 외곽 페이드아웃 */
     .custom-arch-gradient-dome {
       position: absolute;
       left: 50%;
-      top: 90px; /* 나비 배지(84px)의 정확한 세로축 중앙 */
+      top: 90px; /* 나비 배지의 수직 중앙 라인 */
       transform: translateX(-50%);
-      width: 400px;
-      height: 180px;
-      border-radius: 200px 200px 0 0;
-      background: radial-gradient(ellipse at 50% 0%, 
-        rgba(186, 230, 253, 0.75) 0%, 
-        rgba(224, 242, 254, 0.45) 45%, 
-        rgba(240, 249, 255, 0.15) 75%, 
-        rgba(255, 255, 255, 0) 100%
+      width: 460px;
+      height: 460px;
+      border-radius: 50%; /* 1:1 완벽한 원형 유지 */
+      background: radial-gradient(circle at 50% 50%, 
+        rgba(186, 230, 253, 0.82) 0%, 
+        rgba(215, 239, 254, 0.65) 28%, 
+        rgba(235, 248, 255, 0.38) 50%, 
+        rgba(245, 251, 255, 0.15) 68%, 
+        rgba(255, 255, 255, 0) 84%
       );
+      filter: blur(16px); /* 레퍼런스처럼 경계선을 완전히 풀어주는 소프트 블러 */
       border: none !important;
       outline: none !important;
       pointer-events: none;
@@ -429,7 +430,6 @@
                   <feDropShadow dx="0" dy="10" stdDeviation="14" flood-color="#38bdf8" flood-opacity="0.35" />
                 </filter>
               </defs>
-              <!-- [수정] scale(1.38)로 확대하여 프레임 안을 시원하게 채움 -->
               <g id="hero-path-container" transform="translate(11, 11) scale(1.38)" filter="url(#soft-butterfly-shadow)">
               </g>
             </svg>
@@ -440,7 +440,7 @@
       <div class="shape-bottom-fixed-dock">
         
         <div class="carousel-stage-wrapper">
-          <!-- [수정] 나비 중앙에 라인이 닿도록 배치한 그라데이션 돔 -->
+          <!-- 정원(Circle) 형태 유지 및 블러 처리된 그라데이션 원 -->
           <div class="custom-arch-gradient-dome"></div>
           
           <div class="center-fixed-target-zone"></div>
@@ -723,6 +723,7 @@
       }
     }
 
+    /* [수정] 세게 넘겨도 궤도를 이탈하지 않도록 엄격한 클램핑 및 원형 곡선 로직 */
     function applyArchCurveAndSelection() {
       if (!carouselContainer) return;
       const cWidth = carouselContainer.clientWidth;
@@ -745,11 +746,13 @@
           centerDetectedItem = item;
         }
 
-        const clampedDist = Math.min(dist, R - 10);
-        const translateY = R - Math.sqrt((R * R) - (clampedDist * clampedDist));
+        // 급격한 스크롤 관성 시 R값을 초과하여 수학적 에러가 생기지 않도록 방어(클램핑)
+        const safeDist = Math.min(dist, R - 6);
+        const translateY = R - Math.sqrt((R * R) - (safeDist * safeDist));
         item.style.transform = `translate3d(0, ${translateY.toFixed(2)}px, 0)`;
 
-        const opacityRatio = Math.max(0.4, 1 - (dist / (cWidth * 0.45)));
+        // 외곽으로 멀어질수록 자연스럽게 페이드
+        const opacityRatio = Math.max(0.35, 1 - (dist / (cWidth * 0.42)));
         item.style.opacity = opacityRatio.toFixed(2);
       });
 
@@ -824,7 +827,7 @@
         clearTimeout(scrollTimer);
         scrollTimer = setTimeout(() => {
           autoSnapToNearestCenter();
-        }, 120);
+        }, 110);
       }, { passive: true });
     }
 
