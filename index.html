@@ -10,6 +10,18 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Nanum+Pen+Script&display=swap" rel="stylesheet">
 
+  <!-- 크레파스/파스텔 오일 질감 SVG 필터 -->
+  <svg class="hidden" width="0" height="0">
+    <filter id="crayon-texture" x="-30%" y="-30%" width="160%" height="160%">
+      <feTurbulence type="fractalNoise" baseFrequency="0.72" numOctaves="4" result="noise" />
+      <feDisplacementMap in="SourceGraphic" in2="noise" scale="12" xChannelSelector="R" yChannelSelector="G" result="displaced" />
+      <feGaussianBlur in="displaced" stdDeviation="0.5" result="blurred" />
+      <feMerge>
+        <feMergeNode in="blurred" />
+      </feMerge>
+    </filter>
+  </svg>
+
   <style>
     html, body {
       width: 100%;
@@ -31,7 +43,6 @@
       letter-spacing: 0.02em;
     }
 
-    /* 전역 기본 배경 */
     .ambient-bg {
       position: fixed;
       inset: 0;
@@ -61,64 +72,62 @@
       filter: blur(70px);
     }
 
-    /* [레퍼런스 반영] 키워드 설문 전용 배경 오로라/돔 그라데이션 */
+    /* 설문 페이지 배경 */
     .survey-aurora-bg {
       position: absolute;
-      inset: -16px;
+      inset: -10px;
       pointer-events: none;
       z-index: 0;
       overflow: hidden;
       background: #ffffff;
     }
 
-    /* 하단/중단에서 둥글게 솟아오르는 바이올렛 & 블루 광원 (레퍼런스 안개형 블러) */
+    /* [수정] 레퍼런스처럼 볼록하고 둥근 아치/돔 형태 */
     .aurora-dome-layer {
       position: absolute;
-      width: 140%;
-      height: 75%;
-      left: -20%;
-      bottom: -10%;
-      border-radius: 50% 50% 0 0 / 70% 70% 0 0;
+      width: 110%;
+      height: 64%;
+      left: -5%;
+      bottom: -6%;
+      border-radius: 50% 50% 0 0 / 75% 75% 0 0;
       background: radial-gradient(
-        ellipse at 50% 90%,
-        #818cf8 0%,
-        #93c5fd 35%,
-        #c4b5fd 60%,
-        rgba(255, 255, 255, 0.85) 82%,
+        circle at 50% 92%,
+        #7584ee 0%,
+        #90b5fd 28%,
+        #beaff6 52%,
+        rgba(255, 255, 255, 0.92) 74%,
         #ffffff 100%
       );
-      filter: blur(48px);
-      opacity: 0.92;
+      filter: url(#crayon-texture) blur(16px);
+      opacity: 0.95;
       transform: translateZ(0);
     }
 
-    /* 상단과 자연스럽게 녹아들도록 연결해주는 라이트닝 레이어 */
     .aurora-light-core {
       position: absolute;
       width: 100%;
-      height: 55%;
+      height: 46%;
       bottom: 0;
       left: 0;
       background: linear-gradient(
         to top,
-        rgba(129, 140, 248, 0.35) 0%,
-        rgba(147, 197, 253, 0.28) 45%,
+        rgba(117, 132, 238, 0.4) 0%,
+        rgba(144, 181, 253, 0.25) 45%,
         rgba(255, 255, 255, 0) 100%
       );
       pointer-events: none;
     }
 
-    /* 레퍼런스 특유의 미세 노이즈 텍스처 오버레이 */
-    .aurora-noise {
+    /* 크레파스 오일/입자 질감 */
+    .crayon-paper-grain {
       position: absolute;
       inset: 0;
-      opacity: 0.22;
+      opacity: 0.42;
       mix-blend-mode: overlay;
       pointer-events: none;
-      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 160 160' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.88' numOctaves='4' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E");
     }
 
-    /* 키워드 칩 스타일 (그라데이션 배경 위 가독성을 위한 백드롭 블러) */
     .pill-chip {
       background: rgba(255, 255, 255, 0.88) !important;
       border: 1px solid rgba(255, 255, 255, 0.95) !important;
@@ -296,14 +305,13 @@
       </footer>
     </section>
 
-    <!-- [STEP 1] 설문 화면 (레퍼런스 배경 그라데이션 적용) -->
+    <!-- [STEP 1] 설문 화면 (원형에 가까운 볼록한 돔 그라데이션) -->
     <section id="screen-survey" class="screen flex-col flex-1 justify-between overflow-hidden relative h-full">
       
-      <!-- 레퍼런스 스타일 백그라운드 돔 그라데이션 -->
       <div class="survey-aurora-bg">
         <div class="aurora-dome-layer"></div>
         <div class="aurora-light-core"></div>
-        <div class="aurora-noise"></div>
+        <div class="crayon-paper-grain"></div>
       </div>
 
       <header class="w-full pt-1 flex-shrink-0 relative z-10">
@@ -369,7 +377,6 @@
         </div>
       </div>
 
-      <!-- 하단 액션 바 버튼 -->
       <footer class="w-full pt-1 flex flex-col gap-1.5 flex-shrink-0 relative z-10">
         <button id="btn-survey-next" type="button" disabled 
                 class="btn-next-action w-full py-3.5 rounded-2xl font-bold text-sm tracking-wide active:scale-[0.98] transition-all">
@@ -409,7 +416,7 @@
           내면의 고유한 모습을 담아<br>나비를 깨우고 있습니다.
         </h2>
         <p class="text-xs text-sky-600 mt-2 font-normal tracking-wide">
-          종이의 질감을 승화시키고 맑은 빛의 날개를 입히는 중입니다.
+          종이의 질감을 승화시키고 맑은 빛의 날개를 입히는 중입니다.[cite: 1]
         </p>
       </div>
 
@@ -429,7 +436,7 @@
       <header class="text-center pt-3 z-10">
         <span class="text-xs font-mono text-white font-semibold tracking-wider uppercase drop-shadow-[0_1px_4px_rgba(0,0,0,0.25)]">NOUL LUMINOUS BUTTERFLY</span>
         <h2 id="preview-butterfly-name" class="text-3xl font-black text-white mt-1 drop-shadow-[0_2px_8px_rgba(0,0,0,0.25)] tracking-tight">‘나비’</h2>
-        <p class="text-xs text-white/95 mt-1 font-normal drop-shadow-[0_1px_4px_rgba(0,0,0,0.25)]">화면을 위로 쓸어 올려 눈부신 하늘로 날려보내세요.</p>
+        <p class="text-xs text-white/95 mt-1 font-normal drop-shadow-[0_1px_4px_rgba(0,0,0,0.25)]">화면을 위로 쓸어 올려 눈부신 하늘로 날려보내세요.[cite: 1]</p>
       </header>
 
       <div id="three-container" class="w-full h-full absolute inset-0 z-0 pointer-events-auto"></div>
@@ -454,7 +461,7 @@
       <h2 class="text-2xl font-bold text-slate-900 mb-2">하늘 위로 눈부시게 날아올랐습니다</h2>
       <p id="complete-desc" class="text-sm text-slate-600 leading-relaxed mb-8">
         빛의 날개를 얻은 나비가<br>
-        전면 대형 스크린의 찬란한 너울 속으로 합류했습니다.
+        전면 대형 스크린의 찬란한 너울 속으로 합류했습니다.[cite: 1]
       </p>
       <button onclick="location.reload()" type="button" class="px-8 py-3.5 rounded-2xl border border-slate-300 bg-white text-slate-800 text-xs font-semibold shadow-sm active:scale-95 transition-all">
         새로운 나비 띄우기
@@ -537,7 +544,7 @@
       },
       {
         title: "먼 하늘 너울 속으로 날아오를 나비의 이름은?",
-        desc: "나비에게 고유한 이름을 붙여주세요."
+        desc: "나비에게 고유한 이름을 붙여주세요.[cite: 1]"
       }
     ];
 
@@ -738,8 +745,8 @@
       } else if (stepFrom === 4) {
         html = `
           <p class="text-slate-700 text-[0.95rem] leading-relaxed font-normal">시원한 ${formatKeywordBadges(userSelections.q5)} 한마디에, 날개를 옥죄던 어두운 그림자들이 허공으로 맥없이 흩어져 사라집니다.</p>
-          <p class="text-slate-700 text-[0.95rem] leading-relaxed font-normal">온갖 무게를 털어내고 한결 가벼워진 나비는 이제 거대한 하늘 너울 속으로 온전히 날아오릅니다.</p>
-          <p class="text-sky-700 handwriting-accent pt-2 font-bold">모든 상처를 비워낸 나비가 가장 눈부신 빛이 되어 당신의 품으로 다시 돌아올 날은 언제일까요?</p>
+          <p class="text-slate-700 text-[0.95rem] leading-relaxed font-normal">온갖 무게를 털어내고 한결 가벼워진 나비는 이제 거대한 하늘 너울 속으로 온전히 날아오릅니다.[cite: 1]</p>
+          <p class="text-sky-700 handwriting-accent pt-2 font-bold">모든 상처를 비워낸 나비가 가장 눈부신 빛이 되어 당신의 품으로 다시 돌아올 날은 언제일까요?[cite: 1]</p>
         `;
       }
 
@@ -925,7 +932,7 @@
       showScreen('screen-survey');
     });
 
-    /* Three.js 3D 모델링 생성 함수 */
+    /* 3D 엔진 & 나비 모델링 */
     function createChubbyCuteWingShape(isRight) {
       const shape = new THREE.Shape();
       const s = isRight ? 1 : -1;
@@ -1060,7 +1067,7 @@
       });
     }
 
-    /* 환기 화면 미니 나비 렌더러 */
+    /* 환기 화면 미니 나비 */
     let miniScene, miniCamera, miniRenderer, miniGroup, miniLeftWing, miniRightWing;
     let miniAnimId = null;
 
@@ -1132,7 +1139,7 @@
       animMini();
     }
 
-    /* 최종 3D 뷰어 렌더러 */
+    /* 최종 3D 뷰어 */
     let fullScene, fullCamera, fullRenderer, fullGroup, fullLeftWing, fullRightWing;
     let fullGlow1, fullGlow2;
     let isFlyingAway = false, touchStartY = 0;
@@ -1218,7 +1225,7 @@
           if (fullGroup.position.y > 8.5) {
             const completeDesc = document.getElementById('complete-desc');
             if (completeDesc) {
-              completeDesc.innerHTML = `마음의 무게를 털어낸 <strong>‘${userSelections.q7_name || "나비"}’</strong>(이)가<br>빛의 날개를 펴고 전면 대형 스크린의 너울 속으로 합류했습니다.`;
+              completeDesc.innerHTML = `마음의 무게를 털어낸 <strong>‘${userSelections.q7_name || "나비"}’</strong>(이)가<br>빛의 날개를 펴고 전면 대형 스크린의 너울 속으로 합류했습니다.[cite: 1]`;
             }
             showScreen('screen-complete');
             isFlyingAway = false;
