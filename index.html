@@ -17,8 +17,8 @@
       margin: 0;
       padding: 0;
       overflow: hidden;
-      background-color: #0c0818;
-      color: #f3f4f6;
+      background-color: #f8fafc;
+      color: #0f172a;
       font-family: -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", "Pretendard", sans-serif;
       -webkit-tap-highlight-color: transparent;
       user-select: none;
@@ -31,47 +31,109 @@
       letter-spacing: 0.02em;
     }
 
+    /* 전역 기본 배경 */
     .ambient-bg {
       position: fixed;
       inset: 0;
       pointer-events: none;
       z-index: 0;
       overflow: hidden;
+      background: radial-gradient(at 0% 0%, #eff6ff 0px, transparent 50%),
+                  radial-gradient(at 100% 100%, #f5f3ff 0px, transparent 50%),
+                  #f8fafc;
     }
     .ambient-glow-1 {
       position: absolute;
-      width: 360px;
-      height: 360px;
-      left: -20%;
-      top: 15%;
-      background: radial-gradient(circle, rgba(244, 63, 94, 0.35) 0%, rgba(244, 63, 94, 0) 70%);
-      filter: blur(55px);
+      width: 420px;
+      height: 420px;
+      left: -15%;
+      top: 10%;
+      background: radial-gradient(circle, rgba(147, 197, 253, 0.45) 0%, rgba(147, 197, 253, 0) 70%);
+      filter: blur(65px);
     }
     .ambient-glow-2 {
       position: absolute;
-      width: 380px;
-      height: 380px;
-      right: -25%;
-      bottom: 10%;
-      background: radial-gradient(circle, rgba(249, 115, 22, 0.38) 0%, rgba(249, 115, 22, 0) 70%);
-      filter: blur(60px);
+      width: 440px;
+      height: 440px;
+      right: -20%;
+      bottom: 5%;
+      background: radial-gradient(circle, rgba(196, 181, 253, 0.4) 0%, rgba(196, 181, 253, 0) 70%);
+      filter: blur(70px);
     }
 
+    /* [레퍼런스 반영] 키워드 설문 전용 배경 오로라/돔 그라데이션 */
+    .survey-aurora-bg {
+      position: absolute;
+      inset: -16px;
+      pointer-events: none;
+      z-index: 0;
+      overflow: hidden;
+      background: #ffffff;
+    }
+
+    /* 하단/중단에서 둥글게 솟아오르는 바이올렛 & 블루 광원 (레퍼런스 안개형 블러) */
+    .aurora-dome-layer {
+      position: absolute;
+      width: 140%;
+      height: 75%;
+      left: -20%;
+      bottom: -10%;
+      border-radius: 50% 50% 0 0 / 70% 70% 0 0;
+      background: radial-gradient(
+        ellipse at 50% 90%,
+        #818cf8 0%,
+        #93c5fd 35%,
+        #c4b5fd 60%,
+        rgba(255, 255, 255, 0.85) 82%,
+        #ffffff 100%
+      );
+      filter: blur(48px);
+      opacity: 0.92;
+      transform: translateZ(0);
+    }
+
+    /* 상단과 자연스럽게 녹아들도록 연결해주는 라이트닝 레이어 */
+    .aurora-light-core {
+      position: absolute;
+      width: 100%;
+      height: 55%;
+      bottom: 0;
+      left: 0;
+      background: linear-gradient(
+        to top,
+        rgba(129, 140, 248, 0.35) 0%,
+        rgba(147, 197, 253, 0.28) 45%,
+        rgba(255, 255, 255, 0) 100%
+      );
+      pointer-events: none;
+    }
+
+    /* 레퍼런스 특유의 미세 노이즈 텍스처 오버레이 */
+    .aurora-noise {
+      position: absolute;
+      inset: 0;
+      opacity: 0.22;
+      mix-blend-mode: overlay;
+      pointer-events: none;
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
+    }
+
+    /* 키워드 칩 스타일 (그라데이션 배경 위 가독성을 위한 백드롭 블러) */
     .pill-chip {
-      background: rgba(255, 255, 255, 0.11) !important;
-      border: 1px solid rgba(255, 255, 255, 0.22) !important;
-      backdrop-filter: blur(10px);
-      -webkit-backdrop-filter: blur(10px);
-      color: rgba(255, 255, 255, 0.95) !important;
+      background: rgba(255, 255, 255, 0.88) !important;
+      border: 1px solid rgba(255, 255, 255, 0.95) !important;
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      color: #1e293b !important;
       border-radius: 9999px !important;
       min-height: 42px !important;
       height: 42px !important;
       padding: 0 1.15rem !important;
-      font-size: 0.96rem !important;
+      font-size: 0.94rem !important;
       font-weight: 500 !important;
       letter-spacing: -0.025em;
-      transition: all 0.15s ease;
-      box-shadow: 0 3px 10px rgba(0, 0, 0, 0.3);
+      transition: all 0.16s cubic-bezier(0.16, 1, 0.3, 1);
+      box-shadow: 0 4px 12px rgba(100, 116, 139, 0.12);
       display: inline-flex !important;
       align-items: center;
       justify-content: center;
@@ -82,30 +144,30 @@
       box-sizing: border-box;
     }
     .pill-chip:active {
-      transform: scale(0.95);
+      transform: scale(0.96);
     }
     .pill-chip.selected {
-      background: linear-gradient(135deg, #fb923c 0%, #f97316 60%, #ea580c 100%) !important;
-      border-color: rgba(254, 215, 170, 0.95) !important;
+      background: linear-gradient(135deg, #0284c7 0%, #2563eb 100%) !important;
+      border-color: rgba(255, 255, 255, 0.9) !important;
       color: #ffffff !important;
-      font-weight: 700 !important;
-      box-shadow: 0 4px 16px rgba(249, 115, 22, 0.6), inset 0 1px 1px rgba(255, 255, 255, 0.4);
+      font-weight: 600 !important;
+      box-shadow: 0 6px 18px rgba(37, 99, 235, 0.38), inset 0 1px 1px rgba(255, 255, 255, 0.6);
       transform: translateY(-1.5px);
     }
 
     .keyword-highlight {
       display: inline-block;
       font-family: -apple-system, BlinkMacSystemFont, "Pretendard", sans-serif;
-      font-weight: 700;
+      font-weight: 600;
       font-size: 0.85rem;
-      color: #fed7aa;
-      background: rgba(249, 115, 22, 0.25);
-      border: 1px solid rgba(251, 146, 60, 0.6);
+      color: #0369a1;
+      background: rgba(224, 242, 254, 0.85);
+      border: 1px solid rgba(186, 230, 253, 0.8);
       border-radius: 9999px;
-      padding: 0.1rem 0.55rem;
+      padding: 0.1rem 0.6rem;
       margin: 0.1rem 0.15rem;
       vertical-align: middle;
-      box-shadow: 0 0 10px rgba(249, 115, 22, 0.35);
+      box-shadow: 0 2px 6px rgba(186, 230, 253, 0.4);
       line-height: 1.35;
     }
 
@@ -123,18 +185,18 @@
     }
 
     .btn-next-action {
-      background: linear-gradient(135deg, #fb923c 0%, #f97316 55%, #ea580c 100%);
+      background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
       color: #ffffff;
-      border: 1px solid rgba(255, 237, 213, 0.4);
-      box-shadow: 0 6px 20px rgba(249, 115, 22, 0.45);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      box-shadow: 0 8px 24px rgba(15, 23, 42, 0.2);
     }
     .btn-next-action:disabled {
-      opacity: 0.28;
+      opacity: 0.35;
       pointer-events: none;
       box-shadow: none;
-      background: rgba(255, 255, 255, 0.1);
-      border: 1px solid rgba(255, 255, 255, 0.15);
-      color: rgba(255, 255, 255, 0.4);
+      background: #e2e8f0;
+      border: 1px solid #cbd5e1;
+      color: #94a3b8;
     }
 
     .screen {
@@ -151,8 +213,8 @@
     #align-canvas:active { cursor: grabbing; }
 
     @keyframes pulseGlow {
-      0%, 100% { transform: scale(0.96) rotate(-2deg); filter: drop-shadow(0 0 35px rgba(254, 240, 138, 0.55)); }
-      50% { transform: scale(1.04) rotate(2deg); filter: drop-shadow(0 0 65px rgba(251, 146, 60, 0.8)); }
+      0%, 100% { transform: scale(0.96) rotate(-2deg); filter: drop-shadow(0 0 35px rgba(56, 189, 248, 0.45)); }
+      50% { transform: scale(1.04) rotate(2deg); filter: drop-shadow(0 0 65px rgba(14, 165, 233, 0.65)); }
     }
     .pulse-animation { animation: pulseGlow 2.4s infinite ease-in-out; }
 
@@ -178,53 +240,50 @@
     <!-- [STEP 0] 도안 촬영 안내 -->
     <section id="screen-capture-guide" class="screen active flex-col flex-1 justify-between py-2 text-center">
       <header class="pt-2 flex-shrink-0">
-        <span class="text-[11px] font-mono text-orange-400 tracking-wider uppercase font-semibold">Step 00 · Archetype Canvas</span>
-        <h1 class="text-2xl font-bold mt-1 text-white tracking-tight">나비 도안 먼저 담기</h1>
-        <p class="text-xs text-slate-400 mt-1">내가 그린 나비의 날개를 먼저 입히고 여정을 시작합니다.</p>
+        <span class="text-[11px] font-mono text-sky-600 tracking-wider uppercase font-semibold">Step 00 · Archetype Canvas</span>
+        <h1 class="text-2xl font-bold mt-1 text-slate-900 tracking-tight">나비 도안 먼저 담기</h1>
+        <p class="text-xs text-slate-500 mt-1">내가 그린 나비의 날개를 먼저 입히고 여정을 시작합니다.</p>
       </header>
 
-      <div class="w-full bg-white/5 border border-white/15 backdrop-blur-xl rounded-3xl p-6 text-center my-auto shadow-xl space-y-4">
-        <div class="w-14 h-14 mx-auto rounded-full bg-orange-500/20 border border-orange-400/30 flex items-center justify-center text-orange-300">
+      <div class="w-full bg-white/75 border border-slate-200/80 backdrop-blur-xl rounded-3xl p-6 text-center my-auto shadow-xl shadow-slate-200/50 space-y-4">
+        <div class="w-14 h-14 mx-auto rounded-full bg-sky-50 border border-sky-200 flex items-center justify-center text-sky-600 shadow-sm">
           <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"></path>
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"></path>
           </svg>
         </div>
-        <h3 class="text-base font-bold text-white">💡 종이 정면 위에서 수직으로 찍어주세요</h3>
-        <p class="text-xs text-slate-300 leading-relaxed font-light">
+        <h3 class="text-base font-bold text-slate-900">💡 종이 정면 위에서 수직으로 찍어주세요</h3>
+        <p class="text-xs text-slate-600 leading-relaxed font-normal">
           기울어지지 않도록 스마트폰을 도안과 평행하게 정면 위에서 촬영해 주세요.<br>
           촬영 후 손가락으로 드래그하여 나비 영역에 알맞게 맞출 수 있습니다.
         </p>
       </div>
 
       <footer class="flex flex-col gap-2 w-full flex-shrink-0">
-        <label class="w-full py-3.5 rounded-2xl bg-gradient-to-r from-orange-500 to-amber-500 text-white font-semibold text-sm cursor-pointer active:scale-95 transition-all text-center block shadow-lg shadow-orange-500/25">
+        <label class="w-full py-3.5 rounded-2xl bg-gradient-to-r from-sky-500 to-blue-600 text-white font-semibold text-sm cursor-pointer active:scale-95 transition-all text-center block shadow-lg shadow-sky-500/25">
           카메라로 도안 촬영하기
           <input type="file" id="camera-input" accept="image/*" capture="environment" class="hidden">
         </label>
-        <label class="w-full py-3 rounded-2xl border border-white/20 bg-white/5 text-slate-300 font-medium text-xs cursor-pointer active:scale-95 transition-all text-center block">
+        <label class="w-full py-3 rounded-2xl border border-slate-200 bg-white/80 text-slate-700 font-medium text-xs cursor-pointer active:scale-95 transition-all text-center block shadow-sm">
           앨범에서 사진 선택
           <input type="file" id="album-input" accept="image/*" class="hidden">
         </label>
       </footer>
     </section>
 
-    <!-- [STEP 0.5] 나비틀 맞춤 (선 제거 & 나비 영역 외곽 딤드 마스킹) -->
+    <!-- [STEP 0.5] 나비틀 맞춤 -->
     <section id="screen-align" class="screen flex-col flex-1 justify-between py-2 text-center">
       <header class="pt-2 flex-shrink-0">
-        <h2 class="text-lg font-bold text-white">나비틀에 사진 맞추기</h2>
-        <p class="text-xs text-orange-300/90 mt-0.5"><strong>[드래그]</strong> 이동, <strong>[두 손가락 핀치]</strong> 확대/축소</p>
+        <h2 class="text-lg font-bold text-slate-900">나비틀에 사진 맞추기</h2>
+        <p class="text-xs text-sky-600 font-medium mt-0.5"><strong>[드래그]</strong> 이동, <strong>[두 손가락 핀치]</strong> 확대/축소</p>
       </header>
 
-      <!-- 뷰파인더 컨테이너 -->
-      <div class="relative w-[280px] h-[280px] mx-auto my-auto overflow-hidden bg-black/80 rounded-3xl flex items-center justify-center border border-white/10 shadow-2xl">
+      <div class="relative w-[280px] h-[280px] mx-auto my-auto overflow-hidden bg-slate-900/10 rounded-3xl flex items-center justify-center border border-slate-200/80 shadow-xl backdrop-blur-md">
         <canvas id="align-canvas" width="600" height="600" class="w-full h-full"></canvas>
         
-        <!-- 나비 모양 외곽 영역을 어둡게 가려주는 SVG 마스크 오버레이 -->
         <div class="absolute inset-0 pointer-events-none w-full h-full">
           <svg class="w-full h-full" viewBox="0 0 100 100" preserveAspectRatio="none">
-            <!-- evenodd 규칙: 전체 사각형(0,0~100,100)을 채우되 내부 나비 패스 구멍만 투명하게 뚫음 -->
-            <path fill="rgba(0, 0, 0, 0.68)" fill-rule="evenodd"
+            <path fill="rgba(15, 23, 42, 0.65)" fill-rule="evenodd"
               d="M 0,0 L 100,0 L 100,100 L 0,100 Z 
                  M 50,33 C 51.5,33 53,35 53,38 C 58,35 75,18 89,20 C 97,22 99,35 91,48 C 84,59 79,62 76,64 C 81,67 87,74 86,83 C 84,93 69,96 61,87 C 55,80 53,74 53,71 C 53,74 51.5,77 50,77 C 48.5,77 47,74 47,71 C 47,74 45,80 39,87 C 31,96 16,93 14,83 C 13,74 19,67 24,64 C 21,62 16,59 9,48 C 1,35 3,22 11,20 C 25,18 42,35 47,38 C 47,35 48.5,33 50,33 Z" />
           </svg>
@@ -232,70 +291,78 @@
       </div>
 
       <footer class="flex gap-2.5 w-full flex-shrink-0">
-        <button id="btn-rephoto" type="button" class="w-1/3 py-3.5 rounded-2xl border border-white/20 bg-white/5 text-slate-300 text-sm active:scale-95 transition-all">다시 촬영</button>
-        <button id="btn-confirm-align" type="button" class="flex-1 py-3.5 rounded-2xl bg-gradient-to-r from-orange-500 to-amber-500 text-white font-semibold text-sm active:scale-95 transition-all shadow-lg shadow-orange-500/25">이 날개로 확정</button>
+        <button id="btn-rephoto" type="button" class="w-1/3 py-3.5 rounded-2xl border border-slate-200 bg-white/80 text-slate-600 text-sm active:scale-95 transition-all shadow-sm">다시 촬영</button>
+        <button id="btn-confirm-align" type="button" class="flex-1 py-3.5 rounded-2xl bg-gradient-to-r from-sky-500 to-blue-600 text-white font-semibold text-sm active:scale-95 transition-all shadow-lg shadow-sky-500/25">이 날개로 확정</button>
       </footer>
     </section>
 
-    <!-- [STEP 1] 설문 화면 -->
+    <!-- [STEP 1] 설문 화면 (레퍼런스 배경 그라데이션 적용) -->
     <section id="screen-survey" class="screen flex-col flex-1 justify-between overflow-hidden relative h-full">
-      <header class="w-full pt-1 flex-shrink-0">
-        <div class="w-full h-1 bg-white/10 rounded-full overflow-hidden">
-          <div id="progress-bar" class="h-full bg-gradient-to-r from-pink-500 to-orange-400 transition-all duration-300" style="width: 14.28%;"></div>
+      
+      <!-- 레퍼런스 스타일 백그라운드 돔 그라데이션 -->
+      <div class="survey-aurora-bg">
+        <div class="aurora-dome-layer"></div>
+        <div class="aurora-light-core"></div>
+        <div class="aurora-noise"></div>
+      </div>
+
+      <header class="w-full pt-1 flex-shrink-0 relative z-10">
+        <div class="w-full h-1 bg-slate-200/70 rounded-full overflow-hidden backdrop-blur-sm">
+          <div id="progress-bar" class="h-full bg-gradient-to-r from-sky-400 to-blue-600 transition-all duration-300" style="width: 14.28%;"></div>
         </div>
       </header>
 
-      <div class="text-center mt-3 mb-2 flex-shrink-0">
-        <h1 id="question-title" class="text-2xl font-bold text-white tracking-tight leading-snug">당신은 어떤 나비인가요?</h1>
-        <p id="question-desc" class="text-xs text-slate-300/80 mt-1 font-light">자신을 소개해 주세요. (다중 선택)</p>
+      <div class="text-center mt-3 mb-2 flex-shrink-0 relative z-10">
+        <h1 id="question-title" class="text-2xl font-bold text-slate-900 tracking-tight leading-snug">당신은 어떤 나비인가요?</h1>
+        <p id="question-desc" class="text-xs text-slate-500 mt-1 font-normal">자신을 소개해 주세요. (다중 선택)</p>
       </div>
 
-      <div id="survey-chip-wrapper" class="flex-1 w-full min-h-0 py-2 vertical-scroll-chips px-2">
+      <div id="survey-chip-wrapper" class="flex-1 w-full min-h-0 py-2 vertical-scroll-chips px-2 relative z-10">
         <div id="organic-chip-container" class="flex flex-col items-center gap-2.5 w-full py-3"></div>
       </div>
 
       <!-- [Q6] 날짜 / 이메일 설정 -->
-      <div id="field-step-6" class="hidden flex-1 w-full flex-col justify-center items-center px-2 min-h-0">
-        <div class="w-full bg-white/5 border border-white/15 backdrop-blur-xl rounded-3xl p-5 space-y-4 shadow-xl">
+      <div id="field-step-6" class="hidden flex-1 w-full flex-col justify-center items-center px-2 min-h-0 relative z-10">
+        <div class="w-full bg-white/85 border border-white/90 backdrop-blur-xl rounded-3xl p-5 space-y-4 shadow-xl shadow-indigo-950/5">
           <div>
-            <label class="block text-xs font-mono text-orange-300 mb-1.5 font-medium">찬란한 재회의 날</label>
+            <label class="block text-xs font-mono text-sky-700 mb-1.5 font-semibold">찬란한 재회의 날</label>
             <div class="grid grid-cols-3 gap-2">
               <div class="relative">
                 <input id="input-q6-year" type="number" placeholder="2026" min="2024" max="2099" 
-                       class="w-full bg-white/10 border border-white/20 rounded-2xl px-3 py-2.5 text-center text-sm text-white focus:outline-none focus:border-orange-400 placeholder-slate-500 font-medium">
+                       class="w-full bg-slate-50/80 border border-slate-200 rounded-2xl px-3 py-2.5 text-center text-sm text-slate-800 focus:outline-none focus:border-sky-500 placeholder-slate-400 font-medium">
                 <span class="absolute right-2.5 top-1/2 -translate-y-1/2 text-xs text-slate-400 pointer-events-none">년</span>
               </div>
               <div class="relative">
                 <input id="input-q6-month" type="number" placeholder="10" min="1" max="12" 
-                       class="w-full bg-white/10 border border-white/20 rounded-2xl px-3 py-2.5 text-center text-sm text-white focus:outline-none focus:border-orange-400 placeholder-slate-500 font-medium">
+                       class="w-full bg-slate-50/80 border border-slate-200 rounded-2xl px-3 py-2.5 text-center text-sm text-slate-800 focus:outline-none focus:border-sky-500 placeholder-slate-400 font-medium">
                 <span class="absolute right-2.5 top-1/2 -translate-y-1/2 text-xs text-slate-400 pointer-events-none">월</span>
               </div>
               <div class="relative">
                 <input id="input-q6-day" type="number" placeholder="24" min="1" max="31" 
-                       class="w-full bg-white/10 border border-white/20 rounded-2xl px-3 py-2.5 text-center text-sm text-white focus:outline-none focus:border-orange-400 placeholder-slate-500 font-medium">
+                       class="w-full bg-slate-50/80 border border-slate-200 rounded-2xl px-3 py-2.5 text-center text-sm text-slate-800 focus:outline-none focus:border-sky-500 placeholder-slate-400 font-medium">
                 <span class="absolute right-2.5 top-1/2 -translate-y-1/2 text-xs text-slate-400 pointer-events-none">일</span>
               </div>
             </div>
-            <span class="text-[11px] text-slate-400 mt-2 block leading-relaxed font-light">
+            <span class="text-[11px] text-slate-500 mt-2 block leading-relaxed font-normal">
               새로운 다짐이 필요할 때, 지친 계절의 끝, 혹은 1년 뒤 오늘처럼 찬란한 위로가 닿길 바라는 순간을 약속해 주세요.
             </span>
           </div>
 
           <div>
-            <label class="block text-xs font-mono text-orange-300 mb-1.5 font-medium">나비를 맞이할 이메일</label>
+            <label class="block text-xs font-mono text-sky-700 mb-1.5 font-semibold">나비를 맞이할 이메일</label>
             <input id="input-q6-email" type="email" placeholder="example@email.com" 
-                   class="w-full bg-white/10 border border-white/20 rounded-2xl px-3.5 py-2.5 text-sm text-white focus:outline-none focus:border-orange-400 placeholder-slate-500">
+                   class="w-full bg-slate-50/80 border border-slate-200 rounded-2xl px-3.5 py-2.5 text-sm text-slate-800 focus:outline-none focus:border-sky-500 placeholder-slate-400">
           </div>
         </div>
       </div>
 
       <!-- [Q7] 나비 이름 설정 -->
-      <div id="field-step-7" class="hidden flex-1 w-full flex-col justify-center items-center px-4 min-h-0">
+      <div id="field-step-7" class="hidden flex-1 w-full flex-col justify-center items-center px-4 min-h-0 relative z-10">
         <div class="w-full space-y-2">
-          <label class="block text-xs font-mono text-orange-300 font-medium text-left px-1">나비의 고유한 이름</label>
+          <label class="block text-xs font-mono text-sky-700 font-semibold text-left px-1">나비의 고유한 이름</label>
           <input id="input-q7-name" type="text" maxlength="10" placeholder="예: 윤슬, 쉼표, 칼퇴, 다정, 시온, 바람..." 
-                 class="w-full bg-white/10 border border-white/20 rounded-2xl px-4 py-3.5 text-base text-white focus:outline-none focus:border-orange-400 placeholder-slate-500 tracking-wide font-medium shadow-lg backdrop-blur-md">
-          <div class="flex justify-between items-center text-[11px] text-slate-400 font-mono px-2 pt-0.5">
+                 class="w-full bg-white/90 border border-white/95 rounded-2xl px-4 py-3.5 text-base text-slate-900 focus:outline-none focus:border-sky-500 placeholder-slate-400 tracking-wide font-medium shadow-xl shadow-indigo-950/5 backdrop-blur-md">
+          <div class="flex justify-between items-center text-[11px] text-slate-500 font-mono px-2 pt-0.5">
             <span>한글/영문 10자 이내</span>
             <span id="char-counter">0 / 10</span>
           </div>
@@ -303,12 +370,12 @@
       </div>
 
       <!-- 하단 액션 바 버튼 -->
-      <footer class="w-full pt-1 flex flex-col gap-1.5 flex-shrink-0">
+      <footer class="w-full pt-1 flex flex-col gap-1.5 flex-shrink-0 relative z-10">
         <button id="btn-survey-next" type="button" disabled 
                 class="btn-next-action w-full py-3.5 rounded-2xl font-bold text-sm tracking-wide active:scale-[0.98] transition-all">
           다음 질문으로
         </button>
-        <button id="btn-survey-prev" type="button" class="w-full py-1 text-slate-400 text-[11px] text-center hidden hover:text-slate-200 transition-all">
+        <button id="btn-survey-prev" type="button" class="w-full py-1 text-slate-500 text-[11px] text-center hidden hover:text-slate-700 transition-all font-medium">
           ← 이전 질문으로 돌아가기
         </button>
       </footer>
@@ -324,7 +391,7 @@
         </div>
 
         <div class="flex flex-col justify-center items-center px-4 mt-3">
-          <div id="interlude-text-box" class="space-y-3 text-slate-100 break-keep max-w-[325px] mx-auto text-center font-normal"></div>
+          <div id="interlude-text-box" class="space-y-3 text-slate-700 break-keep max-w-[325px] mx-auto text-center font-normal"></div>
         </div>
       </div>
 
@@ -338,58 +405,58 @@
     <!-- [STEP 3] 감성 로딩 화면 -->
     <section id="screen-loading" class="screen flex-col flex-1 justify-between items-center py-10 text-center relative overflow-hidden">
       <div class="mt-4 z-10">
-        <h2 class="text-2xl font-bold text-white tracking-tight leading-snug">
+        <h2 class="text-2xl font-bold text-slate-900 tracking-tight leading-snug">
           내면의 고유한 모습을 담아<br>나비를 깨우고 있습니다.
         </h2>
-        <p class="text-xs text-orange-300/80 mt-2 font-light tracking-wide">
-          종이의 질감을 지우고 환상적인 빛의 오라를 입히는 중입니다.[cite: 1]
+        <p class="text-xs text-sky-600 mt-2 font-normal tracking-wide">
+          종이의 질감을 승화시키고 맑은 빛의 날개를 입히는 중입니다.
         </p>
       </div>
 
       <div class="relative flex items-center justify-center my-auto pulse-animation">
-        <div class="w-44 h-64 rounded-full bg-gradient-to-b from-amber-300 via-yellow-400 to-orange-400 blur-3xl opacity-75"></div>
-        <svg class="absolute w-24 h-24 text-white drop-shadow-[0_0_25px_rgba(254,240,138,0.9)]" viewBox="0 0 100 100" fill="none" stroke="currentColor" stroke-width="2.5">
+        <div class="w-44 h-64 rounded-full bg-gradient-to-b from-sky-300 via-blue-400 to-indigo-300 blur-3xl opacity-60"></div>
+        <svg class="absolute w-24 h-24 text-sky-600 drop-shadow-[0_0_20px_rgba(56,189,248,0.7)]" viewBox="0 0 100 100" fill="none" stroke="currentColor" stroke-width="2.5">
           <path d="M 50,33 C 51.5,33 53,35 53,38 C 58,35 75,18 89,20 C 97,22 99,35 91,48 C 84,59 79,62 76,64 C 81,67 87,74 86,83 C 84,93 69,96 61,87 C 55,80 53,74 53,71 C 53,74 51.5,77 50,77 C 48.5,77 47,74 47,71 C 47,74 45,80 39,87 C 31,96 16,93 14,83 C 13,74 19,67 24,64 C 21,62 16,59 9,48 C 1,35 3,22 11,20 C 25,18 42,35 47,38 C 47,35 48.5,33 50,33 Z"/>
         </svg>
       </div>
 
-      <div class="text-xs font-mono text-orange-200/80 tracking-widest z-10">NOUL METAMORPHOSIS & GLOW...</div>
+      <div class="text-xs font-mono text-sky-600 tracking-widest z-10 font-semibold">NOUL METAMORPHOSIS & GLOW...</div>
     </section>
 
     <!-- [STEP 4] 최종 3D 뷰어 -->
     <section id="screen-preview" class="screen fixed inset-0 z-50 flex-col justify-between py-6 overflow-hidden"
-      style="background: linear-gradient(180deg, #3b82f6 0%, #60a5fa 45%, #fed7aa 92%, #fde68a 100%) !important;">
+      style="background: linear-gradient(180deg, #38bdf8 0%, #60a5fa 45%, #e0f2fe 90%, #f8fafc 100%) !important;">
       <header class="text-center pt-3 z-10">
-        <span class="text-xs font-mono text-white font-semibold tracking-wider uppercase drop-shadow-[0_1px_4px_rgba(0,0,0,0.3)]">NOUL LUMINOUS BUTTERFLY</span>
-        <h2 id="preview-butterfly-name" class="text-3xl font-black text-white mt-1 drop-shadow-[0_2px_8px_rgba(0,0,0,0.3)] tracking-tight">‘나비’</h2>
-        <p class="text-xs text-white/90 mt-1 font-light drop-shadow-[0_1px_4px_rgba(0,0,0,0.3)]">화면을 위로 쓸어 올려 눈부신 하늘로 날려보내세요.[cite: 1]</p>
+        <span class="text-xs font-mono text-white font-semibold tracking-wider uppercase drop-shadow-[0_1px_4px_rgba(0,0,0,0.25)]">NOUL LUMINOUS BUTTERFLY</span>
+        <h2 id="preview-butterfly-name" class="text-3xl font-black text-white mt-1 drop-shadow-[0_2px_8px_rgba(0,0,0,0.25)] tracking-tight">‘나비’</h2>
+        <p class="text-xs text-white/95 mt-1 font-normal drop-shadow-[0_1px_4px_rgba(0,0,0,0.25)]">화면을 위로 쓸어 올려 눈부신 하늘로 날려보내세요.</p>
       </header>
 
       <div id="three-container" class="w-full h-full absolute inset-0 z-0 pointer-events-auto"></div>
 
       <footer class="w-full pb-6 flex flex-col items-center gap-2 z-10 pointer-events-none">
         <div class="bounce-guide flex flex-col items-center">
-          <svg class="w-7 h-7 text-white drop-shadow-[0_2px_6px_rgba(0,0,0,0.3)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <svg class="w-7 h-7 text-slate-800 drop-shadow-sm" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 15l7-7 7 7"></path>
           </svg>
-          <span class="text-xs font-bold text-white tracking-widest drop-shadow-[0_2px_6px_rgba(0,0,0,0.3)]">SWIPE UP TO FLY</span>
+          <span class="text-xs font-bold text-slate-800 tracking-widest drop-shadow-sm">SWIPE UP TO FLY</span>
         </div>
       </footer>
     </section>
 
     <!-- [STEP 5] 비행 완료 화면 -->
     <section id="screen-complete" class="screen flex-col flex-1 justify-center items-center text-center p-6">
-      <div class="w-20 h-20 rounded-full bg-amber-400/20 border border-amber-300/40 flex items-center justify-center mb-6 shadow-[0_0_30px_rgba(251,191,36,0.35)]">
-        <svg class="w-10 h-10 text-amber-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <div class="w-20 h-20 rounded-full bg-sky-100 border border-sky-300 flex items-center justify-center mb-6 shadow-[0_0_30px_rgba(56,189,248,0.3)]">
+        <svg class="w-10 h-10 text-sky-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
         </svg>
       </div>
-      <h2 class="text-2xl font-bold text-white mb-2">하늘 위로 눈부시게 날아올랐습니다</h2>
-      <p id="complete-desc" class="text-sm text-slate-300 leading-relaxed mb-8">
+      <h2 class="text-2xl font-bold text-slate-900 mb-2">하늘 위로 눈부시게 날아올랐습니다</h2>
+      <p id="complete-desc" class="text-sm text-slate-600 leading-relaxed mb-8">
         빛의 날개를 얻은 나비가<br>
-        전면 대형 스크린의 찬란한 너울 속으로 합류했습니다.[cite: 1]
+        전면 대형 스크린의 찬란한 너울 속으로 합류했습니다.
       </p>
-      <button onclick="location.reload()" type="button" class="px-8 py-3.5 rounded-2xl border border-white/20 text-slate-200 text-xs font-medium active:scale-95 transition-all">
+      <button onclick="location.reload()" type="button" class="px-8 py-3.5 rounded-2xl border border-slate-300 bg-white text-slate-800 text-xs font-semibold shadow-sm active:scale-95 transition-all">
         새로운 나비 띄우기
       </button>
     </section>
@@ -470,7 +537,7 @@
       },
       {
         title: "먼 하늘 너울 속으로 날아오를 나비의 이름은?",
-        desc: "나비에게 고유한 이름을 붙여주세요.[cite: 1]"
+        desc: "나비에게 고유한 이름을 붙여주세요."
       }
     ];
 
@@ -637,7 +704,7 @@
       validateSurveyStep();
     });
 
-    /* 환기 페이지(Interlude) 렌더링 */
+    /* 환기 페이지(Interlude) */
     const interludeTextBox = document.getElementById('interlude-text-box');
     const btnInterludeNext = document.getElementById('btn-interlude-next');
 
@@ -645,34 +712,34 @@
       let html = "";
       if (stepFrom === 0) {
         html = `
-          <p class="text-slate-100 text-[0.95rem] leading-relaxed font-normal">깊은 잠에서 깨어나 눈부신 햇살과 잔잔한 바람을 맞이한 당신.</p>
-          <p class="text-slate-100 text-[0.95rem] leading-relaxed font-normal">당신은 ${formatKeywordBadges(userSelections.q1)}의 모습을 품은 작은 나비가 되어 마침내 세상 밖으로 날개를 펼쳤습니다.</p>
-          <p class="text-orange-200 handwriting-accent pt-2">당신만의 온전한 날갯짓으로, 이제 어떤 하늘을 향해 날아가 보고 싶나요?</p>
+          <p class="text-slate-700 text-[0.95rem] leading-relaxed font-normal">깊은 잠에서 깨어나 눈부신 햇살과 잔잔한 바람을 맞이한 당신.</p>
+          <p class="text-slate-700 text-[0.95rem] leading-relaxed font-normal">당신은 ${formatKeywordBadges(userSelections.q1)}의 모습을 품은 작은 나비가 되어 마침내 세상 밖으로 날개를 펼쳤습니다.</p>
+          <p class="text-sky-700 handwriting-accent pt-2 font-bold">당신만의 온전한 날갯짓으로, 이제 어떤 하늘을 향해 날아가 보고 싶나요?</p>
         `;
       } else if (stepFrom === 1) {
         html = `
-          <p class="text-slate-100 text-[0.95rem] leading-relaxed font-normal">저 멀리 반짝이는 ${formatKeywordBadges(userSelections.q2)}을 가슴에 품었습니다.</p>
-          <p class="text-slate-100 text-[0.95rem] leading-relaxed font-normal">가고 싶은 곳이 생긴 나비의 마음속엔 작고 따뜻한 불꽃이 피어오릅니다.</p>
-          <p class="text-slate-300 text-[0.88rem] leading-relaxed font-normal">먼 길을 가다 보면 세찬 바람과 차가운 비를 만나기도 하겠지요.</p>
-          <p class="text-orange-200 handwriting-accent pt-2">그 긴 비행 동안 날개가 지치지 않도록, 날개 안쪽에 품고 갈 단단한 마음은 무엇인가요?</p>
+          <p class="text-slate-700 text-[0.95rem] leading-relaxed font-normal">저 멀리 반짝이는 ${formatKeywordBadges(userSelections.q2)}을 가슴에 품었습니다.</p>
+          <p class="text-slate-700 text-[0.95rem] leading-relaxed font-normal">가고 싶은 곳이 생긴 나비의 마음속엔 작고 따뜻한 불꽃이 피어오릅니다.</p>
+          <p class="text-slate-500 text-[0.88rem] leading-relaxed font-normal">먼 길을 가다 보면 세찬 바람과 차가운 비를 만나기도 하겠지요.</p>
+          <p class="text-sky-700 handwriting-accent pt-2 font-bold">그 긴 비행 동안 날개가 지치지 않도록, 날개 안쪽에 품고 갈 단단한 마음은 무엇인가요?</p>
         `;
       } else if (stepFrom === 2) {
         html = `
-          <p class="text-slate-100 text-[0.95rem] leading-relaxed font-normal">${formatKeywordBadges(userSelections.q3)}을 가만히 챙겨 넣었습니다.</p>
-          <p class="text-slate-100 text-[0.95rem] leading-relaxed font-normal">이제 당신은 세상의 조급한 시계에 쫓기지 않고, 오직 당신만의 보폭으로 하늘을 날 준비를 마쳤습니다.</p>
-          <p class="text-orange-200 handwriting-accent pt-2">그런데 저 앞의 짙은 구름 속에서, 오래전부터 당신의 비행을 무겁게 가로막던 그림자가 서서히 모습을 드러냅니다.</p>
+          <p class="text-slate-700 text-[0.95rem] leading-relaxed font-normal">${formatKeywordBadges(userSelections.q3)}을 가만히 챙겨 넣었습니다.</p>
+          <p class="text-slate-700 text-[0.95rem] leading-relaxed font-normal">이제 당신은 세상의 조급한 시계에 쫓기지 않고, 오직 당신만의 보폭으로 하늘을 날 준비를 마쳤습니다.</p>
+          <p class="text-sky-700 handwriting-accent pt-2 font-bold">그런데 저 앞의 짙은 구름 속에서, 오래전부터 당신의 비행을 무겁게 가로막던 그림자가 서서히 모습을 드러냅니다.</p>
         `;
       } else if (stepFrom === 3) {
         html = `
-          <p class="text-slate-100 text-[0.95rem] leading-relaxed font-normal">먹구름처럼 불쑥 나타나 앞길을 막아선 ${formatKeywordBadges(userSelections.q4)}.</p>
-          <p class="text-slate-100 text-[0.95rem] leading-relaxed font-normal">작고 여린 날개가 잠시 파르르 떨리며 숨을 고릅니다.</p>
-          <p class="text-orange-200 handwriting-accent pt-2">하지만 두려워할 필요는 없습니다. 당신에겐 이 끈질긴 그림자를 가볍게 털어내고 지나갈 당신만의 지혜가 있으니까요.</p>
+          <p class="text-slate-700 text-[0.95rem] leading-relaxed font-normal">먹구름처럼 불쑥 나타나 앞길을 막아선 ${formatKeywordBadges(userSelections.q4)}.</p>
+          <p class="text-slate-700 text-[0.95rem] leading-relaxed font-normal">작고 여린 날개가 잠시 파르르 떨리며 숨을 고릅니다.</p>
+          <p class="text-sky-700 handwriting-accent pt-2 font-bold">하지만 두려워할 필요는 없습니다. 당신에겐 이 끈질긴 그림자를 가볍게 털어내고 지나갈 당신만의 지혜가 있으니까요.</p>
         `;
       } else if (stepFrom === 4) {
         html = `
-          <p class="text-slate-100 text-[0.95rem] leading-relaxed font-normal">시원한 ${formatKeywordBadges(userSelections.q5)} 한마디에, 날개를 옥죄던 어두운 그림자들이 허공으로 맥없이 흩어져 사라집니다.</p>
-          <p class="text-slate-100 text-[0.95rem] leading-relaxed font-normal">온갖 무게를 털어내고 한결 가벼워진 나비는 이제 거대한 하늘 너울 속으로 온전히 날아오릅니다.[cite: 1]</p>
-          <p class="text-orange-200 handwriting-accent pt-2">모든 상처를 비워낸 나비가 가장 눈부신 빛이 되어 당신의 품으로 다시 돌아올 날은 언제일까요?[cite: 1]</p>
+          <p class="text-slate-700 text-[0.95rem] leading-relaxed font-normal">시원한 ${formatKeywordBadges(userSelections.q5)} 한마디에, 날개를 옥죄던 어두운 그림자들이 허공으로 맥없이 흩어져 사라집니다.</p>
+          <p class="text-slate-700 text-[0.95rem] leading-relaxed font-normal">온갖 무게를 털어내고 한결 가벼워진 나비는 이제 거대한 하늘 너울 속으로 온전히 날아오릅니다.</p>
+          <p class="text-sky-700 handwriting-accent pt-2 font-bold">모든 상처를 비워낸 나비가 가장 눈부신 빛이 되어 당신의 품으로 다시 돌아올 날은 언제일까요?</p>
         `;
       }
 
@@ -696,7 +763,7 @@
           }
           showScreen('screen-preview');
           initFullButterflyViewer(currentExtractedTexture);
-        }, 2100);
+        }, 5000);
       }
     });
 
@@ -717,7 +784,7 @@
       }
     });
 
-    /* 사진 조작 */
+    /* 사진 캡처 & 정렬 */
     let rawImage = new Image();
     const alignCanvas = document.getElementById('align-canvas');
     const actx = alignCanvas.getContext('2d');
@@ -827,28 +894,19 @@
       startPinchDist = 0;
     });
 
-    function processDreamyWingTexture(sourceCanvas) {
+    function processClearDrawingTexture(sourceCanvas) {
       const size = 1024;
       const dreamCanvas = document.createElement('canvas');
       dreamCanvas.width = size;
       dreamCanvas.height = size;
       const dctx = dreamCanvas.getContext('2d');
 
-      dctx.fillStyle = '#fefce8';
-      dctx.fillRect(0, 0, size, size);
-
       dctx.save();
-      dctx.filter = 'blur(10px) brightness(1.18) saturate(1.35) contrast(0.88)';
+      dctx.filter = 'contrast(1.35) saturate(1.2) brightness(1.05)';
       dctx.drawImage(sourceCanvas, 0, 0, size, size);
       dctx.restore();
 
-      dctx.save();
-      dctx.globalAlpha = 0.38;
-      dctx.filter = 'blur(24px) brightness(1.25)';
-      dctx.drawImage(sourceCanvas, 0, 0, size, size);
-      dctx.restore();
-
-      return dreamCanvas.toDataURL('image/jpeg', 0.95);
+      return dreamCanvas.toDataURL('image/jpeg', 0.98);
     }
 
     document.getElementById('btn-confirm-align').addEventListener('click', () => {
@@ -862,12 +920,12 @@
       ectx.fillRect(0, 0, 1024, 1024);
       ectx.drawImage(rawImage, imgX * scaleRatio, imgY * scaleRatio, rawImage.width * imgScale * scaleRatio, rawImage.height * imgScale * scaleRatio);
 
-      currentExtractedTexture = processDreamyWingTexture(exportCanvas);
+      currentExtractedTexture = processClearDrawingTexture(exportCanvas);
       renderSurveyStep();
       showScreen('screen-survey');
     });
 
-    /* 3D 엔진 & 나비 모델링 */
+    /* Three.js 3D 모델링 생성 함수 */
     function createChubbyCuteWingShape(isRight) {
       const shape = new THREE.Shape();
       const s = isRight ? 1 : -1;
@@ -927,11 +985,11 @@
         new THREE.Vector3(s * 0.52, 0.98, 0.2)
       );
 
-      const tubeGeom = new THREE.TubeGeometry(curve, 24, 0.024, 8, false);
+      const tubeGeom = new THREE.TubeGeometry(curve, 24, 0.026, 8, false);
       const tubeMesh = new THREE.Mesh(tubeGeom, material);
       group.add(tubeMesh);
 
-      const tipGeom = new THREE.SphereGeometry(0.055, 16, 16);
+      const tipGeom = new THREE.SphereGeometry(0.058, 16, 16);
       const tipMesh = new THREE.Mesh(tipGeom, material);
       tipMesh.position.set(s * 0.52, 0.98, 0.2);
       group.add(tipMesh);
@@ -939,17 +997,17 @@
       return group;
     }
 
-    function createEtherealGlowSprite(colorHex = '#fef08a', size = 5.2, opacity = 0.85) {
+    function createEtherealGlowSprite(colorHex = '#bae6fd', size = 5.2, opacity = 0.5) {
       const canvas = document.createElement('canvas');
       canvas.width = 512;
       canvas.height = 512;
       const ctx = canvas.getContext('2d');
 
       const grad = ctx.createRadialGradient(256, 256, 0, 256, 256, 256);
-      grad.addColorStop(0.0, 'rgba(255, 255, 255, 1.0)');
-      grad.addColorStop(0.22, colorHex);
-      grad.addColorStop(0.55, 'rgba(251, 191, 36, 0.38)');
-      grad.addColorStop(0.85, 'rgba(245, 158, 11, 0.12)');
+      grad.addColorStop(0.0, 'rgba(255, 255, 255, 0)');
+      grad.addColorStop(0.24, 'rgba(255, 255, 255, 0.05)');
+      grad.addColorStop(0.48, colorHex);
+      grad.addColorStop(0.75, 'rgba(186, 230, 253, 0.15)');
       grad.addColorStop(1.0, 'rgba(0, 0, 0, 0)');
 
       ctx.fillStyle = grad;
@@ -968,22 +1026,41 @@
       return sprite;
     }
 
-    function generateWingAOTexture() {
-      const canvas = document.createElement('canvas');
-      canvas.width = 512; canvas.height = 512;
-      const ctx = canvas.getContext('2d');
-      ctx.fillStyle = '#ffffff'; ctx.fillRect(0, 0, 512, 512);
-
-      const grad = ctx.createLinearGradient(160, 0, 352, 0);
-      grad.addColorStop(0, '#ffffff');
-      grad.addColorStop(0.45, '#737380');
-      grad.addColorStop(0.55, '#737380');
-      grad.addColorStop(1, '#ffffff');
-      ctx.fillStyle = grad;
-      ctx.fillRect(160, 0, 192, 512);
-      return new THREE.CanvasTexture(canvas);
+    function createCrispWhiteBodyMaterial() {
+      return new THREE.ShaderMaterial({
+        uniforms: {
+          baseColor: { value: new THREE.Color(0xffffff) },
+          edgeColor: { value: new THREE.Color(0x94a3b8) }
+        },
+        vertexShader: `
+          varying vec3 vNormal;
+          varying vec3 vViewPosition;
+          void main() {
+            vNormal = normalize(normalMatrix * normal);
+            vec4 mvPosition = modelViewMatrix * vec4(position, 1.0);
+            vViewPosition = -mvPosition.xyz;
+            gl_Position = projectionMatrix * mvPosition;
+          }
+        `,
+        fragmentShader: `
+          uniform vec3 baseColor;
+          uniform vec3 edgeColor;
+          varying vec3 vNormal;
+          varying vec3 vViewPosition;
+          void main() {
+            vec3 normal = normalize(vNormal);
+            vec3 viewDir = normalize(vViewPosition);
+            float rim = dot(normal, viewDir);
+            rim = clamp(rim, 0.0, 1.0);
+            float edgeFactor = smoothstep(0.18, 0.65, rim);
+            vec3 finalColor = mix(edgeColor, baseColor, edgeFactor);
+            gl_FragColor = vec4(finalColor, 1.0);
+          }
+        `
+      });
     }
 
+    /* 환기 화면 미니 나비 렌더러 */
     let miniScene, miniCamera, miniRenderer, miniGroup, miniLeftWing, miniRightWing;
     let miniAnimId = null;
 
@@ -1005,29 +1082,14 @@
       miniRenderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
       container.appendChild(miniRenderer.domElement);
 
-      const ambLight = new THREE.AmbientLight(0xffffff, 0.9);
-      miniScene.add(ambLight);
-
-      const dirLight = new THREE.DirectionalLight(0xffedd5, 1.8);
-      dirLight.position.set(3, 4, 5);
-      miniScene.add(dirLight);
-
       const textureLoader = new THREE.TextureLoader();
       const userTexture = textureLoader.load(currentExtractedTexture);
-      const wingAO = generateWingAOTexture();
 
       miniGroup = new THREE.Group();
 
-      const wingMat = new THREE.MeshStandardMaterial({
+      const wingMat = new THREE.MeshBasicMaterial({
         map: userTexture,
-        aoMap: wingAO,
-        aoMapIntensity: 0.8,
-        emissive: 0xffedd5,
-        emissiveMap: userTexture,
-        emissiveIntensity: 0.42,
-        side: THREE.DoubleSide,
-        roughness: 0.25,
-        metalness: 0.05
+        side: THREE.DoubleSide
       });
 
       miniLeftWing = new THREE.Mesh(createChubbyCuteWingShape(false), wingMat);
@@ -1038,12 +1100,7 @@
       miniRightWing.position.set(0.06, 0.02, 0);
       miniGroup.add(miniRightWing);
 
-      const bodyMat = new THREE.MeshStandardMaterial({ 
-        color: 0xfffbeb, 
-        emissive: 0xfde68a, 
-        emissiveIntensity: 0.35, 
-        roughness: 0.3 
-      });
+      const bodyMat = createCrispWhiteBodyMaterial();
       miniGroup.add(new THREE.Mesh(createSegmentedBodyGeometry(), bodyMat));
 
       const antennaLeft = createAntennaGroup(false, bodyMat);
@@ -1054,7 +1111,7 @@
       antennaRight.position.set(0.04, 0.58, 0.06);
       miniGroup.add(antennaRight);
 
-      const miniGlow = createEtherealGlowSprite('rgba(254, 240, 138, 0.8)', 4.2, 0.65);
+      const miniGlow = createEtherealGlowSprite('rgba(186, 230, 253, 0.45)', 3.6, 0.4);
       miniGlow.position.set(0, 0, -0.05);
       miniGroup.add(miniGlow);
 
@@ -1075,6 +1132,7 @@
       animMini();
     }
 
+    /* 최종 3D 뷰어 렌더러 */
     let fullScene, fullCamera, fullRenderer, fullGroup, fullLeftWing, fullRightWing;
     let fullGlow1, fullGlow2;
     let isFlyingAway = false, touchStartY = 0;
@@ -1094,37 +1152,16 @@
       fullRenderer = new THREE.WebGLRenderer({ alpha: true, antialias: true });
       fullRenderer.setSize(width, height);
       fullRenderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-      fullRenderer.toneMapping = THREE.ACESFilmicToneMapping;
-      fullRenderer.toneMappingExposure = 1.25;
       container.appendChild(fullRenderer.domElement);
-
-      const ambLight = new THREE.AmbientLight(0xffffff, 0.85);
-      fullScene.add(ambLight);
-
-      const keyLight = new THREE.DirectionalLight(0xfffae8, 2.4);
-      keyLight.position.set(3.5, 6, 7);
-      fullScene.add(keyLight);
-
-      const pointGlow = new THREE.PointLight(0xfef08a, 2.6, 12);
-      pointGlow.position.set(0, 0, 1.2);
-      fullScene.add(pointGlow);
 
       const textureLoader = new THREE.TextureLoader();
       const userTexture = textureLoader.load(textureURL);
-      const wingAO = generateWingAOTexture();
 
       fullGroup = new THREE.Group();
 
-      const wingMat = new THREE.MeshStandardMaterial({
+      const wingMat = new THREE.MeshBasicMaterial({
         map: userTexture,
-        aoMap: wingAO,
-        aoMapIntensity: 0.65,
-        emissive: 0xffedd5,
-        emissiveMap: userTexture,
-        emissiveIntensity: 0.55,
-        side: THREE.DoubleSide,
-        roughness: 0.22,
-        metalness: 0.05
+        side: THREE.DoubleSide
       });
 
       fullLeftWing = new THREE.Mesh(createChubbyCuteWingShape(false), wingMat);
@@ -1135,12 +1172,7 @@
       fullRightWing.position.set(0.06, 0.02, 0);
       fullGroup.add(fullRightWing);
 
-      const bodyMat = new THREE.MeshStandardMaterial({ 
-        color: 0xfffbeb, 
-        emissive: 0xfef08a, 
-        emissiveIntensity: 0.4, 
-        roughness: 0.25 
-      });
+      const bodyMat = createCrispWhiteBodyMaterial();
       fullGroup.add(new THREE.Mesh(createSegmentedBodyGeometry(), bodyMat));
 
       const antennaLeft = createAntennaGroup(false, bodyMat);
@@ -1151,11 +1183,11 @@
       antennaRight.position.set(0.04, 0.58, 0.06);
       fullGroup.add(antennaRight);
 
-      fullGlow1 = createEtherealGlowSprite('#fef08a', 5.6, 0.85);
+      fullGlow1 = createEtherealGlowSprite('#bae6fd', 4.8, 0.55);
       fullGlow1.position.set(0, 0.1, -0.06);
       fullGroup.add(fullGlow1);
 
-      fullGlow2 = createEtherealGlowSprite('#fed7aa', 7.4, 0.52);
+      fullGlow2 = createEtherealGlowSprite('#e0f2fe', 6.4, 0.3);
       fullGlow2.position.set(0, 0.1, -0.09);
       fullGroup.add(fullGlow2);
 
@@ -1167,9 +1199,9 @@
         requestAnimationFrame(animate);
         const time = clock.getElapsedTime();
 
-        const pulse = 1 + Math.sin(time * 2.8) * 0.08;
-        if (fullGlow1) fullGlow1.scale.set(5.6 * pulse, 5.6 * pulse, 1);
-        if (fullGlow2) fullGlow2.scale.set(7.4 * pulse, 7.4 * pulse, 1);
+        const pulse = 1 + Math.sin(time * 2.8) * 0.05;
+        if (fullGlow1) fullGlow1.scale.set(4.8 * pulse, 4.8 * pulse, 1);
+        if (fullGlow2) fullGlow2.scale.set(6.4 * pulse, 6.4 * pulse, 1);
 
         if (!isFlyingAway) {
           const flap = Math.sin(time * 5.0) * 0.48;
@@ -1186,7 +1218,7 @@
           if (fullGroup.position.y > 8.5) {
             const completeDesc = document.getElementById('complete-desc');
             if (completeDesc) {
-              completeDesc.innerHTML = `마음의 무게를 털어낸 <strong>‘${userSelections.q7_name || "나비"}’</strong>(이)가<br>빛의 날개를 펴고 전면 대형 스크린의 너울 속으로 합류했습니다.[cite: 1]`;
+              completeDesc.innerHTML = `마음의 무게를 털어낸 <strong>‘${userSelections.q7_name || "나비"}’</strong>(이)가<br>빛의 날개를 펴고 전면 대형 스크린의 너울 속으로 합류했습니다.`;
             }
             showScreen('screen-complete');
             isFlyingAway = false;
