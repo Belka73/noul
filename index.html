@@ -176,7 +176,7 @@
       justify-content: center;
     }
 
-    /* 정원 형태 및 소프트 블러 처리된 그라데이션 원 */
+    /* 그라데이션 돔 */
     .custom-arch-gradient-dome {
       position: absolute;
       left: 50%;
@@ -273,6 +273,7 @@
       width: 32px;
       height: 32px;
       fill: #cbd5e1;
+      stroke: #cbd5e1;
       transition: all 0.2s cubic-bezier(0.2, 0.8, 0.2, 1);
     }
 
@@ -288,7 +289,26 @@
       width: 48px;
       height: 48px;
       fill: #38bdf8;
+      stroke: #38bdf8;
       filter: drop-shadow(0 4px 8px rgba(56, 189, 248, 0.35));
+    }
+
+    /* 더듬이 탭일 때 흰색 아이콘이 배경에서 또렷하게 보이도록 설정 */
+    .shape-thumb-btn[data-type="antenna"] .shape-circle-badge {
+      background-color: #e2e8f0;
+    }
+    .shape-thumb-btn[data-type="antenna"].active .shape-circle-badge {
+      background-color: #38bdf8;
+    }
+    .shape-thumb-btn[data-type="antenna"] .shape-circle-badge svg {
+      fill: #ffffff !important;
+      stroke: #ffffff !important;
+      filter: drop-shadow(0 1px 2px rgba(15, 23, 42, 0.15));
+    }
+    .shape-thumb-btn[data-type="antenna"].active .shape-circle-badge svg {
+      fill: #ffffff !important;
+      stroke: #ffffff !important;
+      filter: drop-shadow(0 2px 6px rgba(255, 255, 255, 0.6));
     }
 
     .shape-item-label {
@@ -307,27 +327,33 @@
       display: flex;
       align-items: center;
       justify-content: center;
-      gap: 10px;
+      gap: 12px;
       padding-top: 2px;
     }
 
     .deco-pill-btn {
-      padding: 6.5px 16px;
+      padding: 7px 22px;
       border-radius: 9999px;
       background: #ffffff;
-      border: 1.5px solid #bae6fd;
-      color: #0369a1;
-      font-size: 11px;
+      border: 1.5px solid #e2e8f0;
+      color: #64748b;
+      font-size: 12px;
       font-weight: 600;
       letter-spacing: -0.02em;
-      box-shadow: 0 4px 10px rgba(56, 189, 248, 0.12);
+      box-shadow: 0 2px 6px rgba(148, 163, 184, 0.06);
       transition: all 0.2s cubic-bezier(0.2, 0.8, 0.2, 1);
       cursor: pointer;
     }
 
+    .deco-pill-btn.active-tab {
+      background: #f0f9ff !important;
+      border-color: #38bdf8 !important;
+      color: #0284c7 !important;
+      box-shadow: 0 4px 10px rgba(56, 189, 248, 0.15) !important;
+    }
+
     .deco-pill-btn:active {
       transform: scale(0.95);
-      background: #f0f9ff;
     }
 
     .btn-next-action {
@@ -403,14 +429,14 @@
           <svg class="w-full h-full" viewBox="0 0 100 100" preserveAspectRatio="none">
             <path id="align-overlay-path" fill="rgba(15, 23, 42, 0.65)" fill-rule="evenodd"
               d="M 0,0 L 100,0 L 100,100 L 0,100 Z 
-                 M 50,33 C 51.5,33 53,35 53,38 C 58,35 75,18 89,20 C 97,22 99,35 91,48 C 84,59 79,62 76,64 C 81,67 87,74 86,83 C 84,93 69,96 61,87 C 55,80 53,74 53,71 C 53,74 51.5,77 50,77 C 48.5,77 47,74 47,71 C 47,74 45,80 39,87 C 31,96 16,93 14,83 C 13,74 19,67 24,64 C 21,62 16,59 9,48 C 1,35 3,22 11,20 C 25,18 42,35 47,38 C 47,35 48.5,33 50,33 Z" />
+                 M 50,33 C 51.5,33 53,35 53,38 C 58,35 84,14 95,28 C 99,52 79,66 75,67 C 80,75 77,91 65,94 C 55,93 53,75 53,71 C 53,74 51.5,77 50,77 C 48.5,77 47,74 47,71 C 47,75 45,93 35,94 C 23,91 20,75 25,67 C 21,66 1,52 5,28 C 16,14 42,35 47,38 C 47,35 48.5,33 50,33 Z" />
           </svg>
         </div>
       </div>
 
       <footer class="flex gap-2.5 w-[84%] mx-auto flex-shrink-0">
         <button id="btn-rephoto" type="button" class="w-1/3 py-3.5 rounded-2xl border border-slate-200 bg-slate-50 text-slate-600 text-sm active:scale-95 transition-all shadow-sm">다시 촬영</button>
-        <button id="btn-confirm-align" type="button" class="flex-1 py-3.5 rounded-2xl bg-white border border-slate-200 text-slate-800 font-semibold text-sm active:scale-95 transition-all shadow-sm">날개 형태 고르기</button>
+        <button id="btn-confirm-align" type="button" class="flex-1 py-3.5 rounded-2xl bg-white border border-slate-200 text-slate-800 font-semibold text-sm active:scale-95 transition-all shadow-sm">나비 형태 고르기</button>
       </footer>
     </section>
 
@@ -418,8 +444,8 @@
       
       <div class="hero-fixed-anchor">
         <header class="pt-2 pb-1 text-center pointer-events-auto">
-          <h2 class="text-2xl font-bold text-slate-900 tracking-tight">날개 형태 고르기</h2>
-          <p class="text-xs text-slate-500 mt-0.5 font-normal">도안의 결을 담아낼 나비의 실루엣을 선택해 주세요.</p>
+          <h2 id="shape-screen-title" class="text-2xl font-bold text-slate-900 tracking-tight">날개 형태 고르기</h2>
+          <p id="shape-screen-desc" class="text-xs text-slate-500 mt-0.5 font-normal">도안의 결을 담아낼 나비의 실루엣을 선택해 주세요.</p>
         </header>
 
         <div class="reference-square-frame mt-2">
@@ -428,6 +454,9 @@
               <defs>
                 <filter id="soft-butterfly-shadow" x="-50%" y="-50%" width="200%" height="200%">
                   <feDropShadow dx="0" dy="10" stdDeviation="14" flood-color="#38bdf8" flood-opacity="0.35" />
+                </filter>
+                <filter id="antenna-subtle-contrast" x="-30%" y="-30%" width="160%" height="160%">
+                  <feDropShadow dx="0" dy="0.8" stdDeviation="1.0" flood-color="#94a3b8" flood-opacity="0.35" />
                 </filter>
               </defs>
               <g id="hero-path-container" transform="translate(11, 11) scale(1.38)" filter="url(#soft-butterfly-shadow)">
@@ -441,102 +470,14 @@
         
         <div class="carousel-stage-wrapper">
           <div class="custom-arch-gradient-dome"></div>
-          
           <div class="center-fixed-target-zone"></div>
-
           <div id="arch-carousel-container" class="horizontal-scroll-carousel flex items-start gap-4 pt-12 pb-2 box-border">
-            
-            <!-- 0. 기본 날개 -->
-            <div class="arch-track-item">
-              <button type="button" class="shape-thumb-btn" data-shape="default" data-name="기본 날개">
-                <div class="shape-circle-badge">
-                  <svg viewBox="0 0 100 100" preserveAspectRatio="xMidYMid meet">
-                    <path d="M 50,33 C 51.5,33 53,35 53,38 C 58,35 75,18 89,20 C 97,22 99,35 91,48 C 84,59 79,62 76,64 C 81,67 87,74 86,83 C 84,93 69,96 61,87 C 55,80 53,74 53,71 C 53,74 51.5,77 50,77 C 48.5,77 47,74 47,71 C 47,74 45,80 39,87 C 31,96 16,93 14,83 C 13,74 19,67 24,64 C 21,62 16,59 9,48 C 1,35 3,22 11,20 C 25,18 42,35 47,38 C 47,35 48.5,33 50,33 Z"/>
-                  </svg>
-                </div>
-              </button>
-              <span class="shape-item-label text-[11px] font-medium text-slate-300 tracking-tight">기본 날개</span>
-            </div>
-
-            <!-- 1. 뾰족 날개 -->
-            <div class="arch-track-item">
-              <button type="button" class="shape-thumb-btn" data-shape="pointy" data-name="뾰족 날개">
-                <div class="shape-circle-badge">
-                  <svg viewBox="0 0 100 100" preserveAspectRatio="xMidYMid meet">
-                    <path d="M 50,33 C 51.5,33 53,35 53,38 C 58,34 72,12 87,14 C 95,20 86,46 78,56 C 84,68 83,86 73,88 C 61,86 54,74 53,71 C 53,74 51.5,77 50,77 C 48.5,77 47,74 47,71 C 46,74 39,86 27,88 C 17,86 16,68 22,56 C 14,46 5,20 13,14 C 28,12 42,34 47,38 C 47,35 48.5,33 50,33 Z"/>
-                  </svg>
-                </div>
-              </button>
-              <span class="shape-item-label text-[11px] font-medium text-slate-300 tracking-tight">뾰족 날개</span>
-            </div>
-
-            <!-- 2. 나풀 날개 -->
-            <div class="arch-track-item">
-              <button type="button" class="shape-thumb-btn" data-shape="flutter" data-name="나풀 날개">
-                <div class="shape-circle-badge">
-                  <svg viewBox="0 0 100 100" preserveAspectRatio="xMidYMid meet">
-                    <path d="M 50,33 C 51.5,33 53,35 53,38 C 60,34 82,16 93,20 C 97,32 82,53 76,57 C 82,72 80,84 69,87 C 56,86 53,74 53,71 C 53,74 51.5,77 50,77 C 48.5,77 47,74 47,71 C 47,74 44,86 31,87 C 20,84 18,72 24,57 C 18,53 3,32 7,20 C 18,16 40,34 47,38 C 47,35 48.5,33 50,33 Z"/>
-                  </svg>
-                </div>
-              </button>
-              <span class="shape-item-label text-[11px] font-medium text-slate-300 tracking-tight">나풀 날개</span>
-            </div>
-
-            <!-- 3. 동글 날개 -->
-            <div class="arch-track-item">
-              <button type="button" class="shape-thumb-btn active" data-shape="round" data-name="동글 날개">
-                <div class="shape-circle-badge">
-                  <svg viewBox="0 0 100 100" preserveAspectRatio="xMidYMid meet">
-                    <path d="M 50,33 C 51.5,33 53,35 53,38 C 58,35 84,14 95,28 C 99,52 79,66 75,67 C 80,75 77,91 65,94 C 55,93 53,75 53,71 C 53,74 51.5,77 50,77 C 48.5,77 47,74 47,71 C 47,75 45,93 35,94 C 23,91 20,75 25,67 C 21,66 1,52 5,28 C 16,14 42,35 47,38 C 47,35 48.5,33 50,33 Z"/>
-                  </svg>
-                </div>
-              </button>
-              <span class="shape-item-label text-[11px] font-bold text-sky-600 tracking-tight">동글 날개</span>
-            </div>
-
-            <!-- 4. 요정 날개 -->
-            <div class="arch-track-item">
-              <button type="button" class="shape-thumb-btn" data-shape="fairy" data-name="요정 날개">
-                <div class="shape-circle-badge">
-                  <svg viewBox="0 0 100 100" preserveAspectRatio="xMidYMid meet">
-                    <path d="M 50,33 C 51.5,33 53,35 53,38 C 58,34 78,14 91,12 C 87,28 77,42 77,49 C 81,56 82,60 76,64 C 74,70 78,82 74,88 C 64,88 56,76 53,71 C 53,74 51.5,77 50,77 C 48.5,77 47,74 47,71 C 44,76 36,88 26,88 C 22,82 26,70 24,64 C 18,60 19,56 23,49 C 23,42 13,28 9,12 C 22,14 42,34 47,38 C 47,35 48.5,33 50,33 Z"/>
-                  </svg>
-                </div>
-              </button>
-              <span class="shape-item-label text-[11px] font-medium text-slate-300 tracking-tight">요정 날개</span>
-            </div>
-
-            <!-- 5. 제왕 날개 -->
-            <div class="arch-track-item">
-              <button type="button" class="shape-thumb-btn" data-shape="monarch" data-name="제왕 날개">
-                <div class="shape-circle-badge">
-                  <svg viewBox="0 0 100 100" preserveAspectRatio="xMidYMid meet">
-                    <path d="M 50,33 C 51.5,33 53,35 53,38 C 60,33 82,12 94,14 C 99,26 91,52 79,57 C 86,72 84,89 71,91 C 58,91 54,76 53,71 C 53,74 51.5,77 50,77 C 48.5,77 47,74 47,71 C 46,76 42,91 29,91 C 16,89 14,72 21,57 C 9,52 1,26 6,14 C 18,12 40,33 47,38 C 47,35 48.5,33 50,33 Z"/>
-                  </svg>
-                </div>
-              </button>
-              <span class="shape-item-label text-[11px] font-medium text-slate-300 tracking-tight">제왕 날개</span>
-            </div>
-
-            <!-- 6. 물결 날개 -->
-            <div class="arch-track-item">
-              <button type="button" class="shape-thumb-btn" data-shape="wave" data-name="물결 날개">
-                <div class="shape-circle-badge">
-                  <svg viewBox="0 0 100 100" preserveAspectRatio="xMidYMid meet">
-                    <path d="M 50,33 C 51.5,33 53,35 53,38 C 58,34 76,18 88,19 C 94,22 93,33 84,49 C 85,55 83,59 78,63 C 81,75 81,89 72,94 C 62,94 54,77 53,71 C 53,74 51.5,77 50,77 C 48.5,77 47,74 47,71 C 46,77 38,94 28,94 C 19,89 19,75 22,63 C 17,59 15,55 16,49 C 7,33 6,22 12,19 C 24,18 42,34 47,38 C 47,35 48.5,33 50,33 Z"/>
-                  </svg>
-                </div>
-              </button>
-              <span class="shape-item-label text-[11px] font-medium text-slate-300 tracking-tight">물결 날개</span>
-            </div>
-
           </div>
         </div>
 
         <div class="arch-pill-nav">
-          <button type="button" class="deco-pill-btn" style="background: #f0f9ff; border-color: #38bdf8; color: #0284c7;">날개</button>
-          <button type="button" class="deco-pill-btn">더듬이</button>
-          <button type="button" class="deco-pill-btn">무늬</button>
+          <button id="tab-wing" type="button" class="deco-pill-btn active-tab">날개</button>
+          <button id="tab-antenna" type="button" class="deco-pill-btn">더듬이</button>
         </div>
 
         <footer class="flex gap-2.5 w-[84%] mx-auto flex-shrink-0 pt-4 relative z-20">
@@ -647,7 +588,7 @@
 
       <div class="relative flex items-center justify-center my-auto z-10 dramatic-butterfly-float">
         <svg class="w-28 h-28 text-sky-500 drop-shadow-[0_4px_24px_rgba(56,189,248,0.35)]" viewBox="0 0 100 100" fill="none" stroke="currentColor" stroke-width="2.2">
-          <path d="M 50,33 C 51.5,33 53,35 53,38 C 58,35 75,18 89,20 C 97,22 99,35 91,48 C 84,59 79,62 76,64 C 81,67 87,74 86,83 C 84,93 69,96 61,87 C 55,80 53,74 53,71 C 53,74 51.5,77 50,77 C 48.5,77 47,74 47,71 C 47,74 45,80 39,87 C 31,96 16,93 14,83 C 13,74 19,67 24,64 C 21,62 16,59 9,48 C 1,35 3,22 11,20 C 25,18 42,35 47,38 C 47,35 48.5,33 50,33 Z" 
+          <path d="M 50,33 C 51.5,33 53,35 53,38 C 58,35 84,14 95,28 C 99,52 79,66 75,67 C 80,75 77,91 65,94 C 55,93 53,75 53,71 C 53,74 51.5,77 50,77 C 48.5,77 47,74 47,71 C 47,75 45,93 35,94 C 23,91 20,75 25,67 C 21,66 1,52 5,28 C 16,14 42,35 47,38 C 47,35 48.5,33 50,33 Z" 
                 stroke-linecap="round" stroke-linejoin="round"/>
         </svg>
       </div>
@@ -696,27 +637,145 @@
   </main>
 
   <script>
+    let activeCustomTab = 'wing';
     let selectedButterflyShape = 'round';
+    let selectedAntennaType = 'ball';
 
-    /* [수정] 몸통 접합부를 기본 날개처럼 길고 안정되게 수정한 SVG 패스 데이터 */
-    const butterflyPathData = {
-      default: "M 50,33 C 51.5,33 53,35 53,38 C 58,35 75,18 89,20 C 97,22 99,35 91,48 C 84,59 79,62 76,64 C 81,67 87,74 86,83 C 84,93 69,96 61,87 C 55,80 53,74 53,71 C 53,74 51.5,77 50,77 C 48.5,77 47,74 47,71 C 47,74 45,80 39,87 C 31,96 16,93 14,83 C 13,74 19,67 24,64 C 21,62 16,59 9,48 C 1,35 3,22 11,20 C 25,18 42,35 47,38 C 47,35 48.5,33 50,33 Z",
-      pointy: "M 50,33 C 51.5,33 53,35 53,38 C 58,34 72,12 87,14 C 95,20 86,46 78,56 C 84,68 83,86 73,88 C 61,86 54,74 53,71 C 53,74 51.5,77 50,77 C 48.5,77 47,74 47,71 C 46,74 39,86 27,88 C 17,86 16,68 22,56 C 14,46 5,20 13,14 C 28,12 42,34 47,38 C 47,35 48.5,33 50,33 Z",
-      flutter: "M 50,33 C 51.5,33 53,35 53,38 C 60,34 82,16 93,20 C 97,32 82,53 76,57 C 82,72 80,84 69,87 C 56,86 53,74 53,71 C 53,74 51.5,77 50,77 C 48.5,77 47,74 47,71 C 47,74 44,86 31,87 C 20,84 18,72 24,57 C 18,53 3,32 7,20 C 18,16 40,34 47,38 C 47,35 48.5,33 50,33 Z",
-      round: "M 50,33 C 51.5,33 53,35 53,38 C 58,35 84,14 95,28 C 99,52 79,66 75,67 C 80,75 77,91 65,94 C 55,93 53,75 53,71 C 53,74 51.5,77 50,77 C 48.5,77 47,74 47,71 C 47,75 45,93 35,94 C 23,91 20,75 25,67 C 21,66 1,52 5,28 C 16,14 42,35 47,38 C 47,35 48.5,33 50,33 Z",
-      fairy: "M 50,33 C 51.5,33 53,35 53,38 C 58,34 78,14 91,12 C 87,28 77,42 77,49 C 81,56 82,60 76,64 C 74,70 78,82 74,88 C 64,88 56,76 53,71 C 53,74 51.5,77 50,77 C 48.5,77 47,74 47,71 C 44,76 36,88 26,88 C 22,82 26,70 24,64 C 18,60 19,56 23,49 C 23,42 13,28 9,12 C 22,14 42,34 47,38 C 47,35 48.5,33 50,33 Z",
-      monarch: "M 50,33 C 51.5,33 53,35 53,38 C 60,33 82,12 94,14 C 99,26 91,52 79,57 C 86,72 84,89 71,91 C 58,91 54,76 53,71 C 53,74 51.5,77 50,77 C 48.5,77 47,74 47,71 C 46,76 42,91 29,91 C 16,89 14,72 21,57 C 9,52 1,26 6,14 C 18,12 40,33 47,38 C 47,35 48.5,33 50,33 Z",
-      wave: "M 50,33 C 51.5,33 53,35 53,38 C 58,34 76,18 88,19 C 94,22 93,33 84,49 C 85,55 83,59 78,63 C 81,75 81,89 72,94 C 62,94 54,77 53,71 C 53,74 51.5,77 50,77 C 48.5,77 47,74 47,71 C 46,77 38,94 28,94 C 19,89 19,75 22,63 C 17,59 15,55 16,49 C 7,33 6,22 12,19 C 24,18 42,34 47,38 C 47,35 48.5,33 50,33 Z"
-    };
+    const wingDataset = [
+      { id: 'default', name: '기본 날개', d: "M 50,33 C 51.5,33 53,35 53,38 C 58,35 75,18 89,20 C 97,22 99,35 91,48 C 84,59 79,62 76,64 C 81,67 87,74 86,83 C 84,93 69,96 61,87 C 55,80 53,74 53,71 C 53,74 51.5,77 50,77 C 48.5,77 47,74 47,71 C 47,74 45,80 39,87 C 31,96 16,93 14,83 C 13,74 19,67 24,64 C 21,62 16,59 9,48 C 1,35 3,22 11,20 C 25,18 42,35 47,38 C 47,35 48.5,33 50,33 Z" },
+      { id: 'pointy', name: '뾰족 날개', d: "M 50,33 C 51.5,33 53,35 53,38 C 54,26 62,2 89,3 C 94,8 82,45 68,54 C 81,65 80,91 66,95 C 57,91 54,74 53,71 C 53,74 51.5,77 50,77 C 48.5,77 47,74 47,71 C 46,74 43,91 34,95 C 20,91 19,65 32,54 C 18,45 6,8 11,3 C 38,2 46,26 47,38 C 47,35 48.5,33 50,33 Z" },
+      { id: 'flutter', name: '나풀 날개', d: "M 50,33 C 51.5,33 53,35 53,38 C 58,35 77,16 93,21 C 98,34 91,48 95,57 C 98,66 84,72 74,73 C 83,83 80,95 68,96 C 58,97 55,83 53,71 C 53,74 51.5,77 50,77 C 48.5,77 47,74 47,71 C 45,83 42,97 32,96 C 20,95 17,83 26,73 C 16,72 2,66 5,57 C 9,48 2,34 7,21 C 23,16 42,35 47,38 C 47,35 48.5,33 50,33 Z" },
+      { id: 'round', name: '동글 날개', d: "M 50,33 C 51.5,33 53,35 53,38 C 58,35 84,14 95,28 C 99,52 79,66 75,67 C 80,75 77,91 65,94 C 55,93 53,75 53,71 C 53,74 51.5,77 50,77 C 48.5,77 47,74 47,71 C 47,75 45,93 35,94 C 23,91 20,75 25,67 C 21,66 1,52 5,28 C 16,14 42,35 47,38 C 47,35 48.5,33 50,33 Z" },
+      { id: 'fairy', name: '요정 날개', d: "M 50,33 C 51.5,33 53,35 53,38 C 55,25 72,4 93,4 C 99,13 88,38 78,54 C 88,58 91,82 78,97 C 68,100 58,91 55,78 C 54,74 53,72 53,71 C 53,74 51.5,77 50,77 C 48.5,77 47,74 47,71 C 47,72 46,74 45,78 C 42,91 32,100 22,97 C 9,82 12,58 22,54 C 12,38 1,13 7,4 C 28,4 45,25 47,38 C 47,35 48.5,33 50,33 Z" },
+      { id: 'monarch', name: '제왕 날개', d: "M 50,33 C 51.5,33 53,35 53,38 C 62,34 85,15 97,18 C 98,28 92,44 86,52 C 94,62 93,87 84,98 C 76,99 68,88 64,83 C 58,79 54,74 53,71 C 53,74 51.5,77 50,77 C 48.5,77 47,74 47,71 C 46,74 42,79 36,83 C 32,88 24,99 16,98 C 7,87 6,62 14,52 C 8,44 2,28 3,18 C 15,15 38,34 47,38 C 47,35 48.5,33 50,33 Z" },
+      { id: 'wave', name: '물결 날개', d: "M 50,33 C 51.5,33 53,35 53,38 C 55,27 68,7 86,10 C 89,17 83,27 94,30 C 97,38 90,48 96,55 C 98,63 88,71 83,73 C 86,81 83,92 73,96 C 63,98 56,85 53,71 C 53,74 51.5,77 50,77 C 48.5,77 47,74 47,71 C 44,85 37,98 27,96 C 17,92 14,81 17,73 C 12,71 2,63 4,55 C 10,48 3,38 6,30 C 17,27 11,17 14,10 C 32,7 45,27 47,38 C 47,35 48.5,33 50,33 Z" }
+    ];
 
-    function updateHeroPreview(shapeKey) {
-      const heroPathContainer = document.getElementById('hero-path-container');
-      if (heroPathContainer) {
-        heroPathContainer.innerHTML = `<path d="${butterflyPathData[shapeKey]}" fill="#ffffff"/>`;
+    /* [더듬이 4종 데이터] */
+    const antennaDataset = [
+      {
+        id: 'ball',
+        name: '구슬 더듬이',
+        svgPreview: `
+          <path d="M 48.5,34 C 47,26 40,16 35,14" fill="none" stroke="#e2e8f0" stroke-width="2.6" stroke-linecap="round"/>
+          <circle cx="33.5" cy="13" r="3.5" fill="#f1f5f9" stroke="#cbd5e1" stroke-width="1.2"/>
+          <path d="M 51.5,34 C 53,26 60,16 65,14" fill="none" stroke="#e2e8f0" stroke-width="2.6" stroke-linecap="round"/>
+          <circle cx="66.5" cy="13" r="3.5" fill="#f1f5f9" stroke="#cbd5e1" stroke-width="1.2"/>
+        `
+      },
+      {
+        id: 'feather',
+        name: '깃털 더듬이',
+        svgPreview: `
+          <path d="M 48.5,34 C 46,24 40,15 34,11" fill="none" stroke="#e2e8f0" stroke-width="2.6" stroke-linecap="round"/>
+          <path d="M 46,26 L 40,24 M 44,21 L 38,18 M 41,16 L 36,13" fill="none" stroke="#cbd5e1" stroke-width="2.0" stroke-linecap="round"/>
+          <path d="M 51.5,34 C 54,24 60,15 66,11" fill="none" stroke="#e2e8f0" stroke-width="2.6" stroke-linecap="round"/>
+          <path d="M 54,26 L 60,24 M 56,21 L 62,18 M 59,16 L 64,13" fill="none" stroke="#cbd5e1" stroke-width="2.0" stroke-linecap="round"/>
+        `
+      },
+      {
+        id: 'star',
+        name: '별빛 더듬이',
+        svgPreview: `
+          <path d="M 48.5,34 C 47,25 41,17 35,14" fill="none" stroke="#e2e8f0" stroke-width="2.6" stroke-linecap="round"/>
+          <polygon points="35,9 36.5,13.5 41,15 36.5,16.5 35,21 33.5,16.5 29,15 33.5,13.5" fill="#f1f5f9" stroke="#cbd5e1" stroke-width="1.0"/>
+          <path d="M 51.5,34 C 53,25 59,17 65,14" fill="none" stroke="#e2e8f0" stroke-width="2.6" stroke-linecap="round"/>
+          <polygon points="65,9 66.5,13.5 71,15 66.5,16.5 65,21 63.5,16.5 59,15 63.5,13.5" fill="#f1f5f9" stroke="#cbd5e1" stroke-width="1.0"/>
+        `
+      },
+      {
+        id: 'crescent',
+        name: '초승달 더듬이',
+        svgPreview: `
+          <path d="M 48.5,34 C 46,24 37,17 30,19 C 27,20 25,18 28,15 C 34,9 43,15 47,25" fill="#f1f5f9" stroke="#cbd5e1" stroke-width="1.2"/>
+          <path d="M 51.5,34 C 54,24 63,17 70,19 C 73,20 75,18 72,15 C 66,9 57,15 53,25" fill="#f1f5f9" stroke="#cbd5e1" stroke-width="1.2"/>
+        `
       }
+    ];
+
+    const butterflyPathData = {};
+    wingDataset.forEach(w => butterflyPathData[w.id] = w.d);
+
+    function updateHeroPreview() {
+      const heroPathContainer = document.getElementById('hero-path-container');
+      if (!heroPathContainer) return;
+
+      const wingD = butterflyPathData[selectedButterflyShape];
+      const ant = antennaDataset.find(a => a.id === selectedAntennaType) || antennaDataset[0];
+
+      heroPathContainer.innerHTML = `
+        <!-- 기본 흰색 날개 및 몸통 베이스 -->
+        <path d="${wingD}" fill="#ffffff"/>
+
+        <!-- 은은하고 밝은 실버그레이 더듬이 -->
+        <g id="hero-antennas" filter="url(#antenna-subtle-contrast)">
+          ${ant.svgPreview}
+        </g>
+      `;
     }
 
     const carouselContainer = document.getElementById('arch-carousel-container');
+
+    function renderCarouselItems() {
+      carouselContainer.innerHTML = '';
+
+      if (activeCustomTab === 'wing') {
+        wingDataset.forEach(w => {
+          const isActive = w.id === selectedButterflyShape;
+          const div = document.createElement('div');
+          div.className = 'arch-track-item';
+          div.innerHTML = `
+            <button type="button" class="shape-thumb-btn ${isActive ? 'active' : ''}" data-type="wing" data-id="${w.id}">
+              <div class="shape-circle-badge">
+                <svg viewBox="0 0 100 100" preserveAspectRatio="xMidYMid meet">
+                  <path d="${w.d}"/>
+                </svg>
+              </div>
+            </button>
+            <span class="shape-item-label text-[11px] ${isActive ? 'font-bold text-sky-600' : 'font-medium text-slate-300'} tracking-tight">${w.name}</span>
+          `;
+          carouselContainer.appendChild(div);
+        });
+      } else if (activeCustomTab === 'antenna') {
+        antennaDataset.forEach(a => {
+          const isActive = a.id === selectedAntennaType;
+          const div = document.createElement('div');
+          div.className = 'arch-track-item';
+          div.innerHTML = `
+            <button type="button" class="shape-thumb-btn ${isActive ? 'active' : ''}" data-type="antenna" data-id="${a.id}">
+              <div class="shape-circle-badge">
+                <svg viewBox="0 0 100 100" preserveAspectRatio="xMidYMid meet">
+                  <!-- [수정] 더듬이 썸네일 아이콘을 흰색(#ffffff)으로 강제 적용 -->
+                  <g fill="#ffffff" stroke="#ffffff">
+                    ${a.svgPreview.replace(/stroke="#e2e8f0"/g, 'stroke="#ffffff"').replace(/fill="#f1f5f9"/g, 'fill="#ffffff"').replace(/stroke="#cbd5e1"/g, 'stroke="#ffffff"')}
+                  </g>
+                </svg>
+              </div>
+            </button>
+            <span class="shape-item-label text-[11px] ${isActive ? 'font-bold text-sky-600' : 'font-medium text-slate-300'} tracking-tight">${a.name}</span>
+          `;
+          carouselContainer.appendChild(div);
+        });
+      }
+
+      bindItemClickEvents();
+      updateCarouselPadding();
+      applyArchCurveAndSelection();
+
+      setTimeout(() => {
+        const activeBtn = carouselContainer.querySelector('.shape-thumb-btn.active');
+        if (activeBtn) snapItemToExactCenter(activeBtn.closest('.arch-track-item'));
+      }, 50);
+    }
+
+    function bindItemClickEvents() {
+      carouselContainer.querySelectorAll('.shape-thumb-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          setActiveItemVisual(btn);
+          snapItemToExactCenter(btn.closest('.arch-track-item'));
+        });
+      });
+    }
 
     function updateCarouselPadding() {
       if (!carouselContainer) return;
@@ -785,8 +844,16 @@
         activeTxt.classList.remove('font-medium', 'text-slate-300');
       }
 
-      selectedButterflyShape = btn.getAttribute('data-shape');
-      updateHeroPreview(selectedButterflyShape);
+      const type = btn.getAttribute('data-type');
+      const id = btn.getAttribute('data-id');
+
+      if (type === 'wing') {
+        selectedButterflyShape = id;
+      } else if (type === 'antenna') {
+        selectedAntennaType = id;
+      }
+
+      updateHeroPreview();
     }
 
     function snapItemToExactCenter(itemElement) {
@@ -827,7 +894,6 @@
       let scrollTimer = null;
       carouselContainer.addEventListener('scroll', () => {
         applyArchCurveAndSelection();
-        
         clearTimeout(scrollTimer);
         scrollTimer = setTimeout(() => {
           autoSnapToNearestCenter();
@@ -840,28 +906,41 @@
       applyArchCurveAndSelection();
     });
 
+    const tabWing = document.getElementById('tab-wing');
+    const tabAntenna = document.getElementById('tab-antenna');
+    const shapeTitle = document.getElementById('shape-screen-title');
+    const shapeDesc = document.getElementById('shape-screen-desc');
+
+    function switchTab(tabKey) {
+      activeCustomTab = tabKey;
+      [tabWing, tabAntenna].forEach(b => b.classList.remove('active-tab'));
+
+      if (tabKey === 'wing') {
+        tabWing.classList.add('active-tab');
+        shapeTitle.innerText = "날개 형태 고르기";
+        shapeDesc.innerText = "도안의 결을 담아낼 나비의 실루엣을 선택해 주세요.";
+      } else if (tabKey === 'antenna') {
+        tabAntenna.classList.add('active-tab');
+        shapeTitle.innerText = "더듬이 고르기";
+        shapeDesc.innerText = "나비의 감각을 깨울 더듬이 모양을 선택해 주세요.";
+      }
+      renderCarouselItems();
+    }
+
+    tabWing.addEventListener('click', () => switchTab('wing'));
+    tabAntenna.addEventListener('click', () => switchTab('antenna'));
+
     function showScreen(screenId) {
       document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
       const target = document.getElementById(screenId);
       if (target) {
         target.classList.add('active');
         if (screenId === 'screen-shape-select') {
-          setTimeout(() => {
-            updateCarouselPadding();
-            applyArchCurveAndSelection();
-            const activeItem = carouselContainer.querySelector('.shape-thumb-btn.active')?.closest('.arch-track-item');
-            if (activeItem) snapItemToExactCenter(activeItem);
-          }, 40);
+          switchTab('wing');
+          updateHeroPreview();
         }
       }
     }
-
-    document.querySelectorAll('.shape-thumb-btn').forEach(btn => {
-      btn.addEventListener('click', () => {
-        setActiveItemVisual(btn);
-        snapItemToExactCenter(btn.closest('.arch-track-item'));
-      });
-    });
 
     document.getElementById('btn-back-to-align').addEventListener('click', () => {
       showScreen('screen-align');
@@ -1295,71 +1374,62 @@
       ectx.drawImage(rawImage, imgX * scaleRatio, imgY * scaleRatio, rawImage.width * imgScale * scaleRatio, rawImage.height * imgScale * scaleRatio);
 
       currentExtractedTexture = processClearDrawingTexture(exportCanvas);
-      updateHeroPreview(selectedButterflyShape);
+      updateHeroPreview();
       showScreen('screen-shape-select');
     });
 
-    /* [수정] 몸통 접합부(Y 0.45 ~ -0.45)를 넓고 단단하게 밀착시킨 3D 날개 지오메트리 */
     function createCustomWingShape(shapeType, isRight) {
       const shape = new THREE.Shape();
       const s = isRight ? 1 : -1;
 
-      if (shapeType === 'default') {
-        shape.moveTo(0, 0.45);
-        shape.bezierCurveTo(s * 0.45, 0.95, s * 1.15, 1.75, s * 1.9, 1.7);
-        shape.bezierCurveTo(s * 2.5, 1.65, s * 2.7, 1.15, s * 2.45, 0.6);
-        shape.bezierCurveTo(s * 2.2, 0.2, s * 1.8, 0.0, s * 1.35, -0.1);
-        shape.bezierCurveTo(s * 1.8, -0.35, s * 1.8, -1.05, s * 1.45, -1.5);
-        shape.bezierCurveTo(s * 1.05, -1.9, s * 0.55, -1.8, s * 0.35, -1.5);
-        shape.bezierCurveTo(s * 0.18, -1.15, s * 0.08, -0.7, 0, -0.45);
-      } else if (shapeType === 'pointy') {
-        shape.moveTo(0, 0.45);
-        shape.bezierCurveTo(s * 0.42, 0.92, s * 0.85, 2.0, s * 1.52, 2.35);
-        shape.bezierCurveTo(s * 1.85, 1.75, s * 1.9, 0.95, s * 1.38, 0.12);
-        shape.bezierCurveTo(s * 1.75, -0.22, s * 1.85, -1.1, s * 1.45, -1.68);
-        shape.bezierCurveTo(s * 1.05, -1.95, s * 0.55, -1.75, s * 0.35, -1.45);
-        shape.bezierCurveTo(s * 0.18, -1.15, s * 0.08, -0.7, 0, -0.45);
+      shape.moveTo(0, 0.48);
+
+      if (shapeType === 'pointy') {
+        shape.bezierCurveTo(s * 0.12, 1.05, s * 0.75, 2.58, s * 1.75, 2.65);
+        shape.bezierCurveTo(s * 1.95, 1.82, s * 1.55, 1.05, s * 1.12, 0.18);
+        shape.bezierCurveTo(s * 1.68, -0.22, s * 1.82, -1.35, s * 1.28, -1.92);
+        shape.bezierCurveTo(s * 0.88, -2.15, s * 0.45, -1.88, s * 0.25, -1.48);
+        shape.bezierCurveTo(s * 0.15, -1.15, s * 0.05, -0.72, 0, -0.48);
       } else if (shapeType === 'flutter') {
-        shape.moveTo(0, 0.45);
-        shape.bezierCurveTo(s * 0.48, 0.92, s * 1.35, 1.72, s * 2.3, 1.62);
-        shape.bezierCurveTo(s * 2.68, 1.25, s * 2.48, 0.55, s * 1.82, 0.08);
-        shape.bezierCurveTo(s * 2.25, -0.32, s * 2.18, -1.12, s * 1.72, -1.52);
-        shape.bezierCurveTo(s * 1.15, -1.78, s * 0.58, -1.65, s * 0.35, -1.42);
-        shape.bezierCurveTo(s * 0.18, -1.15, s * 0.08, -0.7, 0, -0.45);
-      } else if (shapeType === 'round') {
-        shape.moveTo(0, 0.45);
-        shape.bezierCurveTo(s * 0.45, 0.95, s * 1.15, 1.75, s * 1.95, 1.7);
-        shape.bezierCurveTo(s * 2.55, 1.65, s * 2.75, 1.15, s * 2.45, 0.6);
-        shape.bezierCurveTo(s * 2.2, 0.2, s * 1.8, 0.0, s * 1.35, -0.1);
-        shape.bezierCurveTo(s * 1.8, -0.35, s * 1.8, -1.05, s * 1.45, -1.5);
-        shape.bezierCurveTo(s * 1.05, -1.9, s * 0.55, -1.8, s * 0.35, -1.5);
-        shape.bezierCurveTo(s * 0.18, -1.15, s * 0.08, -0.7, 0, -0.45);
+        shape.bezierCurveTo(s * 0.35, 0.85, s * 1.35, 1.75, s * 2.38, 1.52);
+        shape.bezierCurveTo(s * 2.82, 1.05, s * 2.25, 0.45, s * 2.65, -0.05);
+        shape.bezierCurveTo(s * 2.78, -0.52, s * 2.05, -0.78, s * 1.65, -0.85);
+        shape.bezierCurveTo(s * 2.22, -1.25, s * 1.95, -1.95, s * 1.35, -2.08);
+        shape.bezierCurveTo(s * 0.88, -2.15, s * 0.48, -1.65, s * 0.25, -1.42);
+        shape.bezierCurveTo(s * 0.15, -1.15, s * 0.05, -0.72, 0, -0.48);
       } else if (shapeType === 'fairy') {
-        shape.moveTo(0, 0.45);
-        shape.bezierCurveTo(s * 0.38, 0.88, s * 1.05, 1.85, s * 1.92, 2.38);
-        shape.bezierCurveTo(s * 1.75, 1.58, s * 1.32, 0.88, s * 1.45, 0.32);
-        shape.bezierCurveTo(s * 1.25, 0.0, s * 0.92, -0.15, s * 1.02, -0.38);
-        shape.bezierCurveTo(s * 1.45, -0.88, s * 1.88, -1.48, s * 1.95, -1.85);
-        shape.bezierCurveTo(s * 1.35, -1.82, s * 0.72, -1.25, s * 0.35, -1.45);
-        shape.bezierCurveTo(s * 0.18, -1.15, s * 0.08, -0.7, 0, -0.45);
+        shape.bezierCurveTo(s * 0.18, 1.02, s * 0.98, 2.52, s * 1.95, 2.68);
+        shape.bezierCurveTo(s * 2.12, 1.82, s * 1.45, 1.08, s * 1.28, 0.25);
+        shape.bezierCurveTo(s * 1.88, -0.15, s * 2.05, -1.32, s * 1.48, -2.15);
+        shape.bezierCurveTo(s * 1.08, -2.42, s * 0.62, -2.25, s * 0.35, -1.78);
+        shape.bezierCurveTo(s * 0.18, -1.28, s * 0.08, -0.78, 0, -0.48);
       } else if (shapeType === 'monarch') {
-        shape.moveTo(0, 0.45);
-        shape.bezierCurveTo(s * 0.48, 0.95, s * 1.35, 1.72, s * 2.4, 1.58);
-        shape.bezierCurveTo(s * 2.85, 1.18, s * 2.72, 0.45, s * 1.88, -0.02);
-        shape.bezierCurveTo(s * 2.18, -0.42, s * 1.92, -1.22, s * 1.48, -1.52);
-        shape.bezierCurveTo(s * 0.98, -1.72, s * 0.52, -1.6, s * 0.35, -1.42);
-        shape.bezierCurveTo(s * 0.18, -1.15, s * 0.08, -0.7, 0, -0.45);
+        shape.bezierCurveTo(s * 0.48, 0.95, s * 1.42, 1.92, s * 2.55, 1.78);
+        shape.bezierCurveTo(s * 2.92, 1.25, s * 2.55, 0.45, s * 1.95, -0.05);
+        shape.bezierCurveTo(s * 2.52, -0.58, s * 2.48, -1.72, s * 1.88, -2.25);
+        shape.bezierCurveTo(s * 1.48, -2.32, s * 1.15, -1.82, s * 0.88, -1.62);
+        shape.bezierCurveTo(s * 0.48, -1.45, s * 0.22, -1.15, 0, -0.48);
+      } else if (shapeType === 'wave') {
+        shape.bezierCurveTo(s * 0.22, 0.95, s * 0.92, 2.35, s * 1.95, 2.22);
+        shape.bezierCurveTo(s * 2.28, 1.62, s * 1.72, 1.22, s * 2.45, 0.92);
+        shape.bezierCurveTo(s * 2.72, 0.42, s * 2.12, -0.12, s * 2.52, -0.45);
+        shape.bezierCurveTo(s * 2.72, -0.85, s * 2.05, -1.28, s * 1.75, -1.35);
+        shape.bezierCurveTo(s * 2.12, -1.75, s * 1.82, -2.22, s * 1.42, -2.28);
+        shape.bezierCurveTo(s * 0.85, -2.35, s * 0.52, -1.82, s * 0.25, -1.42);
+        shape.bezierCurveTo(s * 0.15, -1.15, s * 0.05, -0.72, 0, -0.48);
       } else {
-        shape.moveTo(0, 0.45);
-        shape.bezierCurveTo(s * 0.46, 0.92, s * 1.38, 1.78, s * 2.32, 1.72);
-        shape.bezierCurveTo(s * 2.76, 1.52, s * 2.48, 0.68, s * 1.92, 0.22);
-        shape.bezierCurveTo(s * 2.25, -0.08, s * 2.32, -0.98, s * 1.82, -1.65);
-        shape.bezierCurveTo(s * 1.32, -1.95, s * 0.72, -1.48, s * 0.35, -1.42);
-        shape.bezierCurveTo(s * 0.18, -1.15, s * 0.08, -0.7, 0, -0.45);
+        shape.bezierCurveTo(s * 0.32, 0.88, s * 1.15, 1.78, s * 1.95, 1.72);
+        shape.bezierCurveTo(s * 2.58, 1.68, s * 2.78, 1.18, s * 2.45, 0.62);
+        shape.bezierCurveTo(s * 2.18, 0.22, s * 1.78, 0.02, s * 1.35, -0.08);
+        shape.bezierCurveTo(s * 1.80, -0.35, s * 1.80, -1.08, s * 1.45, -1.52);
+        shape.bezierCurveTo(s * 1.05, -1.92, s * 0.55, -1.82, s * 0.32, -1.48);
+        shape.bezierCurveTo(s * 0.16, -1.15, s * 0.05, -0.72, 0, -0.48);
       }
+
+      shape.lineTo(0, 0.48);
       shape.closePath();
 
-      const geom = new THREE.ShapeGeometry(shape, 48);
+      const geom = new THREE.ShapeGeometry(shape, 56);
       const pos = geom.attributes.position;
       const uvs = [];
       const totalSpan = 5.4;
@@ -1394,25 +1464,78 @@
       return geom;
     }
 
-    function createAntennaGroup(isRight, material) {
+    function createCustomAntennaGroup(isRight, material, antennaType) {
       const group = new THREE.Group();
       const s = isRight ? 1 : -1;
 
-      const curve = new THREE.CubicBezierCurve3(
-        new THREE.Vector3(0, 0, 0),
-        new THREE.Vector3(s * 0.15, 0.45, 0.08),
-        new THREE.Vector3(s * 0.42, 0.75, 0.14),
-        new THREE.Vector3(s * 0.52, 0.98, 0.2)
-      );
+      if (antennaType === 'feather') {
+        const curve = new THREE.CubicBezierCurve3(
+          new THREE.Vector3(0, 0, 0),
+          new THREE.Vector3(s * 0.12, 0.45, 0.08),
+          new THREE.Vector3(s * 0.35, 0.85, 0.14),
+          new THREE.Vector3(s * 0.45, 1.05, 0.2)
+        );
+        const tubeGeom = new THREE.TubeGeometry(curve, 24, 0.026, 8, false);
+        group.add(new THREE.Mesh(tubeGeom, material));
 
-      const tubeGeom = new THREE.TubeGeometry(curve, 24, 0.026, 8, false);
-      const tubeMesh = new THREE.Mesh(tubeGeom, material);
-      group.add(tubeMesh);
+        for (let i = 0; i < 4; i++) {
+          const t = 0.45 + i * 0.15;
+          const pt = curve.getPoint(t);
+          const fCurve = new THREE.LineCurve3(
+            pt,
+            new THREE.Vector3(pt.x + s * 0.14, pt.y + 0.05, pt.z + 0.04)
+          );
+          const fGeom = new THREE.TubeGeometry(fCurve, 8, 0.016, 6, false);
+          group.add(new THREE.Mesh(fGeom, material));
+        }
 
-      const tipGeom = new THREE.SphereGeometry(0.058, 16, 16);
-      const tipMesh = new THREE.Mesh(tipGeom, material);
-      tipMesh.position.set(s * 0.52, 0.98, 0.2);
-      group.add(tipMesh);
+      } else if (antennaType === 'star') {
+        const curve = new THREE.CubicBezierCurve3(
+          new THREE.Vector3(0, 0, 0),
+          new THREE.Vector3(s * 0.15, 0.45, 0.08),
+          new THREE.Vector3(s * 0.42, 0.75, 0.14),
+          new THREE.Vector3(s * 0.52, 0.98, 0.2)
+        );
+        const tubeGeom = new THREE.TubeGeometry(curve, 24, 0.026, 8, false);
+        group.add(new THREE.Mesh(tubeGeom, material));
+
+        const octGeom = new THREE.OctahedronGeometry(0.09, 0);
+        const tipMesh = new THREE.Mesh(octGeom, material);
+        tipMesh.position.set(s * 0.52, 0.98, 0.2);
+        tipMesh.rotation.z = s * 0.4;
+        group.add(tipMesh);
+
+      } else if (antennaType === 'crescent') {
+        const curve = new THREE.CubicBezierCurve3(
+          new THREE.Vector3(0, 0, 0),
+          new THREE.Vector3(s * 0.14, 0.42, 0.08),
+          new THREE.Vector3(s * 0.45, 0.82, 0.14),
+          new THREE.Vector3(s * 0.32, 1.15, 0.2)
+        );
+        const tubeGeom = new THREE.TubeGeometry(curve, 28, 0.026, 8, false);
+        group.add(new THREE.Mesh(tubeGeom, material));
+
+        const tipGeom = new THREE.ConeGeometry(0.042, 0.15, 8);
+        const tipMesh = new THREE.Mesh(tipGeom, material);
+        tipMesh.position.set(s * 0.32, 1.15, 0.2);
+        tipMesh.rotation.z = -s * 0.7;
+        group.add(tipMesh);
+
+      } else {
+        const curve = new THREE.CubicBezierCurve3(
+          new THREE.Vector3(0, 0, 0),
+          new THREE.Vector3(s * 0.15, 0.45, 0.08),
+          new THREE.Vector3(s * 0.42, 0.75, 0.14),
+          new THREE.Vector3(s * 0.52, 0.98, 0.2)
+        );
+        const tubeGeom = new THREE.TubeGeometry(curve, 24, 0.026, 8, false);
+        group.add(new THREE.Mesh(tubeGeom, material));
+
+        const tipGeom = new THREE.SphereGeometry(0.068, 16, 16);
+        const tipMesh = new THREE.Mesh(tipGeom, material);
+        tipMesh.position.set(s * 0.52, 0.98, 0.2);
+        group.add(tipMesh);
+      }
 
       return group;
     }
@@ -1446,37 +1569,17 @@
       return sprite;
     }
 
-    function createCrispWhiteBodyMaterial() {
-      return new THREE.ShaderMaterial({
-        uniforms: {
-          baseColor: { value: new THREE.Color(0xffffff) },
-          edgeColor: { value: new THREE.Color(0xbae6fd) }
-        },
-        vertexShader: `
-          varying vec3 vNormal;
-          varying vec3 vViewPosition;
-          void main() {
-            vNormal = normalize(normalMatrix * normal);
-            vec4 mvPosition = modelViewMatrix * vec4(position, 1.0);
-            vViewPosition = -mvPosition.xyz;
-            gl_Position = projectionMatrix * mvPosition;
-          }
-        `,
-        fragmentShader: `
-          uniform vec3 baseColor;
-          uniform vec3 edgeColor;
-          varying vec3 vNormal;
-          varying vec3 vViewPosition;
-          void main() {
-            vec3 normal = normalize(vNormal);
-            vec3 viewDir = normalize(vViewPosition);
-            float rim = dot(normal, viewDir);
-            rim = clamp(rim, 0.0, 1.0);
-            float edgeFactor = smoothstep(0.18, 0.65, rim);
-            vec3 finalColor = mix(edgeColor, baseColor, edgeFactor);
-            gl_FragColor = vec4(finalColor, 1.0);
-          }
-        `
+    function createPureWhiteMaterial() {
+      return new THREE.MeshBasicMaterial({
+        color: 0xffffff,
+        side: THREE.DoubleSide
+      });
+    }
+
+    function createLightGrayAntennaMaterial() {
+      return new THREE.MeshBasicMaterial({
+        color: 0xe2e8f0,
+        side: THREE.DoubleSide
       });
     }
 
@@ -1512,22 +1615,23 @@
       });
 
       fullLeftWing = new THREE.Mesh(createCustomWingShape(selectedButterflyShape, false), wingMat);
-      fullLeftWing.position.set(-0.06, 0.02, 0);
+      fullLeftWing.position.set(0, 0, 0);
       fullGroup.add(fullLeftWing);
 
       fullRightWing = new THREE.Mesh(createCustomWingShape(selectedButterflyShape, true), wingMat);
-      fullRightWing.position.set(0.06, 0.02, 0);
+      fullRightWing.position.set(0, 0, 0);
       fullGroup.add(fullRightWing);
 
-      const bodyMat = createCrispWhiteBodyMaterial();
-      fullGroup.add(new THREE.Mesh(createSegmentedBodyGeometry(), bodyMat));
+      const pureWhiteMat = createPureWhiteMaterial();
+      fullGroup.add(new THREE.Mesh(createSegmentedBodyGeometry(), pureWhiteMat));
 
-      const antennaLeft = createAntennaGroup(false, bodyMat);
-      antennaLeft.position.set(-0.04, 0.58, 0.06);
+      const grayAntennaMat = createLightGrayAntennaMaterial();
+      const antennaLeft = createCustomAntennaGroup(false, grayAntennaMat, selectedAntennaType);
+      antennaLeft.position.set(-0.04, 0.58, 0.12);
       fullGroup.add(antennaLeft);
 
-      const antennaRight = createAntennaGroup(true, bodyMat);
-      antennaRight.position.set(0.04, 0.58, 0.06);
+      const antennaRight = createCustomAntennaGroup(true, grayAntennaMat, selectedAntennaType);
+      antennaRight.position.set(0.04, 0.58, 0.12);
       fullGroup.add(antennaRight);
 
       fullGlow1 = createEtherealGlowSprite('#7dd3fc', 4.8, 0.55);
