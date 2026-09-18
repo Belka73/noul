@@ -193,7 +193,7 @@
         <h3 class="text-base font-bold text-white">💡 종이 정면 위에서 수직으로 찍어주세요</h3>
         <p class="text-xs text-slate-300 leading-relaxed font-light">
           기울어지지 않도록 스마트폰을 도안과 평행하게 정면 위에서 촬영해 주세요.<br>
-          촬영 후 은은하게 빛나는 글로우 날개로 자동 승화됩니다.
+          촬영 후 손가락으로 드래그하여 나비 영역에 알맞게 맞출 수 있습니다.
         </p>
       </div>
 
@@ -209,19 +209,24 @@
       </footer>
     </section>
 
-    <!-- [STEP 0.5] 나비틀 맞춤 -->
+    <!-- [STEP 0.5] 나비틀 맞춤 (선 제거 & 나비 영역 외곽 딤드 마스킹) -->
     <section id="screen-align" class="screen flex-col flex-1 justify-between py-2 text-center">
       <header class="pt-2 flex-shrink-0">
         <h2 class="text-lg font-bold text-white">나비틀에 사진 맞추기</h2>
-        <p class="text-xs text-orange-300/90 mt-0.5"><strong>[한 손가락 드래그]</strong> 이동, <strong>[두 손가락 핀치]</strong> 확대/축소</p>
+        <p class="text-xs text-orange-300/90 mt-0.5"><strong>[드래그]</strong> 이동, <strong>[두 손가락 핀치]</strong> 확대/축소</p>
       </header>
 
-      <div class="relative w-[260px] h-[260px] mx-auto my-auto overflow-hidden bg-black/60 rounded-3xl flex items-center justify-center border border-white/10 shadow-2xl">
+      <!-- 뷰파인더 컨테이너 -->
+      <div class="relative w-[280px] h-[280px] mx-auto my-auto overflow-hidden bg-black/80 rounded-3xl flex items-center justify-center border border-white/10 shadow-2xl">
         <canvas id="align-canvas" width="600" height="600" class="w-full h-full"></canvas>
-        <div class="absolute inset-0 pointer-events-none flex items-center justify-center p-3">
-          <svg class="w-full h-full text-orange-400 drop-shadow-[0_0_12px_rgba(249,115,22,0.85)]" viewBox="0 0 100 100" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M 50,33 C 51.5,33 53,35 53,38 C 58,35 75,18 89,20 C 97,22 99,35 91,48 C 84,59 79,62 76,64 C 81,67 87,74 86,83 C 84,93 69,96 61,87 C 55,80 53,74 53,71 C 53,74 51.5,77 50,77 C 48.5,77 47,74 47,71 C 47,74 45,80 39,87 C 31,96 16,93 14,83 C 13,74 19,67 24,64 C 21,62 16,59 9,48 C 1,35 3,22 11,20 C 25,18 42,35 47,38 C 47,35 48.5,33 50,33 Z"/>
-            <line x1="50" y1="26" x2="50" y2="80" stroke-dasharray="2 2" stroke-width="1.2" stroke="#fdba74" opacity="0.7"/>
+        
+        <!-- 나비 모양 외곽 영역을 어둡게 가려주는 SVG 마스크 오버레이 -->
+        <div class="absolute inset-0 pointer-events-none w-full h-full">
+          <svg class="w-full h-full" viewBox="0 0 100 100" preserveAspectRatio="none">
+            <!-- evenodd 규칙: 전체 사각형(0,0~100,100)을 채우되 내부 나비 패스 구멍만 투명하게 뚫음 -->
+            <path fill="rgba(0, 0, 0, 0.68)" fill-rule="evenodd"
+              d="M 0,0 L 100,0 L 100,100 L 0,100 Z 
+                 M 50,33 C 51.5,33 53,35 53,38 C 58,35 75,18 89,20 C 97,22 99,35 91,48 C 84,59 79,62 76,64 C 81,67 87,74 86,83 C 84,93 69,96 61,87 C 55,80 53,74 53,71 C 53,74 51.5,77 50,77 C 48.5,77 47,74 47,71 C 47,74 45,80 39,87 C 31,96 16,93 14,83 C 13,74 19,67 24,64 C 21,62 16,59 9,48 C 1,35 3,22 11,20 C 25,18 42,35 47,38 C 47,35 48.5,33 50,33 Z" />
           </svg>
         </div>
       </div>
@@ -337,7 +342,7 @@
           내면의 고유한 모습을 담아<br>나비를 깨우고 있습니다.
         </h2>
         <p class="text-xs text-orange-300/80 mt-2 font-light tracking-wide">
-          종이의 질감을 지우고 환상적인 빛의 오라를 입히는 중입니다.
+          종이의 질감을 지우고 환상적인 빛의 오라를 입히는 중입니다.[cite: 1]
         </p>
       </div>
 
@@ -351,13 +356,13 @@
       <div class="text-xs font-mono text-orange-200/80 tracking-widest z-10">NOUL METAMORPHOSIS & GLOW...</div>
     </section>
 
-    <!-- [STEP 4] 최종 3D 뷰어 (레퍼런스 스타일 블루 스카이 + 글로우 오라) -->
+    <!-- [STEP 4] 최종 3D 뷰어 -->
     <section id="screen-preview" class="screen fixed inset-0 z-50 flex-col justify-between py-6 overflow-hidden"
       style="background: linear-gradient(180deg, #3b82f6 0%, #60a5fa 45%, #fed7aa 92%, #fde68a 100%) !important;">
       <header class="text-center pt-3 z-10">
         <span class="text-xs font-mono text-white font-semibold tracking-wider uppercase drop-shadow-[0_1px_4px_rgba(0,0,0,0.3)]">NOUL LUMINOUS BUTTERFLY</span>
         <h2 id="preview-butterfly-name" class="text-3xl font-black text-white mt-1 drop-shadow-[0_2px_8px_rgba(0,0,0,0.3)] tracking-tight">‘나비’</h2>
-        <p class="text-xs text-white/90 mt-1 font-light drop-shadow-[0_1px_4px_rgba(0,0,0,0.3)]">화면을 위로 쓸어 올려 눈부신 하늘로 날려보내세요.</p>
+        <p class="text-xs text-white/90 mt-1 font-light drop-shadow-[0_1px_4px_rgba(0,0,0,0.3)]">화면을 위로 쓸어 올려 눈부신 하늘로 날려보내세요.[cite: 1]</p>
       </header>
 
       <div id="three-container" class="w-full h-full absolute inset-0 z-0 pointer-events-auto"></div>
@@ -382,7 +387,7 @@
       <h2 class="text-2xl font-bold text-white mb-2">하늘 위로 눈부시게 날아올랐습니다</h2>
       <p id="complete-desc" class="text-sm text-slate-300 leading-relaxed mb-8">
         빛의 날개를 얻은 나비가<br>
-        전면 대형 스크린의 찬란한 너울 속으로 합류했습니다.
+        전면 대형 스크린의 찬란한 너울 속으로 합류했습니다.[cite: 1]
       </p>
       <button onclick="location.reload()" type="button" class="px-8 py-3.5 rounded-2xl border border-white/20 text-slate-200 text-xs font-medium active:scale-95 transition-all">
         새로운 나비 띄우기
@@ -465,7 +470,7 @@
       },
       {
         title: "먼 하늘 너울 속으로 날아오를 나비의 이름은?",
-        desc: "나비에게 고유한 이름을 붙여주세요."
+        desc: "나비에게 고유한 이름을 붙여주세요.[cite: 1]"
       }
     ];
 
@@ -666,8 +671,8 @@
       } else if (stepFrom === 4) {
         html = `
           <p class="text-slate-100 text-[0.95rem] leading-relaxed font-normal">시원한 ${formatKeywordBadges(userSelections.q5)} 한마디에, 날개를 옥죄던 어두운 그림자들이 허공으로 맥없이 흩어져 사라집니다.</p>
-          <p class="text-slate-100 text-[0.95rem] leading-relaxed font-normal">온갖 무게를 털어내고 한결 가벼워진 나비는 이제 거대한 하늘 너울 속으로 온전히 날아오릅니다.</p>
-          <p class="text-orange-200 handwriting-accent pt-2">모든 상처를 비워낸 나비가 가장 눈부신 빛이 되어 당신의 품으로 다시 돌아올 날은 언제일까요?</p>
+          <p class="text-slate-100 text-[0.95rem] leading-relaxed font-normal">온갖 무게를 털어내고 한결 가벼워진 나비는 이제 거대한 하늘 너울 속으로 온전히 날아오릅니다.[cite: 1]</p>
+          <p class="text-orange-200 handwriting-accent pt-2">모든 상처를 비워낸 나비가 가장 눈부신 빛이 되어 당신의 품으로 다시 돌아올 날은 언제일까요?[cite: 1]</p>
         `;
       }
 
@@ -822,10 +827,6 @@
       startPinchDist = 0;
     });
 
-    /**
-     * [레퍼런스 스타일 몽환적 블러 & 화사한 발광 필터링 함수]
-     * 종이 질감의 투박함을 지우고, 부드러운 가우시안 블러와 채도·밝기 증폭을 결합
-     */
     function processDreamyWingTexture(sourceCanvas) {
       const size = 1024;
       const dreamCanvas = document.createElement('canvas');
@@ -833,17 +834,14 @@
       dreamCanvas.height = size;
       const dctx = dreamCanvas.getContext('2d');
 
-      // 1. 따뜻하고 부드러운 크림빛 베이스 배경
       dctx.fillStyle = '#fefce8';
       dctx.fillRect(0, 0, size, size);
 
-      // 2. 가우시안 블러 및 화사한 색조 보정 필터 적용
       dctx.save();
       dctx.filter = 'blur(10px) brightness(1.18) saturate(1.35) contrast(0.88)';
       dctx.drawImage(sourceCanvas, 0, 0, size, size);
       dctx.restore();
 
-      // 3. 미세한 스무딩 오버레이 2차 블러 합성 (가장자리와 결을 몽환적으로)
       dctx.save();
       dctx.globalAlpha = 0.38;
       dctx.filter = 'blur(24px) brightness(1.25)';
@@ -864,7 +862,6 @@
       ectx.fillRect(0, 0, 1024, 1024);
       ectx.drawImage(rawImage, imgX * scaleRatio, imgY * scaleRatio, rawImage.width * imgScale * scaleRatio, rawImage.height * imgScale * scaleRatio);
 
-      // 몽환적인 블러와 빛을 입힌 텍스처로 자동 정제
       currentExtractedTexture = processDreamyWingTexture(exportCanvas);
       renderSurveyStep();
       showScreen('screen-survey');
@@ -919,7 +916,6 @@
       return geom;
     }
 
-    // 나비 더듬이 생성 함수
     function createAntennaGroup(isRight, material) {
       const group = new THREE.Group();
       const s = isRight ? 1 : -1;
@@ -943,10 +939,6 @@
       return group;
     }
 
-    /**
-     * [레퍼런스 스타일 빛나는 글로우 오라 스프라이트 생성]
-     * 날개 뒤쪽에서 반짝이는 오라 링을 생성하여 몽환적인 발광체를 형성
-     */
     function createEtherealGlowSprite(colorHex = '#fef08a', size = 5.2, opacity = 0.85) {
       const canvas = document.createElement('canvas');
       canvas.width = 512;
@@ -1026,7 +1018,6 @@
 
       miniGroup = new THREE.Group();
 
-      // 미니 나비에도 은은한 글로우 및 부드러운 머티리얼 속성 부여
       const wingMat = new THREE.MeshStandardMaterial({
         map: userTexture,
         aoMap: wingAO,
@@ -1063,7 +1054,6 @@
       antennaRight.position.set(0.04, 0.58, 0.06);
       miniGroup.add(antennaRight);
 
-      // 미니 글로우 오라 스프라이트 추가
       const miniGlow = createEtherealGlowSprite('rgba(254, 240, 138, 0.8)', 4.2, 0.65);
       miniGlow.position.set(0, 0, -0.05);
       miniGroup.add(miniGlow);
@@ -1115,7 +1105,6 @@
       keyLight.position.set(3.5, 6, 7);
       fullScene.add(keyLight);
 
-      // 나비 주위를 환하게 밝혀줄 포인트 조명
       const pointGlow = new THREE.PointLight(0xfef08a, 2.6, 12);
       pointGlow.position.set(0, 0, 1.2);
       fullScene.add(pointGlow);
@@ -1126,14 +1115,13 @@
 
       fullGroup = new THREE.Group();
 
-      // [핵심] 레퍼런스 스타일의 몽환적 반짝임(Glow & Bloom Effect) 적용 머티리얼
       const wingMat = new THREE.MeshStandardMaterial({
         map: userTexture,
         aoMap: wingAO,
         aoMapIntensity: 0.65,
         emissive: 0xffedd5,
         emissiveMap: userTexture,
-        emissiveIntensity: 0.55, // 자체 발광 강도 부여
+        emissiveIntensity: 0.55,
         side: THREE.DoubleSide,
         roughness: 0.22,
         metalness: 0.05
@@ -1163,7 +1151,6 @@
       antennaRight.position.set(0.04, 0.58, 0.06);
       fullGroup.add(antennaRight);
 
-      // [핵심 2] 나비 날개 뒤편에 레퍼런스 이미지처럼 뽀얗게 퍼지는 글로우 오라 2단 레이어링
       fullGlow1 = createEtherealGlowSprite('#fef08a', 5.6, 0.85);
       fullGlow1.position.set(0, 0.1, -0.06);
       fullGroup.add(fullGlow1);
@@ -1180,7 +1167,6 @@
         requestAnimationFrame(animate);
         const time = clock.getElapsedTime();
 
-        // 몽환적으로 은은하게 박동하는 글로우 숨쉬기(Breathing) 모션
         const pulse = 1 + Math.sin(time * 2.8) * 0.08;
         if (fullGlow1) fullGlow1.scale.set(5.6 * pulse, 5.6 * pulse, 1);
         if (fullGlow2) fullGlow2.scale.set(7.4 * pulse, 7.4 * pulse, 1);
@@ -1200,7 +1186,7 @@
           if (fullGroup.position.y > 8.5) {
             const completeDesc = document.getElementById('complete-desc');
             if (completeDesc) {
-              completeDesc.innerHTML = `마음의 무게를 털어낸 <strong>‘${userSelections.q7_name || "나비"}’</strong>(이)가<br>빛의 날개를 펴고 전면 대형 스크린의 너울 속으로 합류했습니다.`;
+              completeDesc.innerHTML = `마음의 무게를 털어낸 <strong>‘${userSelections.q7_name || "나비"}’</strong>(이)가<br>빛의 날개를 펴고 전면 대형 스크린의 너울 속으로 합류했습니다.[cite: 1]`;
             }
             showScreen('screen-complete');
             isFlyingAway = false;
