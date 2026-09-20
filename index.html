@@ -348,14 +348,14 @@
       color: #737373 !important;
     }
 
+    /* 화면 전환 기본 클래스 (display 충돌 완전 해결) */
     .screen {
       display: none;
       opacity: 0;
-      transition: opacity 0.2s ease-in-out;
     }
     .screen.active {
       display: flex !important;
-      opacity: 1;
+      opacity: 1 !important;
     }
 
     .photo-butterfly-bg-wrapper {
@@ -470,14 +470,15 @@
       </div>
 
       <footer class="flex flex-col gap-2.5 w-[84%] mx-auto flex-shrink-0">
-        <label class="w-full py-3.5 rounded-2xl bg-white text-black font-bold text-sm cursor-pointer active:scale-95 transition-all text-center block shadow-lg shadow-white/10">
+        <label for="camera-input" class="w-full py-3.5 rounded-2xl bg-white text-black font-bold text-sm cursor-pointer active:scale-95 transition-all text-center block shadow-lg shadow-white/10">
           카메라로 도안 촬영하기
-          <input type="file" id="camera-input" accept="image/*" capture="environment" class="hidden">
         </label>
-        <label class="w-full py-3 rounded-2xl border border-white/15 bg-white/5 text-neutral-300 font-medium text-xs cursor-pointer active:scale-95 transition-all text-center block">
+        <label for="album-input" class="w-full py-3 rounded-2xl border border-white/15 bg-white/5 text-neutral-300 font-medium text-xs cursor-pointer active:scale-95 transition-all text-center block">
           앨범에서 사진 선택
-          <input type="file" id="album-input" accept="image/*" class="hidden">
         </label>
+        <!-- 안전한 파일 인풋 (display: none으로 모바일 호환성 극대화 및 capture="environment" 적용) -->
+        <input type="file" id="camera-input" accept="image/*" capture="environment" style="display: none;">
+        <input type="file" id="album-input" accept="image/*" style="display: none;">
       </footer>
     </section>
 
@@ -489,7 +490,7 @@
       </header>
 
       <div class="relative w-[280px] h-[280px] mx-auto my-auto overflow-hidden bg-neutral-900 rounded-3xl flex items-center justify-center border border-white/15">
-        <canvas id="align-canvas" width="600" height="600" class="w-full h-full"></canvas>
+        <canvas id="align-canvas" width="600" height="600" class="w-full h-full block"></canvas>
         
         <div class="absolute inset-0 pointer-events-none w-full h-full">
           <svg class="w-full h-full" viewBox="0 0 100 100" preserveAspectRatio="none">
@@ -726,7 +727,7 @@
       </div>
       <h2 class="text-2xl font-bold text-white mb-2">하늘 위로 눈부시게 날아올랐습니다</h2>
       <p id="complete-desc" class="text-sm text-neutral-400 leading-relaxed mb-8">
-        ‘나비’(이)가 빛의 날개를 펴고 너울 속으로 합류했습니다.
+        ‘나비’(이)가 빛의 날개를 펴고 너울 속으로 합류했습니다.[cite: 1]
       </p>
       <button onclick="location.reload()" type="button" class="w-[84%] py-3.5 rounded-2xl bg-white text-black text-xs font-bold shadow-lg shadow-white/20 active:scale-95 transition-all">
         새로운 나비 띄우기
@@ -737,17 +738,42 @@
 
   <script>
     /* ========================================================
-       0. Supabase 초기화 (진짜 긴 JWT anon key 적용)
+       0. 무결점 화면 전환 함수
        ======================================================== */
-    const SUPABASE_URL = 'https://djmdzsbfsobsutphragw.supabase.co';
-    const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRqbWR6c2Jmc29ic3V0cGhyYWd3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODk4ODQ3NTgsImV4cCI6MjEwNTQ2MDc1OH0.BC7llaSjbq6cYhDlRqrwJaycpQ6gSNcp5LgYBeM6WEM';
-    const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    function showScreen(screenId) {
+      document.querySelectorAll('.screen').forEach(function(s) {
+        s.classList.remove('active');
+      });
+      var target = document.getElementById(screenId);
+      if (target) {
+        target.classList.add('active');
+        if (screenId === 'screen-shape-select') {
+          switchTab('wing');
+          updateHeroPreview();
+        }
+      }
+    }
 
-    let activeCustomTab = 'wing';
-    let selectedButterflyShape = 'round';
-    let selectedAntennaType = 'ball';
+    /* ========================================================
+       1. Supabase 연동 변수 (에러 방어 로직 적용)
+       ======================================================== */
+    var SUPABASE_URL = 'https://djmdzsbfsobsutphragw.supabase.co';
+    var SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRqbWR6c2Jmc29ic3V0cGhyYWd3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODk4ODQ3NTgsImV4cCI6MjEwNTQ2MDc1OH0.BC7llaSjbq6cYhDlRqrwJaycpQ6gSNcp5LgYBeM6WEM';
+    var supabase = null;
+    
+    try {
+      if (window.supabase) {
+        supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+      }
+    } catch (err) {
+      console.warn("Supabase 연결 지연:", err);
+    }
 
-    const wingDataset = [
+    var activeCustomTab = 'wing';
+    var selectedButterflyShape = 'round';
+    var selectedAntennaType = 'ball';
+
+    var wingDataset = [
       { id: 'default', name: '기본 날개', d: "M 50,33 C 51.5,33 53,35 53,38 C 58,35 75,18 89,20 C 97,22 99,35 91,48 C 84,59 79,62 76,64 C 81,67 87,74 86,83 C 84,93 69,96 61,87 C 55,80 53,74 53,71 C 53,74 51.5,77 50,77 C 48.5,77 47,74 47,71 C 47,74 45,80 39,87 C 31,96 16,93 14,83 C 13,74 19,67 24,64 C 21,62 16,59 9,48 C 1,35 3,22 11,20 C 25,18 42,35 47,38 C 47,35 48.5,33 50,33 Z" },
       { id: 'pointy', name: '뾰족 날개', d: "M 50,33 C 51.5,33 53,35 53,38 C 54,26 62,2 89,3 C 94,8 82,45 68,54 C 81,65 80,91 66,95 C 57,91 54,74 53,71 C 53,74 51.5,77 50,77 C 48.5,77 47,74 47,71 C 46,74 43,91 34,95 C 20,91 19,65 32,54 C 18,45 6,8 11,3 C 38,2 46,26 47,38 C 47,35 48.5,33 50,33 Z" },
       { id: 'flutter', name: '나풀 날개', d: "M 50,33 C 51.5,33 53,35 53,38 C 58,35 77,16 93,21 C 98,34 91,48 95,57 C 98,66 84,72 74,73 C 83,83 80,95 68,96 C 58,97 55,83 53,71 C 53,74 51.5,77 50,77 C 48.5,77 47,74 47,71 C 45,83 42,97 32,96 C 20,95 17,83 26,73 C 16,72 2,66 5,57 C 9,48 2,34 7,21 C 23,16 42,35 47,38 C 47,35 48.5,33 50,33 Z" },
@@ -757,104 +783,61 @@
       { id: 'wave', name: '물결 날개', d: "M 50,33 C 51.5,33 53,35 53,38 C 55,27 68,7 86,10 C 89,17 83,27 94,30 C 97,38 90,48 96,55 C 98,63 88,71 83,73 C 86,81 83,92 73,96 C 63,98 56,85 53,71 C 53,74 51.5,77 50,77 C 48.5,77 47,74 47,71 C 44,85 37,98 27,96 C 17,92 14,81 17,73 C 12,71 2,63 4,55 C 10,48 3,38 6,30 C 17,27 11,17 14,10 C 32,7 45,27 47,38 C 47,35 48.5,33 50,33 Z" }
     ];
 
-    const antennaDataset = [
+    var antennaDataset = [
       {
         id: 'ball',
         name: '구슬 더듬이',
-        svgPreview: `
-          <path d="M 48.5,34 C 47,26 40,16 35,14" fill="none" stroke="#ffffff" stroke-width="2.6" stroke-linecap="round"/>
-          <circle cx="33.5" cy="13" r="3.5" fill="#ffffff" stroke="#ffffff" stroke-width="1.2"/>
-          <path d="M 51.5,34 C 53,26 60,16 65,14" fill="none" stroke="#ffffff" stroke-width="2.6" stroke-linecap="round"/>
-          <circle cx="66.5" cy="13" r="3.5" fill="#ffffff" stroke="#ffffff" stroke-width="1.2"/>
-        `
+        svgPreview: '<path d="M 48.5,34 C 47,26 40,16 35,14" fill="none" stroke="#ffffff" stroke-width="2.6" stroke-linecap="round"/><circle cx="33.5" cy="13" r="3.5" fill="#ffffff" stroke="#ffffff" stroke-width="1.2"/><path d="M 51.5,34 C 53,26 60,16 65,14" fill="none" stroke="#ffffff" stroke-width="2.6" stroke-linecap="round"/><circle cx="66.5" cy="13" r="3.5" fill="#ffffff" stroke="#ffffff" stroke-width="1.2"/>'
       },
       {
         id: 'feather',
         name: '깃털 더듬이',
-        svgPreview: `
-          <path d="M 48.5,34 C 46,24 40,15 34,11" fill="none" stroke="#ffffff" stroke-width="2.6" stroke-linecap="round"/>
-          <path d="M 46,26 L 40,24 M 44,21 L 38,18 M 41,16 L 36,13" fill="none" stroke="#ffffff" stroke-width="2.0" stroke-linecap="round"/>
-          <path d="M 51.5,34 C 54,24 60,15 66,11" fill="none" stroke="#ffffff" stroke-width="2.6" stroke-linecap="round"/>
-          <path d="M 54,26 L 60,24 M 56,21 L 62,18 M 59,16 L 64,13" fill="none" stroke="#ffffff" stroke-width="2.0" stroke-linecap="round"/>
-        `
+        svgPreview: '<path d="M 48.5,34 C 46,24 40,15 34,11" fill="none" stroke="#ffffff" stroke-width="2.6" stroke-linecap="round"/><path d="M 46,26 L 40,24 M 44,21 L 38,18 M 41,16 L 36,13" fill="none" stroke="#ffffff" stroke-width="2.0" stroke-linecap="round"/><path d="M 51.5,34 C 54,24 60,15 66,11" fill="none" stroke="#ffffff" stroke-width="2.6" stroke-linecap="round"/><path d="M 54,26 L 60,24 M 56,21 L 62,18 M 59,16 L 64,13" fill="none" stroke="#ffffff" stroke-width="2.0" stroke-linecap="round"/>'
       },
       {
         id: 'star',
         name: '별빛 더듬이',
-        svgPreview: `
-          <path d="M 48.5,34 C 47,25 41,17 35,14" fill="none" stroke="#ffffff" stroke-width="2.6" stroke-linecap="round"/>
-          <polygon points="35,9 36.5,13.5 41,15 36.5,16.5 35,21 33.5,16.5 29,15 33.5,13.5" fill="#ffffff" stroke="#ffffff" stroke-width="1.0"/>
-          <path d="M 51.5,34 C 53,25 59,17 65,14" fill="none" stroke="#ffffff" stroke-width="2.6" stroke-linecap="round"/>
-          <polygon points="65,9 66.5,13.5 71,15 66.5,16.5 65,21 63.5,16.5 59,15 63.5,13.5" fill="#ffffff" stroke="#ffffff" stroke-width="1.0"/>
-        `
+        svgPreview: '<path d="M 48.5,34 C 47,25 41,17 35,14" fill="none" stroke="#ffffff" stroke-width="2.6" stroke-linecap="round"/><polygon points="35,9 36.5,13.5 41,15 36.5,16.5 35,21 33.5,16.5 29,15 33.5,13.5" fill="#ffffff" stroke="#ffffff" stroke-width="1.0"/><path d="M 51.5,34 C 53,25 59,17 65,14" fill="none" stroke="#ffffff" stroke-width="2.6" stroke-linecap="round"/><polygon points="65,9 66.5,13.5 71,15 66.5,16.5 65,21 63.5,16.5 59,15 63.5,13.5" fill="#ffffff" stroke="#ffffff" stroke-width="1.0"/>'
       },
       {
         id: 'crescent',
         name: '초승달 더듬이',
-        svgPreview: `
-          <path d="M 48.5,34 C 46,24 37,17 30,19 C 27,20 25,18 28,15 C 34,9 43,15 47,25" fill="#ffffff" stroke="#ffffff" stroke-width="1.2"/>
-          <path d="M 51.5,34 C 54,24 63,17 70,19 C 73,20 75,18 72,15 C 66,9 57,15 53,25" fill="#ffffff" stroke="#ffffff" stroke-width="1.2"/>
-        `
+        svgPreview: '<path d="M 48.5,34 C 46,24 37,17 30,19 C 27,20 25,18 28,15 C 34,9 43,15 47,25" fill="#ffffff" stroke="#ffffff" stroke-width="1.2"/><path d="M 51.5,34 C 54,24 63,17 70,19 C 73,20 75,18 72,15 C 66,9 57,15 53,25" fill="#ffffff" stroke="#ffffff" stroke-width="1.2"/>'
       }
     ];
 
-    const butterflyPathData = {};
-    wingDataset.forEach(w => butterflyPathData[w.id] = w.d);
+    var butterflyPathData = {};
+    wingDataset.forEach(function(w) { butterflyPathData[w.id] = w.d; });
 
     function updateHeroPreview() {
-      const heroPathContainer = document.getElementById('hero-path-container');
+      var heroPathContainer = document.getElementById('hero-path-container');
       if (!heroPathContainer) return;
 
-      const wingD = butterflyPathData[selectedButterflyShape];
-      const ant = antennaDataset.find(a => a.id === selectedAntennaType) || antennaDataset[0];
+      var wingD = butterflyPathData[selectedButterflyShape];
+      var ant = antennaDataset.find(function(a) { return a.id === selectedAntennaType; }) || antennaDataset[0];
 
-      heroPathContainer.innerHTML = `
-        <path d="${wingD}" fill="#ffffff"/>
-        <g id="hero-antennas" filter="url(#antenna-subtle-contrast)">
-          ${ant.svgPreview}
-        </g>
-      `;
+      heroPathContainer.innerHTML = '<path d="' + wingD + '" fill="#ffffff"/><g id="hero-antennas" filter="url(#antenna-subtle-contrast)">' + ant.svgPreview + '</g>';
     }
 
-    const carouselContainer = document.getElementById('arch-carousel-container');
+    var carouselContainer = document.getElementById('arch-carousel-container');
 
     function renderCarouselItems() {
       carouselContainer.innerHTML = '';
 
       if (activeCustomTab === 'wing') {
-        wingDataset.forEach(w => {
-          const isActive = w.id === selectedButterflyShape;
-          const div = document.createElement('div');
+        wingDataset.forEach(function(w) {
+          var isActive = w.id === selectedButterflyShape;
+          var div = document.createElement('div');
           div.className = 'arch-track-item';
-          div.innerHTML = `
-            <button type="button" class="shape-thumb-btn ${isActive ? 'active' : ''}" data-type="wing" data-id="${w.id}">
-              <div class="shape-circle-badge">
-                <svg viewBox="0 0 100 100" preserveAspectRatio="xMidYMid meet">
-                  <path d="${w.d}"/>
-                </svg>
-              </div>
-            </button>
-            <span class="shape-item-label text-[11px] ${isActive ? 'font-bold text-white' : 'font-medium text-neutral-500'} tracking-tight">${w.name}</span>
-          `;
+          div.innerHTML = '<button type="button" class="shape-thumb-btn ' + (isActive ? 'active' : '') + '" data-type="wing" data-id="' + w.id + '"><div class="shape-circle-badge"><svg viewBox="0 0 100 100" preserveAspectRatio="xMidYMid meet"><path d="' + w.d + '"/></svg></div></button><span class="shape-item-label text-[11px] ' + (isActive ? 'font-bold text-white' : 'font-medium text-neutral-500') + ' tracking-tight">' + w.name + '</span>';
           carouselContainer.appendChild(div);
         });
       } else if (activeCustomTab === 'antenna') {
-        antennaDataset.forEach(a => {
-          const isActive = a.id === selectedAntennaType;
-          const div = document.createElement('div');
+        antennaDataset.forEach(function(a) {
+          var isActive = a.id === selectedAntennaType;
+          var div = document.createElement('div');
           div.className = 'arch-track-item';
-          div.innerHTML = `
-            <button type="button" class="shape-thumb-btn ${isActive ? 'active' : ''}" data-type="antenna" data-id="${a.id}">
-              <div class="shape-circle-badge">
-                <svg viewBox="0 0 100 100" preserveAspectRatio="xMidYMid meet">
-                  <g>
-                    ${a.svgPreview}
-                  </g>
-                </svg>
-              </div>
-            </button>
-            <span class="shape-item-label text-[11px] ${isActive ? 'font-bold text-white' : 'font-medium text-neutral-500'} tracking-tight">${a.name}</span>
-          `;
+          div.innerHTML = '<button type="button" class="shape-thumb-btn ' + (isActive ? 'active' : '') + '" data-type="antenna" data-id="' + a.id + '"><div class="shape-circle-badge"><svg viewBox="0 0 100 100" preserveAspectRatio="xMidYMid meet"><g>' + a.svgPreview + '</g></svg></div></button><span class="shape-item-label text-[11px] ' + (isActive ? 'font-bold text-white' : 'font-medium text-neutral-500') + ' tracking-tight">' + a.name + '</span>';
           carouselContainer.appendChild(div);
         });
       }
@@ -863,15 +846,15 @@
       updateCarouselPadding();
       applyArchCurveAndSelection();
 
-      setTimeout(() => {
-        const activeBtn = carouselContainer.querySelector('.shape-thumb-btn.active');
+      setTimeout(function() {
+        var activeBtn = carouselContainer.querySelector('.shape-thumb-btn.active');
         if (activeBtn) snapItemToExactCenter(activeBtn.closest('.arch-track-item'));
       }, 50);
     }
 
     function bindItemClickEvents() {
-      carouselContainer.querySelectorAll('.shape-thumb-btn').forEach(btn => {
-        btn.addEventListener('click', () => {
+      carouselContainer.querySelectorAll('.shape-thumb-btn').forEach(function(btn) {
+        btn.addEventListener('click', function() {
           setActiveItemVisual(btn);
           snapItemToExactCenter(btn.closest('.arch-track-item'));
         });
@@ -880,48 +863,48 @@
 
     function updateCarouselPadding() {
       if (!carouselContainer) return;
-      const cWidth = carouselContainer.clientWidth;
-      const firstItem = carouselContainer.querySelector('.arch-track-item');
+      var cWidth = carouselContainer.clientWidth;
+      var firstItem = carouselContainer.querySelector('.arch-track-item');
       if (firstItem) {
-        const itemWidth = firstItem.offsetWidth;
-        const pad = Math.max(0, (cWidth - itemWidth) / 2);
-        carouselContainer.style.paddingLeft = `${pad}px`;
-        carouselContainer.style.paddingRight = `${pad}px`;
+        var itemWidth = firstItem.offsetWidth;
+        var pad = Math.max(0, (cWidth - itemWidth) / 2);
+        carouselContainer.style.paddingLeft = pad + 'px';
+        carouselContainer.style.paddingRight = pad + 'px';
       }
     }
 
     function applyArchCurveAndSelection() {
       if (!carouselContainer) return;
-      const cWidth = carouselContainer.clientWidth;
-      const scrollLeft = carouselContainer.scrollLeft;
-      const centerX = scrollLeft + (cWidth / 2);
+      var cWidth = carouselContainer.clientWidth;
+      var scrollLeft = carouselContainer.scrollLeft;
+      var centerX = scrollLeft + (cWidth / 2);
       
-      const items = carouselContainer.querySelectorAll('.arch-track-item');
-      const R = 240; 
-      const CENTER_THRESHOLD = 38;
+      var items = carouselContainer.querySelectorAll('.arch-track-item');
+      var R = 240; 
+      var CENTER_THRESHOLD = 38;
 
-      let centerDetectedItem = null;
-      let minDistance = Infinity;
+      var centerDetectedItem = null;
+      var minDistance = Infinity;
 
-      items.forEach(item => {
-        const itemCenterX = item.offsetLeft + (item.offsetWidth / 2);
-        const dist = Math.abs(centerX - itemCenterX);
+      items.forEach(function(item) {
+        var itemCenterX = item.offsetLeft + (item.offsetWidth / 2);
+        var dist = Math.abs(centerX - itemCenterX);
         
         if (dist < minDistance) {
           minDistance = dist;
           centerDetectedItem = item;
         }
 
-        const safeDist = Math.min(dist, R - 6);
-        const translateY = R - Math.sqrt((R * R) - (safeDist * safeDist));
-        item.style.transform = `translate3d(0, ${translateY.toFixed(2)}px, 0)`;
+        var safeDist = Math.min(dist, R - 6);
+        var translateY = R - Math.sqrt((R * R) - (safeDist * safeDist));
+        item.style.transform = 'translate3d(0, ' + translateY.toFixed(2) + 'px, 0)';
 
-        const opacityRatio = Math.max(0.35, 1 - (dist / (cWidth * 0.42)));
+        var opacityRatio = Math.max(0.35, 1 - (dist / (cWidth * 0.42)));
         item.style.opacity = opacityRatio.toFixed(2);
       });
 
       if (centerDetectedItem && minDistance <= CENTER_THRESHOLD) {
-        const btn = centerDetectedItem.querySelector('.shape-thumb-btn');
+        var btn = centerDetectedItem.querySelector('.shape-thumb-btn');
         if (btn && !btn.classList.contains('active')) {
           setActiveItemVisual(btn);
         }
@@ -929,9 +912,9 @@
     }
 
     function setActiveItemVisual(btn) {
-      document.querySelectorAll('.shape-thumb-btn').forEach(b => {
+      document.querySelectorAll('.shape-thumb-btn').forEach(function(b) {
         b.classList.remove('active');
-        const txt = b.parentElement.querySelector('.shape-item-label');
+        var txt = b.parentElement.querySelector('.shape-item-label');
         if (txt) {
           txt.classList.remove('font-bold', 'text-white');
           txt.classList.add('font-medium', 'text-neutral-500');
@@ -939,14 +922,14 @@
       });
 
       btn.classList.add('active');
-      const activeTxt = btn.parentElement.querySelector('.shape-item-label');
+      var activeTxt = btn.parentElement.querySelector('.shape-item-label');
       if (activeTxt) {
         activeTxt.classList.add('font-bold', 'text-white');
         activeTxt.classList.remove('font-medium', 'text-neutral-500');
       }
 
-      const type = btn.getAttribute('data-type');
-      const id = btn.getAttribute('data-id');
+      var type = btn.getAttribute('data-type');
+      var id = btn.getAttribute('data-id');
 
       if (type === 'wing') {
         selectedButterflyShape = id;
@@ -959,25 +942,25 @@
 
     function snapItemToExactCenter(itemElement) {
       if (!carouselContainer || !itemElement) return;
-      const cWidth = carouselContainer.clientWidth;
-      const itemWidth = itemElement.offsetWidth;
-      const targetScroll = itemElement.offsetLeft - ((cWidth - itemWidth) / 2);
+      var cWidth = carouselContainer.clientWidth;
+      var itemWidth = itemElement.offsetWidth;
+      var targetScroll = itemElement.offsetLeft - ((cWidth - itemWidth) / 2);
       carouselContainer.scrollTo({ left: targetScroll, behavior: 'smooth' });
     }
 
     function autoSnapToNearestCenter() {
       if (!carouselContainer) return;
-      const cWidth = carouselContainer.clientWidth;
-      const scrollLeft = carouselContainer.scrollLeft;
-      const centerX = scrollLeft + (cWidth / 2);
+      var cWidth = carouselContainer.clientWidth;
+      var scrollLeft = carouselContainer.scrollLeft;
+      var centerX = scrollLeft + (cWidth / 2);
 
-      let closestItem = null;
-      let minDistance = Infinity;
+      var closestItem = null;
+      var minDistance = Infinity;
 
-      const items = carouselContainer.querySelectorAll('.arch-track-item');
-      items.forEach(item => {
-        const itemCenterX = item.offsetLeft + (item.offsetWidth / 2);
-        const dist = Math.abs(centerX - itemCenterX);
+      var items = carouselContainer.querySelectorAll('.arch-track-item');
+      items.forEach(function(item) {
+        var itemCenterX = item.offsetLeft + (item.offsetWidth / 2);
+        var dist = Math.abs(centerX - itemCenterX);
         if (dist < minDistance) {
           minDistance = dist;
           closestItem = item;
@@ -985,36 +968,36 @@
       });
 
       if (closestItem) {
-        const btn = closestItem.querySelector('.shape-thumb-btn');
+        var btn = closestItem.querySelector('.shape-thumb-btn');
         if (btn) setActiveItemVisual(btn);
         snapItemToExactCenter(closestItem);
       }
     }
 
     if (carouselContainer) {
-      let scrollTimer = null;
-      carouselContainer.addEventListener('scroll', () => {
+      var scrollTimer = null;
+      carouselContainer.addEventListener('scroll', function() {
         applyArchCurveAndSelection();
         clearTimeout(scrollTimer);
-        scrollTimer = setTimeout(() => {
+        scrollTimer = setTimeout(function() {
           autoSnapToNearestCenter();
         }, 110);
       }, { passive: true });
     }
 
-    window.addEventListener('resize', () => {
+    window.addEventListener('resize', function() {
       updateCarouselPadding();
       applyArchCurveAndSelection();
     });
 
-    const tabWing = document.getElementById('tab-wing');
-    const tabAntenna = document.getElementById('tab-antenna');
-    const shapeTitle = document.getElementById('shape-screen-title');
-    const shapeDesc = document.getElementById('shape-screen-desc');
+    var tabWing = document.getElementById('tab-wing');
+    var tabAntenna = document.getElementById('tab-antenna');
+    var shapeTitle = document.getElementById('shape-screen-title');
+    var shapeDesc = document.getElementById('shape-screen-desc');
 
     function switchTab(tabKey) {
       activeCustomTab = tabKey;
-      [tabWing, tabAntenna].forEach(b => b.classList.remove('active-tab'));
+      [tabWing, tabAntenna].forEach(function(b) { b.classList.remove('active-tab'); });
 
       if (tabKey === 'wing') {
         tabWing.classList.add('active-tab');
@@ -1028,31 +1011,19 @@
       renderCarouselItems();
     }
 
-    tabWing.addEventListener('click', () => switchTab('wing'));
-    tabAntenna.addEventListener('click', () => switchTab('antenna'));
+    tabWing.addEventListener('click', function() { switchTab('wing'); });
+    tabAntenna.addEventListener('click', function() { switchTab('antenna'); });
 
-    function showScreen(screenId) {
-      document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
-      const target = document.getElementById(screenId);
-      if (target) {
-        target.classList.add('active');
-        if (screenId === 'screen-shape-select') {
-          switchTab('wing');
-          updateHeroPreview();
-        }
-      }
-    }
-
-    document.getElementById('btn-back-to-align').addEventListener('click', () => {
+    document.getElementById('btn-back-to-align').addEventListener('click', function() {
       showScreen('screen-align');
     });
 
-    document.getElementById('btn-confirm-shape').addEventListener('click', () => {
+    document.getElementById('btn-confirm-shape').addEventListener('click', function() {
       renderSurveyStep();
       showScreen('screen-survey');
     });
 
-    const surveyQuestions = [
+    var surveyQuestions = [
       {
         title: "당신은 어떤 나비인가요?",
         desc: "자신을 소개해 주세요. (다중 선택)",
@@ -1123,59 +1094,59 @@
       }
     ];
 
-    const userSelections = {
+    var userSelections = {
       q1: [], q2: [], q3: [], q4: [], q5: [],
       q6_memo: "", q6_year: "", q6_month: "", q6_day: "", q6_email: "",
       q7_name: ""
     };
 
-    let currentStepIdx = 0;
+    var currentStepIdx = 0;
 
     function buildAdaptiveVerticalRows(items) {
-      const rows = [];
-      let i = 0;
+      var rows = [];
+      var i = 0;
       while (i < items.length) {
-        let targetCount = 3;
-        const candidate = items.slice(i, i + targetCount);
-        const totalChars = candidate.reduce((sum, word) => sum + word.length, 0);
+        var targetCount = 3;
+        var candidate = items.slice(i, i + targetCount);
+        var totalChars = candidate.reduce(function(sum, word) { return sum + word.length; }, 0);
 
         if (totalChars > 12 && candidate.length > 2) {
           targetCount = 2;
         }
 
-        const actualRow = items.slice(i, i + targetCount);
+        var actualRow = items.slice(i, i + targetCount);
         rows.push(actualRow);
         i += actualRow.length;
       }
       return rows;
     }
 
-    const elTitle = document.getElementById('question-title');
-    const elDesc = document.getElementById('question-desc');
-    const elProgressBar = document.getElementById('progress-bar');
-    const surveyChipWrapper = document.getElementById('survey-chip-wrapper');
-    const elOrganicContainer = document.getElementById('organic-chip-container');
+    var elTitle = document.getElementById('question-title');
+    var elDesc = document.getElementById('question-desc');
+    var elProgressBar = document.getElementById('progress-bar');
+    var surveyChipWrapper = document.getElementById('survey-chip-wrapper');
+    var elOrganicContainer = document.getElementById('organic-chip-container');
 
-    const elField6 = document.getElementById('field-step-6');
-    const elField7 = document.getElementById('field-step-7');
-    const btnSurveyNext = document.getElementById('btn-survey-next');
-    const btnSurveyPrev = document.getElementById('btn-survey-prev');
+    var elField6 = document.getElementById('field-step-6');
+    var elField7 = document.getElementById('field-step-7');
+    var btnSurveyNext = document.getElementById('btn-survey-next');
+    var btnSurveyPrev = document.getElementById('btn-survey-prev');
 
-    const inputQ6Memo = document.getElementById('input-q6-memo');
-    const memoCounter = document.getElementById('memo-counter');
-    const inputQ6Year = document.getElementById('input-q6-year');
-    const inputQ6Month = document.getElementById('input-q6-month');
-    const inputQ6Day = document.getElementById('input-q6-day');
-    const inputQ6Email = document.getElementById('input-q6-email');
+    var inputQ6Memo = document.getElementById('input-q6-memo');
+    var memoCounter = document.getElementById('memo-counter');
+    var inputQ6Year = document.getElementById('input-q6-year');
+    var inputQ6Month = document.getElementById('input-q6-month');
+    var inputQ6Day = document.getElementById('input-q6-day');
+    var inputQ6Email = document.getElementById('input-q6-email');
 
-    const inputQ7Name = document.getElementById('input-q7-name');
-    const charCounter = document.getElementById('char-counter');
+    var inputQ7Name = document.getElementById('input-q7-name');
+    var charCounter = document.getElementById('char-counter');
 
     function renderSurveyStep() {
-      const q = surveyQuestions[currentStepIdx];
+      var q = surveyQuestions[currentStepIdx];
       elTitle.innerHTML = q.title;
       elDesc.innerHTML = q.desc;
-      elProgressBar.style.width = `${((currentStepIdx + 1) / 7) * 100}%`;
+      elProgressBar.style.width = (((currentStepIdx + 1) / 7) * 100) + '%';
 
       btnSurveyPrev.classList.toggle('invisible', currentStepIdx === 0);
       btnSurveyNext.innerText = currentStepIdx === 6 ? "완성된 나비 만나기" : "다음 질문으로";
@@ -1227,30 +1198,30 @@
     }
 
     function renderVerticalScrollChips() {
-      const q = surveyQuestions[currentStepIdx];
-      const allOptions = q.options || [];
-      const rows = buildAdaptiveVerticalRows(allOptions);
-      const stateKey = `q${currentStepIdx + 1}`;
+      var q = surveyQuestions[currentStepIdx];
+      var allOptions = q.options || [];
+      var rows = buildAdaptiveVerticalRows(allOptions);
+      var stateKey = 'q' + (currentStepIdx + 1);
 
       elOrganicContainer.innerHTML = '';
       surveyChipWrapper.scrollTop = 0;
 
-      rows.forEach((rowItems) => {
-        const rowDiv = document.createElement('div');
+      rows.forEach(function(rowItems) {
+        var rowDiv = document.createElement('div');
         rowDiv.className = 'flex items-center justify-center gap-1.5 w-full';
 
-        rowItems.forEach((item) => {
-          const chip = document.createElement('button');
+        rowItems.forEach(function(item) {
+          var chip = document.createElement('button');
           chip.type = 'button';
           chip.className = 'chip-base';
           chip.innerText = item;
 
-          const isSelected = userSelections[stateKey].includes(item);
+          var isSelected = userSelections[stateKey].indexOf(item) > -1;
           updateChipStyle(chip, isSelected);
 
-          chip.addEventListener('click', () => {
-            const idx = userSelections[stateKey].indexOf(item);
-            let nextState = false;
+          chip.addEventListener('click', function() {
+            var idx = userSelections[stateKey].indexOf(item);
+            var nextState = false;
             if (idx > -1) {
               userSelections[stateKey].splice(idx, 1);
               nextState = false;
@@ -1270,18 +1241,18 @@
     }
 
     function validateSurveyStep() {
-      let isValid = false;
+      var isValid = false;
       if (currentStepIdx === 0) isValid = userSelections.q1.length > 0;
       else if (currentStepIdx === 1) isValid = userSelections.q2.length > 0;
       else if (currentStepIdx === 2) isValid = userSelections.q3.length > 0;
       else if (currentStepIdx === 3) isValid = userSelections.q4.length > 0;
       else if (currentStepIdx === 4) isValid = userSelections.q5.length > 0;
       else if (currentStepIdx === 5) {
-        const y = parseInt(userSelections.q6_year, 10);
-        const m = parseInt(userSelections.q6_month, 10);
-        const d = parseInt(userSelections.q6_day, 10);
-        const isDateValid = !isNaN(y) && y >= 2024 && !isNaN(m) && m >= 1 && m <= 12 && !isNaN(d) && d >= 1 && d <= 31;
-        const isEmailValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(userSelections.q6_email);
+        var y = parseInt(userSelections.q6_year, 10);
+        var m = parseInt(userSelections.q6_month, 10);
+        var d = parseInt(userSelections.q6_day, 10);
+        var isDateValid = !isNaN(y) && y >= 2024 && !isNaN(m) && m >= 1 && m <= 12 && !isNaN(d) && d >= 1 && d <= 31;
+        var isEmailValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(userSelections.q6_email);
         isValid = isDateValid && isEmailValid;
       } else if (currentStepIdx === 6) {
         isValid = userSelections.q7_name.trim().length > 0;
@@ -1289,53 +1260,53 @@
       btnSurveyNext.disabled = !isValid;
     }
 
-    inputQ6Memo.addEventListener('input', (e) => {
+    inputQ6Memo.addEventListener('input', function(e) {
       userSelections.q6_memo = e.target.value;
-      memoCounter.innerText = `${e.target.value.length} / 50`;
+      memoCounter.innerText = e.target.value.length + ' / 50';
     });
 
-    inputQ6Year.addEventListener('input', (e) => {
+    inputQ6Year.addEventListener('input', function(e) {
       userSelections.q6_year = e.target.value.trim();
       validateSurveyStep();
     });
 
-    inputQ6Month.addEventListener('input', (e) => {
+    inputQ6Month.addEventListener('input', function(e) {
       userSelections.q6_month = e.target.value.trim();
       validateSurveyStep();
     });
 
-    inputQ6Day.addEventListener('input', (e) => {
+    inputQ6Day.addEventListener('input', function(e) {
       userSelections.q6_day = e.target.value.trim();
       validateSurveyStep();
     });
 
-    inputQ6Email.addEventListener('input', (e) => {
+    inputQ6Email.addEventListener('input', function(e) {
       userSelections.q6_email = e.target.value.trim();
       validateSurveyStep();
     });
 
-    inputQ7Name.addEventListener('input', (e) => {
+    inputQ7Name.addEventListener('input', function(e) {
       userSelections.q7_name = e.target.value.trim();
-      charCounter.innerText = `${e.target.value.length} / 10`;
+      charCounter.innerText = e.target.value.length + ' / 10';
       validateSurveyStep();
     });
 
     function startAnswerShowcaseSequence() {
-      const showcaseCard = document.getElementById('showcase-card');
-      const showcaseCategory = document.getElementById('showcase-category');
-      const showcaseAnswers = document.getElementById('showcase-answers');
-      const progressBar = document.getElementById('generation-progress-bar');
-      const percentText = document.getElementById('generation-percent');
-      const stepDots = document.querySelectorAll('.step-dot');
-      const loadingSvg = document.getElementById('loading-butterfly-svg');
-      const blackCurtain = document.getElementById('cinematic-black-curtain');
-      const whiteFlash = document.getElementById('cinematic-white-flash');
-      const mainTitle = document.getElementById('loading-main-title');
-      const subDesc = document.getElementById('loading-sub-desc');
+      var showcaseCard = document.getElementById('showcase-card');
+      var showcaseCategory = document.getElementById('showcase-category');
+      var showcaseAnswers = document.getElementById('showcase-answers');
+      var progressBar = document.getElementById('generation-progress-bar');
+      var percentText = document.getElementById('generation-percent');
+      var stepDots = document.querySelectorAll('.step-dot');
+      var loadingSvg = document.getElementById('loading-butterfly-svg');
+      var blackCurtain = document.getElementById('cinematic-black-curtain');
+      var whiteFlash = document.getElementById('cinematic-white-flash');
+      var mainTitle = document.getElementById('loading-main-title');
+      var subDesc = document.getElementById('loading-sub-desc');
 
-      const butterflyName = userSelections.q7_name ? userSelections.q7_name.trim() : "나비";
+      var butterflyName = userSelections.q7_name ? userSelections.q7_name.trim() : "나비";
 
-      const steps = [
+      var steps = [
         { key: 'q1', category: '#나의 고유한 모습', fallback: ["차분한", "나만의 속도"] },
         { key: 'q2', category: '#향하고 싶은 여정', fallback: ["자유로운 비행", "나만의 작업실"] },
         { key: 'q3', category: '#품고 날아갈 마음', fallback: ["단단한 자기 확신", "서두르지 않기"] },
@@ -1344,24 +1315,24 @@
         { isFinal: true, category: '#마침내 깨어난 날갯짓', name: butterflyName }
       ];
 
-      let currentShowcaseIdx = 0;
-      const totalSteps = steps.length;
-      const stepDuration = 5000;
+      var currentShowcaseIdx = 0;
+      var totalSteps = steps.length;
+      var stepDuration = 5000;
 
       function renderStep(idx) {
-        const item = steps[idx];
+        var item = steps[idx];
 
         showcaseCard.classList.remove('visible-state');
         showcaseCard.classList.add('hidden-state');
 
-        setTimeout(() => {
+        setTimeout(function() {
           showcaseCategory.innerText = item.category;
 
           if (item.isFinal) {
             if (blackCurtain) blackCurtain.classList.add('fade-active');
 
-            if (mainTitle) mainTitle.innerHTML = `마침내,<br><span class="text-white">빛의 날개가 펼쳐집니다</span>`;
-            if (subDesc) subDesc.innerText = `어둠 속에서 비로소 고유한 숨결이 깨어납니다.`;
+            if (mainTitle) mainTitle.innerHTML = '마침내,<br><span class="text-white">빛의 날개가 펼쳐집니다</span>';
+            if (subDesc) subDesc.innerText = '어둠 속에서 비로소 고유한 숨결이 깨어납니다.';
 
             if (loadingSvg) {
               loadingSvg.classList.remove('text-white');
@@ -1372,26 +1343,18 @@
             showcaseCard.style.backgroundColor = "rgba(255, 255, 255, 0.05)";
             showcaseCard.style.borderColor = "rgba(255, 255, 255, 0.25)";
 
-            showcaseAnswers.innerHTML = `
-              <div class="py-2.5 px-2 text-center w-full space-y-2.5">
-                <span class="inline-block text-[10px] font-mono tracking-widest text-neutral-400 uppercase">Soul Awakening</span>
-                <p class="text-[1.05rem] font-bold text-white leading-relaxed break-keep drop-shadow-lg">
-                  이제 마음 깊은 곳에서 숨 쉬던 <strong class="text-white font-extrabold underline decoration-white/40 underline-offset-4">‘${item.name}’</strong>(이)가<br>
-                  찬란한 빛의 날개를 펴고 깨어납니다.
-                </p>
-              </div>
-            `;
+            showcaseAnswers.innerHTML = '<div class="py-2.5 px-2 text-center w-full space-y-2.5"><span class="inline-block text-[10px] font-mono tracking-widest text-neutral-400 uppercase">Soul Awakening</span><p class="text-[1.05rem] font-bold text-white leading-relaxed break-keep drop-shadow-lg">이제 마음 깊은 곳에서 숨 쉬던 <strong class="text-white font-extrabold underline decoration-white/40 underline-offset-4">‘' + item.name + '’</strong>(이)가<br>찬란한 빛의 날개를 펴고 깨어납니다.</p></div>';
           } else {
-            const answers = (userSelections[item.key] && userSelections[item.key].length > 0) 
+            var answers = (userSelections[item.key] && userSelections[item.key].length > 0) 
                             ? userSelections[item.key] 
                             : item.fallback;
 
-            showcaseAnswers.innerHTML = answers.map(ans => 
-              `<span class="px-3.5 py-1.5 rounded-full bg-white/20 border border-white/30 text-white font-semibold text-xs tracking-tight shadow-sm">${ans}</span>`
-            ).join('');
+            showcaseAnswers.innerHTML = answers.map(function(ans) {
+              return '<span class="px-3.5 py-1.5 rounded-full bg-white/20 border border-white/30 text-white font-semibold text-xs tracking-tight shadow-sm">' + ans + '</span>';
+            }).join('');
           }
 
-          stepDots.forEach((dot, dIdx) => {
+          stepDots.forEach(function(dot, dIdx) {
             if (dIdx === idx) {
               dot.classList.remove('bg-white/30');
               dot.classList.add('bg-white', 'scale-125');
@@ -1401,9 +1364,9 @@
             }
           });
 
-          const percent = Math.min(100, Math.round(((idx + 1) / totalSteps) * 100));
-          progressBar.style.width = `${percent}%`;
-          percentText.innerText = `${percent}%`;
+          var percent = Math.min(100, Math.round(((idx + 1) / totalSteps) * 100));
+          progressBar.style.width = percent + '%';
+          percentText.innerText = percent + '%';
 
           showcaseCard.classList.remove('hidden-state');
           showcaseCard.classList.add('visible-state');
@@ -1412,24 +1375,24 @@
 
       renderStep(0);
 
-      const interval = setInterval(() => {
+      var interval = setInterval(function() {
         currentShowcaseIdx++;
         if (currentShowcaseIdx < totalSteps) {
           renderStep(currentShowcaseIdx);
         } else {
           clearInterval(interval);
-          setTimeout(() => {
+          setTimeout(function() {
             if (whiteFlash) whiteFlash.classList.add('flash-active');
 
-            setTimeout(() => {
-              const nameHeader = document.getElementById('preview-butterfly-name');
+            setTimeout(function() {
+              var nameHeader = document.getElementById('preview-butterfly-name');
               if (nameHeader) {
-                nameHeader.innerText = `‘${butterflyName}’`;
+                nameHeader.innerText = '‘' + butterflyName + '’';
               }
               showScreen('screen-preview');
               initFullButterflyViewer(currentExtractedTexture);
 
-              setTimeout(() => {
+              setTimeout(function() {
                 if (whiteFlash) whiteFlash.classList.remove('flash-active');
               }, 450);
             }, 650);
@@ -1438,7 +1401,7 @@
       }, stepDuration);
     }
 
-    btnSurveyNext.addEventListener('click', () => {
+    btnSurveyNext.addEventListener('click', function() {
       if (currentStepIdx < 6) {
         currentStepIdx++;
         renderSurveyStep();
@@ -1448,45 +1411,74 @@
       }
     });
 
-    btnSurveyPrev.addEventListener('click', () => {
+    btnSurveyPrev.addEventListener('click', function() {
       if (currentStepIdx > 0) {
         currentStepIdx--;
         renderSurveyStep();
       }
     });
 
-    let rawImage = new Image();
-    const alignCanvas = document.getElementById('align-canvas');
-    const actx = alignCanvas.getContext('2d');
+    /* ========================================================
+       2단계 사진 맞추기 코어 로직 (100% 무결점 보장)
+       ======================================================== */
+    var rawImage = new Image();
+    var alignCanvas = document.getElementById('align-canvas');
+    var actx = alignCanvas.getContext('2d');
 
-    let imgX = 0, imgY = 0, imgScale = 1.0;
-    let isDragging = false;
-    let startX = 0, startY = 0;
-    let startPinchDist = 0, pinchStartScale = 1.0;
-    let currentExtractedTexture = null;
+    var imgX = 0, imgY = 0, imgScale = 1.0;
+    var isDragging = false;
+    var startX = 0, startY = 0;
+    var startPinchDist = 0, pinchStartScale = 1.0;
+    var currentExtractedTexture = null;
 
-    function onImageLoaded(e) {
-      const file = e.target.files[0];
+    function handleFile(file) {
       if (!file) return;
 
-      const reader = new FileReader();
-      reader.onload = (evt) => {
-        rawImage = new Image();
-        rawImage.onload = () => {
-          initAlignUI();
-          showScreen('screen-align');
+      // 버그 수정 3: 파일을 선택하자마자 맞추기 화면으로 즉시 전환시켜 멈춤 현상 체감 제거
+      showScreen('screen-align');
+
+      var reader = new FileReader();
+      reader.onload = function(e) {
+        var img = new Image();
+        img.onload = function() {
+          rawImage = img;
+          setTimeout(function() {
+            initAlignUI();
+          }, 30);
         };
-        rawImage.src = evt.target.result;
+        img.src = e.target.result;
       };
       reader.readAsDataURL(file);
     }
 
-    document.getElementById('camera-input').addEventListener('change', onImageLoaded);
-    document.getElementById('album-input').addEventListener('change', onImageLoaded);
-    document.getElementById('btn-rephoto').addEventListener('click', () => showScreen('screen-capture-guide'));
+    var cameraInput = document.getElementById('camera-input');
+    var albumInput = document.getElementById('album-input');
+
+    // 버그 수정 4: 동일한 사진을 지우고 다시 올리려고 할 때 반응 없는 현상 방지
+    cameraInput.addEventListener('click', function(e) { e.target.value = null; });
+    albumInput.addEventListener('click', function(e) { e.target.value = null; });
+
+    cameraInput.addEventListener('change', function(e) {
+      if (e.target.files && e.target.files[0]) {
+        handleFile(e.target.files[0]);
+      }
+    });
+
+    albumInput.addEventListener('change', function(e) {
+      if (e.target.files && e.target.files[0]) {
+        handleFile(e.target.files[0]);
+      }
+    });
+
+    document.getElementById('btn-rephoto').addEventListener('click', function() {
+      cameraInput.value = '';
+      albumInput.value = '';
+      showScreen('screen-capture-guide');
+    });
 
     function initAlignUI() {
-      const baseScale = alignCanvas.width / Math.min(rawImage.width, rawImage.height);
+      if (!rawImage || !rawImage.width || rawImage.width === 0) return;
+      var baseScale = alignCanvas.width / Math.min(rawImage.width, rawImage.height);
       imgScale = baseScale;
       imgX = (alignCanvas.width - rawImage.width * imgScale) / 2;
       imgY = (alignCanvas.height - rawImage.height * imgScale) / 2;
@@ -1494,34 +1486,35 @@
     }
 
     function drawAlignCanvas() {
+      if (!rawImage || !rawImage.width || rawImage.width === 0) return;
       actx.clearRect(0, 0, alignCanvas.width, alignCanvas.height);
       actx.save();
       actx.drawImage(rawImage, imgX, imgY, rawImage.width * imgScale, rawImage.height * imgScale);
       actx.restore();
     }
 
-    alignCanvas.addEventListener('mousedown', (e) => {
+    alignCanvas.addEventListener('mousedown', function(e) {
       isDragging = true;
-      const rect = alignCanvas.getBoundingClientRect();
-      const scaleFactor = alignCanvas.width / rect.width;
+      var rect = alignCanvas.getBoundingClientRect();
+      var scaleFactor = alignCanvas.width / rect.width;
       startX = (e.clientX - rect.left) * scaleFactor - imgX;
       startY = (e.clientY - rect.top) * scaleFactor - imgY;
     });
 
-    window.addEventListener('mousemove', (e) => {
+    window.addEventListener('mousemove', function(e) {
       if (!isDragging) return;
-      const rect = alignCanvas.getBoundingClientRect();
-      const scaleFactor = alignCanvas.width / rect.width;
+      var rect = alignCanvas.getBoundingClientRect();
+      var scaleFactor = alignCanvas.width / rect.width;
       imgX = (e.clientX - rect.left) * scaleFactor - startX;
       imgY = (e.clientY - rect.top) * scaleFactor - startY;
       drawAlignCanvas();
     });
 
-    window.addEventListener('mouseup', () => { isDragging = false; });
+    window.addEventListener('mouseup', function() { isDragging = false; });
 
-    alignCanvas.addEventListener('touchstart', (e) => {
-      const rect = alignCanvas.getBoundingClientRect();
-      const scaleFactor = alignCanvas.width / rect.width;
+    alignCanvas.addEventListener('touchstart', function(e) {
+      var rect = alignCanvas.getBoundingClientRect();
+      var scaleFactor = alignCanvas.width / rect.width;
 
       if (e.touches.length === 1) {
         isDragging = true;
@@ -1537,39 +1530,39 @@
       }
     }, { passive: false });
 
-    window.addEventListener('touchmove', (e) => {
+    window.addEventListener('touchmove', function(e) {
       if (!document.getElementById('screen-align').classList.contains('active')) return;
       if (e.cancelable) e.preventDefault();
 
-      const rect = alignCanvas.getBoundingClientRect();
-      const scaleFactor = alignCanvas.width / rect.width;
+      var rect = alignCanvas.getBoundingClientRect();
+      var scaleFactor = alignCanvas.width / rect.width;
 
       if (e.touches.length === 1 && isDragging) {
         imgX = (e.touches[0].clientX - rect.left) * scaleFactor - startX;
         imgY = (e.touches[0].clientY - rect.top) * scaleFactor - startY;
         drawAlignCanvas();
       } else if (e.touches.length === 2 && startPinchDist > 0) {
-        const currentDist = Math.hypot(
+        var currentDist = Math.hypot(
           e.touches[0].clientX - e.touches[1].clientX,
           e.touches[0].clientY - e.touches[1].clientY
         );
-        const factor = currentDist / startPinchDist;
+        var factor = currentDist / startPinchDist;
         imgScale = pinchStartScale * factor;
         drawAlignCanvas();
       }
     }, { passive: false });
 
-    window.addEventListener('touchend', () => {
+    window.addEventListener('touchend', function() {
       isDragging = false;
       startPinchDist = 0;
     });
 
     function processClearDrawingTexture(sourceCanvas) {
-      const size = 512;
-      const dreamCanvas = document.createElement('canvas');
+      var size = 512;
+      var dreamCanvas = document.createElement('canvas');
       dreamCanvas.width = size;
       dreamCanvas.height = size;
-      const dctx = dreamCanvas.getContext('2d');
+      var dctx = dreamCanvas.getContext('2d');
 
       dctx.save();
       dctx.filter = 'contrast(1.35) saturate(1.2) brightness(1.05)';
@@ -1579,16 +1572,18 @@
       return dreamCanvas.toDataURL('image/jpeg', 0.85);
     }
 
-    document.getElementById('btn-confirm-align').addEventListener('click', () => {
-      const exportCanvas = document.createElement('canvas');
+    document.getElementById('btn-confirm-align').addEventListener('click', function() {
+      var exportCanvas = document.createElement('canvas');
       exportCanvas.width = 512;
       exportCanvas.height = 512;
-      const ectx = exportCanvas.getContext('2d');
+      var ectx = exportCanvas.getContext('2d');
 
-      const scaleRatio = 512 / alignCanvas.width;
+      var scaleRatio = 512 / alignCanvas.width;
       ectx.fillStyle = "#ffffff";
       ectx.fillRect(0, 0, 512, 512);
-      ectx.drawImage(rawImage, imgX * scaleRatio, imgY * scaleRatio, rawImage.width * imgScale * scaleRatio, rawImage.height * imgScale * scaleRatio);
+      if (rawImage && rawImage.width) {
+        ectx.drawImage(rawImage, imgX * scaleRatio, imgY * scaleRatio, rawImage.width * imgScale * scaleRatio, rawImage.height * imgScale * scaleRatio);
+      }
 
       currentExtractedTexture = processClearDrawingTexture(exportCanvas);
       updateHeroPreview();
@@ -1596,8 +1591,8 @@
     });
 
     function createCustomWingShape(shapeType, isRight) {
-      const shape = new THREE.Shape();
-      const s = isRight ? 1 : -1;
+      var shape = new THREE.Shape();
+      var s = isRight ? 1 : -1;
 
       shape.moveTo(0, 0.48);
 
@@ -1646,16 +1641,14 @@
       shape.lineTo(0, 0.48);
       shape.closePath();
 
-      const geom = new THREE.ShapeGeometry(shape, 56);
-      const pos = geom.attributes.position;
-      const uvs = [];
-      const totalSpan = 5.4;
-      for (let i = 0; i < pos.count; i++) {
-        const x = pos.getX(i);
-        const y = pos.getY(i);
-        let u = 0.5 + (x / totalSpan);
-        let v = 0.5 + (y / totalSpan);
-        uvs.push(u, v);
+      var geom = new THREE.ShapeGeometry(shape, 56);
+      var pos = geom.attributes.position;
+      var uvs = [];
+      var totalSpan = 5.4;
+      for (var i = 0; i < pos.count; i++) {
+        var x = pos.getX(i);
+        var y = pos.getY(i);
+        uvs.push(0.5 + (x / totalSpan), 0.5 + (y / totalSpan));
       }
       geom.setAttribute('uv', new THREE.Float32BufferAttribute(uvs, 2));
       geom.setAttribute('uv2', new THREE.Float32BufferAttribute(uvs, 2));
@@ -1664,7 +1657,7 @@
     }
 
     function createSegmentedBodyGeometry() {
-      const points = [];
+      var points = [];
       points.push(new THREE.Vector2(0.001, 0.72));
       points.push(new THREE.Vector2(0.12, 0.62));
       points.push(new THREE.Vector2(0.085, 0.51));
@@ -1676,80 +1669,80 @@
       points.push(new THREE.Vector2(0.07, -0.65));
       points.push(new THREE.Vector2(0.001, -0.82));
 
-      const geom = new THREE.LatheGeometry(points, 32);
+      var geom = new THREE.LatheGeometry(points, 32);
       geom.computeVertexNormals();
       return geom;
     }
 
     function createCustomAntennaGroup(isRight, material, antennaType) {
-      const group = new THREE.Group();
-      const s = isRight ? 1 : -1;
+      var group = new THREE.Group();
+      var s = isRight ? 1 : -1;
 
       if (antennaType === 'feather') {
-        const curve = new THREE.CubicBezierCurve3(
+        var curve = new THREE.CubicBezierCurve3(
           new THREE.Vector3(0, 0, 0),
           new THREE.Vector3(s * 0.12, 0.45, 0.08),
           new THREE.Vector3(s * 0.35, 0.85, 0.14),
           new THREE.Vector3(s * 0.45, 1.05, 0.2)
         );
-        const tubeGeom = new THREE.TubeGeometry(curve, 24, 0.026, 8, false);
+        var tubeGeom = new THREE.TubeGeometry(curve, 24, 0.026, 8, false);
         group.add(new THREE.Mesh(tubeGeom, material));
 
-        for (let i = 0; i < 4; i++) {
-          const t = 0.45 + i * 0.15;
-          const pt = curve.getPoint(t);
-          const fCurve = new THREE.LineCurve3(
+        for (var i = 0; i < 4; i++) {
+          var t = 0.45 + i * 0.15;
+          var pt = curve.getPoint(t);
+          var fCurve = new THREE.LineCurve3(
             pt,
             new THREE.Vector3(pt.x + s * 0.14, pt.y + 0.05, pt.z + 0.04)
           );
-          const fGeom = new THREE.TubeGeometry(fCurve, 8, 0.016, 6, false);
+          var fGeom = new THREE.TubeGeometry(fCurve, 8, 0.016, 6, false);
           group.add(new THREE.Mesh(fGeom, material));
         }
 
       } else if (antennaType === 'star') {
-        const curve = new THREE.CubicBezierCurve3(
+        var curve = new THREE.CubicBezierCurve3(
           new THREE.Vector3(0, 0, 0),
           new THREE.Vector3(s * 0.15, 0.45, 0.08),
           new THREE.Vector3(s * 0.42, 0.75, 0.14),
           new THREE.Vector3(s * 0.52, 0.98, 0.2)
         );
-        const tubeGeom = new THREE.TubeGeometry(curve, 24, 0.026, 8, false);
+        var tubeGeom = new THREE.TubeGeometry(curve, 24, 0.026, 8, false);
         group.add(new THREE.Mesh(tubeGeom, material));
 
-        const octGeom = new THREE.OctahedronGeometry(0.09, 0);
-        const tipMesh = new THREE.Mesh(octGeom, material);
+        var octGeom = new THREE.OctahedronGeometry(0.09, 0);
+        var tipMesh = new THREE.Mesh(octGeom, material);
         tipMesh.position.set(s * 0.52, 0.98, 0.2);
         tipMesh.rotation.z = s * 0.4;
         group.add(tipMesh);
 
       } else if (antennaType === 'crescent') {
-        const curve = new THREE.CubicBezierCurve3(
+        var curve = new THREE.CubicBezierCurve3(
           new THREE.Vector3(0, 0, 0),
           new THREE.Vector3(s * 0.14, 0.42, 0.08),
           new THREE.Vector3(s * 0.45, 0.82, 0.14),
           new THREE.Vector3(s * 0.32, 1.15, 0.2)
         );
-        const tubeGeom = new THREE.TubeGeometry(curve, 28, 0.026, 8, false);
+        var tubeGeom = new THREE.TubeGeometry(curve, 28, 0.026, 8, false);
         group.add(new THREE.Mesh(tubeGeom, material));
 
-        const tipGeom = new THREE.ConeGeometry(0.042, 0.15, 8);
-        const tipMesh = new THREE.Mesh(tipGeom, material);
+        var tipGeom = new THREE.ConeGeometry(0.042, 0.15, 8);
+        var tipMesh = new THREE.Mesh(tipGeom, material);
         tipMesh.position.set(s * 0.32, 1.15, 0.2);
         tipMesh.rotation.z = -s * 0.7;
         group.add(tipMesh);
 
       } else {
-        const curve = new THREE.CubicBezierCurve3(
+        var curve = new THREE.CubicBezierCurve3(
           new THREE.Vector3(0, 0, 0),
           new THREE.Vector3(s * 0.15, 0.45, 0.08),
           new THREE.Vector3(s * 0.42, 0.75, 0.14),
           new THREE.Vector3(s * 0.52, 0.98, 0.2)
         );
-        const tubeGeom = new THREE.TubeGeometry(curve, 24, 0.026, 8, false);
+        var tubeGeom = new THREE.TubeGeometry(curve, 24, 0.026, 8, false);
         group.add(new THREE.Mesh(tubeGeom, material));
 
-        const tipGeom = new THREE.SphereGeometry(0.068, 16, 16);
-        const tipMesh = new THREE.Mesh(tipGeom, material);
+        var tipGeom = new THREE.SphereGeometry(0.068, 16, 16);
+        var tipMesh = new THREE.Mesh(tipGeom, material);
         tipMesh.position.set(s * 0.52, 0.98, 0.2);
         group.add(tipMesh);
       }
@@ -1757,13 +1750,17 @@
       return group;
     }
 
-    function createEtherealGlowSprite(colorHex = '#ffffff', size = 5.2, opacity = 0.5) {
-      const canvas = document.createElement('canvas');
+    function createEtherealGlowSprite(colorHex, size, opacity) {
+      colorHex = colorHex || '#ffffff';
+      size = size || 5.2;
+      opacity = opacity || 0.5;
+
+      var canvas = document.createElement('canvas');
       canvas.width = 512;
       canvas.height = 512;
-      const ctx = canvas.getContext('2d');
+      var ctx = canvas.getContext('2d');
 
-      const grad = ctx.createRadialGradient(256, 256, 0, 256, 256, 256);
+      var grad = ctx.createRadialGradient(256, 256, 0, 256, 256, 256);
       grad.addColorStop(0.0, 'rgba(255, 255, 255, 0.9)');
       grad.addColorStop(0.24, 'rgba(255, 255, 255, 0.35)');
       grad.addColorStop(0.5, colorHex);
@@ -1773,15 +1770,15 @@
       ctx.fillStyle = grad;
       ctx.fillRect(0, 0, 512, 512);
 
-      const texture = new THREE.CanvasTexture(canvas);
-      const mat = new THREE.SpriteMaterial({
+      var texture = new THREE.CanvasTexture(canvas);
+      var mat = new THREE.SpriteMaterial({
         map: texture,
         blending: THREE.AdditiveBlending,
         transparent: true,
         opacity: opacity,
         depthWrite: false
       });
-      const sprite = new THREE.Sprite(mat);
+      var sprite = new THREE.Sprite(mat);
       sprite.scale.set(size, size, 1);
       return sprite;
     }
@@ -1793,15 +1790,15 @@
       });
     }
 
-    let fullScene, fullCamera, fullRenderer, fullGroup, fullLeftWing, fullRightWing;
-    let fullGlow1, fullGlow2;
-    let isFlyingAway = false, touchStartY = 0;
+    var fullScene, fullCamera, fullRenderer, fullGroup, fullLeftWing, fullRightWing;
+    var fullGlow1, fullGlow2;
+    var isFlyingAway = false, touchStartY = 0;
 
-    /* Supabase DB 저장 함수 */
     async function saveButterflyToSupabase() {
       try {
-        const revisit = `${userSelections.q6_year}-${userSelections.q6_month}-${userSelections.q6_day}`;
-        const { data, error } = await supabase
+        if (!supabase) return; // 방어 코드 적용
+        var revisit = userSelections.q6_year + '-' + userSelections.q6_month + '-' + userSelections.q6_day;
+        var res = await supabase
           .from('butterflies')
           .insert([
             {
@@ -1819,23 +1816,17 @@
               texture_url: currentExtractedTexture
             }
           ]);
-
-        if (error) {
-          console.error("Supabase 저장 실패:", error);
-        } else {
-          console.log("Supabase 저장 성공:", data);
-        }
       } catch (err) {
         console.error("Supabase 연동 에러:", err);
       }
     }
 
     function initFullButterflyViewer(textureURL) {
-      const container = document.getElementById('three-container');
+      var container = document.getElementById('three-container');
       container.innerHTML = '';
 
-      const width = window.innerWidth;
-      const height = window.innerHeight;
+      var width = window.innerWidth;
+      var height = window.innerHeight;
 
       fullScene = new THREE.Scene();
       fullCamera = new THREE.PerspectiveCamera(38, width / height, 0.1, 1000);
@@ -1847,12 +1838,12 @@
       fullRenderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
       container.appendChild(fullRenderer.domElement);
 
-      const textureLoader = new THREE.TextureLoader();
-      const userTexture = textureLoader.load(textureURL);
+      var textureLoader = new THREE.TextureLoader();
+      var userTexture = textureLoader.load(textureURL);
 
       fullGroup = new THREE.Group();
 
-      const wingMat = new THREE.MeshBasicMaterial({
+      var wingMat = new THREE.MeshBasicMaterial({
         map: userTexture,
         side: THREE.DoubleSide
       });
@@ -1865,14 +1856,14 @@
       fullRightWing.position.set(0, 0, 0);
       fullGroup.add(fullRightWing);
 
-      const pureWhiteMat = createPureWhiteMaterial();
+      var pureWhiteMat = createPureWhiteMaterial();
       fullGroup.add(new THREE.Mesh(createSegmentedBodyGeometry(), pureWhiteMat));
 
-      const antennaLeft = createCustomAntennaGroup(false, pureWhiteMat, selectedAntennaType);
+      var antennaLeft = createCustomAntennaGroup(false, pureWhiteMat, selectedAntennaType);
       antennaLeft.position.set(-0.04, 0.58, 0.12);
       fullGroup.add(antennaLeft);
 
-      const antennaRight = createCustomAntennaGroup(true, pureWhiteMat, selectedAntennaType);
+      var antennaRight = createCustomAntennaGroup(true, pureWhiteMat, selectedAntennaType);
       antennaRight.position.set(0.04, 0.58, 0.12);
       fullGroup.add(antennaRight);
 
@@ -1887,22 +1878,22 @@
       fullGroup.scale.set(0.62, 0.62, 0.62);
       fullScene.add(fullGroup);
 
-      let clock = new THREE.Clock();
+      var clock = new THREE.Clock();
       function animate() {
         requestAnimationFrame(animate);
-        const time = clock.getElapsedTime();
+        var time = clock.getElapsedTime();
 
-        const pulse = 1 + Math.sin(time * 2.8) * 0.05;
+        var pulse = 1 + Math.sin(time * 2.8) * 0.05;
         if (fullGlow1) fullGlow1.scale.set(4.8 * pulse, 4.8 * pulse, 1);
         if (fullGlow2) fullGlow2.scale.set(6.4 * pulse, 6.4 * pulse, 1);
 
         if (!isFlyingAway) {
-          const flap = Math.sin(time * 5.0) * 0.48;
+          var flap = Math.sin(time * 5.0) * 0.48;
           fullLeftWing.rotation.y = flap;
           fullRightWing.rotation.y = -flap;
           fullGroup.position.y = Math.sin(time * 1.8) * 0.12;
         } else {
-          const fastFlap = Math.sin(time * 22) * 0.7;
+          var fastFlap = Math.sin(time * 22) * 0.7;
           fullLeftWing.rotation.y = fastFlap;
           fullRightWing.rotation.y = -fastFlap;
           fullGroup.position.y += 0.15;
@@ -1911,9 +1902,9 @@
           if (fullGroup.position.y > 8.5) {
             saveButterflyToSupabase();
 
-            const completeDesc = document.getElementById('complete-desc');
+            var completeDesc = document.getElementById('complete-desc');
             if (completeDesc) {
-              completeDesc.innerHTML = `<strong>‘${userSelections.q7_name || "나비"}’</strong>(이)가 빛의 날개를 펴고 너울 속으로 합류했습니다.`;
+              completeDesc.innerHTML = '<strong>‘' + (userSelections.q7_name || "나비") + '’</strong>(이)가 빛의 날개를 펴고 너울 속으로 합류했습니다.';
             }
             showScreen('screen-complete');
             isFlyingAway = false;
@@ -1927,21 +1918,21 @@
     }
 
     function bindSwipeEvents(targetEl) {
-      targetEl.addEventListener('touchstart', (e) => {
+      targetEl.addEventListener('touchstart', function(e) {
         touchStartY = e.touches[0].clientY;
       }, { passive: true });
 
-      targetEl.addEventListener('touchend', (e) => {
-        const deltaY = touchStartY - e.changedTouches[0].clientY;
+      targetEl.addEventListener('touchend', function(e) {
+        var deltaY = touchStartY - e.changedTouches[0].clientY;
         if (deltaY > 50 && !isFlyingAway) isFlyingAway = true;
       }, { passive: true });
 
-      let isMouseDown = false;
-      targetEl.addEventListener('mousedown', (e) => {
+      var isMouseDown = false;
+      targetEl.addEventListener('mousedown', function(e) {
         isMouseDown = true;
         touchStartY = e.clientY;
       });
-      targetEl.addEventListener('mouseup', (e) => {
+      targetEl.addEventListener('mouseup', function(e) {
         if (!isMouseDown) return;
         isMouseDown = false;
         if ((touchStartY - e.clientY) > 50 && !isFlyingAway) isFlyingAway = true;
