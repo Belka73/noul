@@ -3,17 +3,13 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>너울 : NOUL - Exhibition Screen</title>
-  <script src="https://cdn.tailwindcss.com"></script>
+  <title>NOUL : Luminous Space</title>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
   <!-- MediaPipe Hands & Camera Utils CDN -->
   <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js" crossorigin="anonymous"></script>
   <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js" crossorigin="anonymous"></script>
   <!-- Supabase JS CDN -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Nanum+Pen+Script&display=swap" rel="stylesheet">
 
   <style>
     body, html {
@@ -23,11 +19,11 @@
       height: 100%;
       overflow: hidden;
       background-color: #000000;
-      font-family: -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", "Pretendard", sans-serif;
       user-select: none;
+      cursor: none; /* 전시 몰입감을 위해 마우스 커서 숨김 */
     }
 
-    /* 웹캠 배경 피드 */
+    /* 웹캠 배경 (어둡고 몽환적인 실루엣 거울 효과) */
     #webcam-video {
       position: absolute;
       inset: 0;
@@ -35,7 +31,7 @@
       height: 100%;
       object-fit: cover;
       transform: scaleX(-1);
-      filter: brightness(0.24) contrast(1.25) saturate(0.5) blur(2px);
+      filter: brightness(0.2) contrast(1.3) saturate(0.3) blur(3px);
       z-index: 0;
       pointer-events: none;
     }
@@ -46,192 +42,37 @@
       z-index: 10;
     }
 
-    /* 손끝 빛 파티클 */
+    /* 손끝 인터랙션 빛 파티클 */
     #hand-pointer {
       position: absolute;
-      width: 48px;
-      height: 48px;
-      margin-left: -24px;
-      margin-top: -24px;
+      width: 60px;
+      height: 60px;
+      margin-left: -30px;
+      margin-top: -30px;
       border-radius: 50%;
-      background: radial-gradient(circle, rgba(255, 255, 255, 0.95) 0%, rgba(255, 255, 255, 0.4) 40%, rgba(255, 255, 255, 0) 70%);
-      box-shadow: 0 0 26px rgba(255, 255, 255, 0.9), 0 0 60px rgba(255, 255, 255, 0.4);
+      background: radial-gradient(circle, rgba(255, 255, 255, 0.95) 0%, rgba(255, 255, 255, 0.3) 45%, rgba(255, 255, 255, 0) 70%);
+      box-shadow: 0 0 35px rgba(255, 255, 255, 0.9), 0 0 70px rgba(255, 255, 255, 0.4);
       pointer-events: none;
       z-index: 30;
       opacity: 0;
-      transition: opacity 0.25s ease;
-    }
-
-    /* 쇼케이스 모달 디자인 */
-    #showcase-backdrop {
-      position: fixed;
-      inset: 0;
-      background: rgba(0, 0, 0, 0.65);
-      backdrop-filter: blur(8px);
-      z-index: 40;
-      opacity: 0;
-      pointer-events: none;
-      transition: opacity 0.4s ease;
-    }
-    #showcase-backdrop.active {
-      opacity: 1;
-      pointer-events: auto;
-    }
-
-    #butterfly-modal {
-      position: fixed;
-      top: 50%;
-      left: 50%;
-      transform: translate(-50%, -46%) scale(0.96);
-      width: min(440px, 92vw);
-      max-height: 88vh;
-      overflow-y: auto;
-      scrollbar-width: none;
-      z-index: 50;
-      background: rgba(10, 10, 10, 0.88);
-      backdrop-filter: blur(28px);
-      border: 1px solid rgba(255, 255, 255, 0.18);
-      border-radius: 36px;
-      box-shadow: 0 30px 80px -15px rgba(0, 0, 0, 0.95), 0 0 40px rgba(255, 255, 255, 0.1);
-      opacity: 0;
-      pointer-events: none;
-      transition: all 0.45s cubic-bezier(0.16, 1, 0.3, 1);
-    }
-    #butterfly-modal::-webkit-scrollbar {
-      display: none;
-    }
-    #butterfly-modal.active {
-      opacity: 1;
-      transform: translate(-50%, -50%) scale(1);
-      pointer-events: auto;
-    }
-
-    .showcase-stage-3d {
-      width: 100%;
-      height: 190px;
-      position: relative;
-      background: radial-gradient(circle at 50% 50%, rgba(255, 255, 255, 0.08) 0%, rgba(0, 0, 0, 0) 70%);
-      border-top-left-radius: 36px;
-      border-top-right-radius: 36px;
-      overflow: hidden;
-    }
-
-    .glass-pill {
-      background: rgba(255, 255, 255, 0.08);
-      border: 1px solid rgba(255, 255, 255, 0.14);
-      color: #e5e5e5;
-      font-size: 11px;
-      padding: 5px 13px;
-      border-radius: 9999px;
-      display: inline-flex;
-      align-items: center;
-      gap: 4px;
-    }
-
-    .timeticket-box {
-      background: linear-gradient(135deg, rgba(255, 255, 255, 0.06) 0%, rgba(255, 255, 255, 0.02) 100%);
-      border: 1px solid rgba(255, 255, 255, 0.12);
-      border-radius: 20px;
-      padding: 14px 18px;
-      position: relative;
+      transition: opacity 0.3s ease;
     }
   </style>
 </head>
 <body>
 
+  <!-- 어떠한 글자나 HUD도 없는 완전한 인터랙티브 스크린 -->
   <video id="webcam-video" playsinline autoplay muted></video>
   <div id="three-canvas-container"></div>
   <div id="hand-pointer"></div>
 
-  <!-- HUD 안내 -->
-  <header class="absolute top-6 left-8 z-20 pointer-events-none flex flex-col gap-1">
-    <div class="flex items-center gap-2">
-      <span class="w-2.5 h-2.5 rounded-full bg-white animate-ping"></span>
-      <h1 class="text-xl font-bold text-white tracking-wider">NOUL : 너울 공간</h1>
-    </div>
-    <p class="text-xs text-neutral-400">카메라를 향해 손을 뻗으면 나비들이 손끝의 빛을 따라 모여듭니다.</p>
-  </header>
-
-  <!-- 쇼케이스 배경 딤드 -->
-  <div id="showcase-backdrop" onclick="closeModal()"></div>
-
-  <!-- 쇼케이스 카드 UI -->
-  <div id="butterfly-modal" class="flex flex-col box-border">
-    
-    <!-- 1. 카드 상단 3D 프리뷰 영역 -->
-    <div class="showcase-stage-3d flex items-center justify-center">
-      <div id="modal-3d-container" class="w-full h-full"></div>
-      
-      <!-- 닫기 버튼 -->
-      <button onclick="closeModal()" type="button" 
-              class="absolute top-4 right-4 w-9 h-9 rounded-full bg-white/10 hover:bg-white/20 border border-white/20 text-white flex items-center justify-center transition-all">
-        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
-        </svg>
-      </button>
-
-      <!-- 아카이브 번호 라벨 -->
-      <div class="absolute top-4 left-5 flex items-center gap-2">
-        <span class="w-1.5 h-1.5 rounded-full bg-white"></span>
-        <span id="modal-archive-id" class="text-[10px] font-mono tracking-widest text-neutral-400 uppercase">NOUL SOUL ARCHIVE</span>
-      </div>
-    </div>
-
-    <!-- 2. 카드 본문 정보 영역 -->
-    <div class="p-6 pt-2 flex flex-col gap-5">
-      
-      <!-- 나비 이름 (유형 뱃지 제거 완료) -->
-      <div class="text-center py-1">
-        <h2 id="modal-name" class="text-3xl font-black text-white tracking-tight drop-shadow-[0_0_15px_rgba(255,255,255,0.4)]">
-          ‘나비’
-        </h2>
-      </div>
-
-      <!-- 질문 키워드 칩 모음 (Q1 ~ Q5) -->
-      <div class="space-y-2">
-        <span class="block text-[10px] font-mono tracking-widest text-neutral-400 uppercase text-center">EMBODIED INTENTIONS</span>
-        <div id="modal-tags" class="flex flex-wrap items-center justify-center gap-1.5"></div>
-      </div>
-
-      <!-- 편지글 / 남긴 한마디 -->
-      <div class="timeticket-box text-center space-y-1.5">
-        <span class="text-[10px] font-mono text-neutral-400 tracking-wider uppercase block">A MESSAGE TO FUTURE SELF</span>
-        <p id="modal-memo" class="text-xs text-white leading-relaxed font-light break-keep">
-          "천천히 가도 괜찮아. 어둠 속에서도 너만의 고유한 빛이 있으니까."
-        </p>
-      </div>
-
-      <!-- 찬란한 재회의 날 -->
-      <div class="flex items-center justify-between px-2 py-1 border-t border-white/10 text-[11px] font-mono">
-        <div class="flex items-center gap-1.5 text-neutral-400">
-          <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
-          </svg>
-          <span>REUNION DATE</span>
-        </div>
-        <span id="modal-reunion-date" class="font-bold text-white tracking-widest">2026. 10. 24</span>
-      </div>
-
-      <!-- 확인 닫기 버튼 -->
-      <button onclick="closeModal()" type="button" 
-              class="w-full py-3 rounded-2xl bg-white text-black font-bold text-xs tracking-wider uppercase active:scale-95 transition-all shadow-[0_0_20px_rgba(255,255,255,0.25)]">
-        너울 속 유영 이어보기
-      </button>
-
-    </div>
-  </div>
-
   <script>
-    /* ========================================================
-       1. Supabase 연동 세팅
-       ======================================================== */
+    /* 1. Supabase 연동 세팅 */
     const SUPABASE_URL = 'https://djmdzsbfsobsutphragw.supabase.co';
     const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRqbWR6c2Jmc29ic3V0cGhyYWd3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODk4ODQ3NTgsImV4cCI6MjEwNTQ2MDc1OH0.BC7llaSjbq6cYhDlRqrwJaycpQ6gSNcp5LgYBeM6WEM';
     const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-    /* ========================================================
-       2. 나비 3D 지오메트리 정의
-       ======================================================== */
+    /* 2. 나비 3D 지오메트리 */
     function createCustomWingShape(shapeType, isRight) {
       const shape = new THREE.Shape();
       const s = isRight ? 1 : -1;
@@ -267,7 +108,7 @@
       shape.lineTo(0, 0.48);
       shape.closePath();
 
-      const geom = new THREE.ShapeGeometry(shape, 32);
+      const geom = new THREE.ShapeGeometry(shape, 24);
       geom.computeVertexNormals();
       return geom;
     }
@@ -280,7 +121,7 @@
         new THREE.Vector2(0.08, -0.2),
         new THREE.Vector2(0.001, -0.5)
       ];
-      return new THREE.LatheGeometry(points, 16);
+      return new THREE.LatheGeometry(points, 12);
     }
 
     function createGlowSprite() {
@@ -300,19 +141,17 @@
         map: texture,
         blending: THREE.AdditiveBlending,
         transparent: true,
-        opacity: 0.55
+        opacity: 0.5
       });
       const sprite = new THREE.Sprite(mat);
       sprite.scale.set(3.2, 3.2, 1);
       return sprite;
     }
 
-    /* ========================================================
-       3. Three.js 메인 씬 (너울 공간 유영)
-       ======================================================== */
+    /* 3. Three.js 씬 세팅 */
     const scene = new THREE.Scene();
     const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 100);
-    camera.position.z = 18;
+    camera.position.z = 20;
 
     const renderer = new THREE.WebGLRenderer({ alpha: true, antialias: true });
     renderer.setSize(window.innerWidth, window.innerHeight);
@@ -322,6 +161,7 @@
     const butterflies = [];
     const whiteBodyMat = new THREE.MeshBasicMaterial({ color: 0xffffff });
     const textureLoader = new THREE.TextureLoader();
+    const shapes = ['round', 'pointy', 'flutter', 'fairy'];
 
     function spawnButterfly(itemData, isNew = false) {
       const group = new THREE.Group();
@@ -331,10 +171,10 @@
         const tex = textureLoader.load(itemData.texture_url);
         wingMat = new THREE.MeshBasicMaterial({ map: tex, side: THREE.DoubleSide, transparent: true, opacity: 0.95 });
       } else {
-        wingMat = new THREE.MeshBasicMaterial({ color: 0xffffff, side: THREE.DoubleSide, transparent: true, opacity: 0.88 });
+        wingMat = new THREE.MeshBasicMaterial({ color: 0xffffff, side: THREE.DoubleSide, transparent: true, opacity: 0.85 });
       }
 
-      const shape = itemData.wing_shape || 'round';
+      const shape = itemData.wing_shape || shapes[Math.floor(Math.random() * shapes.length)];
       const leftWing = new THREE.Mesh(createCustomWingShape(shape, false), wingMat);
       const rightWing = new THREE.Mesh(createCustomWingShape(shape, true), wingMat);
       group.add(leftWing);
@@ -348,44 +188,54 @@
       group.add(glow);
 
       if (isNew) {
-        group.position.set(0, -7, 0);
+        group.position.set(0, -9, 0); // 새 나비는 화면 아래에서 날아오름
       } else {
         group.position.set(
+          (Math.random() - 0.5) * 26,
           (Math.random() - 0.5) * 16,
-          (Math.random() - 0.5) * 10,
-          (Math.random() - 0.5) * 5
+          (Math.random() - 0.5) * 10
         );
       }
-      group.scale.set(0.44, 0.44, 0.44);
+      
+      const randomScale = 0.28 + Math.random() * 0.2;
+      group.scale.set(randomScale, randomScale, randomScale);
       scene.add(group);
 
       butterflies.push({
         group,
         leftWing,
         rightWing,
-        data: itemData,
-        velocity: new THREE.Vector3((Math.random() - 0.5) * 0.02, (Math.random() - 0.5) * 0.02, 0),
-        seed: Math.random() * 100
+        velocity: new THREE.Vector3((Math.random() - 0.5) * 0.03, (Math.random() - 0.5) * 0.03, (Math.random() - 0.5) * 0.02),
+        speed: 5.5 + Math.random() * 3.0,
+        seed: Math.random() * 1000
       });
     }
 
-    async function loadButterflies() {
-      const { data, error } = await supabase
+    /* 4. 50마리 나비 군집 로드 (Supabase 실제 나비 + 배경 나비떼) */
+    async function initSwarm() {
+      const { data } = await supabase
         .from('butterflies')
         .select('*')
         .order('created_at', { ascending: false })
-        .limit(16);
+        .limit(30);
 
-      if (data && data.length > 0) {
+      const actualCount = data ? data.length : 0;
+      if (data) {
         data.forEach(item => spawnButterfly(item));
-      } else {
-        spawnButterfly({ name: "윤슬", wing_shape: "round", q1: ["사색가"], memo: "잔잔히 살아가자.", revisit_date: "2026. 10. 24" });
-        spawnButterfly({ name: "쉼표", wing_shape: "flutter", q1: ["숙면 8시간"], memo: "숨 고르기.", revisit_date: "2026. 11. 12" });
-        spawnButterfly({ name: "시온", wing_shape: "pointy", q1: ["자기 확신"], memo: "나의 길을 간다.", revisit_date: "2027. 01. 01" });
+      }
+
+      // 화면에 최소 50마리가 가득 채워지도록 보강
+      const needed = Math.max(0, 50 - actualCount);
+      for (let i = 0; i < needed; i++) {
+        spawnButterfly({
+          name: '빛나비',
+          wing_shape: shapes[i % shapes.length]
+        });
       }
     }
-    loadButterflies();
+    initSwarm();
 
+    // 스마트폰에서 새 나비가 날아오면 실시간 스폰
     supabase
       .channel('public:butterflies')
       .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'butterflies' }, (payload) => {
@@ -393,9 +243,7 @@
       })
       .subscribe();
 
-    /* ========================================================
-       4. MediaPipe Hands 웹캠 손끝 추적
-       ======================================================== */
+    /* 5. MediaPipe 웹캠 인터랙션 (손끝 빛 및 손동작 반응) */
     const videoElement = document.getElementById('webcam-video');
     const handPointer = document.getElementById('hand-pointer');
 
@@ -412,8 +260,8 @@
         handPointer.style.transform = `translate3d(${screenX}px, ${screenY}px, 0)`;
         handPointer.style.opacity = '1';
 
-        const mappedX = ((1 - indexTip.x) - 0.5) * 18;
-        const mappedY = -(indexTip.y - 0.5) * 11;
+        const mappedX = ((1 - indexTip.x) - 0.5) * 24;
+        const mappedY = -(indexTip.y - 0.5) * 14;
         handTarget3D.set(mappedX, mappedY, 0);
         isHandDetected = true;
       } else {
@@ -443,46 +291,7 @@
     });
     cameraUtils.start();
 
-    /* ========================================================
-       5. 쇼케이스 카드 전용 미니 3D 뷰어
-       ======================================================== */
-    let modalScene, modalCamera, modalRenderer, modalGroup, modalLeftWing, modalRightWing;
-    function initModal3DViewer() {
-      const container = document.getElementById('modal-3d-container');
-      container.innerHTML = '';
-
-      modalScene = new THREE.Scene();
-      modalCamera = new THREE.PerspectiveCamera(40, container.clientWidth / container.clientHeight, 0.1, 100);
-      modalCamera.position.set(0, 0, 5.5);
-
-      modalRenderer = new THREE.WebGLRenderer({ alpha: true, antialias: true });
-      modalRenderer.setSize(container.clientWidth, container.clientHeight);
-      modalRenderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-      container.appendChild(modalRenderer.domElement);
-
-      modalGroup = new THREE.Group();
-      const whiteMat = new THREE.MeshBasicMaterial({ color: 0xffffff, side: THREE.DoubleSide });
-
-      modalLeftWing = new THREE.Mesh(createCustomWingShape('round', false), whiteMat);
-      modalRightWing = new THREE.Mesh(createCustomWingShape('round', true), whiteMat);
-      modalGroup.add(modalLeftWing);
-      modalGroup.add(modalRightWing);
-
-      const body = new THREE.Mesh(createSegmentedBodyGeometry(), whiteBodyMat);
-      modalGroup.add(body);
-
-      const glow = createGlowSprite();
-      glow.scale.set(4.2, 4.2, 1);
-      modalGroup.add(glow);
-
-      modalGroup.scale.set(0.72, 0.72, 0.72);
-      modalScene.add(modalGroup);
-    }
-    initModal3DViewer();
-
-    /* ========================================================
-       6. 렌더 루프 및 애니메이션
-       ======================================================== */
+    /* 6. 나비떼 자유 비행 & 인터랙션 루프 */
     const clock = new THREE.Clock();
 
     function animate() {
@@ -490,108 +299,40 @@
       const time = clock.getElapsedTime();
 
       butterflies.forEach((b) => {
-        const flap = Math.sin(time * 6.5 + b.seed) * 0.52;
+        const flap = Math.sin(time * b.speed + b.seed) * 0.55;
         b.leftWing.rotation.y = flap;
         b.rightWing.rotation.y = -flap;
 
-        b.group.position.x += Math.sin(time * 0.8 + b.seed) * 0.015 + b.velocity.x;
-        b.group.position.y += Math.cos(time * 0.9 + b.seed) * 0.015 + b.velocity.y;
+        b.group.position.x += Math.sin(time * 0.9 + b.seed) * 0.02 + b.velocity.x;
+        b.group.position.y += Math.cos(time * 0.8 + b.seed) * 0.02 + b.velocity.y;
+        b.group.position.z += Math.sin(time * 0.5 + b.seed) * 0.015 + b.velocity.z;
 
+        // 손이 감지되면 손끝 빛무리를 향해 사르르 모여드는 군집 물리
         if (isHandDetected) {
           const distToHand = b.group.position.distanceTo(handTarget3D);
-          if (distToHand < 6.0) {
+          if (distToHand < 8.0) {
             const dir = new THREE.Vector3().subVectors(handTarget3D, b.group.position).normalize();
-            b.group.position.addScaledVector(dir, 0.045);
+            b.group.position.addScaledVector(dir, 0.055);
           }
         }
 
-        if (b.group.position.x > 9.5) b.group.position.x = -9.5;
-        if (b.group.position.x < -9.5) b.group.position.x = 9.5;
-        if (b.group.position.y > 6.5) b.group.position.y = -6.5;
-        if (b.group.position.y < -6.5) b.group.position.y = 6.5;
+        // 화면 밖 경계 루프
+        if (b.group.position.x > 14) b.group.position.x = -14;
+        if (b.group.position.x < -14) b.group.position.x = 14;
+        if (b.group.position.y > 9) b.group.position.y = -9;
+        if (b.group.position.y < -9) b.group.position.y = 9;
+        if (b.group.position.z > 6) b.group.position.z = -6;
+        if (b.group.position.z < -6) b.group.position.z = 6;
       });
-
-      if (modalGroup) {
-        modalGroup.rotation.y = Math.sin(time * 0.8) * 0.4;
-        modalGroup.rotation.x = Math.sin(time * 0.6) * 0.15;
-        const mFlap = Math.sin(time * 5.2) * 0.45;
-        modalLeftWing.rotation.y = mFlap;
-        modalRightWing.rotation.y = -mFlap;
-        modalRenderer.render(modalScene, modalCamera);
-      }
 
       renderer.render(scene, camera);
     }
     animate();
 
-    /* ========================================================
-       7. 쇼케이스 모달 클릭 및 정보 연동
-       ======================================================== */
-    const raycaster = new THREE.Raycaster();
-    const mouse = new THREE.Vector2();
-
-    window.addEventListener('click', (e) => {
-      if (e.target.closest('#butterfly-modal') || e.target.closest('#showcase-backdrop')) return;
-
-      mouse.x = (e.clientX / window.innerWidth) * 2 - 1;
-      mouse.y = -(e.clientY / window.innerHeight) * 2 + 1;
-
-      raycaster.setFromCamera(mouse, camera);
-      const interactiveObjects = butterflies.flatMap(b => [b.leftWing, b.rightWing]);
-      const intersects = raycaster.intersectObjects(interactiveObjects);
-
-      if (intersects.length > 0) {
-        const hitGroup = intersects[0].object.parent;
-        const targetB = butterflies.find(b => b.group === hitGroup);
-        if (targetB) openModal(targetB.data);
-      }
-    });
-
-    function openModal(data) {
-      document.getElementById('modal-name').innerText = `‘${data.name || "이름없는 나비"}’`;
-      document.getElementById('modal-memo').innerText = data.memo ? `"${data.memo}"` : '"천천히 가도 괜찮아. 어둠 속에서도 너만의 고유한 빛이 있으니까."';
-      document.getElementById('modal-reunion-date').innerText = data.revisit_date || "2026. 10. 24";
-
-      const allTags = [
-        ...(data.q1 || []),
-        ...(data.q2 || []),
-        ...(data.q3 || []),
-        ...(data.q4 || []),
-        ...(data.q5 || [])
-      ].slice(0, 5);
-
-      const tagContainer = document.getElementById('modal-tags');
-      tagContainer.innerHTML = (allTags.length > 0 ? allTags : ["사색가", "자유로운 비행", "단단한 자기 확신", "유연한 태도"]).map(t => 
-        `<span class="glass-pill">#${t}</span>`
-      ).join('');
-
-      if (data.texture_url && modalLeftWing) {
-        const tex = textureLoader.load(data.texture_url);
-        const mat = new THREE.MeshBasicMaterial({ map: tex, side: THREE.DoubleSide });
-        modalLeftWing.material = mat;
-        modalRightWing.material = mat;
-      }
-
-      document.getElementById('showcase-backdrop').classList.add('active');
-      document.getElementById('butterfly-modal').classList.add('active');
-    }
-
-    function closeModal() {
-      document.getElementById('showcase-backdrop').classList.remove('active');
-      document.getElementById('butterfly-modal').classList.remove('active');
-    }
-
     window.addEventListener('resize', () => {
       camera.aspect = window.innerWidth / window.innerHeight;
       camera.updateProjectionMatrix();
       renderer.setSize(window.innerWidth, window.innerHeight);
-
-      const container = document.getElementById('modal-3d-container');
-      if (container && modalCamera && modalRenderer) {
-        modalCamera.aspect = container.clientWidth / container.clientHeight;
-        modalCamera.updateProjectionMatrix();
-        modalRenderer.setSize(container.clientWidth, container.clientHeight);
-      }
     });
   </script>
 </body>

@@ -1,0 +1,322 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>너울 : NOUL - 나비 아카이브</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <!-- Supabase JS CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Nanum+Pen+Script&display=swap" rel="stylesheet">
+
+  <style>
+    body, html {
+      margin: 0;
+      padding: 0;
+      background-color: #000000;
+      color: #ffffff;
+      font-family: -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", "Pretendard", sans-serif;
+      user-select: none;
+    }
+
+    /* 갤러리 카드 */
+    .butterfly-card {
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      border-radius: 28px;
+      transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+      cursor: pointer;
+    }
+    .butterfly-card:hover {
+      transform: translateY(-6px);
+      border-color: rgba(255, 255, 255, 0.35);
+      box-shadow: 0 14px 35px -10px rgba(255, 255, 255, 0.2);
+    }
+
+    /* 쇼케이스 모달 */
+    #showcase-backdrop {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.75);
+      backdrop-filter: blur(10px);
+      z-index: 40;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.35s ease;
+    }
+    #showcase-backdrop.active {
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    #butterfly-modal {
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -46%) scale(0.95);
+      width: min(440px, 92vw);
+      max-height: 88vh;
+      overflow-y: auto;
+      scrollbar-width: none;
+      z-index: 50;
+      background: rgba(12, 12, 12, 0.92);
+      backdrop-filter: blur(28px);
+      border: 1px solid rgba(255, 255, 255, 0.18);
+      border-radius: 36px;
+      box-shadow: 0 30px 80px -15px rgba(0, 0, 0, 0.95), 0 0 40px rgba(255, 255, 255, 0.1);
+      opacity: 0;
+      pointer-events: none;
+      transition: all 0.45s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    #butterfly-modal::-webkit-scrollbar {
+      display: none;
+    }
+    #butterfly-modal.active {
+      opacity: 1;
+      transform: translate(-50%, -50%) scale(1);
+      pointer-events: auto;
+    }
+
+    .showcase-stage-3d {
+      width: 100%;
+      height: 190px;
+      position: relative;
+      background: radial-gradient(circle at 50% 50%, rgba(255, 255, 255, 0.08) 0%, rgba(0, 0, 0, 0) 70%);
+      border-top-left-radius: 36px;
+      border-top-right-radius: 36px;
+      overflow: hidden;
+    }
+
+    .glass-pill {
+      background: rgba(255, 255, 255, 0.08);
+      border: 1px solid rgba(255, 255, 255, 0.14);
+      color: #e5e5e5;
+      font-size: 11px;
+      padding: 5px 13px;
+      border-radius: 9999px;
+      display: inline-flex;
+      align-items: center;
+    }
+
+    .timeticket-box {
+      background: linear-gradient(135deg, rgba(255, 255, 255, 0.06) 0%, rgba(255, 255, 255, 0.02) 100%);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      border-radius: 20px;
+      padding: 14px 18px;
+    }
+  </style>
+</head>
+<body class="p-6 md:p-12 min-h-screen">
+
+  <header class="max-w-6xl mx-auto mb-10 text-center space-y-2">
+    <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/10 border border-white/15">
+      <span class="w-2 h-2 rounded-full bg-white animate-pulse"></span>
+      <span class="text-[10px] font-mono tracking-widest text-neutral-300 uppercase font-semibold">SOUL REPOSITORY</span>
+    </div>
+    <h1 class="text-3xl md:text-4xl font-black text-white tracking-tight">너울 나비 아카이브</h1>
+    <p class="text-xs md:text-sm text-neutral-400 font-light">마음의 결을 품고 날아오른 나비들을 하나씩 만나보세요.</p>
+  </header>
+
+  <main id="archive-grid" class="max-w-6xl mx-auto grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4 md:gap-6 pb-20">
+  </main>
+
+  <div id="showcase-backdrop" onclick="closeModal()"></div>
+
+  <div id="butterfly-modal" class="flex flex-col box-border">
+    <div class="showcase-stage-3d flex items-center justify-center">
+      <div id="modal-3d-container" class="w-full h-full"></div>
+      
+      <button onclick="closeModal()" type="button" 
+              class="absolute top-4 right-4 w-9 h-9 rounded-full bg-white/10 hover:bg-white/20 border border-white/20 text-white flex items-center justify-center transition-all">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+        </svg>
+      </button>
+
+      <div class="absolute top-4 left-5 flex items-center gap-2">
+        <span class="w-1.5 h-1.5 rounded-full bg-white"></span>
+        <span id="modal-archive-id" class="text-[10px] font-mono tracking-widest text-neutral-400 uppercase">NOUL SOUL ARCHIVE</span>
+      </div>
+    </div>
+
+    <div class="p-6 pt-2 flex flex-col gap-5">
+      <div class="text-center py-1">
+        <h2 id="modal-name" class="text-3xl font-black text-white tracking-tight drop-shadow-[0_0_15px_rgba(255,255,255,0.4)]">
+          ‘나비’
+        </h2>
+      </div>
+
+      <div class="space-y-2">
+        <span class="block text-[10px] font-mono tracking-widest text-neutral-400 uppercase text-center">EMBODIED INTENTIONS</span>
+        <div id="modal-tags" class="flex flex-wrap items-center justify-center gap-1.5"></div>
+      </div>
+
+      <div class="timeticket-box text-center space-y-1.5">
+        <span class="text-[10px] font-mono text-neutral-400 tracking-wider uppercase block">A MESSAGE TO FUTURE SELF</span>
+        <p id="modal-memo" class="text-xs text-white leading-relaxed font-light break-keep">
+          "천천히 가도 괜찮아. 어둠 속에서도 너만의 고유한 빛이 있으니까."
+        </p>
+      </div>
+
+      <div class="flex items-center justify-between px-2 py-1 border-t border-white/10 text-[11px] font-mono">
+        <div class="flex items-center gap-1.5 text-neutral-400">
+          <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+          </svg>
+          <span>REUNION DATE</span>
+        </div>
+        <span id="modal-reunion-date" class="font-bold text-white tracking-widest">2026. 10. 24</span>
+      </div>
+
+      <button onclick="closeModal()" type="button" 
+              class="w-full py-3 rounded-2xl bg-white text-black font-bold text-xs tracking-wider uppercase active:scale-95 transition-all shadow-[0_0_20px_rgba(255,255,255,0.25)]">
+        닫기
+      </button>
+    </div>
+  </div>
+
+  <script>
+    const SUPABASE_URL = 'https://djmdzsbfsobsutphragw.supabase.co';
+    const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRqbWR6c2Jmc29ic3V0cGhyYWd3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODk4ODQ3NTgsImV4cCI6MjEwNTQ2MDc1OH0.BC7llaSjbq6cYhDlRqrwJaycpQ6gSNcp5LgYBeM6WEM';
+    const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+    function createCustomWingShape(shapeType, isRight) {
+      const shape = new THREE.Shape();
+      const s = isRight ? 1 : -1;
+      shape.moveTo(0, 0.48);
+      shape.bezierCurveTo(s * 0.32, 0.88, s * 1.15, 1.78, s * 1.95, 1.72);
+      shape.bezierCurveTo(s * 2.58, 1.68, s * 2.78, 1.18, s * 2.45, 0.62);
+      shape.bezierCurveTo(s * 2.18, 0.22, s * 1.78, 0.02, s * 1.35, -0.08);
+      shape.bezierCurveTo(s * 1.80, -0.35, s * 1.80, -1.08, s * 1.45, -1.52);
+      shape.bezierCurveTo(s * 1.05, -1.92, s * 0.55, -1.82, s * 0.32, -1.48);
+      shape.bezierCurveTo(s * 0.16, -1.15, s * 0.05, -0.72, 0, -0.48);
+      shape.lineTo(0, 0.48);
+      shape.closePath();
+      return new THREE.ShapeGeometry(shape, 32);
+    }
+
+    function createSegmentedBodyGeometry() {
+      const points = [
+        new THREE.Vector2(0.001, 0.5),
+        new THREE.Vector2(0.08, 0.3),
+        new THREE.Vector2(0.06, 0.0),
+        new THREE.Vector2(0.08, -0.2),
+        new THREE.Vector2(0.001, -0.5)
+      ];
+      return new THREE.LatheGeometry(points, 16);
+    }
+
+    let modalScene, modalCamera, modalRenderer, modalGroup, modalLeftWing, modalRightWing;
+    const textureLoader = new THREE.TextureLoader();
+
+    function initModal3D() {
+      const container = document.getElementById('modal-3d-container');
+      modalScene = new THREE.Scene();
+      modalCamera = new THREE.PerspectiveCamera(40, container.clientWidth / container.clientHeight, 0.1, 100);
+      modalCamera.position.set(0, 0, 5.5);
+
+      modalRenderer = new THREE.WebGLRenderer({ alpha: true, antialias: true });
+      modalRenderer.setSize(container.clientWidth, container.clientHeight);
+      modalRenderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+      container.appendChild(modalRenderer.domElement);
+
+      modalGroup = new THREE.Group();
+      const whiteMat = new THREE.MeshBasicMaterial({ color: 0xffffff, side: THREE.DoubleSide });
+
+      modalLeftWing = new THREE.Mesh(createCustomWingShape('round', false), whiteMat);
+      modalRightWing = new THREE.Mesh(createCustomWingShape('round', true), whiteMat);
+      modalGroup.add(modalLeftWing);
+      modalGroup.add(modalRightWing);
+
+      const body = new THREE.Mesh(createSegmentedBodyGeometry(), whiteMat);
+      modalGroup.add(body);
+
+      modalGroup.scale.set(0.72, 0.72, 0.72);
+      modalScene.add(modalGroup);
+
+      function anim() {
+        requestAnimationFrame(anim);
+        const t = performance.now() * 0.0015;
+        modalGroup.rotation.y = Math.sin(t * 0.8) * 0.35;
+        const f = Math.sin(t * 4.5) * 0.4;
+        modalLeftWing.rotation.y = f;
+        modalRightWing.rotation.y = -f;
+        modalRenderer.render(modalScene, modalCamera);
+      }
+      anim();
+    }
+    initModal3D();
+
+    async function loadArchive() {
+      const grid = document.getElementById('archive-grid');
+      grid.innerHTML = '';
+
+      const { data, error } = await supabase
+        .from('butterflies')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      if (data && data.length > 0) {
+        data.forEach((b, idx) => {
+          const card = document.createElement('div');
+          card.className = 'butterfly-card p-5 flex flex-col items-center text-center space-y-3';
+          
+          const imgSrc = b.texture_url || '';
+          card.innerHTML = `
+            <div class="w-full h-36 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center overflow-hidden p-2">
+              ${imgSrc ? `<img src="${imgSrc}" class="w-full h-full object-contain filter drop-shadow-[0_0_10px_rgba(255,255,255,0.4)]">` : `<span class="text-xs text-neutral-500 font-mono">NO IMAGE</span>`}
+            </div>
+            <div class="space-y-0.5">
+              <span class="text-[10px] font-mono text-neutral-500 uppercase tracking-wider">#${String(idx + 1).padStart(3, '0')}</span>
+              <h3 class="text-base font-bold text-white tracking-tight">‘${b.name || '나비'}’</h3>
+            </div>
+          `;
+          card.addEventListener('click', () => openModal(b, idx + 1));
+          grid.appendChild(card);
+        });
+      } else {
+        grid.innerHTML = `<div class="col-span-full text-center py-20 text-neutral-500 font-mono text-xs">아직 날아오른 나비가 없습니다.</div>`;
+      }
+    }
+    loadArchive();
+
+    function openModal(data, indexNumber) {
+      document.getElementById('modal-archive-id').innerText = `NOUL SOUL #${String(indexNumber).padStart(3, '0')}`;
+      document.getElementById('modal-name').innerText = `‘${data.name || "이름없는 나비"}’`;
+      document.getElementById('modal-memo').innerText = data.memo ? `"${data.memo}"` : '"천천히 가도 괜찮아. 어둠 속에서도 너만의 고유한 빛이 있으니까."';
+      document.getElementById('modal-reunion-date').innerText = data.revisit_date || "2026. 10. 24";
+
+      const allTags = [
+        ...(data.q1 || []),
+        ...(data.q2 || []),
+        ...(data.q3 || []),
+        ...(data.q4 || []),
+        ...(data.q5 || [])
+      ].slice(0, 5);
+
+      const tagContainer = document.getElementById('modal-tags');
+      tagContainer.innerHTML = (allTags.length > 0 ? allTags : ["사색가", "자유로운 비행", "단단한 자기 확신"]).map(t => 
+        `<span class="glass-pill">#${t}</span>`
+      ).join('');
+
+      if (data.texture_url && modalLeftWing) {
+        const tex = textureLoader.load(data.texture_url);
+        const mat = new THREE.MeshBasicMaterial({ map: tex, side: THREE.DoubleSide });
+        modalLeftWing.material = mat;
+        modalRightWing.material = mat;
+      }
+
+      document.getElementById('showcase-backdrop').classList.add('active');
+      document.getElementById('butterfly-modal').classList.add('active');
+    }
+
+    function closeModal() {
+      document.getElementById('showcase-backdrop').classList.remove('active');
+      document.getElementById('butterfly-modal').classList.remove('active');
+    }
+  </script>
+</body>
+</html>
