@@ -5,10 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>NOUL : Luminous Space</title>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-  <!-- MediaPipe Hands & Camera Utils CDN -->
   <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js" crossorigin="anonymous"></script>
   <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js" crossorigin="anonymous"></script>
-  <!-- Supabase JS CDN -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
   <style>
@@ -20,10 +18,9 @@
       overflow: hidden;
       background-color: #000000;
       user-select: none;
-      cursor: none; /* 전시 몰입감을 위해 마우스 커서 숨김 */
+      cursor: none;
     }
 
-    /* 웹캠 배경 (어둡고 은은한 실루엣 거울 효과) */
     #webcam-video {
       position: absolute;
       inset: 0;
@@ -31,7 +28,7 @@
       height: 100%;
       object-fit: cover;
       transform: scaleX(-1);
-      filter: brightness(0.18) contrast(1.3) saturate(0.2) blur(3px);
+      filter: brightness(0.2) contrast(1.2) blur(3px);
       z-index: 0;
       pointer-events: none;
     }
@@ -42,7 +39,6 @@
       z-index: 10;
     }
 
-    /* 손끝 인터랙션 빛 파티클 */
     #hand-pointer {
       position: absolute;
       width: 60px;
@@ -61,72 +57,43 @@
 </head>
 <body>
 
-  <!-- 글자와 HUD가 일절 배제된 순수 3D 몰입 화면 -->
   <video id="webcam-video" playsinline autoplay muted></video>
   <div id="three-canvas-container"></div>
   <div id="hand-pointer"></div>
 
   <script>
-    /* ========================================================
-       1. Supabase 연동 세팅
-       ======================================================== */
     const SUPABASE_URL = 'https://djmdzsbfsobsutphragw.supabase.co';
     const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRqbWR6c2Jmc29ic3V0cGhyYWd3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODk4ODQ3NTgsImV4cCI6MjEwNTQ2MDc1OH0.BC7llaSjbq6cYhDlRqrwJaycpQ6gSNcp5LgYBeM6WEM';
     const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-    /* ========================================================
-       2. index_4.html 기반 3D 나비 지오메트리 정의
-       ======================================================== */
-    function createCustomWingShape(shapeType = 'round', isRight = true) {
+    /* 나비 날개 지오메트리 */
+    function createWingGeometry(isRight) {
       const shape = new THREE.Shape();
       const s = isRight ? 1 : -1;
       shape.moveTo(0, 0.48);
-
-      if (shapeType === 'pointy') {
-        shape.bezierCurveTo(s * 0.12, 1.05, s * 0.75, 2.58, s * 1.75, 2.65);
-        shape.bezierCurveTo(s * 1.95, 1.82, s * 1.55, 1.05, s * 1.12, 0.18);
-        shape.bezierCurveTo(s * 1.68, -0.22, s * 1.82, -1.35, s * 1.28, -1.92);
-        shape.bezierCurveTo(s * 0.88, -2.15, s * 0.45, -1.88, s * 0.25, -1.48);
-        shape.bezierCurveTo(s * 0.15, -1.15, s * 0.05, -0.72, 0, -0.48);
-      } else if (shapeType === 'flutter') {
-        shape.bezierCurveTo(s * 0.35, 0.85, s * 1.35, 1.75, s * 2.38, 1.52);
-        shape.bezierCurveTo(s * 2.82, 1.05, s * 2.25, 0.45, s * 2.65, -0.05);
-        shape.bezierCurveTo(s * 2.78, -0.52, s * 2.05, -0.78, s * 1.65, -0.85);
-        shape.bezierCurveTo(s * 2.22, -1.25, s * 1.95, -1.95, s * 1.35, -2.08);
-        shape.bezierCurveTo(s * 0.88, -2.15, s * 0.48, -1.65, s * 0.25, -1.42);
-        shape.bezierCurveTo(s * 0.15, -1.15, s * 0.05, -0.72, 0, -0.48);
-      } else if (shapeType === 'fairy') {
-        shape.bezierCurveTo(s * 0.18, 1.02, s * 0.98, 2.52, s * 1.95, 2.68);
-        shape.bezierCurveTo(s * 2.12, 1.82, s * 1.45, 1.08, s * 1.28, 0.25);
-        shape.bezierCurveTo(s * 1.88, -0.15, s * 2.05, -1.32, s * 1.48, -2.15);
-        shape.bezierCurveTo(s * 1.08, -2.42, s * 0.62, -2.25, s * 0.35, -1.78);
-        shape.bezierCurveTo(s * 0.18, -1.28, s * 0.08, -0.78, 0, -0.48);
-      } else {
-        shape.bezierCurveTo(s * 0.32, 0.88, s * 1.15, 1.78, s * 1.95, 1.72);
-        shape.bezierCurveTo(s * 2.58, 1.68, s * 2.78, 1.18, s * 2.45, 0.62);
-        shape.bezierCurveTo(s * 2.18, 0.22, s * 1.78, 0.02, s * 1.35, -0.08);
-        shape.bezierCurveTo(s * 1.80, -0.35, s * 1.80, -1.08, s * 1.45, -1.52);
-        shape.bezierCurveTo(s * 1.05, -1.92, s * 0.55, -1.82, s * 0.32, -1.48);
-        shape.bezierCurveTo(s * 0.16, -1.15, s * 0.05, -0.72, 0, -0.48);
-      }
+      shape.bezierCurveTo(s * 0.32, 0.88, s * 1.15, 1.78, s * 1.95, 1.72);
+      shape.bezierCurveTo(s * 2.58, 1.68, s * 2.78, 1.18, s * 2.45, 0.62);
+      shape.bezierCurveTo(s * 2.18, 0.22, s * 1.78, 0.02, s * 1.35, -0.08);
+      shape.bezierCurveTo(s * 1.80, -0.35, s * 1.80, -1.08, s * 1.45, -1.52);
+      shape.bezierCurveTo(s * 1.05, -1.92, s * 0.55, -1.82, s * 0.32, -1.48);
+      shape.bezierCurveTo(s * 0.16, -1.15, s * 0.05, -0.72, 0, -0.48);
       shape.lineTo(0, 0.48);
       shape.closePath();
 
-      const geom = new THREE.ShapeGeometry(shape, 32);
+      const geom = new THREE.ShapeGeometry(shape, 28);
       const pos = geom.attributes.position;
       const uvs = [];
       const totalSpan = 5.4;
       for (let i = 0; i < pos.count; i++) {
-        const x = pos.getX(i);
-        const y = pos.getY(i);
-        uvs.push(0.5 + (x / totalSpan), 0.5 + (y / totalSpan));
+        uvs.push(0.5 + (pos.getX(i) / totalSpan), 0.5 + (pos.getY(i) / totalSpan));
       }
       geom.setAttribute('uv', new THREE.Float32BufferAttribute(uvs, 2));
       geom.computeVertexNormals();
       return geom;
     }
 
-    function createSegmentedBodyGeometry() {
+    /* 나비 몸통 */
+    function createBodyGeometry() {
       const points = [
         new THREE.Vector2(0.001, 0.72),
         new THREE.Vector2(0.12, 0.62),
@@ -139,10 +106,11 @@
         new THREE.Vector2(0.07, -0.65),
         new THREE.Vector2(0.001, -0.82)
       ];
-      return new THREE.LatheGeometry(points, 24);
+      return new THREE.LatheGeometry(points, 16);
     }
 
-    function createCustomAntennaGroup(isRight, material, antennaType = 'ball') {
+    /* 더듬이 */
+    function createAntennaGroup(isRight, mat) {
       const group = new THREE.Group();
       const s = isRight ? 1 : -1;
       const curve = new THREE.CubicBezierCurve3(
@@ -151,30 +119,27 @@
         new THREE.Vector3(s * 0.42, 0.75, 0.14),
         new THREE.Vector3(s * 0.52, 0.98, 0.2)
       );
-      const tubeGeom = new THREE.TubeGeometry(curve, 20, 0.026, 8, false);
-      group.add(new THREE.Mesh(tubeGeom, material));
+      group.add(new THREE.Mesh(new THREE.TubeGeometry(curve, 16, 0.024, 6, false), mat));
 
-      const tipGeom = new THREE.SphereGeometry(0.068, 12, 12);
-      const tipMesh = new THREE.Mesh(tipGeom, material);
+      const tipMesh = new THREE.Mesh(new THREE.SphereGeometry(0.065, 8, 8), mat);
       tipMesh.position.set(s * 0.52, 0.98, 0.2);
       group.add(tipMesh);
       return group;
     }
 
-    function createEtherealGlowSprite(colorHex = '#ffffff', size = 5.2, opacity = 0.5) {
+    /* 발광 스프라이트 */
+    function createGlowSprite(size, opacity) {
       const canvas = document.createElement('canvas');
-      canvas.width = 256;
-      canvas.height = 256;
+      canvas.width = 128;
+      canvas.height = 128;
       const ctx = canvas.getContext('2d');
-      const grad = ctx.createRadialGradient(128, 128, 0, 128, 128, 128);
-      grad.addColorStop(0.0, 'rgba(255, 255, 255, 0.9)');
-      grad.addColorStop(0.25, 'rgba(255, 255, 255, 0.4)');
-      grad.addColorStop(0.55, colorHex);
-      grad.addColorStop(0.85, 'rgba(255, 255, 255, 0.08)');
+      const grad = ctx.createRadialGradient(64, 64, 0, 64, 64, 64);
+      grad.addColorStop(0.0, 'rgba(255, 255, 255, 1.0)');
+      grad.addColorStop(0.3, 'rgba(255, 255, 255, 0.5)');
+      grad.addColorStop(0.7, 'rgba(255, 255, 255, 0.1)');
       grad.addColorStop(1.0, 'rgba(0, 0, 0, 0)');
-
       ctx.fillStyle = grad;
-      ctx.fillRect(0, 0, 256, 256);
+      ctx.fillRect(0, 0, 128, 128);
 
       const texture = new THREE.CanvasTexture(canvas);
       const mat = new THREE.SpriteMaterial({
@@ -189,129 +154,106 @@
       return sprite;
     }
 
-    /* ========================================================
-       3. Three.js 메인 씬 세팅
-       ======================================================== */
+    /* Three.js 씬 구성 */
+    const container = document.getElementById('three-canvas-container');
     const scene = new THREE.Scene();
-    const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 100);
-    camera.position.z = 20;
+    const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 1000);
+    camera.position.set(0, 0, 18);
 
     const renderer = new THREE.WebGLRenderer({ alpha: true, antialias: true });
     renderer.setSize(window.innerWidth, window.innerHeight);
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-    document.getElementById('three-canvas-container').appendChild(renderer.domElement);
+    container.appendChild(renderer.domElement);
 
-    const pureWhiteMat = new THREE.MeshBasicMaterial({ color: 0xffffff, side: THREE.DoubleSide });
     const textureLoader = new THREE.TextureLoader();
+    const leftWingGeom = createWingGeometry(false);
+    const rightWingGeom = createWingGeometry(true);
+    const bodyGeom = createBodyGeometry();
 
-    // 나비 관리 배열
-    const defaultFlock = [];  // 고정 20마리 순백 나비
-    const userFlock = [];     // 사용자 나비 (최대 30마리 FIFO 관리)
+    const defaultFlock = [];
+    const userFlock = [];
     const MAX_USER_BUTTERFLIES = 30;
 
-    /* 나비 개체 생성 */
     function buildButterflyGroup(itemData = {}, isUser = false, isNew = false) {
       const group = new THREE.Group();
       let wingMat;
 
       if (isUser && itemData.texture_url && itemData.texture_url.startsWith('data:image')) {
         const tex = textureLoader.load(itemData.texture_url);
-        wingMat = new THREE.MeshBasicMaterial({ map: tex, side: THREE.DoubleSide, transparent: true, opacity: 0.95 });
+        wingMat = new THREE.MeshBasicMaterial({ map: tex, side: THREE.DoubleSide });
       } else {
-        wingMat = new THREE.MeshBasicMaterial({ color: 0xffffff, side: THREE.DoubleSide, transparent: true, opacity: 0.9 });
+        wingMat = new THREE.MeshBasicMaterial({ color: 0xffffff, side: THREE.DoubleSide });
       }
 
-      const shape = itemData.wing_shape || 'round';
-      const antenna = itemData.antenna_type || 'ball';
+      const whiteMat = new THREE.MeshBasicMaterial({ color: 0xffffff });
 
-      const leftWing = new THREE.Mesh(createCustomWingShape(shape, false), wingMat);
-      const rightWing = new THREE.Mesh(createCustomWingShape(shape, true), wingMat);
+      const leftWing = new THREE.Mesh(leftWingGeom, wingMat);
+      const rightWing = new THREE.Mesh(rightWingGeom, wingMat);
       group.add(leftWing);
       group.add(rightWing);
 
-      const body = new THREE.Mesh(createSegmentedBodyGeometry(), pureWhiteMat);
-      group.add(body);
+      group.add(new THREE.Mesh(bodyGeom, whiteMat));
 
-      const antennaLeft = createCustomAntennaGroup(false, pureWhiteMat, antenna);
-      antennaLeft.position.set(-0.04, 0.58, 0.12);
-      group.add(antennaLeft);
+      const aL = createAntennaGroup(false, whiteMat);
+      aL.position.set(-0.04, 0.58, 0.12);
+      group.add(aL);
 
-      const antennaRight = createCustomAntennaGroup(true, pureWhiteMat, antenna);
-      antennaRight.position.set(0.04, 0.58, 0.12);
-      group.add(antennaRight);
+      const aR = createAntennaGroup(true, whiteMat);
+      aR.position.set(0.04, 0.58, 0.12);
+      group.add(aR);
 
-      const glow1 = createEtherealGlowSprite('#ffffff', 4.5, 0.4);
-      glow1.position.set(0, 0.1, -0.06);
-      group.add(glow1);
-
-      const glow2 = createEtherealGlowSprite('#e2e8f0', 6.0, 0.2);
-      glow2.position.set(0, 0.1, -0.09);
-      group.add(glow2);
+      const glow = createGlowSprite(4.2, 0.45);
+      glow.position.set(0, 0.1, -0.05);
+      group.add(glow);
 
       if (isNew) {
-        group.position.set(0, -9.5, 0); // 화면 아래에서 솟아오름
+        group.position.set(0, -9.0, 0);
       } else {
         group.position.set(
-          (Math.random() - 0.5) * 26,
-          (Math.random() - 0.5) * 16,
-          (Math.random() - 0.5) * 10
+          (Math.random() - 0.5) * 18,
+          (Math.random() - 0.5) * 11,
+          (Math.random() - 0.5) * 6
         );
       }
 
-      const randomScale = 0.32 + Math.random() * 0.16;
-      group.scale.set(randomScale, randomScale, randomScale);
+      const s = 0.48 + Math.random() * 0.18;
+      group.scale.set(s, s, s);
       scene.add(group);
 
       return {
         group,
         leftWing,
         rightWing,
-        velocity: new THREE.Vector3((Math.random() - 0.5) * 0.03, (Math.random() - 0.5) * 0.03, (Math.random() - 0.5) * 0.02),
-        speed: 5.0 + Math.random() * 2.5,
+        velocity: new THREE.Vector3((Math.random() - 0.5) * 0.03, (Math.random() - 0.5) * 0.03, (Math.random() - 0.5) * 0.015),
+        speed: 4.5 + Math.random() * 2.5,
         seed: Math.random() * 1000
       };
     }
 
-    /* 사용자 나비 추가 및 30마리 초과 시 가장 오래된 나비 제거 */
     function addUserButterfly(data, isNew = false) {
       if (userFlock.length >= MAX_USER_BUTTERFLIES) {
         const oldest = userFlock.shift();
-        if (oldest && oldest.group) {
-          scene.remove(oldest.group);
+        if (oldest && oldest.group) scene.remove(oldest.group);
+      }
+      userFlock.push(buildButterflyGroup(data, true, isNew));
+    }
+
+    /* 초기 20마리 순백 나비 생성 및 DB 연동 */
+    for (let i = 0; i < 20; i++) {
+      defaultFlock.push(buildButterflyGroup({}, false, false));
+    }
+
+    supabase
+      .from('butterflies')
+      .select('*')
+      .order('created_at', { ascending: false })
+      .limit(MAX_USER_BUTTERFLIES)
+      .then(({ data }) => {
+        if (data && data.length > 0) {
+          data.reverse().forEach(item => addUserButterfly(item, false));
         }
-      }
-      const b = buildButterflyGroup(data, true, isNew);
-      userFlock.push(b);
-    }
+      });
 
-    /* ========================================================
-       4. 초기 나비 배치 (기본 20마리 + 사용자 30마리)
-       ======================================================== */
-    function initFlocks() {
-      // 1) 고정 순백 나비 20마리 생성
-      for (let i = 0; i < 20; i++) {
-        const b = buildButterflyGroup({ name: `너울빛_${i + 1}` }, false, false);
-        defaultFlock.push(b);
-      }
-
-      // 2) Supabase에서 최근 사용자 나비 최대 30마리 로드
-      supabase
-        .from('butterflies')
-        .select('*')
-        .order('created_at', { ascending: false })
-        .limit(MAX_USER_BUTTERFLIES)
-        .then(({ data }) => {
-          if (data && data.length > 0) {
-            // 오래된 순으로 푸시하여 최신 나비가 나중에 빠지도록 정렬
-            data.reverse().forEach(item => {
-              addUserButterfly(item, false);
-            });
-          }
-        });
-    }
-    initFlocks();
-
-    // 모바일에서 새 나비 날아오면 실시간 추가 (최대 30개 유지)
     supabase
       .channel('public:butterflies')
       .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'butterflies' }, (payload) => {
@@ -319,28 +261,22 @@
       })
       .subscribe();
 
-    /* ========================================================
-       5. MediaPipe Hands 웹캠 손끝 추적
-       ======================================================== */
+    /* MediaPipe 손끝 추적 */
     const videoElement = document.getElementById('webcam-video');
     const handPointer = document.getElementById('hand-pointer');
-
     let handTarget3D = new THREE.Vector3(999, 999, 0);
     let isHandDetected = false;
 
     function onResults(results) {
       if (results.multiHandLandmarks && results.multiHandLandmarks.length > 0) {
-        const indexTip = results.multiHandLandmarks[0][8];
-
-        const screenX = (1 - indexTip.x) * window.innerWidth;
-        const screenY = indexTip.y * window.innerHeight;
+        const tip = results.multiHandLandmarks[0][8];
+        const screenX = (1 - tip.x) * window.innerWidth;
+        const screenY = tip.y * window.innerHeight;
 
         handPointer.style.transform = `translate3d(${screenX}px, ${screenY}px, 0)`;
         handPointer.style.opacity = '1';
 
-        const mappedX = ((1 - indexTip.x) - 0.5) * 24;
-        const mappedY = -(indexTip.y - 0.5) * 14;
-        handTarget3D.set(mappedX, mappedY, 0);
+        handTarget3D.set(((1 - tip.x) - 0.5) * 20, -(tip.y - 0.5) * 12, 0);
         isHandDetected = true;
       } else {
         handPointer.style.opacity = '0';
@@ -361,20 +297,16 @@
     hands.onResults(onResults);
 
     const cameraUtils = new Camera(videoElement, {
-      onFrame: async () => {
-        await hands.send({ image: videoElement });
-      },
+      onFrame: async () => { await hands.send({ image: videoElement }); },
       width: 640,
       height: 480
     });
     cameraUtils.start();
 
-    /* ========================================================
-       6. 총 50마리 나비떼 비행 및 인터랙션 루프
-       ======================================================== */
+    /* 애니메이션 및 비행 물리 루프 */
     const clock = new THREE.Clock();
 
-    function updateButterflyMotion(b, time) {
+    function updateMotion(b, time) {
       const flap = Math.sin(time * b.speed + b.seed) * 0.55;
       b.leftWing.rotation.y = flap;
       b.rightWing.rotation.y = -flap;
@@ -383,34 +315,27 @@
       b.group.position.y += Math.cos(time * 0.9 + b.seed) * 0.02 + b.velocity.y;
       b.group.position.z += Math.sin(time * 0.6 + b.seed) * 0.015 + b.velocity.z;
 
-      // 손끝을 향해 50마리 나비들이 군집 유영
       if (isHandDetected) {
-        const distToHand = b.group.position.distanceTo(handTarget3D);
-        if (distToHand < 8.5) {
+        const dist = b.group.position.distanceTo(handTarget3D);
+        if (dist < 8.0) {
           const dir = new THREE.Vector3().subVectors(handTarget3D, b.group.position).normalize();
-          b.group.position.addScaledVector(dir, 0.055);
+          b.group.position.addScaledVector(dir, 0.05);
         }
       }
 
-      // 화면 경계 루프
-      if (b.group.position.x > 14) b.group.position.x = -14;
-      if (b.group.position.x < -14) b.group.position.x = 14;
-      if (b.group.position.y > 9) b.group.position.y = -9;
-      if (b.group.position.y < -9) b.group.position.y = 9;
-      if (b.group.position.z > 6) b.group.position.z = -6;
-      if (b.group.position.z < -6) b.group.position.z = 6;
+      if (b.group.position.x > 11) b.group.position.x = -11;
+      if (b.group.position.x < -11) b.group.position.x = 11;
+      if (b.group.position.y > 7) b.group.position.y = -7;
+      if (b.group.position.y < -7) b.group.position.y = 7;
+      if (b.group.position.z > 4) b.group.position.z = -4;
+      if (b.group.position.z < -4) b.group.position.z = 4;
     }
 
     function animate() {
       requestAnimationFrame(animate);
       const time = clock.getElapsedTime();
-
-      // 기본 나비 20마리 업데이트
-      defaultFlock.forEach(b => updateButterflyMotion(b, time));
-
-      // 사용자 나비(최대 30마리) 업데이트
-      userFlock.forEach(b => updateButterflyMotion(b, time));
-
+      defaultFlock.forEach(b => updateMotion(b, time));
+      userFlock.forEach(b => updateMotion(b, time));
       renderer.render(scene, camera);
     }
     animate();
