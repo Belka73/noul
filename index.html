@@ -6,6 +6,8 @@
   <title>너울 : NOUL</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <!-- Supabase JS CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Nanum+Pen+Script&display=swap" rel="stylesheet">
@@ -356,7 +358,6 @@
       opacity: 1;
     }
 
-    /* 2번째 나비 사진 배경 & 비행 애니메이션 */
     .photo-butterfly-bg-wrapper {
       position: absolute;
       inset: -10%;
@@ -416,7 +417,6 @@
       transform: translateY(0) scale(1);
     }
 
-    /* 시네마틱 블랙/화이트 페이드 오버레이 */
     #cinematic-black-curtain {
       position: absolute;
       inset: 0;
@@ -641,16 +641,13 @@
     <!-- 5. 나비 생성 화면 -->
     <section id="screen-loading" class="screen flex-col flex-1 justify-between items-center py-10 px-5 text-center relative overflow-hidden z-10 w-full">
       
-      <!-- 나비 사진 배경 레이어 -->
       <div class="photo-butterfly-bg-wrapper pointer-events-none">
         <div class="photo-bg-layer"></div>
         <div class="photo-bg-overlay"></div>
       </div>
 
-      <!-- 시네마틱 블랙 커튼 -->
       <div id="cinematic-black-curtain"></div>
 
-      <!-- 상단 헤더 -->
       <div class="mt-4 z-10 space-y-1.5 pointer-events-none transition-all duration-700">
         <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/15 backdrop-blur-md border border-white/20">
           <span class="w-2 h-2 rounded-full bg-white animate-ping"></span>
@@ -664,10 +661,7 @@
         </p>
       </div>
 
-      <!-- 중앙 5초 간격 답변 및 최종 나비이름 쇼케이스 카드 -->
       <div class="relative w-full max-w-[340px] my-auto z-10 flex flex-col items-center">
-        
-        <!-- 속이 하얗게 채워진 나비 심볼 -->
         <div class="mb-4">
           <svg id="loading-butterfly-svg" class="w-20 h-20 text-white drop-shadow-[0_0_28px_rgba(255,255,255,0.95)] animate-pulse transition-all duration-1000" viewBox="0 0 100 100">
             <path d="M 50,33 C 51.5,33 53,35 53,38 C 58,35 84,14 95,28 C 99,52 79,66 75,67 C 80,75 77,91 65,94 C 55,93 53,75 53,71 C 53,74 51.5,77 50,77 C 48.5,77 47,74 47,71 C 47,75 45,93 35,94 C 23,91 20,75 25,67 C 21,66 1,52 5,28 C 16,14 42,35 47,38 C 47,35 48.5,33 50,33 Z" 
@@ -681,7 +675,6 @@
           </div>
         </div>
 
-        <!-- 스텝 진행 도트 (6단계) -->
         <div id="loading-step-dots" class="flex items-center justify-center gap-1.5 mt-4">
           <span class="step-dot w-2 h-2 rounded-full bg-white transition-all duration-300"></span>
           <span class="step-dot w-2 h-2 rounded-full bg-white/30 transition-all duration-300"></span>
@@ -692,7 +685,6 @@
         </div>
       </div>
 
-      <!-- 하단 생성 게이지 바 -->
       <div class="w-[84%] z-10 flex flex-col items-center gap-2">
         <div class="w-full h-1.5 bg-white/20 rounded-full overflow-hidden backdrop-blur-sm">
           <div id="generation-progress-bar" class="h-full bg-white rounded-full transition-all duration-500 ease-out shadow-[0_0_12px_rgba(255,255,255,0.9)]" style="width: 0%;"></div>
@@ -725,7 +717,7 @@
       </footer>
     </section>
 
-    <!-- 7. 완성 화면 (요청 문구로 수정 완료) -->
+    <!-- 7. 완성 화면 -->
     <section id="screen-complete" class="screen flex-col flex-1 justify-center items-center text-center p-6 relative z-10 w-full bg-black">
       <div class="w-20 h-20 rounded-full bg-white/10 border border-white/20 flex items-center justify-center mb-6 shadow-[0_0_30px_rgba(255,255,255,0.25)]">
         <svg class="w-10 h-10 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -744,6 +736,13 @@
   </main>
 
   <script>
+    /* ========================================================
+       0. Supabase 초기화 (진짜 긴 JWT anon key 적용)
+       ======================================================== */
+    const SUPABASE_URL = 'https://djmdzsbfsobsutphragw.supabase.co';
+    const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRqbWR6c2Jmc29ic3V0cGhyYWd3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODk4ODQ3NTgsImV4cCI6MjEwNTQ2MDc1OH0.BC7llaSjbq6cYhDlRqrwJaycpQ6gSNcp5LgYBeM6WEM';
+    const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
     let activeCustomTab = 'wing';
     let selectedButterflyShape = 'round';
     let selectedAntennaType = 'ball';
@@ -1566,7 +1565,7 @@
     });
 
     function processClearDrawingTexture(sourceCanvas) {
-      const size = 1024;
+      const size = 512;
       const dreamCanvas = document.createElement('canvas');
       dreamCanvas.width = size;
       dreamCanvas.height = size;
@@ -1577,18 +1576,18 @@
       dctx.drawImage(sourceCanvas, 0, 0, size, size);
       dctx.restore();
 
-      return dreamCanvas.toDataURL('image/jpeg', 0.98);
+      return dreamCanvas.toDataURL('image/jpeg', 0.85);
     }
 
     document.getElementById('btn-confirm-align').addEventListener('click', () => {
       const exportCanvas = document.createElement('canvas');
-      exportCanvas.width = 1024;
-      exportCanvas.height = 1024;
+      exportCanvas.width = 512;
+      exportCanvas.height = 512;
       const ectx = exportCanvas.getContext('2d');
 
-      const scaleRatio = 1024 / alignCanvas.width;
+      const scaleRatio = 512 / alignCanvas.width;
       ectx.fillStyle = "#ffffff";
-      ectx.fillRect(0, 0, 1024, 1024);
+      ectx.fillRect(0, 0, 512, 512);
       ectx.drawImage(rawImage, imgX * scaleRatio, imgY * scaleRatio, rawImage.width * imgScale * scaleRatio, rawImage.height * imgScale * scaleRatio);
 
       currentExtractedTexture = processClearDrawingTexture(exportCanvas);
@@ -1798,6 +1797,39 @@
     let fullGlow1, fullGlow2;
     let isFlyingAway = false, touchStartY = 0;
 
+    /* Supabase DB 저장 함수 */
+    async function saveButterflyToSupabase() {
+      try {
+        const revisit = `${userSelections.q6_year}-${userSelections.q6_month}-${userSelections.q6_day}`;
+        const { data, error } = await supabase
+          .from('butterflies')
+          .insert([
+            {
+              name: userSelections.q7_name || '이름없는 나비',
+              wing_shape: selectedButterflyShape,
+              antenna_type: selectedAntennaType,
+              q1: userSelections.q1,
+              q2: userSelections.q2,
+              q3: userSelections.q3,
+              q4: userSelections.q4,
+              q5: userSelections.q5,
+              memo: userSelections.q6_memo,
+              revisit_date: revisit,
+              email: userSelections.q6_email,
+              texture_url: currentExtractedTexture
+            }
+          ]);
+
+        if (error) {
+          console.error("Supabase 저장 실패:", error);
+        } else {
+          console.log("Supabase 저장 성공:", data);
+        }
+      } catch (err) {
+        console.error("Supabase 연동 에러:", err);
+      }
+    }
+
     function initFullButterflyViewer(textureURL) {
       const container = document.getElementById('three-container');
       container.innerHTML = '';
@@ -1877,9 +1909,10 @@
           fullGroup.position.z -= 0.07;
 
           if (fullGroup.position.y > 8.5) {
+            saveButterflyToSupabase();
+
             const completeDesc = document.getElementById('complete-desc');
             if (completeDesc) {
-              // 요청 문구로 동적 치환
               completeDesc.innerHTML = `<strong>‘${userSelections.q7_name || "나비"}’</strong>(이)가 빛의 날개를 펴고 너울 속으로 합류했습니다.`;
             }
             showScreen('screen-complete');
