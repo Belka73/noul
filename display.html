@@ -11,47 +11,24 @@
 
   <style>
     body, html {
-      margin: 0;
-      padding: 0;
-      width: 100%;
-      height: 100%;
-      overflow: hidden;
-      background-color: #000000;
-      user-select: none;
-      cursor: none;
+      margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden;
+      background-color: #000000; user-select: none; cursor: none;
     }
-
     #webcam-video {
-      position: absolute;
-      inset: 0;
-      width: 100%;
-      height: 100%;
-      object-fit: cover;
-      transform: scaleX(-1);
+      position: absolute; inset: 0; width: 100%; height: 100%;
+      object-fit: cover; transform: scaleX(-1);
       filter: brightness(0.2) contrast(1.2) blur(3px);
-      z-index: 0;
-      pointer-events: none;
+      z-index: 0; pointer-events: none;
     }
-
     #three-canvas-container {
-      position: absolute;
-      inset: 0;
-      z-index: 10;
+      position: absolute; inset: 0; z-index: 10;
     }
-
     #hand-pointer {
-      position: absolute;
-      width: 60px;
-      height: 60px;
-      margin-left: -30px;
-      margin-top: -30px;
-      border-radius: 50%;
-      background: radial-gradient(circle, rgba(255, 255, 255, 0.95) 0%, rgba(255, 255, 255, 0.3) 45%, rgba(255, 255, 255, 0) 70%);
+      position: absolute; width: 60px; height: 60px;
+      margin-left: -30px; margin-top: -30px; border-radius: 50%;
+      background: radial-gradient(circle, rgba(255, 255, 255, 0.95) 0%, rgba(255, 255, 255, 0.35) 45%, rgba(255, 255, 255, 0) 70%);
       box-shadow: 0 0 35px rgba(255, 255, 255, 0.9), 0 0 70px rgba(255, 255, 255, 0.4);
-      pointer-events: none;
-      z-index: 30;
-      opacity: 0;
-      transition: opacity 0.3s ease;
+      pointer-events: none; z-index: 30; opacity: 0; transition: opacity 0.3s ease;
     }
   </style>
 </head>
@@ -62,280 +39,373 @@
   <div id="hand-pointer"></div>
 
   <script>
-    const SUPABASE_URL = 'https://djmdzsbfsobsutphragw.supabase.co';
-    const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRqbWR6c2Jmc29ic3V0cGhyYWd3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODk4ODQ3NTgsImV4cCI6MjEwNTQ2MDc1OH0.BC7llaSjbq6cYhDlRqrwJaycpQ6gSNcp5LgYBeM6WEM';
-    const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-
-    /* 나비 날개 지오메트리 */
-    function createWingGeometry(isRight) {
+    /* ========================================================
+       1. 안전한 지오메트리 세팅 및 3D 씬 강제 구축
+       ======================================================== */
+    function createStableWingGeom(isRight) {
       const shape = new THREE.Shape();
       const s = isRight ? 1 : -1;
-      shape.moveTo(0, 0.48);
-      shape.bezierCurveTo(s * 0.32, 0.88, s * 1.15, 1.78, s * 1.95, 1.72);
-      shape.bezierCurveTo(s * 2.58, 1.68, s * 2.78, 1.18, s * 2.45, 0.62);
-      shape.bezierCurveTo(s * 2.18, 0.22, s * 1.78, 0.02, s * 1.35, -0.08);
-      shape.bezierCurveTo(s * 1.80, -0.35, s * 1.80, -1.08, s * 1.45, -1.52);
-      shape.bezierCurveTo(s * 1.05, -1.92, s * 0.55, -1.82, s * 0.32, -1.48);
-      shape.bezierCurveTo(s * 0.16, -1.15, s * 0.05, -0.72, 0, -0.48);
-      shape.lineTo(0, 0.48);
-      shape.closePath();
+      shape.moveTo(0, 0.5);
+      shape.bezierCurveTo(s * 0.4, 1.0, s * 1.5, 2.0, s * 2.4, 1.8);
+      shape.bezierCurveTo(s * 3.0, 1.6, s * 2.8, 0.8, s * 2.2, 0.2);
+      shape.bezierCurveTo(s * 2.5, -0.4, s * 2.2, -1.5, s * 1.6, -1.8);
+      shape.bezierCurveTo(s * 1.0, -2.0, s * 0.4, -1.6, s * 0.2, -1.0);
+      shape.bezierCurveTo(s * 0.1, -0.6, s * 0.05, -0.2, 0, -0.5);
+      shape.lineTo(0, 0.5);
 
-      const geom = new THREE.ShapeGeometry(shape, 28);
+      const geom = new THREE.ShapeGeometry(shape, 24);
+      geom.computeVertexNormals();
+      geom.computeBoundingBox();
+      const bb = geom.boundingBox;
+      const sizeX = bb.max.x - bb.min.x || 1;
+      const sizeY = bb.max.y - bb.min.y || 1;
       const pos = geom.attributes.position;
       const uvs = [];
-      const totalSpan = 5.4;
+
       for (let i = 0; i < pos.count; i++) {
-        uvs.push(0.5 + (pos.getX(i) / totalSpan), 0.5 + (pos.getY(i) / totalSpan));
+        uvs.push((pos.getX(i) - bb.min.x) / sizeX, (pos.getY(i) - bb.min.y) / sizeY);
       }
       geom.setAttribute('uv', new THREE.Float32BufferAttribute(uvs, 2));
-      geom.computeVertexNormals();
       return geom;
     }
 
-    /* 나비 몸통 */
-    function createBodyGeometry() {
+    function createBodyGeom() {
       const points = [
-        new THREE.Vector2(0.001, 0.72),
-        new THREE.Vector2(0.12, 0.62),
-        new THREE.Vector2(0.085, 0.51),
-        new THREE.Vector2(0.165, 0.28),
-        new THREE.Vector2(0.105, 0.05),
-        new THREE.Vector2(0.13, -0.15),
-        new THREE.Vector2(0.11, -0.32),
-        new THREE.Vector2(0.115, -0.42),
-        new THREE.Vector2(0.07, -0.65),
-        new THREE.Vector2(0.001, -0.82)
+        new THREE.Vector2(0.001, 0.8), new THREE.Vector2(0.14, 0.7),
+        new THREE.Vector2(0.10, 0.5), new THREE.Vector2(0.18, 0.3),
+        new THREE.Vector2(0.12, 0.0), new THREE.Vector2(0.15, -0.2),
+        new THREE.Vector2(0.12, -0.4), new THREE.Vector2(0.08, -0.7),
+        new THREE.Vector2(0.001, -0.9)
       ];
       return new THREE.LatheGeometry(points, 16);
     }
 
-    /* 더듬이 */
-    function createAntennaGroup(isRight, mat) {
+    function createAntenna(isRight, mat) {
       const group = new THREE.Group();
       const s = isRight ? 1 : -1;
       const curve = new THREE.CubicBezierCurve3(
-        new THREE.Vector3(0, 0, 0),
-        new THREE.Vector3(s * 0.15, 0.45, 0.08),
-        new THREE.Vector3(s * 0.42, 0.75, 0.14),
-        new THREE.Vector3(s * 0.52, 0.98, 0.2)
+        new THREE.Vector3(0, 0, 0), new THREE.Vector3(s * 0.2, 0.5, 0.1),
+        new THREE.Vector3(s * 0.5, 0.9, 0.2), new THREE.Vector3(s * 0.65, 1.2, 0.3)
       );
-      group.add(new THREE.Mesh(new THREE.TubeGeometry(curve, 16, 0.024, 6, false), mat));
-
-      const tipMesh = new THREE.Mesh(new THREE.SphereGeometry(0.065, 8, 8), mat);
-      tipMesh.position.set(s * 0.52, 0.98, 0.2);
-      group.add(tipMesh);
+      group.add(new THREE.Mesh(new THREE.TubeGeometry(curve, 16, 0.035, 6, false), mat));
+      const tip = new THREE.Mesh(new THREE.SphereGeometry(0.1, 10, 10), mat);
+      tip.position.set(s * 0.65, 1.2, 0.3);
+      group.add(tip);
       return group;
     }
 
-    /* 발광 스프라이트 */
-    function createGlowSprite(size, opacity) {
+    function createGlowSprite() {
       const canvas = document.createElement('canvas');
-      canvas.width = 128;
-      canvas.height = 128;
+      canvas.width = 128; canvas.height = 128;
       const ctx = canvas.getContext('2d');
       const grad = ctx.createRadialGradient(64, 64, 0, 64, 64, 64);
       grad.addColorStop(0.0, 'rgba(255, 255, 255, 1.0)');
-      grad.addColorStop(0.3, 'rgba(255, 255, 255, 0.5)');
-      grad.addColorStop(0.7, 'rgba(255, 255, 255, 0.1)');
-      grad.addColorStop(1.0, 'rgba(0, 0, 0, 0)');
+      grad.addColorStop(0.25, 'rgba(255, 255, 255, 0.6)');
+      grad.addColorStop(0.6, 'rgba(255, 255, 255, 0.15)');
+      grad.addColorStop(1.0, 'rgba(255, 255, 255, 0)');
       ctx.fillStyle = grad;
       ctx.fillRect(0, 0, 128, 128);
-
-      const texture = new THREE.CanvasTexture(canvas);
-      const mat = new THREE.SpriteMaterial({
-        map: texture,
-        blending: THREE.AdditiveBlending,
-        transparent: true,
-        opacity: opacity,
-        depthWrite: false
-      });
+      const mat = new THREE.SpriteMaterial({ map: new THREE.CanvasTexture(canvas), blending: THREE.AdditiveBlending, transparent: true, opacity: 0.7, depthWrite: false });
       const sprite = new THREE.Sprite(mat);
-      sprite.scale.set(size, size, 1);
+      sprite.scale.set(6.5, 6.5, 1);
       return sprite;
     }
 
-    /* Three.js 씬 구성 */
     const container = document.getElementById('three-canvas-container');
     const scene = new THREE.Scene();
     const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 1000);
     camera.position.set(0, 0, 18);
 
-    const renderer = new THREE.WebGLRenderer({ alpha: true, antialias: true });
+    const renderer = new THREE.WebGLRenderer({ alpha: true, antialias: true, powerPreference: "high-performance" });
     renderer.setSize(window.innerWidth, window.innerHeight);
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
     container.appendChild(renderer.domElement);
 
     const textureLoader = new THREE.TextureLoader();
-    const leftWingGeom = createWingGeometry(false);
-    const rightWingGeom = createWingGeometry(true);
-    const bodyGeom = createBodyGeometry();
+    const leftGeom = createStableWingGeom(false);
+    const rightGeom = createStableWingGeom(true);
+    const bodyGeom = createBodyGeom();
 
     const defaultFlock = [];
     const userFlock = [];
     const MAX_USER_BUTTERFLIES = 30;
 
-    function buildButterflyGroup(itemData = {}, isUser = false, isNew = false) {
+    function buildButterfly(data = {}, isUser = false, isNew = false) {
       const group = new THREE.Group();
-      let wingMat;
-
-      if (isUser && itemData.texture_url && itemData.texture_url.startsWith('data:image')) {
-        const tex = textureLoader.load(itemData.texture_url);
-        wingMat = new THREE.MeshBasicMaterial({ map: tex, side: THREE.DoubleSide });
-      } else {
-        wingMat = new THREE.MeshBasicMaterial({ color: 0xffffff, side: THREE.DoubleSide });
+      const innerGroup = new THREE.Group(); 
+      
+      let wingMat = new THREE.MeshBasicMaterial({ color: 0xffffff, side: THREE.DoubleSide });
+      if (isUser && data.texture_url && data.texture_url.startsWith('data:image')) {
+        wingMat = new THREE.MeshBasicMaterial({ map: textureLoader.load(data.texture_url), side: THREE.DoubleSide, transparent: true });
       }
 
       const whiteMat = new THREE.MeshBasicMaterial({ color: 0xffffff });
+      const leftWing = new THREE.Mesh(leftGeom, wingMat);
+      const rightWing = new THREE.Mesh(rightGeom, wingMat);
+      innerGroup.add(leftWing);
+      innerGroup.add(rightWing);
+      innerGroup.add(new THREE.Mesh(bodyGeom, whiteMat));
+      
+      const aL = createAntenna(false, whiteMat); aL.position.set(-0.05, 0.7, 0.15); innerGroup.add(aL);
+      const aR = createAntenna(true, whiteMat); aR.position.set(0.05, 0.7, 0.15); innerGroup.add(aR);
 
-      const leftWing = new THREE.Mesh(leftWingGeom, wingMat);
-      const rightWing = new THREE.Mesh(rightWingGeom, wingMat);
-      group.add(leftWing);
-      group.add(rightWing);
-
-      group.add(new THREE.Mesh(bodyGeom, whiteMat));
-
-      const aL = createAntennaGroup(false, whiteMat);
-      aL.position.set(-0.04, 0.58, 0.12);
-      group.add(aL);
-
-      const aR = createAntennaGroup(true, whiteMat);
-      aR.position.set(0.04, 0.58, 0.12);
-      group.add(aR);
-
-      const glow = createGlowSprite(4.2, 0.45);
+      const glow = createGlowSprite();
       glow.position.set(0, 0.1, -0.05);
-      group.add(glow);
+      innerGroup.add(glow);
+
+      innerGroup.rotation.x = Math.PI / 2;
+      group.add(innerGroup);
 
       if (isNew) {
-        group.position.set(0, -9.0, 0);
+        group.position.set(0, -8.5, 0);
       } else {
-        group.position.set(
-          (Math.random() - 0.5) * 18,
-          (Math.random() - 0.5) * 11,
-          (Math.random() - 0.5) * 6
-        );
+        group.position.set((Math.random() - 0.5) * 30, (Math.random() - 0.5) * 16, (Math.random() - 0.5) * 40);
       }
 
-      const s = 0.48 + Math.random() * 0.18;
-      group.scale.set(s, s, s);
+      const scale = 0.35 + Math.random() * 0.15;
+      group.scale.set(scale, scale, scale);
       scene.add(group);
 
       return {
-        group,
-        leftWing,
-        rightWing,
-        velocity: new THREE.Vector3((Math.random() - 0.5) * 0.03, (Math.random() - 0.5) * 0.03, (Math.random() - 0.5) * 0.015),
-        speed: 4.5 + Math.random() * 2.5,
-        seed: Math.random() * 1000
+        id: Math.random().toString(36).substring(7),
+        group, innerGroup, leftWing, rightWing, glow,
+        velocity: new THREE.Vector3((Math.random() - 0.5) * 0.08, (Math.random() - 0.5) * 0.08, (Math.random() - 0.5) * 0.12),
+        speed: 12.0 + Math.random() * 8.0, 
+        seed: Math.random() * 1000,
+        flapAmp: 1.0, 
+        state: 'flying',
+        isSpecialLanding: false,
+        specialState: null
       };
     }
 
-    function addUserButterfly(data, isNew = false) {
-      if (userFlock.length >= MAX_USER_BUTTERFLIES) {
-        const oldest = userFlock.shift();
-        if (oldest && oldest.group) scene.remove(oldest.group);
-      }
-      userFlock.push(buildButterflyGroup(data, true, isNew));
-    }
-
-    /* 초기 20마리 순백 나비 생성 및 DB 연동 */
     for (let i = 0; i < 20; i++) {
-      defaultFlock.push(buildButterflyGroup({}, false, false));
+      defaultFlock.push(buildButterfly({}, false, false));
     }
 
-    supabase
-      .from('butterflies')
-      .select('*')
-      .order('created_at', { ascending: false })
-      .limit(MAX_USER_BUTTERFLIES)
-      .then(({ data }) => {
-        if (data && data.length > 0) {
-          data.reverse().forEach(item => addUserButterfly(item, false));
-        }
-      });
-
-    supabase
-      .channel('public:butterflies')
-      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'butterflies' }, (payload) => {
-        addUserButterfly(payload.new, true);
-      })
-      .subscribe();
-
-    /* MediaPipe 손끝 추적 */
-    const videoElement = document.getElementById('webcam-video');
-    const handPointer = document.getElementById('hand-pointer');
-    let handTarget3D = new THREE.Vector3(999, 999, 0);
-    let isHandDetected = false;
-
-    function onResults(results) {
-      if (results.multiHandLandmarks && results.multiHandLandmarks.length > 0) {
-        const tip = results.multiHandLandmarks[0][8];
-        const screenX = (1 - tip.x) * window.innerWidth;
-        const screenY = tip.y * window.innerHeight;
-
-        handPointer.style.transform = `translate3d(${screenX}px, ${screenY}px, 0)`;
-        handPointer.style.opacity = '1';
-
-        handTarget3D.set(((1 - tip.x) - 0.5) * 20, -(tip.y - 0.5) * 12, 0);
-        isHandDetected = true;
-      } else {
-        handPointer.style.opacity = '0';
-        handTarget3D.set(999, 999, 0);
-        isHandDetected = false;
-      }
-    }
-
-    const hands = new Hands({
-      locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}`
-    });
-    hands.setOptions({
-      maxNumHands: 1,
-      modelComplexity: 1,
-      minDetectionConfidence: 0.5,
-      minTrackingConfidence: 0.5
-    });
-    hands.onResults(onResults);
-
-    const cameraUtils = new Camera(videoElement, {
-      onFrame: async () => { await hands.send({ image: videoElement }); },
-      width: 640,
-      height: 480
-    });
-    cameraUtils.start();
-
-    /* 애니메이션 및 비행 물리 루프 */
     const clock = new THREE.Clock();
+    const dummyObj = new THREE.Object3D(); 
+    let handTarget3D = new THREE.Vector3(999, 999, 0);
+    let prevHandTarget3D = new THREE.Vector3(999, 999, 0);
+    let isHandDetected = false;
+    let interactionMode = 'none';
+    let landingButterflyId = null; 
+    let fistButterflies = []; 
+    let fingerAngle = 1.0; 
+    
+    // 💡 손가락 파도 바람 힘 변수
+    let waveForce = new THREE.Vector3(0, 0, 0);
 
     function updateMotion(b, time) {
-      const flap = Math.sin(time * b.speed + b.seed) * 0.55;
-      b.leftWing.rotation.y = flap;
-      b.rightWing.rotation.y = -flap;
+      
+      if (b.state === 'landing_rest') {
+          b.flapAmp *= 0.88; 
+          const flap = Math.sin(time * b.speed + b.seed) * 0.65 * b.flapAmp;
+          const openAngle = -1.5; 
+          b.leftWing.rotation.y = flap + openAngle * (1 - b.flapAmp);
+          b.rightWing.rotation.y = -flap - openAngle * (1 - b.flapAmp);
+      } else {
+          b.flapAmp += (1.0 - b.flapAmp) * 0.1; 
+          const flap = Math.sin(time * b.speed + b.seed) * 0.65 * b.flapAmp;
+          b.leftWing.rotation.y = flap;
+          b.rightWing.rotation.y = -flap;
+      }
+      
+      const pulse = 1 + Math.sin(time * 3.0 + b.seed) * 0.15;
+      b.glow.scale.set(6.5 * pulse, 6.5 * pulse, 1);
 
-      b.group.position.x += Math.sin(time * 0.8 + b.seed) * 0.02 + b.velocity.x;
-      b.group.position.y += Math.cos(time * 0.9 + b.seed) * 0.02 + b.velocity.y;
-      b.group.position.z += Math.sin(time * 0.6 + b.seed) * 0.015 + b.velocity.z;
+      let isFollowing = false;
 
-      if (isHandDetected) {
-        const dist = b.group.position.distanceTo(handTarget3D);
-        if (dist < 8.0) {
-          const dir = new THREE.Vector3().subVectors(handTarget3D, b.group.position).normalize();
-          b.group.position.addScaledVector(dir, 0.05);
-        }
+      if (b.isSpecialLanding) {
+          isFollowing = true;
+
+          if (b.specialState === 'approaching') {
+              const dist = b.group.position.distanceTo(handTarget3D);
+              if (dist < 1.5) {
+                  b.specialState = 'landed';
+              } else {
+                  b.state = 'flying';
+                  const dir = new THREE.Vector3().subVectors(handTarget3D, b.group.position).normalize();
+                  b.velocity.lerp(dir.multiplyScalar(0.5), 0.15); 
+                  
+                  const targetPos = b.group.position.clone().add(b.velocity);
+                  dummyObj.position.copy(b.group.position);
+                  dummyObj.lookAt(targetPos);
+                  const rollAngle = (b.velocity.x * -15);
+                  dummyObj.rotateZ(rollAngle); 
+                  b.group.quaternion.slerp(dummyObj.quaternion, 0.2);
+              }
+          }
+          
+          if (b.specialState === 'landed') {
+              b.state = 'landing_rest';
+              b.velocity.set(0, 0, 0);
+              b.group.position.lerp(handTarget3D, 0.3); 
+              
+              dummyObj.position.copy(b.group.position);
+              dummyObj.lookAt(camera.position); 
+              dummyObj.rotateY(Math.PI / 2.2); 
+              
+              dummyObj.rotateZ(fingerAngle); 
+              
+              b.group.quaternion.slerp(dummyObj.quaternion, 0.2);
+          }
+
+          if (b.specialState === 'leaving') {
+              b.state = 'flying';
+              const leaveTarget = new THREE.Vector3(25, 25, b.group.position.z - 5);
+              const dir = new THREE.Vector3().subVectors(leaveTarget, b.group.position).normalize();
+              b.velocity.lerp(dir.multiplyScalar(0.6), 0.15); 
+              
+              const targetPos = b.group.position.clone().add(b.velocity);
+              dummyObj.position.copy(b.group.position);
+              dummyObj.lookAt(targetPos);
+              b.group.quaternion.slerp(dummyObj.quaternion, 0.15);
+
+              if (b.group.position.x > 20 || b.group.position.y > 20) {
+                  b.isSpecialLanding = false;
+                  b.specialState = null;
+              }
+          }
+      } 
+      else if (isHandDetected) {
+          // 💡 드라마틱한 모이기 (주먹)
+          if (interactionMode === 'fist_gather' && fistButterflies.includes(b.id)) {
+              isFollowing = true;
+              b.state = 'flying';
+              const dist = b.group.position.distanceTo(handTarget3D);
+              
+              if (dist > 1.5) {
+                  const dir = new THREE.Vector3().subVectors(handTarget3D, b.group.position).normalize();
+                  // 흡입력 대폭 강화
+                  b.velocity.lerp(dir.multiplyScalar(0.4), 0.2); 
+              } else {
+                  // 손 주변에서 역동적인 소용돌이
+                  b.velocity.add(new THREE.Vector3((Math.random() - 0.5) * 0.15, (Math.random() - 0.5) * 0.15, (Math.random() - 0.5) * 0.15));
+              }
+              const targetPos = b.group.position.clone().add(b.velocity);
+              dummyObj.position.copy(b.group.position);
+              dummyObj.lookAt(targetPos);
+              const rollAngle = (b.velocity.x * -30);
+              dummyObj.rotateZ(rollAngle); 
+              b.group.quaternion.slerp(dummyObj.quaternion, 0.25);
+          }
+          // 💡 드라마틱한 퍼지기 (손바닥)
+          else if (interactionMode === 'scatter') {
+              const dist = b.group.position.distanceTo(handTarget3D);
+              if (dist < 30.0) {
+                  isFollowing = true;
+                  b.state = 'flying';
+                  const dir = new THREE.Vector3().subVectors(b.group.position, handTarget3D).normalize();
+                  // 척력 대폭 강화 (빠르고 멀리 튕겨 나감)
+                  b.velocity.addScaledVector(dir, 0.1);
+              }
+          } 
       }
 
-      if (b.group.position.x > 11) b.group.position.x = -11;
-      if (b.group.position.x < -11) b.group.position.x = 11;
-      if (b.group.position.y > 7) b.group.position.y = -7;
-      if (b.group.position.y < -7) b.group.position.y = 7;
-      if (b.group.position.z > 4) b.group.position.z = -4;
-      if (b.group.position.z < -4) b.group.position.z = 4;
+      if (!isFollowing) {
+          b.state = 'flying';
+          const t = time * 0.5 + b.seed;
+          b.velocity.x += Math.sin(t * 1.5) * 0.002;
+          b.velocity.y += Math.cos(t * 1.2) * 0.002;
+          b.velocity.z += Math.sin(t * 1.8) * 0.002;
+
+          if (Math.random() < 0.008) {
+              b.velocity.x += (Math.random() - 0.5) * 0.08;
+              b.velocity.y += (Math.random() - 0.5) * 0.08;
+              b.velocity.z += (Math.random() - 0.5) * 0.1; 
+          }
+      }
+
+      // 💡 파도(바람)의 영향을 받아 날아가는 효과 적용 (전체 나비 휩쓸림)
+      if (b.state !== 'landing_rest' && !b.isSpecialLanding) {
+          // 바람의 영향을 속도(velocity)에 누적하여 휩쓸리는 관성 추가
+          b.velocity.addScaledVector(waveForce, 0.2); 
+      }
+
+      // 속도 한계 설정 (퍼지기 모드일 때는 일시적으로 제한 해제)
+      let maxSpeed = isFollowing ? 0.45 : 0.12;
+      if (interactionMode === 'scatter') maxSpeed = 0.8;
+      
+      // 바람에 휩쓸릴 때 최고 속도 상향
+      if (waveForce.length() > 0.1) maxSpeed = 0.6;
+
+      if (b.velocity.length() > maxSpeed) {
+          b.velocity.multiplyScalar(0.95);
+      }
+      
+      b.group.position.add(b.velocity);
+
+      if (!b.isSpecialLanding || b.specialState !== 'leaving') {
+          if (b.group.position.x > 20) b.velocity.x -= 0.008;
+          if (b.group.position.x < -20) b.velocity.x += 0.008;
+          if (b.group.position.y > 15) b.velocity.y -= 0.008;
+          if (b.group.position.y < -15) b.velocity.y += 0.008;
+          if (b.group.position.z > 16) b.velocity.z -= 0.005; 
+          if (b.group.position.z < -30) b.velocity.z += 0.005;
+      }
+
+      if (b.velocity.lengthSq() > 0.00001 && b.state === 'flying' && !isFollowing) {
+        const targetPos = b.group.position.clone().add(b.velocity);
+        dummyObj.position.copy(b.group.position);
+        dummyObj.lookAt(targetPos);
+        const rollAngle = (b.velocity.x * -25) + Math.sin(time * 3 + b.seed) * 0.6;
+        const pitchAngle = Math.sin(time * 2.5 + b.seed) * 0.4;
+        dummyObj.rotateZ(rollAngle); 
+        dummyObj.rotateX(pitchAngle); 
+        b.group.quaternion.slerp(dummyObj.quaternion, 0.1);
+      }
     }
 
     function animate() {
       requestAnimationFrame(animate);
       const time = clock.getElapsedTime();
+      const delta = clock.getDelta();
+
+      // 💡 손가락 이동에 따른 파도(바람) 생성 계산 완벽 수정
+      if (isHandDetected) {
+          const dist = handTarget3D.distanceTo(prevHandTarget3D);
+          // 너무 미세한 떨림이나 카메라 인식 초기 점프(15 이상) 무시, 빠르게 휘저을 때만 반응
+          if (dist > 0.8 && dist < 15) {
+              const dir = new THREE.Vector3().subVectors(handTarget3D, prevHandTarget3D).normalize();
+              // 이동 거리(속도)에 비례하여 강한 바람 힘(waveForce) 생성
+              waveForce.add(dir.multiplyScalar(dist * 0.05)); 
+          }
+      }
+      
+      // 마찰력을 적용해 시간이 지나면 파도가 잔잔해지도록 서서히 감속
+      waveForce.lerp(new THREE.Vector3(0, 0, 0), 0.08);
+
+      // 손가락 모드 (단일 강림)
+      if (interactionMode === 'land_one' && isHandDetected) {
+          if (!landingButterflyId) {
+              const allFlock = [...defaultFlock, ...userFlock];
+              const randIdx = Math.floor(Math.random() * allFlock.length);
+              const selected = allFlock[randIdx];
+              
+              landingButterflyId = selected.id;
+              selected.isSpecialLanding = true;
+              selected.specialState = 'approaching';
+
+              selected.group.position.set(-25, 20, handTarget3D.z);
+              selected.velocity.set(0, 0, 0); 
+          }
+      } else {
+          if (landingButterflyId) {
+              const allFlock = [...defaultFlock, ...userFlock];
+              const selected = allFlock.find(b => b.id === landingButterflyId);
+              if (selected) {
+                  selected.specialState = 'leaving';
+              }
+              landingButterflyId = null;
+          }
+      }
+
       defaultFlock.forEach(b => updateMotion(b, time));
       userFlock.forEach(b => updateMotion(b, time));
+      
+      prevHandTarget3D.copy(handTarget3D); 
+      
       renderer.render(scene, camera);
     }
     animate();
@@ -345,6 +415,123 @@
       camera.updateProjectionMatrix();
       renderer.setSize(window.innerWidth, window.innerHeight);
     });
+
+    /* ========================================================
+       2. Supabase 비동기 안전 연결
+       ======================================================== */
+    setTimeout(() => {
+      try {
+        if (window.supabase) {
+          const SUPABASE_URL = 'https://djmdzsbfsobsutphragw.supabase.co';
+          const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRqbWR6c2Jmc29ic3V0cGhyYWd3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODk4ODQ3NTgsImV4cCI6MjEwNTQ2MDc1OH0.BC7llaSjbq6cYhDlRqrwJaycpQ6gSNcp5LgYBeM6WEM';
+          const supabaseInstance = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+          function addUserButterfly(data, isNew = false) {
+            if (userFlock.length >= MAX_USER_BUTTERFLIES) {
+              const oldest = userFlock.shift();
+              if (oldest && oldest.group) scene.remove(oldest.group);
+            }
+            userFlock.push(buildButterfly(data, true, isNew));
+          }
+
+          supabaseInstance.from('butterflies').select('*').order('created_at', { ascending: false }).limit(MAX_USER_BUTTERFLIES)
+            .then(({ data }) => { if (data) data.reverse().forEach(item => addUserButterfly(item, false)); })
+            .catch(e => console.warn("Supabase 데이터 에러 무시"));
+
+          supabaseInstance.channel('public:butterflies')
+            .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'butterflies' }, (payload) => { addUserButterfly(payload.new, true); })
+            .subscribe();
+        }
+      } catch (err) {}
+    }, 1500);
+
+    /* ========================================================
+       3. MediaPipe 초정밀 AR 매핑 및 제스처 모드 (퍼지기/모이기)
+       ======================================================== */
+    setTimeout(() => {
+      try {
+        if (typeof Hands !== 'undefined' && typeof Camera !== 'undefined') {
+          const videoElement = document.getElementById('webcam-video');
+          const handPointer = document.getElementById('hand-pointer');
+
+          const hands = new Hands({ locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}` });
+          hands.setOptions({ maxNumHands: 1, modelComplexity: 1, minDetectionConfidence: 0.5, minTrackingConfidence: 0.5 });
+          
+          hands.onResults((results) => {
+            if (results.multiHandLandmarks && results.multiHandLandmarks.length > 0) {
+              const lm = results.multiHandLandmarks[0];
+              const tip = lm[8]; 
+              const mcp = lm[5]; 
+              const wrist = lm[0];
+
+              const vx = (1 - tip.x) - (1 - mcp.x);
+              const vy = -(tip.y - mcp.y); 
+              const rawAngle = Math.atan2(vy, vx);
+              
+              fingerAngle = rawAngle - (Math.PI / 2) + 1.2;
+
+              const screenX = (1 - tip.x) * window.innerWidth;
+              const screenY = tip.y * window.innerHeight;
+              handPointer.style.transform = `translate3d(${screenX}px, ${screenY}px, 0)`;
+              handPointer.style.opacity = '1';
+
+              const vec = new THREE.Vector3((1 - tip.x) * 2 - 1, -(tip.y * 2) + 1, 0.5);
+              vec.unproject(camera);
+              vec.sub(camera.position).normalize();
+              
+              let openFingers = 0;
+              const tips = [8, 12, 16, 20];
+              const pips = [6, 10, 14, 18];
+              for(let i=0; i<4; i++) {
+                  if(Math.hypot(lm[tips[i]].x - wrist.x, lm[tips[i]].y - wrist.y) > Math.hypot(lm[pips[i]].x - wrist.x, lm[pips[i]].y - wrist.y) * 1.1) openFingers++;
+              }
+              
+              const prevMode = interactionMode;
+              if (openFingers >= 3) {
+                  // ✋ 손바닥 쫙 펴기 (퍼지기)
+                  interactionMode = 'scatter';
+                  handPointer.style.background = 'radial-gradient(circle, rgba(200, 230, 255, 0.95) 0%, rgba(100, 150, 255, 0.4) 40%, rgba(255, 255, 255, 0) 70%)';
+                  const distance = (8 - camera.position.z) / vec.z; 
+                  handTarget3D.copy(camera.position).add(vec.multiplyScalar(distance));
+
+              } else if (openFingers === 1) {
+                  // ☝️ 검지 모드 (단일 강림 및 파도)
+                  interactionMode = 'land_one';
+                  handPointer.style.background = 'radial-gradient(circle, rgba(255, 255, 255, 0.95) 0%, rgba(150, 200, 255, 0.4) 40%, rgba(255, 255, 255, 0) 70%)';
+                  const distance = (8 - camera.position.z) / vec.z; 
+                  handTarget3D.copy(camera.position).add(vec.multiplyScalar(distance));
+
+              } else if (openFingers === 0) {
+                  // ✊ 주먹 쥐기 (드라마틱한 15마리 모이기)
+                  interactionMode = 'fist_gather';
+                  handPointer.style.background = 'radial-gradient(circle, rgba(255, 200, 200, 0.9) 0%, rgba(255, 100, 100, 0.3) 40%, rgba(255, 255, 255, 0) 70%)';
+                  const distance = (0 - camera.position.z) / vec.z; 
+                  handTarget3D.copy(camera.position).add(vec.multiplyScalar(distance));
+
+                  if (prevMode !== 'fist_gather') {
+                      const allFlock = [...defaultFlock, ...userFlock];
+                      // 나비들을 손 가까운 순서로 정렬해서 15마리 선택
+                      allFlock.sort((a, b) => a.group.position.distanceTo(handTarget3D) - b.group.position.distanceTo(handTarget3D));
+                      fistButterflies = allFlock.slice(0, 15).map(b => b.id);
+                  }
+              } else {
+                  interactionMode = 'none';
+                  handPointer.style.background = 'radial-gradient(circle, rgba(255, 255, 255, 0.4) 0%, rgba(255, 255, 255, 0.1) 40%, rgba(255, 255, 255, 0) 70%)';
+                  fistButterflies = [];
+              }
+              isHandDetected = true;
+            } else {
+              handPointer.style.opacity = '0';
+              isHandDetected = false;
+              interactionMode = 'none';
+              fistButterflies = [];
+            }
+          });
+
+          new Camera(videoElement, { onFrame: async () => { await hands.send({ image: videoElement }); }, width: 640, height: 480 }).start().catch(()=>{});
+        }
+      } catch (err) {}
+    }, 2000);
   </script>
 </body>
 </html>
