@@ -1,7 +1,7 @@
 /* ==========================================================================
    🌟 너울(Noul) 메인 애플리케이션 로직 (app.js)
    - 모바일(아이폰) 화면 비율 맞춤 나비 크기 최적화
-   - 블렌더 Y축 기준 정밀 날갯짓 플랩 애니메이션 적용
+   - [A방법 적용] 날갯짓 회전축 보정 (Z축 경첩 회전 테스트)
    ========================================================================== */
 
 function showScreen(screenId) {
@@ -986,13 +986,17 @@ function createEtherealGlowSprite(colorHex, size, opacity) {
 }
 
 /* ==========================================================================
-   🌟 3D 엔진 : 모바일 최적화 스케일 & Y축(블렌더 기준) 정밀 플랩 연동
+   🌟 3D 엔진 : [A방법 적용] 로컬 Z축 회전 기반 정밀 날갯짓
    ========================================================================== */
 var fullScene, fullCamera, fullRenderer, fullGroup;
 var leftWingMesh, rightWingMesh, antennaMesh;
 var fullGlow1, fullGlow2;
 var isFlyingAway = false, touchStartY = 0;
 var animFrameId = null;
+
+// 날개의 초기 회전값 보존용 변수
+var initialRotL = { x: 0, y: 0, z: 0 };
+var initialRotR = { x: 0, y: 0, z: 0 };
 
 async function saveButterflyToSupabase() {
   try {
@@ -1031,7 +1035,7 @@ function initFullButterflyViewer(textureURL) {
   var width = window.innerWidth;
   var height = window.innerHeight;
 
-  // 1. 씬 & 카메라 (아이폰 세로 화면에서도 나비가 잘리지 않도록 시야각 및 거리 최적화)
+  // 1. 씬 & 카메라
   fullScene = new THREE.Scene();
   fullCamera = new THREE.PerspectiveCamera(40, width / height, 0.1, 1000);
   fullCamera.position.set(0, 0, 9.8);
@@ -1082,9 +1086,13 @@ function initFullButterflyViewer(textureURL) {
         if (child.name === 'Wing_L') {
           leftWingMesh = child;
           child.material = wingMat;
+          // 초기 각도 보존
+          initialRotL = { x: child.rotation.x, y: child.rotation.y, z: child.rotation.z };
         } else if (child.name === 'Wing_R') {
           rightWingMesh = child;
           child.material = wingMat;
+          // 초기 각도 보존
+          initialRotR = { x: child.rotation.x, y: child.rotation.y, z: child.rotation.z };
         } else if (child.name === 'Body') {
           child.material = whiteMat;
         } else if (child.name === 'Antenna_ball') {
@@ -1094,10 +1102,8 @@ function initFullButterflyViewer(textureURL) {
       }
     });
 
-    // 📱 [크기 조절]: 아이폰 화면 가로폭 안에 양 날개가 여유 있게 보이도록 0.65배로 슬림화
+    // 아이폰 화면 비율 맞춤 스케일 및 세로축 맞춤
     model.scale.set(0.65, 0.65, 0.65);
-    
-    // 블렌더 좌표계(Z-up)를 Three.js(Y-up)와 정면으로 일치시킴
     model.rotation.x = Math.PI / 2;
     model.position.y = -0.1;
 
@@ -1106,7 +1112,7 @@ function initFullButterflyViewer(textureURL) {
     console.error("3DButterfly/crescent_ball.glb 로드 오류:", err);
   });
 
-  // 6. 후광 오라 효과 (나비 크기 축소에 맞춰 자연스럽게 스케일 보정)
+  // 6. 후광 오라 효과
   fullGlow1 = createEtherealGlowSprite('#ffffff', 3.6, 0.45);
   fullGlow1.position.set(0, 0, -0.06);
   fullGroup.add(fullGlow1);
@@ -1117,32 +1123,30 @@ function initFullButterflyViewer(textureURL) {
 
   fullScene.add(fullGroup);
 
-  // 7. 실시간 애니메이션 루프 (블렌더 Y축 기준 정밀 날갯짓)
+  // 7. 실시간 애니메이션 루프 (A방법: Z축 기준 플랩)
   var clock = new THREE.Clock();
   function animate() {
     animFrameId = requestAnimationFrame(animate);
     var time = clock.getElapsedTime();
 
-    // 후광 호흡 효과
+    // 후광 펄스
     var pulse = 1 + Math.sin(time * 2.8) * 0.05;
     if (fullGlow1) fullGlow1.scale.set(3.6 * pulse, 3.6 * pulse, 1);
     if (fullGlow2) fullGlow2.scale.set(5.0 * pulse, 5.0 * pulse, 1);
 
-    // 🦋 [날갯짓 축 보정]:
-    // 와이퍼(부채질)처럼 움직이던 축을 해결하고, 블렌더 몸통 기준선(Y축)을 중심으로
-    // 날개가 앞뒤로 우아하게 접혔다 펴지도록 회전축을 교정했습니다.
+    // 플랩 진폭 및 속도
     var flapSpeed = (!isFlyingAway) ? 5.2 : 22.0;
-    var flapIntensity = (!isFlyingAway) ? 0.52 : 0.75;
+    var flapIntensity = (!isFlyingAway) ? 0.48 : 0.72;
     var flapAngle = Math.sin(time * flapSpeed) * flapIntensity;
 
+    // 🌟 [A방법]: Y축(와이퍼) 대신 Z축을 경첩 삼아 회전
     if (leftWingMesh && rightWingMesh) {
-      // 블렌더 메쉬 로컬 Y축 회전
-      leftWingMesh.rotation.y = flapAngle;
-      rightWingMesh.rotation.y = -flapAngle;
-
-      // 와이퍼(Z축) 비틀림 방지
-      leftWingMesh.rotation.z = 0;
-      rightWingMesh.rotation.z = 0;
+      leftWingMesh.rotation.z = initialRotL.z + flapAngle;
+      rightWingMesh.rotation.z = initialRotR.z - flapAngle;
+      
+      // 혹시 남아있을 수 있는 Y축 회전 고정
+      leftWingMesh.rotation.y = initialRotL.y;
+      rightWingMesh.rotation.y = initialRotR.y;
     }
 
     if (!isFlyingAway) {
