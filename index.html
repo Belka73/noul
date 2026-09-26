@@ -3,522 +3,251 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>너울 : NOUL</title>
+  <title>너울</title>
+  
+  <!-- 라이브러리 CDN -->
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-  <!-- Supabase JS CDN -->
+  <!-- 🌟 glTF 3D 모델 로더 -->
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Nanum+Pen+Script&display=swap" rel="stylesheet">
 
-  <style>
-    html, body {
-      width: 100%;
-      height: 100dvh;
-      margin: 0;
-      padding: 0;
-      overflow: hidden;
-      background-color: #000000;
-      color: #ffffff;
-      font-family: -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", "Pretendard", sans-serif;
-      -webkit-tap-highlight-color: transparent;
-      user-select: none;
-    }
-
-    .app-viewport {
-      width: 100%;
-      height: 100dvh;
-      background: #000000;
-      position: relative;
-      overflow: hidden;
-      display: flex;
-      flex-direction: column;
-      justify-content: space-between;
-    }
-
-    @media (min-width: 640px) {
-      body {
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        background: #000000;
-      }
-      .app-viewport {
-        max-width: 420px;
-        height: min(880px, 94dvh);
-        border-radius: 44px;
-        border: 1px solid rgba(255, 255, 255, 0.12);
-        box-shadow: 0 25px 60px -15px rgba(0, 0, 0, 0.95);
-      }
-    }
-
-    .chip-base {
-      border-radius: 9999px;
-      min-height: 42px;
-      height: 42px;
-      padding: 0 1.25rem;
-      font-size: 0.94rem;
-      letter-spacing: -0.025em;
-      transition: all 0.18s ease;
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      text-align: center;
-      white-space: nowrap;
-      cursor: pointer;
-      flex-shrink: 0;
-      box-sizing: border-box;
-      user-select: none;
-      outline: none;
-      line-height: 1;
-      transform: none;
-    }
-    .chip-base:active {
-      transform: scale(0.96);
-    }
-
-    .chip-unselected {
-      background-color: rgba(255, 255, 255, 0.08) !important;
-      border: 1px solid rgba(255, 255, 255, 0.14) !important;
-      color: #a3a3a3 !important;
-      font-weight: 500 !important;
-      box-shadow: none !important;
-    }
-
-    .chip-selected {
-      background: #ffffff !important;
-      border: none !important;
-      color: #000000 !important;
-      font-weight: 700 !important;
-      box-shadow: 0 0 18px 2px rgba(255, 255, 255, 0.5) !important;
-    }
-
-    .vertical-scroll-chips {
-      overflow-y: auto;
-      overflow-x: hidden;
-      -webkit-overflow-scrolling: touch;
-      scrollbar-width: none;
-      -ms-overflow-style: none;
-    }
-    .vertical-scroll-chips::-webkit-scrollbar {
-      display: none;
-    }
-
-    .hero-fixed-anchor {
-      position: absolute;
-      top: 18px;
-      left: 0;
-      right: 0;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      pointer-events: none;
-      z-index: 10;
-    }
-
-    .reference-square-frame {
-      width: 295px;
-      height: 295px;
-      border-radius: 40px;
-      background-color: rgba(255, 255, 255, 0.03);
-      border: 1px solid rgba(255, 255, 255, 0.1) !important;
-      position: relative;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      box-sizing: border-box;
-      box-shadow: inset 0 0 30px rgba(0, 0, 0, 0.9) !important;
-      z-index: 1;
-      overflow: hidden;
-      flex-shrink: 0;
-    }
-
-    .bounded-butterfly-layer {
-      position: absolute;
-      width: 280px;
-      height: 280px;
-      top: 50%;
-      left: 50%;
-      transform: translate(-50%, -50%);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      z-index: 2;
-      overflow: visible;
-    }
-
-    .bounded-butterfly-layer svg {
-      width: 100%;
-      height: 100%;
-      overflow: visible;
-    }
-
-    .shape-bottom-fixed-dock {
-      position: absolute;
-      bottom: 0;
-      left: 0;
-      right: 0;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      padding-bottom: max(24px, env(safe-area-inset-bottom));
-      z-index: 20;
-    }
-
-    .carousel-stage-wrapper {
-      position: relative;
-      width: 100%;
-      height: 190px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-    }
-
-    .custom-arch-gradient-dome {
-      position: absolute;
-      left: 50%;
-      top: 90px;
-      transform: translateX(-50%);
-      width: 460px;
-      height: 460px;
-      border-radius: 50%;
-      background: radial-gradient(circle at 50% 50%, 
-        rgba(255, 255, 255, 0.12) 0%, 
-        rgba(255, 255, 255, 0.05) 30%, 
-        rgba(0, 0, 0, 0) 70%
-      );
-      filter: blur(20px);
-      border: none !important;
-      outline: none !important;
-      pointer-events: none;
-      z-index: 0;
-    }
-
-    .center-fixed-target-zone {
-      position: absolute;
-      left: 50%;
-      top: 48px;
-      transform: translateX(-50%);
-      width: 86px;
-      height: 86px;
-      border-radius: 50%;
-      border: none;
-      background: transparent;
-      pointer-events: none;
-      z-index: 2;
-      box-shadow: none;
-    }
-
-    .horizontal-scroll-carousel {
-      overflow-x: auto;
-      overflow-y: hidden !important;
-      touch-action: pan-x !important;
-      -webkit-overflow-scrolling: touch;
-      scrollbar-width: none;
-      -ms-overflow-style: none;
-      width: 100%;
-      height: 100%;
-      position: relative;
-      z-index: 5;
-    }
-    .horizontal-scroll-carousel::-webkit-scrollbar {
-      display: none;
-    }
-
-    .arch-track-item {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      flex-shrink: 0;
-      position: relative;
-      width: 84px;
-      will-change: transform, opacity;
-    }
-
-    .shape-thumb-btn {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      background: transparent;
-      border: none;
-      padding: 0;
-      cursor: pointer;
-      outline: none;
-    }
-
-    .shape-circle-badge {
-      width: 58px;
-      height: 58px;
-      border-radius: 50%;
-      background-color: rgba(255, 255, 255, 0.08);
-      border: 1px solid rgba(255, 255, 255, 0.14);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      transition: all 0.2s cubic-bezier(0.2, 0.8, 0.2, 1);
-      box-sizing: border-box;
-    }
-
-    .shape-circle-badge svg {
-      width: 32px;
-      height: 32px;
-      fill: #737373;
-      stroke: #737373;
-      transition: all 0.2s cubic-bezier(0.2, 0.8, 0.2, 1);
-    }
-
-    .shape-thumb-btn.active .shape-circle-badge {
-      width: 84px;
-      height: 84px;
-      background: #ffffff;
-      border: none !important;
-      box-shadow: 0 0 24px rgba(255, 255, 255, 0.6);
-    }
-
-    .shape-thumb-btn.active .shape-circle-badge svg {
-      width: 48px;
-      height: 48px;
-      fill: #000000;
-      stroke: #000000;
-    }
-
-    .shape-thumb-btn[data-type="antenna"] .shape-circle-badge svg {
-      fill: #737373 !important;
-      stroke: #737373 !important;
-    }
-    .shape-thumb-btn[data-type="antenna"].active .shape-circle-badge svg {
-      fill: #000000 !important;
-      stroke: #000000 !important;
-    }
-
-    .shape-item-label {
-      height: 18px;
-      line-height: 18px;
-      display: block;
-      text-align: center;
-      white-space: nowrap;
-      margin-top: 8px;
-      transition: color 0.2s ease, font-weight 0.2s ease;
-    }
-
-    .arch-pill-nav {
-      position: relative;
-      z-index: 5;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 10px;
-      padding-top: 2px;
-    }
-
-    .deco-pill-btn {
-      padding: 7px 22px;
-      border-radius: 9999px;
-      background: rgba(255, 255, 255, 0.08);
-      border: 1.5px solid rgba(255, 255, 255, 0.14);
-      color: #a3a3a3;
-      font-size: 12px;
-      font-weight: 600;
-      letter-spacing: -0.02em;
-      transition: all 0.2s cubic-bezier(0.2, 0.8, 0.2, 1);
-      cursor: pointer;
-    }
-
-    .deco-pill-btn.active-tab {
-      background: #ffffff !important;
-      border-color: #ffffff !important;
-      color: #000000 !important;
-      box-shadow: 0 0 16px rgba(255, 255, 255, 0.4) !important;
-    }
-
-    .btn-next-action {
-      background-color: #ffffff !important;
-      color: #000000 !important;
-      border: none !important;
-      box-shadow: 0 0 20px rgba(255, 255, 255, 0.3) !important;
-    }
-    .btn-next-action:disabled {
-      opacity: 0.3 !important;
-      pointer-events: none !important;
-      box-shadow: none !important;
-      background-color: rgba(255, 255, 255, 0.1) !important;
-      border: 1px solid rgba(255, 255, 255, 0.1) !important;
-      color: #737373 !important;
-    }
-
-    /* 화면 전환 기본 클래스 (display 충돌 완전 해결) */
-    .screen {
-      display: none;
-      opacity: 0;
-    }
-    .screen.active {
-      display: flex !important;
-      opacity: 1 !important;
-    }
-
-    .photo-butterfly-bg-wrapper {
-      position: absolute;
-      inset: -10%;
-      background: #000000;
-      overflow: hidden;
-      z-index: 0;
-    }
-
-    .photo-bg-layer {
-      position: absolute;
-      inset: 0;
-      background-image: url('image_fa959c.jpg');
-      background-size: cover;
-      background-position: center 38%;
-      filter: brightness(0.68) contrast(1.15) saturate(1.2);
-      transform-origin: center center;
-      animation: livingButterflyMotion 10s ease-in-out infinite alternate;
-      will-change: transform, filter;
-    }
-
-    .photo-bg-overlay {
-      position: absolute;
-      inset: 0;
-      background: radial-gradient(circle at 45% 45%, rgba(255, 255, 255, 0.18) 0%, rgba(5, 20, 10, 0.4) 55%, rgba(0, 0, 0, 0.88) 100%);
-      mix-blend-mode: multiply;
-      pointer-events: none;
-    }
-
-    @keyframes livingButterflyMotion {
-      0% {
-        transform: scale(1.05) translate(0px, 0px) rotate(0deg);
-        filter: brightness(0.68) contrast(1.15) saturate(1.2);
-      }
-      35% {
-        transform: scale(1.14) translate(-14px, 12px) rotate(1.8deg);
-        filter: brightness(0.82) contrast(1.2) saturate(1.35);
-      }
-      70% {
-        transform: scale(1.18) translate(18px, -16px) rotate(-1.5deg);
-        filter: brightness(0.64) contrast(1.18) saturate(1.25);
-      }
-      100% {
-        transform: scale(1.08) translate(8px, 18px) rotate(0.8deg);
-        filter: brightness(0.78) contrast(1.22) saturate(1.3);
-      }
-    }
-
-    .answer-fade {
-      transition: opacity 0.6s cubic-bezier(0.16, 1, 0.3, 1), transform 0.6s cubic-bezier(0.16, 1, 0.3, 1);
-    }
-    .answer-fade.hidden-state {
-      opacity: 0;
-      transform: translateY(14px) scale(0.96);
-    }
-    .answer-fade.visible-state {
-      opacity: 1;
-      transform: translateY(0) scale(1);
-    }
-
-    #cinematic-black-curtain {
-      position: absolute;
-      inset: 0;
-      background-color: #000000;
-      opacity: 0;
-      pointer-events: none;
-      z-index: 5;
-      transition: opacity 1.8s cubic-bezier(0.4, 0, 0.2, 1);
-    }
-    #cinematic-black-curtain.fade-active {
-      opacity: 0.94;
-    }
-
-    #cinematic-white-flash {
-      position: fixed;
-      inset: 0;
-      background-color: #ffffff;
-      opacity: 0;
-      pointer-events: none;
-      z-index: 9999;
-      transition: opacity 0.85s cubic-bezier(0.2, 0.8, 0.2, 1);
-    }
-    #cinematic-white-flash.flash-active {
-      opacity: 1;
-    }
-  </style>
+  <!-- 스타일시트 -->
+  <link rel="stylesheet" href="style.css">
 </head>
 <body>
+
+  <aside id="dev-quick-navigator" style="position: fixed; top: 12px; right: 12px; z-index: 99999; display: flex; flex-direction: column; align-items: flex-end; gap: 6px; font-family: monospace;">
+    <div style="display: flex; gap: 6px;">
+      <button id="dev-btn-skip-prev" type="button" 
+              style="background: #3b82f6; color: #ffffff; font-weight: 800; font-size: 11px; padding: 7px 11px; border-radius: 9999px; border: 2px solid #ffffff; box-shadow: 0 4px 15px rgba(59, 130, 246, 0.6); cursor: pointer;">
+        [DEV] 이전 ⏮️
+      </button>
+      <button id="dev-btn-skip-next" type="button" 
+              style="background: #22c55e; color: #000000; font-weight: 800; font-size: 11px; padding: 7px 11px; border-radius: 9999px; border: 2px solid #ffffff; box-shadow: 0 4px 15px rgba(34, 197, 94, 0.6); cursor: pointer;">
+        [DEV] 다음 ⏭️
+      </button>
+    </div>
+    <div id="dev-current-screen-badge" style="background: rgba(0,0,0,0.85); color: #86efac; border: 1px solid #22c55e; padding: 3px 8px; border-radius: 6px; font-size: 10px;">
+      화면: screen-cover
+    </div>
+  </aside>
 
   <div id="cinematic-white-flash"></div>
 
   <main class="app-viewport p-4 pb-6 box-border">
 
-    <!-- 1. 촬영 안내 화면 -->
-    <section id="screen-capture-guide" class="screen active flex-col flex-1 justify-between py-2 text-center relative z-10 w-full bg-black">
-      <header class="pt-4 flex-shrink-0">
-        <h1 class="text-2xl font-bold mt-1 text-white tracking-tight">나비 담기</h1>
-      </header>
+    <!-- 0. 표지 화면 -->
+    <section id="screen-cover" class="screen active cover-viewport flex-col justify-between py-6 text-center z-20">
+      <div class="pt-2"></div>
+      <div class="ambient-butterfly butterfly-pos-top-right">
+        <svg viewBox="0 0 200 200">
+          <g>
+            <path class="wing-l" fill="#ffffff" d="M 100,102 C 92,85 70,55 35,48 C 18,44 6,56 12,74 C 17,90 32,96 52,104 C 30,110 24,136 40,150 C 55,162 76,155 92,126 C 97,117 99,106 100,102 Z" />
+            <path class="wing-r" fill="#ffffff" d="M 100,102 C 108,85 130,55 165,48 C 182,44 194,56 188,74 C 183,90 168,96 148,104 C 170,110 176,136 160,150 C 145,162 124,155 108,126 C 103,117 101,106 100,102 Z" />
+            <ellipse cx="100" cy="104" rx="4" ry="24" fill="#ffffff" />
+          </g>
+        </svg>
+      </div>
 
-      <div class="w-full bg-white/[0.04] border border-white/10 rounded-3xl p-6 text-center my-auto backdrop-blur-md space-y-4">
-        <div class="w-14 h-14 mx-auto rounded-full bg-white/10 border border-white/20 flex items-center justify-center text-white">
-          <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"></path>
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"></path>
+      <div class="ambient-butterfly butterfly-pos-bottom-left">
+        <svg viewBox="0 0 200 200">
+          <g>
+            <path class="wing-l" fill="#ffffff" d="M 100,102 C 92,85 70,55 35,48 C 18,44 6,56 12,74 C 17,90 32,96 52,104 C 30,110 24,136 40,150 C 55,162 76,155 92,126 C 97,117 99,106 100,102 Z" />
+            <path class="wing-r" fill="#ffffff" d="M 100,102 C 108,85 130,55 165,48 C 182,44 194,56 188,74 C 183,90 168,96 148,104 C 170,110 176,136 160,150 C 145,162 124,155 108,126 C 103,117 101,106 100,102 Z" />
+            <ellipse cx="100" cy="104" rx="4" ry="24" fill="#ffffff" />
+          </g>
+        </svg>
+      </div>
+
+      <div class="relative z-10 flex flex-col items-center justify-center my-auto px-4">
+        <svg class="noul-perfect-logo" viewBox="0 0 1000 750" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M 92,106 L 140,106 L 140,432 C 182,433 260,432 352,416 L 352,476 C 255,492 176,493 92,493 Z" fill="#ffffff"/>
+          <rect x="255" y="240" width="150" height="46" fill="#ffffff"/>
+          <rect x="405" y="94" width="47" height="410" fill="#ffffff"/>
+          <path fill-rule="evenodd" clip-rule="evenodd" d="M 705,254 C 825,254 884,286 884,330 C 884,374 825,406 705,406 C 585,406 526,374 526,330 C 526,286 585,254 705,254 Z M 705,296 C 618,296 575,314 575,330 C 575,346 618,364 705,364 C 792,364 835,346 835,330 C 835,314 792,296 705,296 Z" fill="#ffffff"/>
+          <rect x="503" y="420" width="405" height="38" fill="#ffffff"/>
+          <rect x="682" y="458" width="47" height="38" fill="#ffffff"/>
+          <path d="M 530,496 L 880,496 L 880,594 L 577,594 L 577,618 L 888,618 L 888,655 L 530,655 L 530,557 L 833,557 L 833,533 L 530,533 Z" fill="#ffffff"/>
+        </svg>
+        <p class="text-xs text-neutral-400 mt-6 font-normal tracking-wide leading-relaxed">
+          당신의 마음과 숨결을 담아<br>빛의 날개를 깨우는 여정
+        </p>
+      </div>
+
+      <footer class="flex flex-col gap-2.5 w-[84%] mx-auto flex-shrink-0 relative z-20">
+        <button id="btn-start-cover" type="button" 
+                class="w-full py-3.5 rounded-2xl bg-white text-black font-bold text-sm cursor-pointer active:scale-95 transition-all text-center block shadow-lg shadow-white/10">
+          시작하기
+        </button>
+      </footer>
+    </section>
+
+    <!-- 0.5 메뉴 선택 화면 -->
+    <section id="screen-menu" class="screen flex-col flex-1 justify-between py-6 px-4 text-center relative z-20 w-full bg-black">
+      <button id="btn-menu-back" type="button" class="app-back-btn">
+        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
+        </svg>
+      </button>
+
+      <header class="w-full relative h-10 flex items-center justify-center flex-shrink-0"></header>
+
+      <div class="w-full max-w-[340px] mx-auto my-auto flex flex-col gap-3.5 flex-1 justify-center py-4">
+        <button id="menu-btn-create" type="button" class="menu-glass-card w-full py-5 px-4">
+          <div class="w-8 h-8 mb-2 flex items-center justify-center text-white">
+            <svg class="w-7 h-7" viewBox="0 0 100 100" fill="currentColor">
+              <path d="M 50,45 C 44,28 20,15 8,30 C -2,42 6,65 24,72 C 8,80 16,98 34,98 C 46,98 50,75 50,65 C 50,75 54,98 66,98 C 84,98 92,80 76,72 C 94,65 102,42 92,30 C 80,15 56,28 50,45 Z" />
+            </svg>
+          </div>
+          <h3 class="text-base font-bold text-white tracking-tight">나비 만들기</h3>
+          <p class="text-xs text-neutral-400 mt-1 font-normal tracking-tight">내면의 고치에서 나비를 깨웁니다.</p>
+        </button>
+
+        <button id="menu-btn-browse" type="button" class="menu-glass-card w-full py-5 px-4">
+          <div class="w-8 h-8 mb-2 flex items-center justify-center text-white">
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-4.35-4.35m1.85-5.15a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+            </svg>
+          </div>
+          <h3 class="text-base font-bold text-white tracking-tight">나비 둘러보기</h3>
+          <p class="text-xs text-neutral-400 mt-1 font-normal tracking-tight">사람들이 날려보낸 나비를 둘러봐요</p>
+        </button>
+
+        <button id="menu-btn-intro" type="button" class="menu-glass-card w-full py-6 px-4">
+          <div class="w-8 h-8 mb-2 flex items-center justify-center text-white">
+            <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 24 24">
+              <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
+            </svg>
+          </div>
+          <h3 class="text-base font-bold text-white tracking-tight">전시 소개</h3>
+        </button>
+      </div>
+
+      <div class="pb-3 text-[11px] text-neutral-500 font-mono"></div>
+    </section>
+
+    <!-- 0.6 전시 소개 화면 -->
+    <section id="screen-intro" class="screen flex-col flex-1 justify-between py-6 px-4 text-center relative z-20 w-full bg-black overflow-hidden">
+      <button id="btn-intro-back" type="button" class="app-back-btn">
+        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
+        </svg>
+      </button>
+
+      <div class="w-full max-w-[340px] mx-auto flex-1 flex flex-col justify-start items-center pt-8 pb-3 overflow-y-auto vertical-scroll-chips">
+        <div class="w-full flex justify-center pt-2 pb-6 flex-shrink-0">
+          <svg class="w-[140px] h-auto drop-shadow-[0_0_12px_rgba(255,255,255,0.25)]" viewBox="0 0 1000 750" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M 92,106 L 140,106 L 140,432 C 182,433 260,432 352,416 L 352,476 C 255,492 176,493 92,493 Z" fill="#ffffff"/>
+            <rect x="255" y="240" width="150" height="46" fill="#ffffff"/>
+            <rect x="405" y="94" width="47" height="410" fill="#ffffff"/>
+            <path fill-rule="evenodd" clip-rule="evenodd" d="M 705,254 C 825,254 884,286 884,330 C 884,374 825,406 705,406 C 585,406 526,374 526,330 C 526,286 585,254 705,254 Z M 705,296 C 618,296 575,314 575,330 C 575,346 618,364 705,364 C 792,364 835,346 835,330 C 835,314 792,296 705,296 Z" fill="#ffffff"/>
+            <rect x="503" y="420" width="405" height="38" fill="#ffffff"/>
+            <rect x="682" y="458" width="47" height="38" fill="#ffffff"/>
+            <path d="M 530,496 L 880,496 L 880,594 L 577,594 L 577,618 L 888,618 L 888,655 L 530,655 L 530,557 L 833,557 L 833,533 L 530,533 Z" fill="#ffffff"/>
           </svg>
         </div>
-        <h3 class="text-base font-bold text-white">종이 정면 위에서 수직으로 찍어주세요</h3>
+
+        <div class="w-full h-[1px] bg-white/20 mb-6 flex-shrink-0"></div>
+
+        <div class="w-full text-left space-y-4 text-xs sm:text-[13px] text-neutral-300 font-normal leading-[1.8] break-keep px-1">
+          <p>날개를 접고 홀로 웅크렸던 시간들. 온전한 ‘나다움’의 숨을 고를 수 있는 쉼터로서 이 여정은 시작되었습니다.</p>
+          <p>내면의 깊은 결을 탐구하고 온전한 나 자신을 마주하며, 세상에 둘도 없는 나만의 나비를 빚어 허공으로 날려 보냅니다. 날아오른 나비는 홀로 머물지 않고 깊은 공간 속으로 스며들어, 이미 그곳을 유영하던 수많은 나비들과 만나 거대한 ‘너울’을 이룹니다. 저마다의 고유한 존재들이 모여 눈부신 파도를 만들어내는 연대의 순간입니다.</p>
+          <p>넘실거리는 빛의 유영을 향해 조용히 손을 뻗어봅니다. 손끝을 향해 날갯짓들이 눈부시게 모여들고, 손바닥을 펼치는 찰나 푸른 파동을 그리며 공간 전체로 은은하게 번져나갑니다. 허공을 자유롭게 부유하는 작은 생명들과 살결 닿듯 나누는 교감은, 나의 작은 손짓이 타인의 궤적에 가닿아 따스한 파동을 일으킬 수 있음을 느끼게 합니다.</p>
+          <p>이곳에 남겨진 나비들은 저마다의 자아를 품은 채 머물며 또 다른 이에게 온기를 건냅니다. 〈너울〉은 조금 늦더라도, 조금 서툰 날갯짓일지라도 괜찮다고 다정하게 속삭입니다. 공간을 가득 채운 빛의 유영 속에서 비로소 마주한 스스로를 긍정하고, 말 없는 온기를 나누며 다시 일상으로 걸어갈 단단한 힘을 얻기를 바랍니다.</p>
+        </div>
+      </div>
+
+      <footer class="w-full pt-1 flex flex-col items-center gap-1.5 flex-shrink-0">
+        <button id="btn-intro-bottom-back" type="button" 
+                class="w-[84%] py-3.5 rounded-2xl bg-white/10 border border-white/15 text-neutral-200 font-bold text-sm tracking-wide active:scale-[0.98] transition-all hover:bg-white/15 hover:text-white">
+          이전으로
+        </button>
+      </footer>
+    </section>
+
+    <!-- 0.8 오프닝 화면 -->
+    <section id="screen-opening" class="screen flex-col flex-1 justify-between py-6 px-4 text-center relative z-20 w-full bg-black overflow-hidden">
+      <button id="btn-opening-back" type="button" class="app-back-btn">
+        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
+        </svg>
+      </button>
+
+      <div class="opening-stage">
+        <div class="opening-text-box">
+          <h2 id="opening-text" class="text-base sm:text-[1.08rem] font-medium text-white tracking-tight"></h2>
+        </div>
+
+        <div class="opening-button-anchor">
+          <div id="opening-choice-group" class="button-group-fade flex items-center justify-center gap-3">
+            <button id="btn-opening-yes" type="button" class="opening-pill-btn">예</button>
+            <button id="btn-opening-no" type="button" class="opening-pill-btn">아니오</button>
+          </div>
+
+          <div id="opening-next-group" class="button-group-fade hidden">
+            <button id="btn-opening-next" type="button" class="opening-action-btn">
+              다음으로 ≫
+            </button>
+          </div>
+        </div>
+      </div>
+      <div class="pb-3"></div>
+    </section>
+
+    <!-- 1. 촬영 안내 화면 -->
+    <section id="screen-capture-guide" class="screen flex-col flex-1 justify-between py-6 text-center relative z-20 w-full bg-black overflow-hidden">
+      <button id="btn-guide-back-to-menu" type="button" class="app-back-btn">
+        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
+        </svg>
+      </button>
+
+      <h2 id="guide-animated-title"></h2>
+
+      <div id="guide-center-card" class="guide-fade-elem w-[88%] max-w-[340px] bg-neutral-900/90 border border-white/10 rounded-[32px] p-8 text-center mx-auto my-auto backdrop-blur-xl space-y-5 shadow-2xl relative z-20">
+        <div class="w-16 h-16 mx-auto rounded-full bg-white/10 border border-white/15 flex items-center justify-center text-white shadow-inner">
+          <svg class="w-8 h-8" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"></path>
+            <path stroke-linecap="round" stroke-linejoin="round" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"></path>
+          </svg>
+        </div>
+        <h3 class="text-base sm:text-lg font-bold text-white tracking-tight leading-snug">종이 정면 위에서 수직으로 찍어주세요</h3>
         <p class="text-xs text-neutral-400 leading-relaxed font-normal">
           기울어지지 않도록 스마트폰을 도안과 평행하게<br>정면 위에서 촬영해 주세요.
         </p>
       </div>
 
-      <footer class="flex flex-col gap-2.5 w-[84%] mx-auto flex-shrink-0">
-        <label for="camera-input" class="w-full py-3.5 rounded-2xl bg-white text-black font-bold text-sm cursor-pointer active:scale-95 transition-all text-center block shadow-lg shadow-white/10">
+      <footer id="guide-bottom-dock" class="guide-fade-elem flex flex-col gap-2.5 w-[84%] mx-auto flex-shrink-0 relative z-30">
+        <label for="camera-input" class="w-full py-4 rounded-2xl bg-white text-black font-bold text-sm cursor-pointer active:scale-95 transition-all text-center block shadow-lg shadow-white/10">
           카메라로 도안 촬영하기
         </label>
-        <label for="album-input" class="w-full py-3 rounded-2xl border border-white/15 bg-white/5 text-neutral-300 font-medium text-xs cursor-pointer active:scale-95 transition-all text-center block">
+        <label for="album-input" class="w-full py-3.5 rounded-2xl border border-white/15 bg-white/5 text-neutral-300 font-medium text-xs cursor-pointer active:scale-95 transition-all text-center block">
           앨범에서 사진 선택
         </label>
-        <!-- 안전한 파일 인풋 (display: none으로 모바일 호환성 극대화 및 capture="environment" 적용) -->
         <input type="file" id="camera-input" accept="image/*" capture="environment" style="display: none;">
         <input type="file" id="album-input" accept="image/*" style="display: none;">
       </footer>
     </section>
 
-    <!-- 2. 맞추기 화면 -->
-    <section id="screen-align" class="screen flex-col flex-1 justify-between py-2 text-center relative z-10 w-full bg-black">
-      <header class="pt-2 flex-shrink-0">
-        <h2 class="text-lg font-bold text-white">나비틀에 사진 맞추기</h2>
-        <p class="text-xs text-neutral-400 font-medium mt-0.5"><strong class="text-white">[드래그]</strong> 이동, <strong class="text-white">[두 손가락 핀치]</strong> 확대/축소</p>
-      </header>
-
-      <div class="relative w-[280px] h-[280px] mx-auto my-auto overflow-hidden bg-neutral-900 rounded-3xl flex items-center justify-center border border-white/15">
-        <canvas id="align-canvas" width="600" height="600" class="w-full h-full block"></canvas>
-        
-        <div class="absolute inset-0 pointer-events-none w-full h-full">
-          <svg class="w-full h-full" viewBox="0 0 100 100" preserveAspectRatio="none">
-            <path id="align-overlay-path" fill="rgba(0, 0, 0, 0.85)" fill-rule="evenodd"
-              d="M 0,0 L 100,0 L 100,100 L 0,100 Z 
-                 M 50,33 C 51.5,33 53,35 53,38 C 58,35 84,14 95,28 C 99,52 79,66 75,67 C 80,75 77,91 65,94 C 55,93 53,75 53,71 C 53,74 51.5,77 50,77 C 48.5,77 47,74 47,71 C 47,75 45,93 35,94 C 23,91 20,75 25,67 C 21,66 1,52 5,28 C 16,14 42,35 47,38 C 47,35 48.5,33 50,33 Z" />
-          </svg>
-        </div>
-      </div>
-
-      <footer class="flex gap-2.5 w-[84%] mx-auto flex-shrink-0">
-        <button id="btn-rephoto" type="button" class="w-1/3 py-3.5 rounded-2xl border border-white/15 bg-white/5 text-neutral-300 text-sm active:scale-95 transition-all">다시 촬영</button>
-        <button id="btn-confirm-align" type="button" class="flex-1 py-3.5 rounded-2xl bg-white text-black font-bold text-sm active:scale-95 transition-all shadow-lg shadow-white/10">나비 형태 고르기</button>
-      </footer>
-    </section>
-
-    <!-- 3. 형태 선택 화면 -->
+    <!-- 2. 형태 선택 및 사진 맞추기 통합 화면 -->
     <section id="screen-shape-select" class="screen flex-1 relative z-10 w-full h-full bg-black overflow-hidden">
-      
       <div class="hero-fixed-anchor">
         <header class="pt-2 pb-1 text-center pointer-events-auto">
           <h2 id="shape-screen-title" class="text-2xl font-bold text-white tracking-tight">날개 형태 고르기</h2>
-          <p id="shape-screen-desc" class="text-xs text-neutral-400 mt-0.5 font-normal">도안의 결을 담아낼 나비의 실루엣을 선택해 주세요.</p>
+          <p id="shape-screen-desc" class="text-xs text-neutral-400 mt-0.5 font-normal"><strong class="text-white">[드래그]</strong> 이동, <strong class="text-white">[두 손가락 핀치]</strong> 확대/축소</p>
         </header>
 
-        <div class="reference-square-frame mt-2">
-          <div class="bounded-butterfly-layer">
-            <svg id="hero-butterfly-svg" viewBox="0 0 160 160">
+        <div id="interactive-align-frame" class="reference-square-frame mt-2 pointer-events-auto cursor-grab active:cursor-grabbing">
+          <!-- 캔버스: 사진 영역 -->
+          <canvas id="align-canvas" width="600" height="600" class="absolute inset-0 w-full h-full block z-0"></canvas>
+          
+          <!-- 나비 프레임 & 더듬이 레이어 -->
+          <div class="bounded-butterfly-layer pointer-events-none z-10">
+            <svg id="hero-butterfly-svg" viewBox="0 0 160 160" preserveAspectRatio="none">
               <defs>
                 <filter id="soft-butterfly-shadow" x="-50%" y="-50%" width="200%" height="200%">
                   <feDropShadow dx="0" dy="0" stdDeviation="12" flood-color="#ffffff" flood-opacity="0.45" />
@@ -527,10 +256,15 @@
                   <feDropShadow dx="0" dy="0" stdDeviation="2.5" flood-color="#ffffff" flood-opacity="0.6" />
                 </filter>
               </defs>
-              <g id="hero-path-container" transform="translate(11, 11) scale(1.38)" filter="url(#soft-butterfly-shadow)">
+              <g id="hero-path-container">
               </g>
             </svg>
           </div>
+        </div>
+
+        <!-- 사진 블러 조절 슬라이더 -->
+        <div class="blur-slider-wrapper pointer-events-auto">
+          <input type="range" id="blur-slider" min="0" max="25" value="0" step="0.5">
         </div>
       </div>
 
@@ -548,13 +282,13 @@
         </div>
 
         <footer class="flex gap-2.5 w-[84%] mx-auto flex-shrink-0 pt-4 relative z-20">
-          <button id="btn-back-to-align" type="button" class="w-1/3 py-3.5 rounded-2xl border border-white/15 bg-white/5 text-neutral-300 text-sm active:scale-95 transition-all">이전</button>
+          <button id="btn-rephoto-from-shape" type="button" class="w-1/3 py-3.5 rounded-2xl border border-white/15 bg-white/5 text-neutral-300 text-sm active:scale-95 transition-all">다시 촬영</button>
           <button id="btn-confirm-shape" type="button" class="flex-1 py-3.5 rounded-2xl bg-white text-black font-bold text-sm active:scale-95 transition-all shadow-lg shadow-white/10">이 형태로 질문 시작</button>
         </footer>
       </div>
     </section>
 
-    <!-- 4. 설문 화면 -->
+    <!-- 3. 설문 화면 -->
     <section id="screen-survey" class="screen flex-col flex-1 justify-between overflow-hidden relative z-10 h-full w-full bg-black">
       <header class="w-full pt-3 pb-0 flex-shrink-0 flex justify-center">
         <div class="w-[84%] h-1 bg-white/10 rounded-full overflow-hidden">
@@ -571,59 +305,24 @@
         <div id="organic-chip-container" class="flex flex-col items-center gap-2.5 w-full py-2"></div>
       </div>
 
-      <!-- 6단계: 재회 설정 -->
       <div id="field-step-6" class="hidden flex-1 w-full flex-col justify-center items-center px-4 min-h-0">
-        <div class="w-full bg-white/[0.04] border border-white/10 rounded-3xl p-5 space-y-3.5 backdrop-blur-md">
-          <div>
-            <div class="flex justify-between items-center mb-1.5 px-0.5">
-              <label class="block text-xs font-mono text-neutral-300 font-semibold">나비에게 남기고 싶은 말 <span class="text-[10px] text-neutral-500 font-normal">(선택)</span></label>
-              <span id="memo-counter" class="text-[10px] text-neutral-500 font-mono">0 / 50</span>
-            </div>
-            <textarea id="input-q6-memo" rows="2" maxlength="50" placeholder="먼 훗날 다시 찾아올 나비에게 전하고 싶은 한마디를 적어주세요." 
-                      class="w-full bg-white/5 border border-white/15 rounded-2xl px-3.5 py-2.5 text-xs text-white focus:outline-none focus:border-white placeholder-neutral-600 font-medium resize-none leading-relaxed"></textarea>
+        <div class="w-full max-w-[340px] flex flex-col">
+          <div class="glass-input-card-v2" style="height: 195px;">
+            <textarea id="input-q6-memo" maxlength="50" placeholder="(선택) 자유롭게 입력해주세요."></textarea>
           </div>
-
-          <div>
-            <label class="block text-xs font-mono text-neutral-300 mb-1.5 font-semibold">찬란한 재회의 날</label>
-            <div class="grid grid-cols-3 gap-2">
-              <div class="relative">
-                <input id="input-q6-year" type="number" placeholder="2026" min="2024" max="2099" 
-                       class="w-full bg-white/5 border border-white/15 rounded-2xl px-3 py-2.5 text-center text-sm text-white focus:outline-none focus:border-white placeholder-neutral-600 font-medium">
-                <span class="absolute right-2.5 top-1/2 -translate-y-1/2 text-xs text-neutral-500 pointer-events-none">년</span>
-              </div>
-              <div class="relative">
-                <input id="input-q6-month" type="number" placeholder="10" min="1" max="12" 
-                       class="w-full bg-white/5 border border-white/15 rounded-2xl px-3 py-2.5 text-center text-sm text-white focus:outline-none focus:border-white placeholder-neutral-600 font-medium">
-                <span class="absolute right-2.5 top-1/2 -translate-y-1/2 text-xs text-neutral-500 pointer-events-none">월</span>
-              </div>
-              <div class="relative">
-                <input id="input-q6-day" type="number" placeholder="24" min="1" max="31" 
-                       class="w-full bg-white/5 border border-white/15 rounded-2xl px-3 py-2.5 text-center text-sm text-white focus:outline-none focus:border-white placeholder-neutral-600 font-medium">
-                <span class="absolute right-2.5 top-1/2 -translate-y-1/2 text-xs text-neutral-500 pointer-events-none">일</span>
-              </div>
-            </div>
-            <span class="text-[11px] text-neutral-400 mt-2 block leading-relaxed font-normal">
-              새로운 다짐이 필요할 때, 지친 계절의 끝, 혹은 1년 뒤 오늘처럼 찬란한 위로가 닿길 바라는 순간을 약속해 주세요.
-            </span>
-          </div>
-
-          <div>
-            <label class="block text-xs font-mono text-neutral-300 mb-1.5 font-semibold">나비를 맞이할 이메일</label>
-            <input id="input-q6-email" type="email" placeholder="example@email.com" 
-                   class="w-full bg-white/5 border border-white/15 rounded-2xl px-3.5 py-2.5 text-sm text-white focus:outline-none focus:border-white placeholder-neutral-600">
+          <div class="w-full flex justify-end pt-2 pr-1">
+            <span id="memo-counter" class="text-xs text-neutral-400 font-mono tracking-normal">0/50</span>
           </div>
         </div>
       </div>
 
-      <!-- 7단계: 이름 짓기 -->
       <div id="field-step-7" class="hidden flex-1 w-full flex-col justify-center items-center px-4 min-h-0">
-        <div class="w-full space-y-2">
-          <label class="block text-xs font-mono text-neutral-300 font-semibold text-left px-1">나비의 고유한 이름</label>
-          <input id="input-q7-name" type="text" maxlength="10" placeholder="예: 윤슬, 쉼표, 칼퇴, 다정, 시온, 바람..." 
-                 class="w-full bg-white/5 border border-white/15 rounded-2xl px-4 py-3.5 text-base text-white focus:outline-none focus:border-white placeholder-neutral-600 tracking-wide font-medium">
-          <div class="flex justify-between items-center text-[11px] text-neutral-500 font-mono px-2 pt-0.5">
-            <span>한글/영문 10자 이내</span>
-            <span id="char-counter">0 / 10</span>
+        <div class="w-full max-w-[340px] flex flex-col">
+          <div class="glass-input-card-v2" style="height: 76px; justify-content: center; padding: 1.15rem 1.35rem !important;">
+            <input id="input-q7-name" type="text" maxlength="10" placeholder="예: 윤슬, 쉼표, 칼퇴, 다정, 시온, 바람..." autocomplete="off" spellcheck="false">
+          </div>
+          <div class="w-full flex justify-end pt-2 pr-1">
+            <span id="char-counter" class="text-xs text-neutral-400 font-mono tracking-normal">0/10</span>
           </div>
         </div>
       </div>
@@ -639,9 +338,8 @@
       </footer>
     </section>
 
-    <!-- 5. 나비 생성 화면 -->
+    <!-- 4. 로딩 화면 -->
     <section id="screen-loading" class="screen flex-col flex-1 justify-between items-center py-10 px-5 text-center relative overflow-hidden z-10 w-full">
-      
       <div class="photo-butterfly-bg-wrapper pointer-events-none">
         <div class="photo-bg-layer"></div>
         <div class="photo-bg-overlay"></div>
@@ -649,11 +347,7 @@
 
       <div id="cinematic-black-curtain"></div>
 
-      <div class="mt-4 z-10 space-y-1.5 pointer-events-none transition-all duration-700">
-        <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/15 backdrop-blur-md border border-white/20">
-          <span class="w-2 h-2 rounded-full bg-white animate-ping"></span>
-          <span class="text-[11px] font-mono text-white tracking-wider uppercase font-bold">Generating Your Soul</span>
-        </div>
+      <div class="mt-8 z-10 space-y-1.5 pointer-events-none transition-all duration-700">
         <h2 id="loading-main-title" class="text-2xl font-black text-white tracking-tight leading-snug drop-shadow-[0_2px_12px_rgba(0,0,0,0.8)] pt-2">
           너울의 결을 엮어<br>나비를 깨우는 중입니다
         </h2>
@@ -665,15 +359,13 @@
       <div class="relative w-full max-w-[340px] my-auto z-10 flex flex-col items-center">
         <div class="mb-4">
           <svg id="loading-butterfly-svg" class="w-20 h-20 text-white drop-shadow-[0_0_28px_rgba(255,255,255,0.95)] animate-pulse transition-all duration-1000" viewBox="0 0 100 100">
-            <path d="M 50,33 C 51.5,33 53,35 53,38 C 58,35 84,14 95,28 C 99,52 79,66 75,67 C 80,75 77,91 65,94 C 55,93 53,75 53,71 C 53,74 51.5,77 50,77 C 48.5,77 47,74 47,71 C 47,75 45,93 35,94 C 23,91 20,75 25,67 C 21,66 1,52 5,28 C 16,14 42,35 47,38 C 47,35 48.5,33 50,33 Z" 
-                  fill="#ffffff" stroke="#ffffff" stroke-width="1"/>
+            <path id="loading-wing-path" d="" fill="#ffffff" stroke="#ffffff" stroke-width="1"/>
           </svg>
         </div>
 
         <div id="showcase-card" class="answer-fade visible-state w-full bg-black/40 backdrop-blur-xl border border-white/20 rounded-3xl p-5 shadow-2xl text-center">
           <span id="showcase-category" class="inline-block text-[11px] font-bold text-white tracking-wider uppercase mb-2">#나의 고유한 모습</span>
-          <div id="showcase-answers" class="flex flex-wrap items-center justify-center gap-2 max-h-[140px] overflow-hidden py-1">
-          </div>
+          <div id="showcase-answers" class="flex flex-wrap items-center justify-center gap-2 max-h-[140px] overflow-hidden py-1"></div>
         </div>
 
         <div id="loading-step-dots" class="flex items-center justify-center gap-1.5 mt-4">
@@ -686,26 +378,21 @@
         </div>
       </div>
 
-      <div class="w-[84%] z-10 flex flex-col items-center gap-2">
+      <div class="w-[84%] z-10 flex flex-col items-center pb-2">
         <div class="w-full h-1.5 bg-white/20 rounded-full overflow-hidden backdrop-blur-sm">
           <div id="generation-progress-bar" class="h-full bg-white rounded-full transition-all duration-500 ease-out shadow-[0_0_12px_rgba(255,255,255,0.9)]" style="width: 0%;"></div>
-        </div>
-        <div class="flex justify-between w-full text-[10px] font-mono text-white/80">
-          <span>WEAVING NOUL LIGHT</span>
-          <span id="generation-percent">0%</span>
         </div>
       </div>
     </section>
 
-    <!-- 6. 3D 프리뷰 및 비행 화면 -->
-    <section id="screen-preview" class="screen fixed inset-0 z-50 flex-col justify-between py-6 overflow-hidden bg-black"
-      style="background: #000000 !important;">
+    <!-- 5. 프리뷰 및 비행 화면 (요청하신 3D 나비 화면) -->
+    <section id="screen-preview" class="screen fixed inset-0 z-50 flex-col justify-between py-6 overflow-hidden bg-black" style="background: #000000 !important;">
       <header class="text-center pt-3 z-10">
-        <span class="text-xs font-mono text-neutral-400 font-semibold tracking-wider uppercase">NOUL LUMINOUS BUTTERFLY</span>
         <h2 id="preview-butterfly-name" class="text-3xl font-black text-white mt-1 drop-shadow-[0_0_15px_rgba(255,255,255,0.5)] tracking-tight">‘나비’</h2>
         <p class="text-xs text-neutral-300 mt-1 font-normal">화면을 위로 쓸어 올려 어둠 속 너울로 날려보내세요.</p>
       </header>
 
+      <!-- Three.js 3D 뷰어 캔버스 컨테이너 -->
       <div id="three-container" class="w-full h-full absolute inset-0 z-0 pointer-events-auto"></div>
 
       <footer class="w-full pb-6 flex flex-col items-center gap-2 z-10 pointer-events-none">
@@ -718,7 +405,7 @@
       </footer>
     </section>
 
-    <!-- 7. 완성 화면 -->
+    <!-- 6. 완성 화면 -->
     <section id="screen-complete" class="screen flex-col flex-1 justify-center items-center text-center p-6 relative z-10 w-full bg-black">
       <div class="w-20 h-20 rounded-full bg-white/10 border border-white/20 flex items-center justify-center mb-6 shadow-[0_0_30px_rgba(255,255,255,0.25)]">
         <svg class="w-10 h-10 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -727,7 +414,7 @@
       </div>
       <h2 class="text-2xl font-bold text-white mb-2">하늘 위로 눈부시게 날아올랐습니다</h2>
       <p id="complete-desc" class="text-sm text-neutral-400 leading-relaxed mb-8">
-        ‘나비’(이)가 빛의 날개를 펴고 너울 속으로 합류했습니다.[cite: 1]
+        ‘나비’(이)가 빛의 날개를 펴고 너울 속으로 합류했습니다.
       </p>
       <button onclick="location.reload()" type="button" class="w-[84%] py-3.5 rounded-2xl bg-white text-black text-xs font-bold shadow-lg shadow-white/20 active:scale-95 transition-all">
         새로운 나비 띄우기
@@ -736,1210 +423,7 @@
 
   </main>
 
-  <script>
-    /* ========================================================
-       0. 무결점 화면 전환 함수
-       ======================================================== */
-    function showScreen(screenId) {
-      document.querySelectorAll('.screen').forEach(function(s) {
-        s.classList.remove('active');
-      });
-      var target = document.getElementById(screenId);
-      if (target) {
-        target.classList.add('active');
-        if (screenId === 'screen-shape-select') {
-          switchTab('wing');
-          updateHeroPreview();
-        }
-      }
-    }
-
-    /* ========================================================
-       1. Supabase 연동 변수 (에러 방어 로직 적용)
-       ======================================================== */
-    var SUPABASE_URL = 'https://djmdzsbfsobsutphragw.supabase.co';
-    var SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRqbWR6c2Jmc29ic3V0cGhyYWd3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODk4ODQ3NTgsImV4cCI6MjEwNTQ2MDc1OH0.BC7llaSjbq6cYhDlRqrwJaycpQ6gSNcp5LgYBeM6WEM';
-    var supabase = null;
-    
-    try {
-      if (window.supabase) {
-        supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-      }
-    } catch (err) {
-      console.warn("Supabase 연결 지연:", err);
-    }
-
-    var activeCustomTab = 'wing';
-    var selectedButterflyShape = 'round';
-    var selectedAntennaType = 'ball';
-
-    var wingDataset = [
-      { id: 'default', name: '기본 날개', d: "M 50,33 C 51.5,33 53,35 53,38 C 58,35 75,18 89,20 C 97,22 99,35 91,48 C 84,59 79,62 76,64 C 81,67 87,74 86,83 C 84,93 69,96 61,87 C 55,80 53,74 53,71 C 53,74 51.5,77 50,77 C 48.5,77 47,74 47,71 C 47,74 45,80 39,87 C 31,96 16,93 14,83 C 13,74 19,67 24,64 C 21,62 16,59 9,48 C 1,35 3,22 11,20 C 25,18 42,35 47,38 C 47,35 48.5,33 50,33 Z" },
-      { id: 'pointy', name: '뾰족 날개', d: "M 50,33 C 51.5,33 53,35 53,38 C 54,26 62,2 89,3 C 94,8 82,45 68,54 C 81,65 80,91 66,95 C 57,91 54,74 53,71 C 53,74 51.5,77 50,77 C 48.5,77 47,74 47,71 C 46,74 43,91 34,95 C 20,91 19,65 32,54 C 18,45 6,8 11,3 C 38,2 46,26 47,38 C 47,35 48.5,33 50,33 Z" },
-      { id: 'flutter', name: '나풀 날개', d: "M 50,33 C 51.5,33 53,35 53,38 C 58,35 77,16 93,21 C 98,34 91,48 95,57 C 98,66 84,72 74,73 C 83,83 80,95 68,96 C 58,97 55,83 53,71 C 53,74 51.5,77 50,77 C 48.5,77 47,74 47,71 C 45,83 42,97 32,96 C 20,95 17,83 26,73 C 16,72 2,66 5,57 C 9,48 2,34 7,21 C 23,16 42,35 47,38 C 47,35 48.5,33 50,33 Z" },
-      { id: 'round', name: '동글 날개', d: "M 50,33 C 51.5,33 53,35 53,38 C 58,35 84,14 95,28 C 99,52 79,66 75,67 C 80,75 77,91 65,94 C 55,93 53,75 53,71 C 53,74 51.5,77 50,77 C 48.5,77 47,74 47,71 C 47,75 45,93 35,94 C 23,91 20,75 25,67 C 21,66 1,52 5,28 C 16,14 42,35 47,38 C 47,35 48.5,33 50,33 Z" },
-      { id: 'fairy', name: '요정 날개', d: "M 50,33 C 51.5,33 53,35 53,38 C 55,25 72,4 93,4 C 99,13 88,38 78,54 C 88,58 91,82 78,97 C 68,100 58,91 55,78 C 54,74 53,72 53,71 C 53,74 51.5,77 50,77 C 48.5,77 47,74 47,71 C 47,72 46,74 45,78 C 42,91 32,100 22,97 C 9,82 12,58 22,54 C 12,38 1,13 7,4 C 28,4 45,25 47,38 C 47,35 48.5,33 50,33 Z" },
-      { id: 'monarch', name: '제왕 날개', d: "M 50,33 C 51.5,33 53,35 53,38 C 62,34 85,15 97,18 C 98,28 92,44 86,52 C 94,62 93,87 84,98 C 76,99 68,88 64,83 C 58,79 54,74 53,71 C 53,74 51.5,77 50,77 C 48.5,77 47,74 47,71 C 46,74 42,79 36,83 C 32,88 24,99 16,98 C 7,87 6,62 14,52 C 8,44 2,28 3,18 C 15,15 38,34 47,38 C 47,35 48.5,33 50,33 Z" },
-      { id: 'wave', name: '물결 날개', d: "M 50,33 C 51.5,33 53,35 53,38 C 55,27 68,7 86,10 C 89,17 83,27 94,30 C 97,38 90,48 96,55 C 98,63 88,71 83,73 C 86,81 83,92 73,96 C 63,98 56,85 53,71 C 53,74 51.5,77 50,77 C 48.5,77 47,74 47,71 C 44,85 37,98 27,96 C 17,92 14,81 17,73 C 12,71 2,63 4,55 C 10,48 3,38 6,30 C 17,27 11,17 14,10 C 32,7 45,27 47,38 C 47,35 48.5,33 50,33 Z" }
-    ];
-
-    var antennaDataset = [
-      {
-        id: 'ball',
-        name: '구슬 더듬이',
-        svgPreview: '<path d="M 48.5,34 C 47,26 40,16 35,14" fill="none" stroke="#ffffff" stroke-width="2.6" stroke-linecap="round"/><circle cx="33.5" cy="13" r="3.5" fill="#ffffff" stroke="#ffffff" stroke-width="1.2"/><path d="M 51.5,34 C 53,26 60,16 65,14" fill="none" stroke="#ffffff" stroke-width="2.6" stroke-linecap="round"/><circle cx="66.5" cy="13" r="3.5" fill="#ffffff" stroke="#ffffff" stroke-width="1.2"/>'
-      },
-      {
-        id: 'feather',
-        name: '깃털 더듬이',
-        svgPreview: '<path d="M 48.5,34 C 46,24 40,15 34,11" fill="none" stroke="#ffffff" stroke-width="2.6" stroke-linecap="round"/><path d="M 46,26 L 40,24 M 44,21 L 38,18 M 41,16 L 36,13" fill="none" stroke="#ffffff" stroke-width="2.0" stroke-linecap="round"/><path d="M 51.5,34 C 54,24 60,15 66,11" fill="none" stroke="#ffffff" stroke-width="2.6" stroke-linecap="round"/><path d="M 54,26 L 60,24 M 56,21 L 62,18 M 59,16 L 64,13" fill="none" stroke="#ffffff" stroke-width="2.0" stroke-linecap="round"/>'
-      },
-      {
-        id: 'star',
-        name: '별빛 더듬이',
-        svgPreview: '<path d="M 48.5,34 C 47,25 41,17 35,14" fill="none" stroke="#ffffff" stroke-width="2.6" stroke-linecap="round"/><polygon points="35,9 36.5,13.5 41,15 36.5,16.5 35,21 33.5,16.5 29,15 33.5,13.5" fill="#ffffff" stroke="#ffffff" stroke-width="1.0"/><path d="M 51.5,34 C 53,25 59,17 65,14" fill="none" stroke="#ffffff" stroke-width="2.6" stroke-linecap="round"/><polygon points="65,9 66.5,13.5 71,15 66.5,16.5 65,21 63.5,16.5 59,15 63.5,13.5" fill="#ffffff" stroke="#ffffff" stroke-width="1.0"/>'
-      },
-      {
-        id: 'crescent',
-        name: '초승달 더듬이',
-        svgPreview: '<path d="M 48.5,34 C 46,24 37,17 30,19 C 27,20 25,18 28,15 C 34,9 43,15 47,25" fill="#ffffff" stroke="#ffffff" stroke-width="1.2"/><path d="M 51.5,34 C 54,24 63,17 70,19 C 73,20 75,18 72,15 C 66,9 57,15 53,25" fill="#ffffff" stroke="#ffffff" stroke-width="1.2"/>'
-      }
-    ];
-
-    var butterflyPathData = {};
-    wingDataset.forEach(function(w) { butterflyPathData[w.id] = w.d; });
-
-    function updateHeroPreview() {
-      var heroPathContainer = document.getElementById('hero-path-container');
-      if (!heroPathContainer) return;
-
-      var wingD = butterflyPathData[selectedButterflyShape];
-      var ant = antennaDataset.find(function(a) { return a.id === selectedAntennaType; }) || antennaDataset[0];
-
-      heroPathContainer.innerHTML = '<path d="' + wingD + '" fill="#ffffff"/><g id="hero-antennas" filter="url(#antenna-subtle-contrast)">' + ant.svgPreview + '</g>';
-    }
-
-    var carouselContainer = document.getElementById('arch-carousel-container');
-
-    function renderCarouselItems() {
-      carouselContainer.innerHTML = '';
-
-      if (activeCustomTab === 'wing') {
-        wingDataset.forEach(function(w) {
-          var isActive = w.id === selectedButterflyShape;
-          var div = document.createElement('div');
-          div.className = 'arch-track-item';
-          div.innerHTML = '<button type="button" class="shape-thumb-btn ' + (isActive ? 'active' : '') + '" data-type="wing" data-id="' + w.id + '"><div class="shape-circle-badge"><svg viewBox="0 0 100 100" preserveAspectRatio="xMidYMid meet"><path d="' + w.d + '"/></svg></div></button><span class="shape-item-label text-[11px] ' + (isActive ? 'font-bold text-white' : 'font-medium text-neutral-500') + ' tracking-tight">' + w.name + '</span>';
-          carouselContainer.appendChild(div);
-        });
-      } else if (activeCustomTab === 'antenna') {
-        antennaDataset.forEach(function(a) {
-          var isActive = a.id === selectedAntennaType;
-          var div = document.createElement('div');
-          div.className = 'arch-track-item';
-          div.innerHTML = '<button type="button" class="shape-thumb-btn ' + (isActive ? 'active' : '') + '" data-type="antenna" data-id="' + a.id + '"><div class="shape-circle-badge"><svg viewBox="0 0 100 100" preserveAspectRatio="xMidYMid meet"><g>' + a.svgPreview + '</g></svg></div></button><span class="shape-item-label text-[11px] ' + (isActive ? 'font-bold text-white' : 'font-medium text-neutral-500') + ' tracking-tight">' + a.name + '</span>';
-          carouselContainer.appendChild(div);
-        });
-      }
-
-      bindItemClickEvents();
-      updateCarouselPadding();
-      applyArchCurveAndSelection();
-
-      setTimeout(function() {
-        var activeBtn = carouselContainer.querySelector('.shape-thumb-btn.active');
-        if (activeBtn) snapItemToExactCenter(activeBtn.closest('.arch-track-item'));
-      }, 50);
-    }
-
-    function bindItemClickEvents() {
-      carouselContainer.querySelectorAll('.shape-thumb-btn').forEach(function(btn) {
-        btn.addEventListener('click', function() {
-          setActiveItemVisual(btn);
-          snapItemToExactCenter(btn.closest('.arch-track-item'));
-        });
-      });
-    }
-
-    function updateCarouselPadding() {
-      if (!carouselContainer) return;
-      var cWidth = carouselContainer.clientWidth;
-      var firstItem = carouselContainer.querySelector('.arch-track-item');
-      if (firstItem) {
-        var itemWidth = firstItem.offsetWidth;
-        var pad = Math.max(0, (cWidth - itemWidth) / 2);
-        carouselContainer.style.paddingLeft = pad + 'px';
-        carouselContainer.style.paddingRight = pad + 'px';
-      }
-    }
-
-    function applyArchCurveAndSelection() {
-      if (!carouselContainer) return;
-      var cWidth = carouselContainer.clientWidth;
-      var scrollLeft = carouselContainer.scrollLeft;
-      var centerX = scrollLeft + (cWidth / 2);
-      
-      var items = carouselContainer.querySelectorAll('.arch-track-item');
-      var R = 240; 
-      var CENTER_THRESHOLD = 38;
-
-      var centerDetectedItem = null;
-      var minDistance = Infinity;
-
-      items.forEach(function(item) {
-        var itemCenterX = item.offsetLeft + (item.offsetWidth / 2);
-        var dist = Math.abs(centerX - itemCenterX);
-        
-        if (dist < minDistance) {
-          minDistance = dist;
-          centerDetectedItem = item;
-        }
-
-        var safeDist = Math.min(dist, R - 6);
-        var translateY = R - Math.sqrt((R * R) - (safeDist * safeDist));
-        item.style.transform = 'translate3d(0, ' + translateY.toFixed(2) + 'px, 0)';
-
-        var opacityRatio = Math.max(0.35, 1 - (dist / (cWidth * 0.42)));
-        item.style.opacity = opacityRatio.toFixed(2);
-      });
-
-      if (centerDetectedItem && minDistance <= CENTER_THRESHOLD) {
-        var btn = centerDetectedItem.querySelector('.shape-thumb-btn');
-        if (btn && !btn.classList.contains('active')) {
-          setActiveItemVisual(btn);
-        }
-      }
-    }
-
-    function setActiveItemVisual(btn) {
-      document.querySelectorAll('.shape-thumb-btn').forEach(function(b) {
-        b.classList.remove('active');
-        var txt = b.parentElement.querySelector('.shape-item-label');
-        if (txt) {
-          txt.classList.remove('font-bold', 'text-white');
-          txt.classList.add('font-medium', 'text-neutral-500');
-        }
-      });
-
-      btn.classList.add('active');
-      var activeTxt = btn.parentElement.querySelector('.shape-item-label');
-      if (activeTxt) {
-        activeTxt.classList.add('font-bold', 'text-white');
-        activeTxt.classList.remove('font-medium', 'text-neutral-500');
-      }
-
-      var type = btn.getAttribute('data-type');
-      var id = btn.getAttribute('data-id');
-
-      if (type === 'wing') {
-        selectedButterflyShape = id;
-      } else if (type === 'antenna') {
-        selectedAntennaType = id;
-      }
-
-      updateHeroPreview();
-    }
-
-    function snapItemToExactCenter(itemElement) {
-      if (!carouselContainer || !itemElement) return;
-      var cWidth = carouselContainer.clientWidth;
-      var itemWidth = itemElement.offsetWidth;
-      var targetScroll = itemElement.offsetLeft - ((cWidth - itemWidth) / 2);
-      carouselContainer.scrollTo({ left: targetScroll, behavior: 'smooth' });
-    }
-
-    function autoSnapToNearestCenter() {
-      if (!carouselContainer) return;
-      var cWidth = carouselContainer.clientWidth;
-      var scrollLeft = carouselContainer.scrollLeft;
-      var centerX = scrollLeft + (cWidth / 2);
-
-      var closestItem = null;
-      var minDistance = Infinity;
-
-      var items = carouselContainer.querySelectorAll('.arch-track-item');
-      items.forEach(function(item) {
-        var itemCenterX = item.offsetLeft + (item.offsetWidth / 2);
-        var dist = Math.abs(centerX - itemCenterX);
-        if (dist < minDistance) {
-          minDistance = dist;
-          closestItem = item;
-        }
-      });
-
-      if (closestItem) {
-        var btn = closestItem.querySelector('.shape-thumb-btn');
-        if (btn) setActiveItemVisual(btn);
-        snapItemToExactCenter(closestItem);
-      }
-    }
-
-    if (carouselContainer) {
-      var scrollTimer = null;
-      carouselContainer.addEventListener('scroll', function() {
-        applyArchCurveAndSelection();
-        clearTimeout(scrollTimer);
-        scrollTimer = setTimeout(function() {
-          autoSnapToNearestCenter();
-        }, 110);
-      }, { passive: true });
-    }
-
-    window.addEventListener('resize', function() {
-      updateCarouselPadding();
-      applyArchCurveAndSelection();
-    });
-
-    var tabWing = document.getElementById('tab-wing');
-    var tabAntenna = document.getElementById('tab-antenna');
-    var shapeTitle = document.getElementById('shape-screen-title');
-    var shapeDesc = document.getElementById('shape-screen-desc');
-
-    function switchTab(tabKey) {
-      activeCustomTab = tabKey;
-      [tabWing, tabAntenna].forEach(function(b) { b.classList.remove('active-tab'); });
-
-      if (tabKey === 'wing') {
-        tabWing.classList.add('active-tab');
-        shapeTitle.innerText = "날개 형태 고르기";
-        shapeDesc.innerText = "도안의 결을 담아낼 나비의 실루엣을 선택해 주세요.";
-      } else if (tabKey === 'antenna') {
-        tabAntenna.classList.add('active-tab');
-        shapeTitle.innerText = "더듬이 고르기";
-        shapeDesc.innerText = "나비의 감각을 깨울 더듬이 모양을 선택해 주세요.";
-      }
-      renderCarouselItems();
-    }
-
-    tabWing.addEventListener('click', function() { switchTab('wing'); });
-    tabAntenna.addEventListener('click', function() { switchTab('antenna'); });
-
-    document.getElementById('btn-back-to-align').addEventListener('click', function() {
-      showScreen('screen-align');
-    });
-
-    document.getElementById('btn-confirm-shape').addEventListener('click', function() {
-      renderSurveyStep();
-      showScreen('screen-survey');
-    });
-
-    var surveyQuestions = [
-      {
-        title: "당신은 어떤 나비인가요?",
-        desc: "자신을 소개해 주세요. (다중 선택)",
-        category: "#나의 고유한 모습",
-        options: [
-          "야행성", "아침형", "집돌이·집순이", "외향형", "계획파", "즉흥파", "사색가", "행동파", "마이웨이", "눈치러",
-          "완벽주의", "단순명쾌", "유리멘탈", "무념무상", "일벌레", "게으른 완벽주의", "벼락치기파", "루틴러", "커피수액러", "산책러",
-          "숏폼중독", "미식가", "집콕프로", "바깥바람파", "혼자가 편한", "과묵한 편", "다정다감", "리액션 장인", "경청러", "분위기 메이커",
-          "낯가림러", "관찰자", "칼퇴사수형", "프로공감러", "생각 부자", "담담이", "긍정회로", "쿨내진동", "쿠쿠다스", "말랑멘탈",
-          "호기심 천국", "느긋이", "조급이", "현실주의자", "낭만주의자", "감성파", "멀티태스커", "한우물파", "아이디어 뱅크", "직진러"
-        ]
-      },
-      {
-        title: "고치에서 나온 당신,<br>어떤 여정을 떠날 건가요?",
-        desc: "향하고 싶은 방향을 골라주세요. (다중 선택)",
-        category: "#향하고 싶은 여정",
-        options: [
-          "취업 뽀개기", "칼퇴 보장", "자취방 독립", "내 작은 카페", "자격증 합격", "목표 어학 점수", "해외 한 달 살기", "1,000만 원 저축", "내 브랜드 론칭", "숙면 8시간",
-          "콘서트 올콘", "운동 습관화", "포트폴리오 완성", "악연 손절", "첫 월급 선물", "창작물 완판", "바다 여행", "완벽주의 탈출", "채널 1만 구독", "면접 당당함",
-          "학자금 완납", "좋아하는 일로 밥벌이", "운전면허 드라이브", "온전한 호캉스", "완독 10권", "바디프로필", "나만의 작업실", "타인 시선 무시", "팀 프로젝트 대박", "쿨한 멘탈",
-          "내 집 마련 기반", "악기 마스터", "고요한 밤산책", "다정한 연애", "단골 아지트", "집밥 챙겨먹기", "번아웃 브레이크", "거절하는 용기", "내 스타일대로", "워홀·교환학생",
-          "매일 셀프 칭찬", "개인 전시·팝업", "수면 패턴 정상화", "공모전 수상", "대범한 배짱", "주말 카페 멍때리기", "가족 여행 보내기", "하루 종일 넷플릭스", "비교 끊기", "그냥 오늘 행복"
-        ]
-      },
-      {
-        title: "긴 여정을 위해<br>챙겨가야 할 것은?",
-        desc: "비행 동안 나비가 품고 갈 마음을 골라주세요. (다중 선택)",
-        category: "#품고 날아갈 마음",
-        options: [
-          "흔들려도 그냥 둠", "남 눈치 안 보고 멍때림", "망해도 별일 아니라고 넘김", "내 속도대로 천천히 감", "할 만큼 했다고 인정함", "억지로 애쓰지 않음", "싫은 건 싫다고 생각함", "오늘 하루만 버텨봄", "완벽하지 않아도 만족함", "혼자만의 침묵을 즐김",
-          "남의 말 한 귀로 흘림", "당장 답을 찾지 않음", "아무 계획 없이 흘러감", "내 감정에 솔직해짐", "쉬는 것에 당당해짐", "안 되는 건 쿨하게 포기함", "넘어져도 급하게 안 일어남", "나를 가장 먼저 챙김", "작은 틈을 내어 숨을 쉼", "그때그때 마음 가는 대로 함",
-          "타인의 기대에서 한 발 물러섬", "서두르지 않는 뻔뻔함", "실수해도 씩씩하게 웃기", "지금 이대로 충분하다는 안도", "세상 참견 차단하기", "실패를 경험으로 치기", "내 선택을 끝까지 믿기", "억지 인연 붙잡지 않기", "감정 기복에 휘둘리지 않기", "나만의 속도 존중하기",
-          "작은 일에 일희일비 안 하기", "거절 앞에 당당해지기", "지나간 일 곱씹지 않기", "타인과의 비교 단호히 끊기", "힘 빼고 유연하게 살기", "있는 그대로의 나 사랑하기", "번아웃 전에 먼저 멈추기", "단단한 자기 확신 갖기", "굳이 설명하지 않는 대범함", "안 풀릴 땐 일단 자고 보기",
-          "세상 기준에 나를 맞추지 않기", "사소한 즐거움 먼저 찾기", "묵묵히 내 보폭 유지하기", "미움받을 약간의 용기", "쓸데없는 자책 지우기", "혼자만의 시간 지켜내기", "무리한 부탁 딱 자르기", "앞날을 기대하는 설렘", "어떤 순간에도 자책하지 않기", "그냥 오늘 하루 즐기기"
-        ]
-      },
-      {
-        title: "비행 중 마주친 나의 천적은?",
-        desc: "날갯짓을 가로막는 것은 무엇일까요? (다중 선택)",
-        category: "#마주친 마음의 천적",
-        options: [
-          "비교중독", "만성 피로", "텅 빈 잔고", "완벽주의 강박", "미래 막막함", "거절 공포", "지나간 후회", "가면 증후군", "스마트폰 중독", "결정 장애",
-          "눈치 보기", "벼락치기 습관", "타인 인정 욕구", "번아웃 무기력", "억지 미소", "취업 압박감", "수면 부족", "실패 공포증", "잦은 감정 기복", "뒤처짐 조급함",
-          "고립감과 외로움", "쓸데없는 잡생각", "꼰대와 갑질", "자책과 자기 비하", "억지 인연 유지", "학점·스펙 압박", "충동구매 후회", "시작의 두려움", "단톡방 알림 감옥", "과도한 책임감",
-          "부모님 잔소리", "과열된 머릿속", "애매한 재능", "만성 무기력", "타인의 무례함", "겉도는 관계", "질투와 열등감", "끝없는 미루기", "건강 악화", "타인의 오해",
-          "월세·생활비 압박", "도파민 중독", "좁아진 시야", "낮은 자존감", "겉만 번지르르함", "감정 쓰레기통 역할", "무리한 부탁", "고립된 혼밥", "흐려진 목표", "그냥 온갖 귀찮음"
-        ]
-      },
-      {
-        title: "그 천적을 맞닥뜨렸을 때,<br>어떻게 맞설 건가요?",
-        desc: "비장의 한 수를 골라주세요. (다중 선택)",
-        category: "#나만의 비장의 한 수",
-        options: [
-          '"어쩌라고" 마인드', "일단 푹 자기", "칼같은 단호함", "한 귀로 흘리기", "연락 차단 모드", "뻔뻔한 배짱", '"그럴 수 있지"', "빠른 손절", "나만의 속도", "미련 없는 포기",
-          "쿨한 넘김", "거절하는 용기", "침묵의 멍때리기", "스스로 토닥이기", "당당한 마이웨이", "무반응과 무관심", "셀프 칭찬", "혼자만의 고요", "딴청 피우기", "근거 없는 자신감",
-          "할 말은 하기", "맛있는 한 끼", "단단한 자기 확신", "일희일비 안 하기", "억지 웃음 멈추기", "타인 기대 던지기", "내 보폭 지키기", "씩씩한 리셋", "망해도 고(Go)", "즉각 브레이크",
-          "시선 차단 선글라스", "감정 분리하기", "지나간 일 잊기", "힘 빼고 유연함", "눈치 안 보기", "있는 그대로 긍정", "선 긋기", "방어막 치기", "소신 지키기", "작은 일탈",
-          "유쾌한 무시", "대범한 무덤덤함", "질문 가볍게 넘기기", "내 기분 우선", "무리한 부탁 쳐내기", "혼밥의 자유", "심호흡 한 번", "비교 스위치 끄기", "굳은살 멘탈", "그냥 오늘 하루 즐기기"
-        ]
-      },
-      {
-        title: "더욱 찬란해진 나비가 돌아올 날은?",
-        desc: "다시 날아앉을 시간을 정해 주세요."
-      },
-      {
-        title: "먼 하늘 너울 속으로 날아오를 나비의 이름은?",
-        desc: "나비에게 고유한 이름을 붙여주세요."
-      }
-    ];
-
-    var userSelections = {
-      q1: [], q2: [], q3: [], q4: [], q5: [],
-      q6_memo: "", q6_year: "", q6_month: "", q6_day: "", q6_email: "",
-      q7_name: ""
-    };
-
-    var currentStepIdx = 0;
-
-    function buildAdaptiveVerticalRows(items) {
-      var rows = [];
-      var i = 0;
-      while (i < items.length) {
-        var targetCount = 3;
-        var candidate = items.slice(i, i + targetCount);
-        var totalChars = candidate.reduce(function(sum, word) { return sum + word.length; }, 0);
-
-        if (totalChars > 12 && candidate.length > 2) {
-          targetCount = 2;
-        }
-
-        var actualRow = items.slice(i, i + targetCount);
-        rows.push(actualRow);
-        i += actualRow.length;
-      }
-      return rows;
-    }
-
-    var elTitle = document.getElementById('question-title');
-    var elDesc = document.getElementById('question-desc');
-    var elProgressBar = document.getElementById('progress-bar');
-    var surveyChipWrapper = document.getElementById('survey-chip-wrapper');
-    var elOrganicContainer = document.getElementById('organic-chip-container');
-
-    var elField6 = document.getElementById('field-step-6');
-    var elField7 = document.getElementById('field-step-7');
-    var btnSurveyNext = document.getElementById('btn-survey-next');
-    var btnSurveyPrev = document.getElementById('btn-survey-prev');
-
-    var inputQ6Memo = document.getElementById('input-q6-memo');
-    var memoCounter = document.getElementById('memo-counter');
-    var inputQ6Year = document.getElementById('input-q6-year');
-    var inputQ6Month = document.getElementById('input-q6-month');
-    var inputQ6Day = document.getElementById('input-q6-day');
-    var inputQ6Email = document.getElementById('input-q6-email');
-
-    var inputQ7Name = document.getElementById('input-q7-name');
-    var charCounter = document.getElementById('char-counter');
-
-    function renderSurveyStep() {
-      var q = surveyQuestions[currentStepIdx];
-      elTitle.innerHTML = q.title;
-      elDesc.innerHTML = q.desc;
-      elProgressBar.style.width = (((currentStepIdx + 1) / 7) * 100) + '%';
-
-      btnSurveyPrev.classList.toggle('invisible', currentStepIdx === 0);
-      btnSurveyNext.innerText = currentStepIdx === 6 ? "완성된 나비 만나기" : "다음 질문으로";
-
-      if (currentStepIdx < 5) {
-        surveyChipWrapper.classList.remove('hidden');
-        elField6.classList.add('hidden');
-        elField6.classList.remove('flex');
-        elField7.classList.add('hidden');
-        elField7.classList.remove('flex');
-        renderVerticalScrollChips();
-      } else if (currentStepIdx === 5) {
-        surveyChipWrapper.classList.add('hidden');
-        elField6.classList.remove('hidden');
-        elField6.classList.add('flex');
-        elField7.classList.add('hidden');
-        elField7.classList.remove('flex');
-      } else {
-        surveyChipWrapper.classList.add('hidden');
-        elField6.classList.add('hidden');
-        elField6.classList.remove('flex');
-        elField7.classList.remove('hidden');
-        elField7.classList.add('flex');
-      }
-
-      validateSurveyStep();
-    }
-
-    function updateChipStyle(chip, isSelected) {
-      if (isSelected) {
-        chip.classList.remove('chip-unselected');
-        chip.classList.add('chip-selected');
-        chip.style.setProperty('background', '#ffffff', 'important');
-        chip.style.setProperty('border', 'none', 'important');
-        chip.style.setProperty('outline', 'none', 'important');
-        chip.style.setProperty('color', '#000000', 'important');
-        chip.style.setProperty('font-weight', '700', 'important');
-        chip.style.setProperty('box-shadow', '0 0 18px 2px rgba(255, 255, 255, 0.5)', 'important');
-      } else {
-        chip.classList.remove('chip-selected');
-        chip.classList.add('chip-unselected');
-        chip.style.setProperty('background', 'rgba(255, 255, 255, 0.08)', 'important');
-        chip.style.setProperty('border', '1px solid rgba(255, 255, 255, 0.14)', 'important');
-        chip.style.setProperty('outline', 'none', 'important');
-        chip.style.setProperty('color', '#a3a3a3', 'important');
-        chip.style.setProperty('font-weight', '500', 'important');
-        chip.style.setProperty('box-shadow', 'none', 'important');
-      }
-    }
-
-    function renderVerticalScrollChips() {
-      var q = surveyQuestions[currentStepIdx];
-      var allOptions = q.options || [];
-      var rows = buildAdaptiveVerticalRows(allOptions);
-      var stateKey = 'q' + (currentStepIdx + 1);
-
-      elOrganicContainer.innerHTML = '';
-      surveyChipWrapper.scrollTop = 0;
-
-      rows.forEach(function(rowItems) {
-        var rowDiv = document.createElement('div');
-        rowDiv.className = 'flex items-center justify-center gap-1.5 w-full';
-
-        rowItems.forEach(function(item) {
-          var chip = document.createElement('button');
-          chip.type = 'button';
-          chip.className = 'chip-base';
-          chip.innerText = item;
-
-          var isSelected = userSelections[stateKey].indexOf(item) > -1;
-          updateChipStyle(chip, isSelected);
-
-          chip.addEventListener('click', function() {
-            var idx = userSelections[stateKey].indexOf(item);
-            var nextState = false;
-            if (idx > -1) {
-              userSelections[stateKey].splice(idx, 1);
-              nextState = false;
-            } else {
-              userSelections[stateKey].push(item);
-              nextState = true;
-            }
-            updateChipStyle(chip, nextState);
-            validateSurveyStep();
-          });
-
-          rowDiv.appendChild(chip);
-        });
-
-        elOrganicContainer.appendChild(rowDiv);
-      });
-    }
-
-    function validateSurveyStep() {
-      var isValid = false;
-      if (currentStepIdx === 0) isValid = userSelections.q1.length > 0;
-      else if (currentStepIdx === 1) isValid = userSelections.q2.length > 0;
-      else if (currentStepIdx === 2) isValid = userSelections.q3.length > 0;
-      else if (currentStepIdx === 3) isValid = userSelections.q4.length > 0;
-      else if (currentStepIdx === 4) isValid = userSelections.q5.length > 0;
-      else if (currentStepIdx === 5) {
-        var y = parseInt(userSelections.q6_year, 10);
-        var m = parseInt(userSelections.q6_month, 10);
-        var d = parseInt(userSelections.q6_day, 10);
-        var isDateValid = !isNaN(y) && y >= 2024 && !isNaN(m) && m >= 1 && m <= 12 && !isNaN(d) && d >= 1 && d <= 31;
-        var isEmailValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(userSelections.q6_email);
-        isValid = isDateValid && isEmailValid;
-      } else if (currentStepIdx === 6) {
-        isValid = userSelections.q7_name.trim().length > 0;
-      }
-      btnSurveyNext.disabled = !isValid;
-    }
-
-    inputQ6Memo.addEventListener('input', function(e) {
-      userSelections.q6_memo = e.target.value;
-      memoCounter.innerText = e.target.value.length + ' / 50';
-    });
-
-    inputQ6Year.addEventListener('input', function(e) {
-      userSelections.q6_year = e.target.value.trim();
-      validateSurveyStep();
-    });
-
-    inputQ6Month.addEventListener('input', function(e) {
-      userSelections.q6_month = e.target.value.trim();
-      validateSurveyStep();
-    });
-
-    inputQ6Day.addEventListener('input', function(e) {
-      userSelections.q6_day = e.target.value.trim();
-      validateSurveyStep();
-    });
-
-    inputQ6Email.addEventListener('input', function(e) {
-      userSelections.q6_email = e.target.value.trim();
-      validateSurveyStep();
-    });
-
-    inputQ7Name.addEventListener('input', function(e) {
-      userSelections.q7_name = e.target.value.trim();
-      charCounter.innerText = e.target.value.length + ' / 10';
-      validateSurveyStep();
-    });
-
-    function startAnswerShowcaseSequence() {
-      var showcaseCard = document.getElementById('showcase-card');
-      var showcaseCategory = document.getElementById('showcase-category');
-      var showcaseAnswers = document.getElementById('showcase-answers');
-      var progressBar = document.getElementById('generation-progress-bar');
-      var percentText = document.getElementById('generation-percent');
-      var stepDots = document.querySelectorAll('.step-dot');
-      var loadingSvg = document.getElementById('loading-butterfly-svg');
-      var blackCurtain = document.getElementById('cinematic-black-curtain');
-      var whiteFlash = document.getElementById('cinematic-white-flash');
-      var mainTitle = document.getElementById('loading-main-title');
-      var subDesc = document.getElementById('loading-sub-desc');
-
-      var butterflyName = userSelections.q7_name ? userSelections.q7_name.trim() : "나비";
-
-      var steps = [
-        { key: 'q1', category: '#나의 고유한 모습', fallback: ["차분한", "나만의 속도"] },
-        { key: 'q2', category: '#향하고 싶은 여정', fallback: ["자유로운 비행", "나만의 작업실"] },
-        { key: 'q3', category: '#품고 날아갈 마음', fallback: ["단단한 자기 확신", "서두르지 않기"] },
-        { key: 'q4', category: '#마주친 마음의 천적', fallback: ["비교와 조급함", "번아웃 무기력"] },
-        { key: 'q5', category: '#나만의 비장의 한 수', fallback: ["유연한 태도", "그냥 오늘 하루 즐기기"] },
-        { isFinal: true, category: '#마침내 깨어난 날갯짓', name: butterflyName }
-      ];
-
-      var currentShowcaseIdx = 0;
-      var totalSteps = steps.length;
-      var stepDuration = 5000;
-
-      function renderStep(idx) {
-        var item = steps[idx];
-
-        showcaseCard.classList.remove('visible-state');
-        showcaseCard.classList.add('hidden-state');
-
-        setTimeout(function() {
-          showcaseCategory.innerText = item.category;
-
-          if (item.isFinal) {
-            if (blackCurtain) blackCurtain.classList.add('fade-active');
-
-            if (mainTitle) mainTitle.innerHTML = '마침내,<br><span class="text-white">빛의 날개가 펼쳐집니다</span>';
-            if (subDesc) subDesc.innerText = '어둠 속에서 비로소 고유한 숨결이 깨어납니다.';
-
-            if (loadingSvg) {
-              loadingSvg.classList.remove('text-white');
-              loadingSvg.classList.add('scale-125');
-              loadingSvg.style.filter = "drop-shadow(0 0 35px rgba(255, 255, 255, 1))";
-            }
-
-            showcaseCard.style.backgroundColor = "rgba(255, 255, 255, 0.05)";
-            showcaseCard.style.borderColor = "rgba(255, 255, 255, 0.25)";
-
-            showcaseAnswers.innerHTML = '<div class="py-2.5 px-2 text-center w-full space-y-2.5"><span class="inline-block text-[10px] font-mono tracking-widest text-neutral-400 uppercase">Soul Awakening</span><p class="text-[1.05rem] font-bold text-white leading-relaxed break-keep drop-shadow-lg">이제 마음 깊은 곳에서 숨 쉬던 <strong class="text-white font-extrabold underline decoration-white/40 underline-offset-4">‘' + item.name + '’</strong>(이)가<br>찬란한 빛의 날개를 펴고 깨어납니다.</p></div>';
-          } else {
-            var answers = (userSelections[item.key] && userSelections[item.key].length > 0) 
-                            ? userSelections[item.key] 
-                            : item.fallback;
-
-            showcaseAnswers.innerHTML = answers.map(function(ans) {
-              return '<span class="px-3.5 py-1.5 rounded-full bg-white/20 border border-white/30 text-white font-semibold text-xs tracking-tight shadow-sm">' + ans + '</span>';
-            }).join('');
-          }
-
-          stepDots.forEach(function(dot, dIdx) {
-            if (dIdx === idx) {
-              dot.classList.remove('bg-white/30');
-              dot.classList.add('bg-white', 'scale-125');
-            } else {
-              dot.classList.remove('bg-white', 'scale-125');
-              dot.classList.add('bg-white/30');
-            }
-          });
-
-          var percent = Math.min(100, Math.round(((idx + 1) / totalSteps) * 100));
-          progressBar.style.width = percent + '%';
-          percentText.innerText = percent + '%';
-
-          showcaseCard.classList.remove('hidden-state');
-          showcaseCard.classList.add('visible-state');
-        }, 400);
-      }
-
-      renderStep(0);
-
-      var interval = setInterval(function() {
-        currentShowcaseIdx++;
-        if (currentShowcaseIdx < totalSteps) {
-          renderStep(currentShowcaseIdx);
-        } else {
-          clearInterval(interval);
-          setTimeout(function() {
-            if (whiteFlash) whiteFlash.classList.add('flash-active');
-
-            setTimeout(function() {
-              var nameHeader = document.getElementById('preview-butterfly-name');
-              if (nameHeader) {
-                nameHeader.innerText = '‘' + butterflyName + '’';
-              }
-              showScreen('screen-preview');
-              initFullButterflyViewer(currentExtractedTexture);
-
-              setTimeout(function() {
-                if (whiteFlash) whiteFlash.classList.remove('flash-active');
-              }, 450);
-            }, 650);
-          }, 4600);
-        }
-      }, stepDuration);
-    }
-
-    btnSurveyNext.addEventListener('click', function() {
-      if (currentStepIdx < 6) {
-        currentStepIdx++;
-        renderSurveyStep();
-      } else {
-        showScreen('screen-loading');
-        startAnswerShowcaseSequence();
-      }
-    });
-
-    btnSurveyPrev.addEventListener('click', function() {
-      if (currentStepIdx > 0) {
-        currentStepIdx--;
-        renderSurveyStep();
-      }
-    });
-
-    /* ========================================================
-       2단계 사진 맞추기 코어 로직 (100% 무결점 보장)
-       ======================================================== */
-    var rawImage = new Image();
-    var alignCanvas = document.getElementById('align-canvas');
-    var actx = alignCanvas.getContext('2d');
-
-    var imgX = 0, imgY = 0, imgScale = 1.0;
-    var isDragging = false;
-    var startX = 0, startY = 0;
-    var startPinchDist = 0, pinchStartScale = 1.0;
-    var currentExtractedTexture = null;
-
-    function handleFile(file) {
-      if (!file) return;
-
-      // 버그 수정 3: 파일을 선택하자마자 맞추기 화면으로 즉시 전환시켜 멈춤 현상 체감 제거
-      showScreen('screen-align');
-
-      var reader = new FileReader();
-      reader.onload = function(e) {
-        var img = new Image();
-        img.onload = function() {
-          rawImage = img;
-          setTimeout(function() {
-            initAlignUI();
-          }, 30);
-        };
-        img.src = e.target.result;
-      };
-      reader.readAsDataURL(file);
-    }
-
-    var cameraInput = document.getElementById('camera-input');
-    var albumInput = document.getElementById('album-input');
-
-    // 버그 수정 4: 동일한 사진을 지우고 다시 올리려고 할 때 반응 없는 현상 방지
-    cameraInput.addEventListener('click', function(e) { e.target.value = null; });
-    albumInput.addEventListener('click', function(e) { e.target.value = null; });
-
-    cameraInput.addEventListener('change', function(e) {
-      if (e.target.files && e.target.files[0]) {
-        handleFile(e.target.files[0]);
-      }
-    });
-
-    albumInput.addEventListener('change', function(e) {
-      if (e.target.files && e.target.files[0]) {
-        handleFile(e.target.files[0]);
-      }
-    });
-
-    document.getElementById('btn-rephoto').addEventListener('click', function() {
-      cameraInput.value = '';
-      albumInput.value = '';
-      showScreen('screen-capture-guide');
-    });
-
-    function initAlignUI() {
-      if (!rawImage || !rawImage.width || rawImage.width === 0) return;
-      var baseScale = alignCanvas.width / Math.min(rawImage.width, rawImage.height);
-      imgScale = baseScale;
-      imgX = (alignCanvas.width - rawImage.width * imgScale) / 2;
-      imgY = (alignCanvas.height - rawImage.height * imgScale) / 2;
-      drawAlignCanvas();
-    }
-
-    function drawAlignCanvas() {
-      if (!rawImage || !rawImage.width || rawImage.width === 0) return;
-      actx.clearRect(0, 0, alignCanvas.width, alignCanvas.height);
-      actx.save();
-      actx.drawImage(rawImage, imgX, imgY, rawImage.width * imgScale, rawImage.height * imgScale);
-      actx.restore();
-    }
-
-    alignCanvas.addEventListener('mousedown', function(e) {
-      isDragging = true;
-      var rect = alignCanvas.getBoundingClientRect();
-      var scaleFactor = alignCanvas.width / rect.width;
-      startX = (e.clientX - rect.left) * scaleFactor - imgX;
-      startY = (e.clientY - rect.top) * scaleFactor - imgY;
-    });
-
-    window.addEventListener('mousemove', function(e) {
-      if (!isDragging) return;
-      var rect = alignCanvas.getBoundingClientRect();
-      var scaleFactor = alignCanvas.width / rect.width;
-      imgX = (e.clientX - rect.left) * scaleFactor - startX;
-      imgY = (e.clientY - rect.top) * scaleFactor - startY;
-      drawAlignCanvas();
-    });
-
-    window.addEventListener('mouseup', function() { isDragging = false; });
-
-    alignCanvas.addEventListener('touchstart', function(e) {
-      var rect = alignCanvas.getBoundingClientRect();
-      var scaleFactor = alignCanvas.width / rect.width;
-
-      if (e.touches.length === 1) {
-        isDragging = true;
-        startX = (e.touches[0].clientX - rect.left) * scaleFactor - imgX;
-        startY = (e.touches[0].clientY - rect.top) * scaleFactor - imgY;
-      } else if (e.touches.length === 2) {
-        isDragging = false;
-        startPinchDist = Math.hypot(
-          e.touches[0].clientX - e.touches[1].clientX,
-          e.touches[0].clientY - e.touches[1].clientY
-        );
-        pinchStartScale = imgScale;
-      }
-    }, { passive: false });
-
-    window.addEventListener('touchmove', function(e) {
-      if (!document.getElementById('screen-align').classList.contains('active')) return;
-      if (e.cancelable) e.preventDefault();
-
-      var rect = alignCanvas.getBoundingClientRect();
-      var scaleFactor = alignCanvas.width / rect.width;
-
-      if (e.touches.length === 1 && isDragging) {
-        imgX = (e.touches[0].clientX - rect.left) * scaleFactor - startX;
-        imgY = (e.touches[0].clientY - rect.top) * scaleFactor - startY;
-        drawAlignCanvas();
-      } else if (e.touches.length === 2 && startPinchDist > 0) {
-        var currentDist = Math.hypot(
-          e.touches[0].clientX - e.touches[1].clientX,
-          e.touches[0].clientY - e.touches[1].clientY
-        );
-        var factor = currentDist / startPinchDist;
-        imgScale = pinchStartScale * factor;
-        drawAlignCanvas();
-      }
-    }, { passive: false });
-
-    window.addEventListener('touchend', function() {
-      isDragging = false;
-      startPinchDist = 0;
-    });
-
-    function processClearDrawingTexture(sourceCanvas) {
-      var size = 512;
-      var dreamCanvas = document.createElement('canvas');
-      dreamCanvas.width = size;
-      dreamCanvas.height = size;
-      var dctx = dreamCanvas.getContext('2d');
-
-      dctx.save();
-      dctx.filter = 'contrast(1.35) saturate(1.2) brightness(1.05)';
-      dctx.drawImage(sourceCanvas, 0, 0, size, size);
-      dctx.restore();
-
-      return dreamCanvas.toDataURL('image/jpeg', 0.85);
-    }
-
-    document.getElementById('btn-confirm-align').addEventListener('click', function() {
-      var exportCanvas = document.createElement('canvas');
-      exportCanvas.width = 512;
-      exportCanvas.height = 512;
-      var ectx = exportCanvas.getContext('2d');
-
-      var scaleRatio = 512 / alignCanvas.width;
-      ectx.fillStyle = "#ffffff";
-      ectx.fillRect(0, 0, 512, 512);
-      if (rawImage && rawImage.width) {
-        ectx.drawImage(rawImage, imgX * scaleRatio, imgY * scaleRatio, rawImage.width * imgScale * scaleRatio, rawImage.height * imgScale * scaleRatio);
-      }
-
-      currentExtractedTexture = processClearDrawingTexture(exportCanvas);
-      updateHeroPreview();
-      showScreen('screen-shape-select');
-    });
-
-    function createCustomWingShape(shapeType, isRight) {
-      var shape = new THREE.Shape();
-      var s = isRight ? 1 : -1;
-
-      shape.moveTo(0, 0.48);
-
-      if (shapeType === 'pointy') {
-        shape.bezierCurveTo(s * 0.12, 1.05, s * 0.75, 2.58, s * 1.75, 2.65);
-        shape.bezierCurveTo(s * 1.95, 1.82, s * 1.55, 1.05, s * 1.12, 0.18);
-        shape.bezierCurveTo(s * 1.68, -0.22, s * 1.82, -1.35, s * 1.28, -1.92);
-        shape.bezierCurveTo(s * 0.88, -2.15, s * 0.45, -1.88, s * 0.25, -1.48);
-        shape.bezierCurveTo(s * 0.15, -1.15, s * 0.05, -0.72, 0, -0.48);
-      } else if (shapeType === 'flutter') {
-        shape.bezierCurveTo(s * 0.35, 0.85, s * 1.35, 1.75, s * 2.38, 1.52);
-        shape.bezierCurveTo(s * 2.82, 1.05, s * 2.25, 0.45, s * 2.65, -0.05);
-        shape.bezierCurveTo(s * 2.78, -0.52, s * 2.05, -0.78, s * 1.65, -0.85);
-        shape.bezierCurveTo(s * 2.22, -1.25, s * 1.95, -1.95, s * 1.35, -2.08);
-        shape.bezierCurveTo(s * 0.88, -2.15, s * 0.48, -1.65, s * 0.25, -1.42);
-        shape.bezierCurveTo(s * 0.15, -1.15, s * 0.05, -0.72, 0, -0.48);
-      } else if (shapeType === 'fairy') {
-        shape.bezierCurveTo(s * 0.18, 1.02, s * 0.98, 2.52, s * 1.95, 2.68);
-        shape.bezierCurveTo(s * 2.12, 1.82, s * 1.45, 1.08, s * 1.28, 0.25);
-        shape.bezierCurveTo(s * 1.88, -0.15, s * 2.05, -1.32, s * 1.48, -2.15);
-        shape.bezierCurveTo(s * 1.08, -2.42, s * 0.62, -2.25, s * 0.35, -1.78);
-        shape.bezierCurveTo(s * 0.18, -1.28, s * 0.08, -0.78, 0, -0.48);
-      } else if (shapeType === 'monarch') {
-        shape.bezierCurveTo(s * 0.48, 0.95, s * 1.42, 1.92, s * 2.55, 1.78);
-        shape.bezierCurveTo(s * 2.92, 1.25, s * 2.55, 0.45, s * 1.95, -0.05);
-        shape.bezierCurveTo(s * 2.52, -0.58, s * 2.48, -1.72, s * 1.88, -2.25);
-        shape.bezierCurveTo(s * 1.48, -2.32, s * 1.15, -1.82, s * 0.88, -1.62);
-        shape.bezierCurveTo(s * 0.48, -1.45, s * 0.22, -1.15, 0, -0.48);
-      } else if (shapeType === 'wave') {
-        shape.bezierCurveTo(s * 0.22, 0.95, s * 0.92, 2.35, s * 1.95, 2.22);
-        shape.bezierCurveTo(s * 2.28, 1.62, s * 1.72, 1.22, s * 2.45, 0.92);
-        shape.bezierCurveTo(s * 2.72, 0.42, s * 2.12, -0.12, s * 2.52, -0.45);
-        shape.bezierCurveTo(s * 2.72, -0.85, s * 2.05, -1.28, s * 1.75, -1.35);
-        shape.bezierCurveTo(s * 2.12, -1.75, s * 1.82, -2.22, s * 1.42, -2.28);
-        shape.bezierCurveTo(s * 0.85, -2.35, s * 0.52, -1.82, s * 0.25, -1.42);
-        shape.bezierCurveTo(s * 0.15, -1.15, s * 0.05, -0.72, 0, -0.48);
-      } else {
-        shape.bezierCurveTo(s * 0.32, 0.88, s * 1.15, 1.78, s * 1.95, 1.72);
-        shape.bezierCurveTo(s * 2.58, 1.68, s * 2.78, 1.18, s * 2.45, 0.62);
-        shape.bezierCurveTo(s * 2.18, 0.22, s * 1.78, 0.02, s * 1.35, -0.08);
-        shape.bezierCurveTo(s * 1.80, -0.35, s * 1.80, -1.08, s * 1.45, -1.52);
-        shape.bezierCurveTo(s * 1.05, -1.92, s * 0.55, -1.82, s * 0.32, -1.48);
-        shape.bezierCurveTo(s * 0.16, -1.15, s * 0.05, -0.72, 0, -0.48);
-      }
-
-      shape.lineTo(0, 0.48);
-      shape.closePath();
-
-      var geom = new THREE.ShapeGeometry(shape, 56);
-      var pos = geom.attributes.position;
-      var uvs = [];
-      var totalSpan = 5.4;
-      for (var i = 0; i < pos.count; i++) {
-        var x = pos.getX(i);
-        var y = pos.getY(i);
-        uvs.push(0.5 + (x / totalSpan), 0.5 + (y / totalSpan));
-      }
-      geom.setAttribute('uv', new THREE.Float32BufferAttribute(uvs, 2));
-      geom.setAttribute('uv2', new THREE.Float32BufferAttribute(uvs, 2));
-      geom.computeVertexNormals();
-      return geom;
-    }
-
-    function createSegmentedBodyGeometry() {
-      var points = [];
-      points.push(new THREE.Vector2(0.001, 0.72));
-      points.push(new THREE.Vector2(0.12, 0.62));
-      points.push(new THREE.Vector2(0.085, 0.51));
-      points.push(new THREE.Vector2(0.165, 0.28));
-      points.push(new THREE.Vector2(0.105, 0.05));
-      points.push(new THREE.Vector2(0.13, -0.15));
-      points.push(new THREE.Vector2(0.11, -0.32));
-      points.push(new THREE.Vector2(0.115, -0.42));
-      points.push(new THREE.Vector2(0.07, -0.65));
-      points.push(new THREE.Vector2(0.001, -0.82));
-
-      var geom = new THREE.LatheGeometry(points, 32);
-      geom.computeVertexNormals();
-      return geom;
-    }
-
-    function createCustomAntennaGroup(isRight, material, antennaType) {
-      var group = new THREE.Group();
-      var s = isRight ? 1 : -1;
-
-      if (antennaType === 'feather') {
-        var curve = new THREE.CubicBezierCurve3(
-          new THREE.Vector3(0, 0, 0),
-          new THREE.Vector3(s * 0.12, 0.45, 0.08),
-          new THREE.Vector3(s * 0.35, 0.85, 0.14),
-          new THREE.Vector3(s * 0.45, 1.05, 0.2)
-        );
-        var tubeGeom = new THREE.TubeGeometry(curve, 24, 0.026, 8, false);
-        group.add(new THREE.Mesh(tubeGeom, material));
-
-        for (var i = 0; i < 4; i++) {
-          var t = 0.45 + i * 0.15;
-          var pt = curve.getPoint(t);
-          var fCurve = new THREE.LineCurve3(
-            pt,
-            new THREE.Vector3(pt.x + s * 0.14, pt.y + 0.05, pt.z + 0.04)
-          );
-          var fGeom = new THREE.TubeGeometry(fCurve, 8, 0.016, 6, false);
-          group.add(new THREE.Mesh(fGeom, material));
-        }
-
-      } else if (antennaType === 'star') {
-        var curve = new THREE.CubicBezierCurve3(
-          new THREE.Vector3(0, 0, 0),
-          new THREE.Vector3(s * 0.15, 0.45, 0.08),
-          new THREE.Vector3(s * 0.42, 0.75, 0.14),
-          new THREE.Vector3(s * 0.52, 0.98, 0.2)
-        );
-        var tubeGeom = new THREE.TubeGeometry(curve, 24, 0.026, 8, false);
-        group.add(new THREE.Mesh(tubeGeom, material));
-
-        var octGeom = new THREE.OctahedronGeometry(0.09, 0);
-        var tipMesh = new THREE.Mesh(octGeom, material);
-        tipMesh.position.set(s * 0.52, 0.98, 0.2);
-        tipMesh.rotation.z = s * 0.4;
-        group.add(tipMesh);
-
-      } else if (antennaType === 'crescent') {
-        var curve = new THREE.CubicBezierCurve3(
-          new THREE.Vector3(0, 0, 0),
-          new THREE.Vector3(s * 0.14, 0.42, 0.08),
-          new THREE.Vector3(s * 0.45, 0.82, 0.14),
-          new THREE.Vector3(s * 0.32, 1.15, 0.2)
-        );
-        var tubeGeom = new THREE.TubeGeometry(curve, 28, 0.026, 8, false);
-        group.add(new THREE.Mesh(tubeGeom, material));
-
-        var tipGeom = new THREE.ConeGeometry(0.042, 0.15, 8);
-        var tipMesh = new THREE.Mesh(tipGeom, material);
-        tipMesh.position.set(s * 0.32, 1.15, 0.2);
-        tipMesh.rotation.z = -s * 0.7;
-        group.add(tipMesh);
-
-      } else {
-        var curve = new THREE.CubicBezierCurve3(
-          new THREE.Vector3(0, 0, 0),
-          new THREE.Vector3(s * 0.15, 0.45, 0.08),
-          new THREE.Vector3(s * 0.42, 0.75, 0.14),
-          new THREE.Vector3(s * 0.52, 0.98, 0.2)
-        );
-        var tubeGeom = new THREE.TubeGeometry(curve, 24, 0.026, 8, false);
-        group.add(new THREE.Mesh(tubeGeom, material));
-
-        var tipGeom = new THREE.SphereGeometry(0.068, 16, 16);
-        var tipMesh = new THREE.Mesh(tipGeom, material);
-        tipMesh.position.set(s * 0.52, 0.98, 0.2);
-        group.add(tipMesh);
-      }
-
-      return group;
-    }
-
-    function createEtherealGlowSprite(colorHex, size, opacity) {
-      colorHex = colorHex || '#ffffff';
-      size = size || 5.2;
-      opacity = opacity || 0.5;
-
-      var canvas = document.createElement('canvas');
-      canvas.width = 512;
-      canvas.height = 512;
-      var ctx = canvas.getContext('2d');
-
-      var grad = ctx.createRadialGradient(256, 256, 0, 256, 256, 256);
-      grad.addColorStop(0.0, 'rgba(255, 255, 255, 0.9)');
-      grad.addColorStop(0.24, 'rgba(255, 255, 255, 0.35)');
-      grad.addColorStop(0.5, colorHex);
-      grad.addColorStop(0.8, 'rgba(255, 255, 255, 0.05)');
-      grad.addColorStop(1.0, 'rgba(0, 0, 0, 0)');
-
-      ctx.fillStyle = grad;
-      ctx.fillRect(0, 0, 512, 512);
-
-      var texture = new THREE.CanvasTexture(canvas);
-      var mat = new THREE.SpriteMaterial({
-        map: texture,
-        blending: THREE.AdditiveBlending,
-        transparent: true,
-        opacity: opacity,
-        depthWrite: false
-      });
-      var sprite = new THREE.Sprite(mat);
-      sprite.scale.set(size, size, 1);
-      return sprite;
-    }
-
-    function createPureWhiteMaterial() {
-      return new THREE.MeshBasicMaterial({
-        color: 0xffffff,
-        side: THREE.DoubleSide
-      });
-    }
-
-    var fullScene, fullCamera, fullRenderer, fullGroup, fullLeftWing, fullRightWing;
-    var fullGlow1, fullGlow2;
-    var isFlyingAway = false, touchStartY = 0;
-
-    async function saveButterflyToSupabase() {
-      try {
-        if (!supabase) return; // 방어 코드 적용
-        var revisit = userSelections.q6_year + '-' + userSelections.q6_month + '-' + userSelections.q6_day;
-        var res = await supabase
-          .from('butterflies')
-          .insert([
-            {
-              name: userSelections.q7_name || '이름없는 나비',
-              wing_shape: selectedButterflyShape,
-              antenna_type: selectedAntennaType,
-              q1: userSelections.q1,
-              q2: userSelections.q2,
-              q3: userSelections.q3,
-              q4: userSelections.q4,
-              q5: userSelections.q5,
-              memo: userSelections.q6_memo,
-              revisit_date: revisit,
-              email: userSelections.q6_email,
-              texture_url: currentExtractedTexture
-            }
-          ]);
-      } catch (err) {
-        console.error("Supabase 연동 에러:", err);
-      }
-    }
-
-    function initFullButterflyViewer(textureURL) {
-      var container = document.getElementById('three-container');
-      container.innerHTML = '';
-
-      var width = window.innerWidth;
-      var height = window.innerHeight;
-
-      fullScene = new THREE.Scene();
-      fullCamera = new THREE.PerspectiveCamera(38, width / height, 0.1, 1000);
-      fullCamera.position.set(0, -0.1, 9.5);
-      fullCamera.lookAt(0, 0, 0);
-
-      fullRenderer = new THREE.WebGLRenderer({ alpha: true, antialias: true });
-      fullRenderer.setSize(width, height);
-      fullRenderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-      container.appendChild(fullRenderer.domElement);
-
-      var textureLoader = new THREE.TextureLoader();
-      var userTexture = textureLoader.load(textureURL);
-
-      fullGroup = new THREE.Group();
-
-      var wingMat = new THREE.MeshBasicMaterial({
-        map: userTexture,
-        side: THREE.DoubleSide
-      });
-
-      fullLeftWing = new THREE.Mesh(createCustomWingShape(selectedButterflyShape, false), wingMat);
-      fullLeftWing.position.set(0, 0, 0);
-      fullGroup.add(fullLeftWing);
-
-      fullRightWing = new THREE.Mesh(createCustomWingShape(selectedButterflyShape, true), wingMat);
-      fullRightWing.position.set(0, 0, 0);
-      fullGroup.add(fullRightWing);
-
-      var pureWhiteMat = createPureWhiteMaterial();
-      fullGroup.add(new THREE.Mesh(createSegmentedBodyGeometry(), pureWhiteMat));
-
-      var antennaLeft = createCustomAntennaGroup(false, pureWhiteMat, selectedAntennaType);
-      antennaLeft.position.set(-0.04, 0.58, 0.12);
-      fullGroup.add(antennaLeft);
-
-      var antennaRight = createCustomAntennaGroup(true, pureWhiteMat, selectedAntennaType);
-      antennaRight.position.set(0.04, 0.58, 0.12);
-      fullGroup.add(antennaRight);
-
-      fullGlow1 = createEtherealGlowSprite('#ffffff', 4.8, 0.4);
-      fullGlow1.position.set(0, 0.1, -0.06);
-      fullGroup.add(fullGlow1);
-
-      fullGlow2 = createEtherealGlowSprite('#e5e5e5', 6.4, 0.2);
-      fullGlow2.position.set(0, 0.1, -0.09);
-      fullGroup.add(fullGlow2);
-
-      fullGroup.scale.set(0.62, 0.62, 0.62);
-      fullScene.add(fullGroup);
-
-      var clock = new THREE.Clock();
-      function animate() {
-        requestAnimationFrame(animate);
-        var time = clock.getElapsedTime();
-
-        var pulse = 1 + Math.sin(time * 2.8) * 0.05;
-        if (fullGlow1) fullGlow1.scale.set(4.8 * pulse, 4.8 * pulse, 1);
-        if (fullGlow2) fullGlow2.scale.set(6.4 * pulse, 6.4 * pulse, 1);
-
-        if (!isFlyingAway) {
-          var flap = Math.sin(time * 5.0) * 0.48;
-          fullLeftWing.rotation.y = flap;
-          fullRightWing.rotation.y = -flap;
-          fullGroup.position.y = Math.sin(time * 1.8) * 0.12;
-        } else {
-          var fastFlap = Math.sin(time * 22) * 0.7;
-          fullLeftWing.rotation.y = fastFlap;
-          fullRightWing.rotation.y = -fastFlap;
-          fullGroup.position.y += 0.15;
-          fullGroup.position.z -= 0.07;
-
-          if (fullGroup.position.y > 8.5) {
-            saveButterflyToSupabase();
-
-            var completeDesc = document.getElementById('complete-desc');
-            if (completeDesc) {
-              completeDesc.innerHTML = '<strong>‘' + (userSelections.q7_name || "나비") + '’</strong>(이)가 빛의 날개를 펴고 너울 속으로 합류했습니다.';
-            }
-            showScreen('screen-complete');
-            isFlyingAway = false;
-          }
-        }
-        fullRenderer.render(fullScene, fullCamera);
-      }
-      animate();
-
-      bindSwipeEvents(container);
-    }
-
-    function bindSwipeEvents(targetEl) {
-      targetEl.addEventListener('touchstart', function(e) {
-        touchStartY = e.touches[0].clientY;
-      }, { passive: true });
-
-      targetEl.addEventListener('touchend', function(e) {
-        var deltaY = touchStartY - e.changedTouches[0].clientY;
-        if (deltaY > 50 && !isFlyingAway) isFlyingAway = true;
-      }, { passive: true });
-
-      var isMouseDown = false;
-      targetEl.addEventListener('mousedown', function(e) {
-        isMouseDown = true;
-        touchStartY = e.clientY;
-      });
-      targetEl.addEventListener('mouseup', function(e) {
-        if (!isMouseDown) return;
-        isMouseDown = false;
-        if ((touchStartY - e.clientY) > 50 && !isFlyingAway) isFlyingAway = true;
-      });
-    }
-
-    renderSurveyStep();
-  </script>
+  <script src="butterflies.js"></script>
+  <script src="app.js"></script>
 </body>
 </html>
