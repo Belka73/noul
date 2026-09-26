@@ -1,7 +1,9 @@
 /* ==========================================================================
    🌟 너울(Noul) 메인 애플리케이션 로직 (app.js)
-   - 나비 위치 정중앙(Center) 완벽 원위치
-   - 모바일 최적 스케일 및 날갯짓 회전축 보정
+   - 직선형 캐러셀 스크롤 구현 (곡선 왜곡 제거)
+   - 하단 알약 바에 [흐림도] 탭 추가 연동
+   - 블러 슬라이더 깔끔한 단일 핸들 제어
+   - 3D 나비 모델 좌표축 및 날갯짓 회전축 보정 완료
    ========================================================================== */
 
 function showScreen(screenId) {
@@ -204,6 +206,7 @@ function updateHeroPreview() {
   }
 }
 
+/* 🌟 직선형 가로 캐러셀 렌더러 */
 var carouselContainer = document.getElementById('arch-carousel-container');
 
 function renderCarouselItems() {
@@ -213,7 +216,7 @@ function renderCarouselItems() {
       var isActive = w.id === selectedButterflyShape;
       var div = document.createElement('div');
       div.className = 'arch-track-item';
-      div.innerHTML = '<button type="button" class="shape-thumb-btn ' + (isActive ? 'active' : '') + '" data-type="wing" data-id="' + w.id + '"><div class="shape-circle-badge"><svg viewBox="' + w.viewBox + '" preserveAspectRatio="xMidYMid meet"><path d="' + w.d + '"/></svg></div></button><span class="shape-item-label text-[11px] ' + (isActive ? 'font-bold text-white' : 'font-medium text-neutral-500') + ' tracking-tight">' + w.name + '</span>';
+      div.innerHTML = '<button type="button" class="shape-thumb-btn ' + (isActive ? 'active' : '') + '" data-type="wing" data-id="' + w.id + '"><svg viewBox="' + w.viewBox + '" preserveAspectRatio="xMidYMid meet"><path d="' + w.d + '"/></svg></button><span class="shape-item-label text-[11px] ' + (isActive ? 'font-bold text-white' : 'font-medium text-neutral-500') + ' tracking-tight">' + w.name + '</span>';
       carouselContainer.appendChild(div);
     });
   } else if (activeCustomTab === 'antenna') {
@@ -221,14 +224,14 @@ function renderCarouselItems() {
       var isActive = a.id === selectedAntennaType;
       var div = document.createElement('div');
       div.className = 'arch-track-item';
-      div.innerHTML = '<button type="button" class="shape-thumb-btn ' + (isActive ? 'active' : '') + '" data-type="antenna" data-id="' + a.id + '"><div class="shape-circle-badge"><svg viewBox="-26 -30 52 38" preserveAspectRatio="xMidYMid meet"><g>' + a.render(1.1) + '</g></svg></div></button><span class="shape-item-label text-[11px] ' + (isActive ? 'font-bold text-white' : 'font-medium text-neutral-500') + ' tracking-tight">' + a.name + '</span>';
+      div.innerHTML = '<button type="button" class="shape-thumb-btn ' + (isActive ? 'active' : '') + '" data-type="antenna" data-id="' + a.id + '"><svg viewBox="-26 -30 52 38" preserveAspectRatio="xMidYMid meet"><g>' + a.render(1.1) + '</g></svg></button><span class="shape-item-label text-[11px] ' + (isActive ? 'font-bold text-white' : 'font-medium text-neutral-500') + ' tracking-tight">' + a.name + '</span>';
       carouselContainer.appendChild(div);
     });
   }
 
   bindItemClickEvents();
   updateCarouselPadding();
-  applyArchCurveAndSelection();
+  applyStraightSelection();
 
   setTimeout(function() {
     var activeBtn = carouselContainer.querySelector('.shape-thumb-btn.active');
@@ -257,14 +260,14 @@ function updateCarouselPadding() {
   }
 }
 
-function applyArchCurveAndSelection() {
+/* 🌟 직선형 정렬 및 투명도 계산 (곡선 Y축 왜곡 제거) */
+function applyStraightSelection() {
   if (!carouselContainer) return;
   var cWidth = carouselContainer.clientWidth;
   var scrollLeft = carouselContainer.scrollLeft;
   var centerX = scrollLeft + (cWidth / 2);
   var items = carouselContainer.querySelectorAll('.arch-track-item');
-  var R = 240; 
-  var CENTER_THRESHOLD = 38;
+  var CENTER_THRESHOLD = 36;
   var centerDetectedItem = null;
   var minDistance = Infinity;
 
@@ -275,9 +278,8 @@ function applyArchCurveAndSelection() {
       minDistance = dist;
       centerDetectedItem = item;
     }
-    var safeDist = Math.min(dist, R - 6);
-    var translateY = R - Math.sqrt((R * R) - (safeDist * safeDist));
-    item.style.transform = 'translate3d(0, ' + translateY.toFixed(2) + 'px, 0)';
+    // 직선 수평 유지 (Y축 이동 0)
+    item.style.transform = 'none';
     var opacityRatio = Math.max(0.35, 1 - (dist / (cWidth * 0.42)));
     item.style.opacity = opacityRatio.toFixed(2);
   });
@@ -291,7 +293,7 @@ function applyArchCurveAndSelection() {
 }
 
 function setActiveItemVisual(btn) {
-  document.querySelectorAll('.shape-thumb-btn').forEach(function(b) {
+  carouselContainer.querySelectorAll('.shape-thumb-btn').forEach(function(b) {
     b.classList.remove('active');
     var txt = b.parentElement.querySelector('.shape-item-label');
     if (txt) {
@@ -355,39 +357,56 @@ function autoSnapToNearestCenter() {
 if (carouselContainer) {
   var scrollTimer = null;
   carouselContainer.addEventListener('scroll', function() {
-    applyArchCurveAndSelection();
+    applyStraightSelection();
     clearTimeout(scrollTimer);
-    scrollTimer = setTimeout(function() { autoSnapToNearestCenter(); }, 110);
+    scrollTimer = setTimeout(function() { autoSnapToNearestCenter(); }, 100);
   }, { passive: true });
 }
 
 window.addEventListener('resize', function() {
   updateCarouselPadding();
-  applyArchCurveAndSelection();
+  applyStraightSelection();
 });
 
+/* 🌟 하단 알약 탭 제어 (날개 | 더듬이 | 흐림도) */
 var tabWing = document.getElementById('tab-wing');
 var tabAntenna = document.getElementById('tab-antenna');
+var tabBlur = document.getElementById('tab-blur');
 var shapeTitle = document.getElementById('shape-screen-title');
 var shapeDesc = document.getElementById('shape-screen-desc');
+var blurSliderBox = document.getElementById('blur-slider-box');
+var carouselStage = document.getElementById('carousel-stage');
 
 function switchTab(tabKey) {
   activeCustomTab = tabKey;
-  [tabWing, tabAntenna].forEach(function(b) { b.classList.remove('active-tab'); });
+  [tabWing, tabAntenna, tabBlur].forEach(function(b) { if (b) b.classList.remove('active-tab'); });
+
   if (tabKey === 'wing') {
     tabWing.classList.add('active-tab');
     shapeTitle.innerText = "날개 형태 고르기";
     shapeDesc.innerHTML = "<strong class='text-white'>[드래그]</strong> 이동, <strong class='text-white'>[두 손가락 핀치]</strong> 확대/축소";
+    if (blurSliderBox) blurSliderBox.classList.add('hidden-slider');
+    if (carouselStage) carouselStage.style.display = 'flex';
+    renderCarouselItems();
   } else if (tabKey === 'antenna') {
     tabAntenna.classList.add('active-tab');
     shapeTitle.innerText = "더듬이 고르기";
     shapeDesc.innerText = "나비의 감각을 깨울 더듬이 모양을 선택해 주세요.";
+    if (blurSliderBox) blurSliderBox.classList.add('hidden-slider');
+    if (carouselStage) carouselStage.style.display = 'flex';
+    renderCarouselItems();
+  } else if (tabKey === 'blur') {
+    tabBlur.classList.add('active-tab');
+    shapeTitle.innerText = "사진 흐림도 조절";
+    shapeDesc.innerText = "슬라이더를 좌우로 움직여 날개 배경의 번짐 정도를 조절해 보세요.";
+    if (blurSliderBox) blurSliderBox.classList.remove('hidden-slider');
+    if (carouselStage) carouselStage.style.display = 'none'; // 흐림도 탭에서는 슬라이더에 집중하도록 캐러셀 숨김
   }
-  renderCarouselItems();
 }
 
 tabWing.addEventListener('click', function() { switchTab('wing'); });
 tabAntenna.addEventListener('click', function() { switchTab('antenna'); });
+if (tabBlur) tabBlur.addEventListener('click', function() { switchTab('blur'); });
 
 document.getElementById('btn-rephoto-from-shape').addEventListener('click', function() {
   cameraInput.value = '';
@@ -402,6 +421,9 @@ document.getElementById('btn-confirm-shape').addEventListener('click', function(
   showScreen('screen-survey');
 });
 
+/* -------------------------------------------------------------
+   🌟 사진 조작 (드래그, 핀치 줌, 슬라이더)
+   ------------------------------------------------------------- */
 var rawImage = new Image();
 var alignCanvas = document.getElementById('align-canvas');
 var actx = alignCanvas.getContext('2d');
@@ -415,7 +437,7 @@ var currentBlurPx = 0;
 var blurSlider = document.getElementById('blur-slider');
 function updateSliderProgressStyle(val, max) {
   var pct = ((val / max) * 100).toFixed(1);
-  blurSlider.style.background = 'linear-gradient(to right, #ffffff ' + pct + '%, #555555 ' + pct + '%)';
+  blurSlider.style.background = 'linear-gradient(to right, #ffffff ' + pct + '%, #444444 ' + pct + '%)';
 }
 
 if (blurSlider) {
@@ -577,6 +599,9 @@ function createFallbackDummyTexture() {
   return c.toDataURL('image/jpeg', 0.8);
 }
 
+/* -------------------------------------------------------------
+   설문 데이터 및 표시 로직
+   ------------------------------------------------------------- */
 var surveyQuestions = [
   {
     title: "당신은 어떤 나비인가요?",
@@ -953,7 +978,7 @@ btnSurveyPrev.addEventListener('click', function() {
 });
 
 /* ==========================================================================
-   🌟 후광 오라 스프라이트 생성기
+   후광 오라 스프라이트 생성기
    ========================================================================== */
 function createEtherealGlowSprite(colorHex, size, opacity) {
   colorHex = colorHex || '#ffffff';
@@ -986,7 +1011,7 @@ function createEtherealGlowSprite(colorHex, size, opacity) {
 }
 
 /* ==========================================================================
-   🌟 3D 엔진 : 화면 정중앙 원위치 & 자연스러운 날갯짓
+   3D 엔진 : Three.js 뷰어
    ========================================================================== */
 var fullScene, fullCamera, fullRenderer, fullGroup;
 var leftWingMesh, rightWingMesh, antennaMesh;
@@ -1034,26 +1059,22 @@ function initFullButterflyViewer(textureURL) {
   var width = window.innerWidth;
   var height = window.innerHeight;
 
-  // 1. 씬 & 카메라 (원래 원위치 높이로 복구)
   fullScene = new THREE.Scene();
   fullCamera = new THREE.PerspectiveCamera(38, width / height, 0.1, 1000);
   fullCamera.position.set(0, 0, 8.8);
   fullCamera.lookAt(0, 0, 0);
 
-  // 2. 렌더러
   fullRenderer = new THREE.WebGLRenderer({ alpha: true, antialias: true });
   fullRenderer.setSize(width, height);
   fullRenderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
   container.appendChild(fullRenderer.domElement);
 
-  // 3. 조명
   var ambientLight = new THREE.AmbientLight(0xffffff, 0.95);
   fullScene.add(ambientLight);
   var dirLight = new THREE.DirectionalLight(0xffffff, 0.7);
   dirLight.position.set(0, 5, 10);
   fullScene.add(dirLight);
 
-  // 4. 사용자 사진 텍스처 로드
   var textureLoader = new THREE.TextureLoader();
   var userTexture = textureLoader.load(textureURL);
   userTexture.flipY = false;
@@ -1071,7 +1092,6 @@ function initFullButterflyViewer(textureURL) {
     roughness: 0.3
   });
 
-  // 5. 3DButterfly/crescent_ball.glb 로드
   var gltfLoader = new THREE.GLTFLoader();
   gltfLoader.load('3DButterfly/crescent_ball.glb', function(gltf) {
     var model = gltf.scene;
@@ -1099,9 +1119,9 @@ function initFullButterflyViewer(textureURL) {
       }
     });
 
-    // 🎯 [정중앙 원위치]: 크기를 적당히 조절하고 정중앙(0, 0, 0)에 정확히 고정
     model.scale.set(0.9, 0.9, 0.9);
-    model.rotation.x = Math.PI / 2;
+    // 🌟 블렌더 가이드대로 정면(Front View)으로 세웠으므로 0으로 설정
+    model.rotation.x = 0;
     model.position.set(0, 0, 0);
 
     fullGroup.add(model);
@@ -1109,7 +1129,6 @@ function initFullButterflyViewer(textureURL) {
     console.error("3DButterfly/crescent_ball.glb 로드 오류:", err);
   });
 
-  // 6. 후광 오라 효과 (중앙 원위치)
   fullGlow1 = createEtherealGlowSprite('#ffffff', 4.8, 0.4);
   fullGlow1.position.set(0, 0, -0.06);
   fullGroup.add(fullGlow1);
@@ -1118,17 +1137,14 @@ function initFullButterflyViewer(textureURL) {
   fullGlow2.position.set(0, 0, -0.09);
   fullGroup.add(fullGlow2);
 
-  // 그룹 자체 위치도 정중앙(Y=0)으로 복구
   fullGroup.position.set(0, 0, 0);
   fullScene.add(fullGroup);
 
-  // 7. 실시간 애니메이션 루프
   var clock = new THREE.Clock();
   function animate() {
     animFrameId = requestAnimationFrame(animate);
     var time = clock.getElapsedTime();
 
-    // 후광 펄스
     var pulse = 1 + Math.sin(time * 2.8) * 0.05;
     if (fullGlow1) fullGlow1.scale.set(4.8 * pulse, 4.8 * pulse, 1);
     if (fullGlow2) fullGlow2.scale.set(6.4 * pulse, 6.4 * pulse, 1);
@@ -1138,13 +1154,13 @@ function initFullButterflyViewer(textureURL) {
     var flapAngle = Math.sin(time * flapSpeed) * flapIntensity;
 
     if (leftWingMesh && rightWingMesh) {
-      leftWingMesh.rotation.z = initialRotL.z + flapAngle;
-      rightWingMesh.rotation.z = initialRotR.z - flapAngle;
-      leftWingMesh.rotation.y = initialRotL.y;
-      rightWingMesh.rotation.y = initialRotR.y;
+      // 🌟 세워진 정면 모델의 안쪽 피벗 기준에 맞춰 y축으로 완벽하게 파닥이도록 교정
+      leftWingMesh.rotation.y = initialRotL.y + flapAngle;
+      rightWingMesh.rotation.y = initialRotR.y - flapAngle;
+      leftWingMesh.rotation.z = initialRotL.z;
+      rightWingMesh.rotation.z = initialRotR.z;
     }
 
-    // 기본 부유 운동 (중앙 부근에서 살랑살랑)
     if (!isFlyingAway) {
       fullGroup.position.y = Math.sin(time * 1.8) * 0.12;
     } else {
