@@ -1,6 +1,7 @@
 /* ==========================================================================
    🌟 너울(Noul) 메인 애플리케이션 로직 (app.js)
    - 아이폰 17 화면비 및 애니메이션/위치 보정 반영 완료
+   - 3DButterfly/crescent.glb 모델 및 3종 더듬이 가시성 동적 제어 반영
    ========================================================================== */
 
 function showScreen(screenId) {
@@ -142,7 +143,6 @@ function startCaptureGuideCinematicFlow() {
       else if (char === '?' || char === '.') delay = 400;
       guideTypeTimer = setTimeout(typeNext, delay);
     } else {
-      // 🌟 타이핑이 끝나면 상단으로 부드럽게 상승 이동
       setTimeout(function() {
         if (guideTitleWrap) guideTitleWrap.classList.add('moved-to-top');
         setTimeout(function() {
@@ -1083,8 +1083,12 @@ function initFullButterflyViewer(textureURL) {
     roughness: 0.3
   });
 
+  // 🌟 사용자가 앞 단계에서 선택한 더듬이 타입 ('ball', 'crescent', 'star') 반영
+  var activeAntennaNodeName = 'Antenna_' + selectedAntennaType + '_crescent';
+
   var gltfLoader = new THREE.GLTFLoader();
-  gltfLoader.load('3DButterfly/crescent_ball.glb', function(gltf) {
+  // 🌟 3DButterfly/crescent.glb 신규 파일 경로 및 노드 구조 완벽 적용
+  gltfLoader.load('3DButterfly/crescent.glb', function(gltf) {
     var model = gltf.scene;
 
     leftWingMesh = null;
@@ -1093,19 +1097,29 @@ function initFullButterflyViewer(textureURL) {
 
     model.traverse(function(child) {
       if (child.isMesh) {
-        if (child.name === 'Wing_L') {
+        // 좌우 날개 매핑 (신규 및 구버전 노드명 모두 호환)
+        if (child.name === 'Wing_L_crescent' || child.name === 'Wing_L') {
           leftWingMesh = child;
           child.material = wingMat;
           initialRotL = { x: child.rotation.x, y: child.rotation.y, z: child.rotation.z };
-        } else if (child.name === 'Wing_R') {
+        } else if (child.name === 'Wing_R_crescent' || child.name === 'Wing_R') {
           rightWingMesh = child;
           child.material = wingMat;
           initialRotR = { x: child.rotation.x, y: child.rotation.y, z: child.rotation.z };
-        } else if (child.name === 'Body') {
+        } 
+        // 몸체 매핑
+        else if (child.name === 'Body_crescent' || child.name === 'Body') {
           child.material = whiteMat;
-        } else if (child.name === 'Antenna_ball') {
-          antennaMesh = child;
+        } 
+        // 더듬이 3종 가시성 동적 제어: 선택된 더듬이만 보이고 나머지는 숨김 처리
+        else if (child.name.startsWith('Antenna_')) {
           child.material = whiteMat;
+          if (child.name === activeAntennaNodeName) {
+            child.visible = true;
+            antennaMesh = child;
+          } else {
+            child.visible = false;
+          }
         }
       }
     });
@@ -1116,7 +1130,7 @@ function initFullButterflyViewer(textureURL) {
 
     fullGroup.add(model);
   }, undefined, function(err) {
-    console.error("3DButterfly/crescent_ball.glb 로드 오류:", err);
+    console.error("3DButterfly/crescent.glb 로드 오류:", err);
   });
 
   fullGlow1 = createEtherealGlowSprite('#ffffff', 4.8, 0.4);
