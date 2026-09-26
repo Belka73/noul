@@ -1,8 +1,7 @@
 /* ==========================================================================
    🌟 너울(Noul) 메인 애플리케이션 로직 (app.js)
-   - 3DButterfly/crescent_ball.glb 경로 적용 완료
-   - Wing_L, Wing_R 정밀 실시간 날갯짓 애니메이션
-   - 사용자 제작 텍스처 날개 자동 매핑 및 부드러운 유영 비행
+   - 모바일(아이폰) 화면 비율 맞춤 나비 크기 최적화
+   - 블렌더 Y축 기준 정밀 날갯짓 플랩 애니메이션 적용
    ========================================================================== */
 
 function showScreen(screenId) {
@@ -163,15 +162,12 @@ try {
 }
 
 var activeCustomTab = 'wing';
-var selectedButterflyShape = 'crescent'; // 기본 선택을 초승 나비로 설정
+var selectedButterflyShape = 'crescent';
 var selectedAntennaType = 'ball';
 
 var butterflyPathData = {};
 wingDataset.forEach(function(w) { butterflyPathData[w.id] = w; });
 
-/* -------------------------------------------------------------
-   🌟 사진 맞추기 + 나비 형태 2D 통합 뷰 렌더러
-   ------------------------------------------------------------- */
 function updateHeroPreview() {
   var heroPathContainer = document.getElementById('hero-path-container');
   if (!heroPathContainer) return;
@@ -406,9 +402,6 @@ document.getElementById('btn-confirm-shape').addEventListener('click', function(
   showScreen('screen-survey');
 });
 
-/* -------------------------------------------------------------
-   🌟 사진 조작 (드래그, 핀치 줌, 블러 슬라이더)
-   ------------------------------------------------------------- */
 var rawImage = new Image();
 var alignCanvas = document.getElementById('align-canvas');
 var actx = alignCanvas.getContext('2d');
@@ -584,9 +577,6 @@ function createFallbackDummyTexture() {
   return c.toDataURL('image/jpeg', 0.8);
 }
 
-/* -------------------------------------------------------------
-   🌟 설문 데이터 및 타이핑 효과 로직
-   ------------------------------------------------------------- */
 var surveyQuestions = [
   {
     title: "당신은 어떤 나비인가요?",
@@ -996,7 +986,7 @@ function createEtherealGlowSprite(colorHex, size, opacity) {
 }
 
 /* ==========================================================================
-   🌟 3D 엔진 : 3DButterfly/crescent_ball.glb 로더 및 날갯짓 연동
+   🌟 3D 엔진 : 모바일 최적화 스케일 & Y축(블렌더 기준) 정밀 플랩 연동
    ========================================================================== */
 var fullScene, fullCamera, fullRenderer, fullGroup;
 var leftWingMesh, rightWingMesh, antennaMesh;
@@ -1041,10 +1031,10 @@ function initFullButterflyViewer(textureURL) {
   var width = window.innerWidth;
   var height = window.innerHeight;
 
-  // 1. 씬 & 카메라
+  // 1. 씬 & 카메라 (아이폰 세로 화면에서도 나비가 잘리지 않도록 시야각 및 거리 최적화)
   fullScene = new THREE.Scene();
-  fullCamera = new THREE.PerspectiveCamera(38, width / height, 0.1, 1000);
-  fullCamera.position.set(0, 0, 8.2);
+  fullCamera = new THREE.PerspectiveCamera(40, width / height, 0.1, 1000);
+  fullCamera.position.set(0, 0, 9.8);
   fullCamera.lookAt(0, 0, 0);
 
   // 2. 렌더러
@@ -1053,11 +1043,11 @@ function initFullButterflyViewer(textureURL) {
   fullRenderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
   container.appendChild(fullRenderer.domElement);
 
-  // 3. 조명 (3D 볼륨감 극대화)
-  var ambientLight = new THREE.AmbientLight(0xffffff, 0.9);
+  // 3. 조명
+  var ambientLight = new THREE.AmbientLight(0xffffff, 0.95);
   fullScene.add(ambientLight);
-  var dirLight = new THREE.DirectionalLight(0xffffff, 0.6);
-  dirLight.position.set(0, 5, 10);
+  var dirLight = new THREE.DirectionalLight(0xffffff, 0.7);
+  dirLight.position.set(0, 6, 12);
   fullScene.add(dirLight);
 
   // 4. 사용자 사진 텍스처 로드
@@ -1067,7 +1057,6 @@ function initFullButterflyViewer(textureURL) {
 
   fullGroup = new THREE.Group();
 
-  // 재질 설정 (날개는 사용자 텍스처, 몸통/더듬이는 순백 3D)
   var wingMat = new THREE.MeshStandardMaterial({
     map: userTexture,
     side: THREE.DoubleSide,
@@ -1079,7 +1068,7 @@ function initFullButterflyViewer(textureURL) {
     roughness: 0.3
   });
 
-  // 5. 🌟 3DButterfly 폴더 내의 crescent_ball.glb 로드
+  // 5. 3DButterfly/crescent_ball.glb 로드
   var gltfLoader = new THREE.GLTFLoader();
   gltfLoader.load('3DButterfly/crescent_ball.glb', function(gltf) {
     var model = gltf.scene;
@@ -1105,51 +1094,64 @@ function initFullButterflyViewer(textureURL) {
       }
     });
 
-    // 화면 비율에 맞는 크기 및 블렌더 Z-up 좌표계 보정
-    model.scale.set(1.5, 1.5, 1.5);
+    // 📱 [크기 조절]: 아이폰 화면 가로폭 안에 양 날개가 여유 있게 보이도록 0.65배로 슬림화
+    model.scale.set(0.65, 0.65, 0.65);
+    
+    // 블렌더 좌표계(Z-up)를 Three.js(Y-up)와 정면으로 일치시킴
     model.rotation.x = Math.PI / 2;
+    model.position.y = -0.1;
 
     fullGroup.add(model);
   }, undefined, function(err) {
     console.error("3DButterfly/crescent_ball.glb 로드 오류:", err);
   });
 
-  // 6. 후광 오라 효과
-  fullGlow1 = createEtherealGlowSprite('#ffffff', 4.8, 0.4);
-  fullGlow1.position.set(0, 0.1, -0.06);
+  // 6. 후광 오라 효과 (나비 크기 축소에 맞춰 자연스럽게 스케일 보정)
+  fullGlow1 = createEtherealGlowSprite('#ffffff', 3.6, 0.45);
+  fullGlow1.position.set(0, 0, -0.06);
   fullGroup.add(fullGlow1);
 
-  fullGlow2 = createEtherealGlowSprite('#e5e5e5', 6.4, 0.2);
-  fullGlow2.position.set(0, 0.1, -0.09);
+  fullGlow2 = createEtherealGlowSprite('#e5e5e5', 5.0, 0.22);
+  fullGlow2.position.set(0, 0, -0.09);
   fullGroup.add(fullGlow2);
 
-  fullGroup.scale.set(0.9, 0.9, 0.9);
   fullScene.add(fullGroup);
 
-  // 7. 실시간 애니메이션 루프 (날갯짓 + 유영)
+  // 7. 실시간 애니메이션 루프 (블렌더 Y축 기준 정밀 날갯짓)
   var clock = new THREE.Clock();
   function animate() {
     animFrameId = requestAnimationFrame(animate);
     var time = clock.getElapsedTime();
 
+    // 후광 호흡 효과
     var pulse = 1 + Math.sin(time * 2.8) * 0.05;
-    if (fullGlow1) fullGlow1.scale.set(4.8 * pulse, 4.8 * pulse, 1);
-    if (fullGlow2) fullGlow2.scale.set(6.4 * pulse, 6.4 * pulse, 1);
+    if (fullGlow1) fullGlow1.scale.set(3.6 * pulse, 3.6 * pulse, 1);
+    if (fullGlow2) fullGlow2.scale.set(5.0 * pulse, 5.0 * pulse, 1);
 
-    // 부드러운 좌우 대칭 날갯짓 (비행 시 속도 증가)
-    var flapAngle = (!isFlyingAway) ? (Math.sin(time * 5.0) * 0.45) : (Math.sin(time * 22) * 0.65);
+    // 🦋 [날갯짓 축 보정]:
+    // 와이퍼(부채질)처럼 움직이던 축을 해결하고, 블렌더 몸통 기준선(Y축)을 중심으로
+    // 날개가 앞뒤로 우아하게 접혔다 펴지도록 회전축을 교정했습니다.
+    var flapSpeed = (!isFlyingAway) ? 5.2 : 22.0;
+    var flapIntensity = (!isFlyingAway) ? 0.52 : 0.75;
+    var flapAngle = Math.sin(time * flapSpeed) * flapIntensity;
+
     if (leftWingMesh && rightWingMesh) {
+      // 블렌더 메쉬 로컬 Y축 회전
       leftWingMesh.rotation.y = flapAngle;
       rightWingMesh.rotation.y = -flapAngle;
+
+      // 와이퍼(Z축) 비틀림 방지
+      leftWingMesh.rotation.z = 0;
+      rightWingMesh.rotation.z = 0;
     }
 
     if (!isFlyingAway) {
       fullGroup.position.y = Math.sin(time * 1.8) * 0.12;
     } else {
-      fullGroup.position.y += 0.15;
-      fullGroup.position.z -= 0.07;
+      fullGroup.position.y += 0.16;
+      fullGroup.position.z -= 0.08;
 
-      if (fullGroup.position.y > 8.5) {
+      if (fullGroup.position.y > 9.0) {
         saveButterflyToSupabase();
         var completeDesc = document.getElementById('complete-desc');
         if (completeDesc) {
