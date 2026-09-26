@@ -65,12 +65,17 @@ function typeWriterText(textWithHtml, onComplete) {
 function resetOpeningFlow() {
   clearTimeout(typeTimer);
   openingCurrentStep = 1;
-  elOpeningChoiceGroup.classList.remove('hidden', 'visible');
+  elOpeningChoiceGroup.classList.remove('visible');
+  elOpeningChoiceGroup.classList.add('hidden');
   elOpeningNextGroup.classList.add('hidden');
   elOpeningNextGroup.classList.remove('visible');
 
+  // 질문 타이핑이 끝난 후 '예', '아니오' 표시
   typeWriterText("안녕하세요?<br>이곳에는 우연히 발걸음하셨나요?", function() {
-    elOpeningChoiceGroup.classList.add('visible');
+    elOpeningChoiceGroup.classList.remove('hidden');
+    requestAnimationFrame(function() {
+      elOpeningChoiceGroup.classList.add('visible');
+    });
   });
 }
 
@@ -1083,11 +1088,9 @@ function initFullButterflyViewer(textureURL) {
     roughness: 0.3
   });
 
-  // 🌟 사용자가 앞 단계에서 선택한 더듬이 타입 ('ball', 'crescent', 'star') 반영
   var activeAntennaNodeName = 'Antenna_' + selectedAntennaType + '_crescent';
 
   var gltfLoader = new THREE.GLTFLoader();
-  // 🌟 3DButterfly/crescent.glb 신규 파일 경로 및 노드 구조 완벽 적용
   gltfLoader.load('3DButterfly/crescent.glb', function(gltf) {
     var model = gltf.scene;
 
@@ -1097,7 +1100,6 @@ function initFullButterflyViewer(textureURL) {
 
     model.traverse(function(child) {
       if (child.isMesh) {
-        // 좌우 날개 매핑 (신규 및 구버전 노드명 모두 호환)
         if (child.name === 'Wing_L_crescent' || child.name === 'Wing_L') {
           leftWingMesh = child;
           child.material = wingMat;
@@ -1107,11 +1109,9 @@ function initFullButterflyViewer(textureURL) {
           child.material = wingMat;
           initialRotR = { x: child.rotation.x, y: child.rotation.y, z: child.rotation.z };
         } 
-        // 몸체 매핑
         else if (child.name === 'Body_crescent' || child.name === 'Body') {
           child.material = whiteMat;
         } 
-        // 더듬이 3종 가시성 동적 제어: 선택된 더듬이만 보이고 나머지는 숨김 처리
         else if (child.name.startsWith('Antenna_')) {
           child.material = whiteMat;
           if (child.name === activeAntennaNodeName) {

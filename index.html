@@ -183,7 +183,7 @@
         </div>
 
         <div class="opening-button-anchor">
-          <div id="opening-choice-group" class="button-group-fade flex items-center justify-center gap-3">
+          <div id="opening-choice-group" class="button-group-fade hidden flex items-center justify-center gap-3">
             <button id="btn-opening-yes" type="button" class="opening-pill-btn">예</button>
             <button id="btn-opening-no" type="button" class="opening-pill-btn">아니오</button>
           </div>
@@ -206,7 +206,6 @@
         </svg>
       </button>
 
-      <!-- 정중앙에서 타이핑 후 상단으로 이동하는 컨테이너 -->
       <div class="guide-title-wrapper pointer-events-none">
         <h2 id="guide-animated-title"></h2>
       </div>
@@ -245,10 +244,8 @@
         </header>
 
         <div id="interactive-align-frame" class="reference-square-frame pointer-events-auto cursor-grab active:cursor-grabbing">
-          <!-- 캔버스: 사진 영역 -->
           <canvas id="align-canvas" width="600" height="600" class="absolute inset-0 w-full h-full block z-0"></canvas>
           
-          <!-- 나비 프레임 & 더듬이 레이어 -->
           <div class="bounded-butterfly-layer pointer-events-none z-10">
             <svg id="hero-butterfly-svg" viewBox="0 0 160 160" preserveAspectRatio="none">
               <defs>
@@ -265,16 +262,8 @@
           </div>
         </div>
 
-        <!-- 🌟 개선된 5번째 사진 스타일 블러 조절 슬라이더 -->
+        <!-- 🌟 수정: 상단 숫자 라벨 제거 및 원형 슬라이더 -->
         <div id="blur-slider-box" class="blur-slider-wrapper pointer-events-auto">
-          <div class="blur-slider-labels">
-            <span>0</span>
-            <span>1</span>
-            <span>2</span>
-            <span>3</span>
-            <span>4</span>
-            <span>5</span>
-          </div>
           <div class="custom-slider-track-wrap">
             <input type="range" id="blur-slider" min="0" max="25" value="0" step="0.5">
           </div>
@@ -288,7 +277,7 @@
           </div>
         </div>
 
-        <!-- 🌟 하단 알약 바 (날개 | 더듬이 | 흐림도) -->
+        <!-- 하단 알약 바 (날개 | 더듬이 | 흐림도) -->
         <div class="arch-pill-nav">
           <button id="tab-wing" type="button" class="deco-pill-btn active-tab">날개</button>
           <button id="tab-antenna" type="button" class="deco-pill-btn">더듬이</button>
@@ -310,9 +299,9 @@
         </div>
       </header>
 
-      <div class="text-center pb-3 flex-shrink-0 px-4" style="padding-top: 34px !important;">
+      <div class="survey-title-box text-center pb-3 flex-shrink-0 px-4" style="padding-top: 24px !important;">
         <h1 id="question-title" class="text-[1.38rem] font-bold text-white tracking-tight leading-[1.36] break-keep"></h1>
-        <p id="question-desc" class="text-xs text-neutral-400 mt-2.5 font-normal tracking-tight"></p>
+        <p id="question-desc" class="text-xs text-neutral-400 mt-2 font-normal tracking-tight"></p>
       </div>
 
       <div id="survey-chip-wrapper" class="flex-1 w-full min-h-0 py-1 vertical-scroll-chips px-2">
