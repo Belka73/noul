@@ -508,7 +508,7 @@ html, body {
 }
 
 /* ==========================================================================
-   🌟 [수정] 나비 박제 표본실 (호버 크기 튀는 문제 해결 & 레이아웃 안정화)
+   🌟 나비 박제 표본실 (호버 크기 튀는 문제 해결 & 레이아웃 안정화)
    ========================================================================== */
 .gallery-header-guide {
   position: absolute;
@@ -559,7 +559,7 @@ html, body {
   height: 100%;
 }
 
-/* 🌟 [수정 1] 카드 자체의 scale을 덮어쓰지 않고 내부 그래픽만 미세 반응 */
+/* 카드 자체의 scale을 덮어쓰지 않고 내부 그래픽만 미세 반응 */
 .specimen-card-item {
   position: absolute;
   display: flex;
@@ -571,7 +571,6 @@ html, body {
   z-index: 10;
 }
 
-/* 극단적으로 튀지 않고 1.025배만 아주 살짝 반응 */
 .specimen-butterfly-wrap {
   position: relative;
   display: flex;
@@ -584,7 +583,6 @@ html, body {
   transform: scale(1.025);
 }
 
-/* 은은한 흰색 빛 유지 */
 .specimen-shadow-drop {
   filter: drop-shadow(0 0 7px rgba(255, 255, 255, 0.45));
   transition: filter 0.2s ease;
@@ -594,7 +592,6 @@ html, body {
   filter: drop-shadow(0 0 11px rgba(255, 255, 255, 0.7));
 }
 
-/* 중앙 핀 */
 .specimen-pin-head {
   position: absolute;
   top: 50%;
@@ -609,7 +606,6 @@ html, body {
   pointer-events: none;
 }
 
-/* 🌟 [수정 2] 이름표 z-index 최상위 설정 및 여백 확보로 나비와 겹치지 않게 방어 */
 .specimen-pill-label {
   margin-top: 10px;
   background-color: #ffffff;
@@ -633,7 +629,9 @@ html, body {
   line-height: 1.2;
 }
 
-/* 🌟 개별 나비 3D 상세 보기 모달 레이어 */
+/* ==========================================================================
+   🌟 개별 나비 3D 상세 보기 모달 레이어 (아이폰 17 기준 클린 모달 UI 반영)
+   ========================================================================== */
 .specimen-modal-layer {
   position: fixed;
   inset: 0;
@@ -649,19 +647,20 @@ html, body {
 .specimen-modal-backdrop {
   position: absolute;
   inset: 0;
-  background: rgba(0, 0, 0, 0.88);
-  backdrop-blur: 12px;
+  background: rgba(0, 0, 0, 0.82);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
 }
 
 .specimen-modal-content {
   position: relative;
-  width: 90%;
+  width: 88%;
   max-width: 360px;
-  height: 480px;
-  background: #000000;
-  border: 1px solid rgba(255, 255, 255, 0.15);
-  border-radius: 28px;
-  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.9);
+  max-height: 84vh;
+  background: rgba(14, 14, 16, 0.94);
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: 36px;
+  box-shadow: 0 25px 60px rgba(0, 0, 0, 0.95), 0 0 30px rgba(255, 255, 255, 0.05);
   overflow: hidden;
   z-index: 10;
   display: flex;
@@ -671,32 +670,99 @@ html, body {
 
 .specimen-modal-close-btn {
   position: absolute;
-  top: 16px;
-  right: 16px;
-  z-index: 20;
+  top: 18px;
+  right: 18px;
+  z-index: 40;
   width: 32px;
   height: 32px;
   border-radius: 50%;
-  background: rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.14);
+  border: 1px solid rgba(255, 255, 255, 0.18);
   color: #ffffff;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 14px;
+  font-size: 13px;
   cursor: pointer;
+  transition: all 0.2s ease;
 }
 .specimen-modal-close-btn:active {
-  background: rgba(255, 255, 255, 0.2);
+  background: rgba(255, 255, 255, 0.28);
+  transform: scale(0.92);
 }
 
-.specimen-modal-info {
+/* 모달 상단 3D 스테이지 */
+.specimen-modal-stage {
+  width: 100%;
+  height: 195px;
+  position: relative;
+  background: radial-gradient(circle at 50% 55%, rgba(255, 255, 255, 0.09) 0%, rgba(0, 0, 0, 0) 70%);
+  flex-shrink: 0;
+}
+
+/* 좌측 상단 날짜 숫자만 배치 */
+.specimen-stage-date-top {
   position: absolute;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  padding: 1.25rem;
-  background: linear-gradient(to top, #000000 70%, transparent);
-  text-align: center;
-  z-index: 15;
+  top: 22px;
+  left: 22px;
+  display: flex;
+  align-items: center;
   pointer-events: none;
+}
+.specimen-top-date-text {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  color: #a3a3a3;
+}
+
+/* 모달 하단 아카이브 박스 */
+.specimen-modal-archive-box {
+  width: 100%;
+  padding: 0.6rem 1.4rem 1.4rem;
+  overflow: visible;
+  display: flex;
+  flex-direction: column;
+  gap: 0.9rem;
+}
+
+/* 🌟 알약 키워드 상하 스크롤 래퍼 */
+.specimen-tags-scroll-wrap {
+  width: 100%;
+  max-height: 96px;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.2) transparent;
+  padding: 0 4px;
+}
+.specimen-tags-scroll-wrap::-webkit-scrollbar {
+  width: 3px;
+}
+.specimen-tags-scroll-wrap::-webkit-scrollbar-track {
+  background: transparent;
+}
+.specimen-tags-scroll-wrap::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 9999px;
+}
+
+.specimen-glass-pill {
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  color: #e5e5e5;
+  font-size: 11px;
+  padding: 5px 12px;
+  border-radius: 9999px;
+  display: inline-flex;
+  align-items: center;
+  font-weight: 500;
+  letter-spacing: -0.01em;
+}
+
+.specimen-timeticket-card {
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.06) 0%, rgba(255, 255, 255, 0.02) 100%);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 20px;
+  padding: 14px 16px;
 }

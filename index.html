@@ -155,17 +155,39 @@
         </div>
       </div>
 
-      <!-- 개별 나비 3D 상세 보기 모달 -->
+      <!-- 🌟 개별 나비 3D 상세 보기 모달 -->
       <div id="specimen-detail-modal" class="specimen-modal-layer hidden">
         <div class="specimen-modal-backdrop"></div>
         <div class="specimen-modal-content">
           <button id="btn-close-specimen-modal" type="button" class="specimen-modal-close-btn">
             ✕
           </button>
-          <div id="specimen-three-container" class="w-full h-full relative"></div>
-          <div class="specimen-modal-info">
-            <h3 id="modal-butterfly-name" class="text-xl font-black text-white tracking-tight"></h3>
-            <p id="modal-butterfly-meta" class="text-xs text-neutral-400 mt-1"></p>
+          
+          <!-- 상단 3D 뷰어 영역 및 좌측 상단 생성 날짜 -->
+          <div class="specimen-modal-stage">
+            <div id="specimen-three-container" class="w-full h-full relative"></div>
+            <div class="specimen-stage-date-top">
+              <span id="modal-specimen-date" class="specimen-top-date-text">2026. 10. 24</span>
+            </div>
+          </div>
+
+          <!-- 하단 아카이브 상세 정보 박스 UI -->
+          <div class="specimen-modal-archive-box">
+            <div class="text-center pt-1">
+              <h3 id="modal-butterfly-name" class="text-2xl font-black text-white tracking-tight drop-shadow-[0_0_12px_rgba(255,255,255,0.4)]"></h3>
+            </div>
+
+            <!-- 상하 스크롤이 가능한 키워드 알약 컨테이너 -->
+            <div class="specimen-tags-scroll-wrap">
+              <div id="modal-specimen-tags" class="flex flex-wrap items-center justify-center gap-1.5 py-1"></div>
+            </div>
+
+            <!-- 미래의 나에게 남기는 메시지 카드 -->
+            <div class="specimen-timeticket-card text-center">
+              <p id="modal-specimen-memo" class="text-[12px] text-white leading-relaxed font-light break-keep">
+                "천천히 가도 괜찮아. 어둠 속에서도 너만의 고유한 빛이 있으니까."
+              </p>
+            </div>
           </div>
         </div>
       </div>

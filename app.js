@@ -1,8 +1,9 @@
 /* ==========================================================================
    🌟 너울(Noul) 메인 애플리케이션 로직 (app.js)
    - 아이폰 17 화면비 및 애니메이션/위치 보정 반영 완료
-   - 3DButterfly/crescent.glb 모델 및 3종 더듬이 가시성 동적 제어 반영
+   - 나비 7종 .glb 동적 로드 및 3종 더듬이 가시성 제어 완벽 반영
    - 박제 액자(2D 갤러리): 더듬이 상단 잘림 방지 (overflow: visible) 반영
+   - 나비 둘러보기 상세 모달: 영문 라벨 제거, 날짜 상단 이동, 알약 스크롤 반영
    ========================================================================== */
 
 function showScreen(screenId) {
@@ -1091,10 +1092,12 @@ function initFullButterflyViewer(textureURL) {
     roughness: 0.3
   });
 
-  var activeAntennaNodeName = 'Antenna_' + selectedAntennaType + '_crescent';
+  // 선택된 나비 모델 파일 동적 로드 (기본 폴더: 3DButterfly/)
+  var modelPath = '3DButterfly/' + selectedButterflyShape + '.glb';
+  var targetAntennaPrefix = 'Antenna_' + selectedAntennaType;
 
   var gltfLoader = new THREE.GLTFLoader();
-  gltfLoader.load('3DButterfly/crescent.glb', function(gltf) {
+  gltfLoader.load(modelPath, function(gltf) {
     var model = gltf.scene;
 
     leftWingMesh = null;
@@ -1103,21 +1106,22 @@ function initFullButterflyViewer(textureURL) {
 
     model.traverse(function(child) {
       if (child.isMesh) {
-        if (child.name === 'Wing_L_crescent' || child.name === 'Wing_L') {
+        var name = child.name;
+        if (name.startsWith('Wing_L')) {
           leftWingMesh = child;
           child.material = wingMat;
           initialRotL = { x: child.rotation.x, y: child.rotation.y, z: child.rotation.z };
-        } else if (child.name === 'Wing_R_crescent' || child.name === 'Wing_R') {
+        } else if (name.startsWith('Wing_R')) {
           rightWingMesh = child;
           child.material = wingMat;
           initialRotR = { x: child.rotation.x, y: child.rotation.y, z: child.rotation.z };
         } 
-        else if (child.name === 'Body_crescent' || child.name === 'Body') {
+        else if (name.startsWith('Body')) {
           child.material = whiteMat;
         } 
-        else if (child.name.startsWith('Antenna_')) {
+        else if (name.startsWith('Antenna_')) {
           child.material = whiteMat;
-          if (child.name === activeAntennaNodeName) {
+          if (name.startsWith(targetAntennaPrefix)) {
             child.visible = true;
             antennaMesh = child;
           } else {
@@ -1133,7 +1137,7 @@ function initFullButterflyViewer(textureURL) {
 
     fullGroup.add(model);
   }, undefined, function(err) {
-    console.error("3DButterfly/crescent.glb 로드 오류:", err);
+    console.error(modelPath + " 로드 오류:", err);
   });
 
   fullGlow1 = createEtherealGlowSprite('#ffffff', 4.8, 0.4);
@@ -1213,22 +1217,70 @@ function bindSwipeEvents(targetEl) {
 }
 
 /* ==========================================================================
-   🌟 [수정] 나비 둘러보기 박제 전시관 로직
-   - <svg>에 style="overflow: visible;"을 적용하여 더듬이 끝부분이 절대 잘리지 않도록 수정
-   - 나비와 이름표 충돌 없는 정확한 간격 배치
+   🌟 나비 둘러보기 박제 전시관 로직
    ========================================================================== */
 
 var specimenButterfliesData = [
-  { id: 1, name: "윤슬", wingId: "crescent", antId: "crescent", x: 190, y: 220, scale: 2.10 },
-  { id: 2, name: "칼퇴기원", wingId: "ember", antId: "ball", x: 490, y: 180, scale: 1.05 },
-  { id: 3, name: "바람결", wingId: "petal", antId: "star", x: 710, y: 200, scale: 1.45 },
-  { id: 4, name: "다정", wingId: "wave-fin", antId: "ball", x: 350, y: 440, scale: 1.10 },
-  { id: 5, name: "시온", wingId: "moon-halo", antId: "crescent", x: 610, y: 460, scale: 2.20 },
-  { id: 6, name: "새벽별", wingId: "dawn-ray", antId: "star", x: 160, y: 720, scale: 0.95 },
-  { id: 7, name: "온기", wingId: "starlight", antId: "ball", x: 440, y: 730, scale: 1.75 },
-  { id: 8, name: "달그림자", wingId: "crescent", antId: "star", x: 700, y: 750, scale: 1.15 },
-  { id: 9, name: "초록비", wingId: "petal", antId: "crescent", x: 260, y: 1040, scale: 1.85 },
-  { id: 10, name: "너울", wingId: "wave-fin", antId: "star", x: 600, y: 1050, scale: 1.25 }
+  { 
+    id: 1, name: "윤슬", wingId: "crescent", antId: "crescent", x: 190, y: 220, scale: 2.10,
+    tags: ["야행성", "사색가", "자유로운 비행", "단단한 자기 확신", "나만의 속도", "사소한 즐거움"],
+    memo: "잔잔한 물결 위로 부서지는 햇살처럼 늘 반짝이기를.",
+    date: "2026. 10. 24"
+  },
+  { 
+    id: 2, name: "칼퇴기원", wingId: "ember", antId: "ball", x: 490, y: 180, scale: 1.05,
+    tags: ["칼퇴사수형", "쿨내진동", "칼퇴 보장", '"어쩌라고" 마인드', "빠른 손절"],
+    memo: "오늘 하루도 버텨낸 나 자신, 정시 퇴근의 자유를 누려라!",
+    date: "2026. 10. 25"
+  },
+  { 
+    id: 3, name: "바람결", wingId: "petal", antId: "star", x: 710, y: 200, scale: 1.45,
+    tags: ["산책러", "낭만주의자", "바다 여행", "내 속도대로 천천히 감", "심호흡 한 번"],
+    memo: "불어오는 바람에 모든 걱정을 실어 날려 보내자.",
+    date: "2026. 11. 02"
+  },
+  { 
+    id: 4, name: "다정", wingId: "wave-fin", antId: "ball", x: 350, y: 440, scale: 1.10,
+    tags: ["다정다감", "프로공감러", "다정한 연애", "스스로 토닥이기", "온전한 호캉스"],
+    memo: "세상에 다정한 온기를 건네는 존재이기를.",
+    date: "2026. 10. 28"
+  },
+  { 
+    id: 5, name: "시온", wingId: "moon-halo", antId: "crescent", x: 610, y: 460, scale: 2.20,
+    tags: ["완벽주의", "단단한 자기 확신", "나만의 작업실", "소신 지키기", "있는 그대로 긍정"],
+    memo: "어둠이 깊을수록 나의 빛은 더욱 선명해질 거야.",
+    date: "2026. 11. 10"
+  },
+  { 
+    id: 6, name: "새벽별", wingId: "dawn-ray", antId: "star", x: 160, y: 720, scale: 0.95,
+    tags: ["야행성", "아이디어 뱅크", "창작물 완판", "앞날을 기대하는 설렘"],
+    memo: "새벽 공기 속에 피어난 꿈들을 마침내 현실로 이뤄내길.",
+    date: "2026. 10. 30"
+  },
+  { 
+    id: 7, name: "온기", wingId: "starlight", antId: "ball", x: 440, y: 730, scale: 1.75,
+    tags: ["경청러", "담담이", "있는 그대로의 나 사랑하기", "심호흡 한 번", "단골 아지트"],
+    memo: "추운 계절이 지나면 반드시 따스한 봄날이 찾아올 거야.",
+    date: "2026. 11. 15"
+  },
+  { 
+    id: 8, name: "달그림자", wingId: "crescent", antId: "star", x: 700, y: 750, scale: 1.15,
+    tags: ["혼자가 편한", "과묵한 편", "고요한 밤산책", "혼자만의 침묵을 즐김"],
+    memo: "말없이 곁을 지켜주는 달빛처럼 고요하게 머물다 가길.",
+    date: "2026. 10. 29"
+  },
+  { 
+    id: 9, name: "초록비", wingId: "petal", antId: "crescent", x: 260, y: 1040, scale: 1.85,
+    tags: ["감성파", "루틴러", "자취방 독립", "작은 틈을 내어 숨을 쉼", "집밥 챙겨먹기"],
+    memo: "메마른 마음에 촉촉한 단비가 내리듯 평온하기를.",
+    date: "2026. 11. 05"
+  },
+  { 
+    id: 10, name: "너울", wingId: "wave-fin", antId: "star", x: 600, y: 1050, scale: 1.25,
+    tags: ["분위기 메이커", "직진러", "그냥 오늘 행복", "그냥 오늘 하루 즐기기", "씩씩한 리셋"],
+    memo: "수많은 작은 날갯짓이 모여 만들어낼 찬란한 너울의 파도.",
+    date: "2026. 11. 20"
+  }
 ];
 
 var galleryViewport = document.getElementById('gallery-pan-viewport');
@@ -1258,7 +1310,6 @@ function initSpecimenGallery() {
 
     var scaleRatio = 110 / Math.max(wing.w, wing.h);
     
-    // 🌟 style="overflow: visible;" 로 뷰박스 바깥으로 뻗어나가는 더듬이 잘림 완벽 방지
     card.innerHTML = 
       '<div class="specimen-butterfly-wrap">' +
         '<div class="specimen-pin-head"></div>' +
@@ -1353,11 +1404,28 @@ var modalAnimFrameId = null;
 function openSpecimen3DModal(item, textureUrl) {
   var modal = document.getElementById('specimen-detail-modal');
   var nameEl = document.getElementById('modal-butterfly-name');
-  var metaEl = document.getElementById('modal-butterfly-meta');
+  var tagsEl = document.getElementById('modal-specimen-tags');
+  var memoEl = document.getElementById('modal-specimen-memo');
+  var dateEl = document.getElementById('modal-specimen-date');
   var container = document.getElementById('specimen-three-container');
 
   nameEl.innerText = '‘' + item.name + '’';
-  metaEl.innerText = '날개: ' + (butterflyPathData[item.wingId] ? butterflyPathData[item.wingId].name : '나비');
+  
+  if (tagsEl) {
+    var tags = item.tags || ["사색가", "자유로운 비행", "단단한 자기 확신"];
+    tagsEl.innerHTML = tags.map(function(t) {
+      return '<span class="specimen-glass-pill">#' + t + '</span>';
+    }).join('');
+  }
+
+  if (memoEl) {
+    memoEl.innerText = item.memo ? ('"' + item.memo + '"') : '"천천히 가도 괜찮아. 어둠 속에서도 너만의 고유한 빛이 있으니까."';
+  }
+
+  if (dateEl) {
+    dateEl.innerText = item.date || "2026. 10. 24";
+  }
+
   modal.classList.remove('hidden');
 
   container.innerHTML = '';
@@ -1367,11 +1435,11 @@ function openSpecimen3DModal(item, textureUrl) {
   }
 
   var w = container.clientWidth || 320;
-  var h = container.clientHeight || 360;
+  var h = container.clientHeight || 185;
 
   modalThreeScene = new THREE.Scene();
   modalThreeCamera = new THREE.PerspectiveCamera(40, w / h, 0.1, 100);
-  modalThreeCamera.position.set(0, 0, 7.5);
+  modalThreeCamera.position.set(0, 0, 7.0);
   modalThreeCamera.lookAt(0, 0, 0);
 
   modalThreeRenderer = new THREE.WebGLRenderer({ alpha: true, antialias: true });
@@ -1391,30 +1459,34 @@ function openSpecimen3DModal(item, textureUrl) {
   var wingMat = new THREE.MeshStandardMaterial({ map: tex, side: THREE.DoubleSide, roughness: 0.45 });
   var whiteMat = new THREE.MeshStandardMaterial({ color: 0xffffff, side: THREE.DoubleSide, roughness: 0.3 });
 
-  var activeAntennaNode = 'Antenna_' + item.antId + '_crescent';
+  var targetAntennaPrefix = 'Antenna_' + item.antId;
+  var modelPath = '3DButterfly/' + (item.wingId || 'crescent') + '.glb';
   var group = new THREE.Group();
 
-  new THREE.GLTFLoader().load('3DButterfly/crescent.glb', function(gltf) {
+  new THREE.GLTFLoader().load(modelPath, function(gltf) {
     var model = gltf.scene;
     modalWingL = null; modalWingR = null;
 
     model.traverse(function(child) {
       if (child.isMesh) {
-        if (child.name === 'Wing_L_crescent' || child.name === 'Wing_L') {
+        var name = child.name;
+        if (name.startsWith('Wing_L')) {
           modalWingL = child; child.material = wingMat;
-        } else if (child.name === 'Wing_R_crescent' || child.name === 'Wing_R') {
+        } else if (name.startsWith('Wing_R')) {
           modalWingR = child; child.material = wingMat;
-        } else if (child.name === 'Body_crescent' || child.name === 'Body') {
+        } else if (name.startsWith('Body')) {
           child.material = whiteMat;
-        } else if (child.name.startsWith('Antenna_')) {
+        } else if (name.startsWith('Antenna_')) {
           child.material = whiteMat;
-          child.visible = (child.name === activeAntennaNode);
+          child.visible = name.startsWith(targetAntennaPrefix);
         }
       }
     });
 
-    model.scale.set(0.85, 0.85, 0.85);
+    model.scale.set(0.9, 0.9, 0.9);
     group.add(model);
+  }, undefined, function(err) {
+    console.error("모달 3D 모델 로드 오류:", err);
   });
 
   modalThreeScene.add(group);
