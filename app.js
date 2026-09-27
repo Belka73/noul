@@ -1,6 +1,7 @@
 /* ==========================================================================
    🌟 너울(Noul) 메인 애플리케이션 로직 (app.js)
    - 아이폰 17 화면비 및 모바일 WebKit 규격 최적화
+   - [추가] 표지 화면(screen-cover): 1번 사진 구도/자세의 2번째 나비(moon-halo) 3D 순백색 렌더러
    - [해결 1] 흐림 조정 패널: 슬라이더 이동 시 실시간 블러 100% 작동
    - [해결 2] 3D 나비 날개: SVG 나비틀 바운딩 박스 기준 1:1 정밀 텍스처 투영
    - [해결 3] 날개 착석 애니메이션: 과도한 접힘 해제 -> 자연스럽고 우아하게 살짝만 접힘(V자 각도 유지)
@@ -14,7 +15,9 @@ function showScreen(screenId) {
   var target = document.getElementById(screenId);
   if (target) {
     target.classList.add('active');
-    if (screenId === 'screen-shape-select') {
+    if (screenId === 'screen-cover') {
+      initCoverButterfly3D();
+    } else if (screenId === 'screen-shape-select') {
       switchTab('wing');
       updateHeroPreview();
       drawAlignCanvas();
@@ -697,7 +700,6 @@ window.addEventListener('touchmove', function(e) {
 
 window.addEventListener('touchend', function() { isDragging = false; startPinchDist = 0; });
 
-/* 🌟 선택된 나비 날개 틀의 바운딩 박스를 1:1 정밀 추출하여 3D 텍스처로 생성 */
 function exportAlignedTexture() {
   if (!rawImage || !rawImage.width) {
     currentExtractedTexture = createFallbackDummyTexture();
@@ -790,7 +792,7 @@ var surveyQuestions = [
     category: "#향하고 싶은 여정",
     options: [
       "취업 뽀개기", "칼퇴 보장", "자취방 독립", "내 작은 카페", "자격증 합격", "목표 어학 점수", "해외 한 달 살기", "1,000만 원 저축", "내 브랜드 론칭", "숙면 8시간",
-      "콘서트 올콘", "운동 습관화", "포트폴리오 완성", "악연 손절", "첫 월급 선물", "창작물 완판", "바다 여행", "완벽주의 탈출", "채널 1만 구독", "면접 당당함",
+      "콘서트 올콘", "운동 습관化", "포트폴리오 완성", "악연 손절", "첫 월급 선물", "창작물 완판", "바다 여행", "완벽주의 탈출", "채널 1만 구독", "면접 당당함",
       "학자금 완납", "좋아하는 일로 밥벌이", "운전면허 드라이브", "온전한 호캉스", "완독 10권", "바디프로필", "나만의 작업실", "타인 시선 무시", "팀 프로젝트 대박", "쿨한 멘탈",
       "내 집 마련 기반", "악기 마스터", "고요한 밤산책", "다정한 연애", "단골 아지트", "집밥 챙겨먹기", "번아웃 브레이크", "거절하는 용기", "내 스타일대로", "워홀·교환학생",
       "매일 셀프 칭찬", "개인 전시·팝업", "수면 패턴 정상화", "공모전 수상", "대범한 배짱", "주말 카페 멍때리기", "가족 여행 보내기", "하루 종일 넷플릭스", "비교 끊기", "그냥 오늘 행복"
@@ -1154,6 +1156,138 @@ btnSurveyPrev.addEventListener('click', function() {
 });
 
 /* ==========================================================================
+   🌟 0. 표지 화면(screen-cover) 1번 사진 3D 나비 렌더러
+   - 코드에 저장되어 있는 2번째 나비 ('moon-halo', 달무리 나비)
+   - 1번 사진처럼 순백색(#ffffff)이며 측면에서 비스듬히 날개를 접고 앉아 있는 구도 재현
+   - 아이폰 17 화면비에서 나비 전체 모습이 화면 안에 다 들어오도록 화각 설정
+   ========================================================================== */
+var coverScene, coverCamera, coverRenderer, coverGroup;
+var coverAnimFrameId = null;
+
+function initCoverButterfly3D() {
+  var container = document.getElementById('cover-three-container');
+  if (!container) return;
+
+  if (coverAnimFrameId) {
+    cancelAnimationFrame(coverAnimFrameId);
+    coverAnimFrameId = null;
+  }
+  container.innerHTML = '';
+
+  var w = container.clientWidth || window.innerWidth;
+  var h = container.clientHeight || window.innerHeight;
+
+  coverScene = new THREE.Scene();
+  // 아이폰 17 세로 화면비(약 9:19.5)를 고려하여 나비 날개 양끝이 화면 안에 모두 들어오도록 카메라 거리 세팅
+  coverCamera = new THREE.PerspectiveCamera(42, w / h, 0.1, 100);
+  coverCamera.position.set(0, 0, 7.8);
+  coverCamera.lookAt(0, 0, 0);
+
+  coverRenderer = new THREE.WebGLRenderer({ alpha: true, antialias: true });
+  coverRenderer.setSize(w, h);
+  coverRenderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+  container.appendChild(coverRenderer.domElement);
+
+  // 화사하고 몽환적인 화이트 앰비언트/디렉셔널 라이팅
+  var ambLight = new THREE.AmbientLight(0xffffff, 1.25);
+  coverScene.add(ambLight);
+
+  var dirLight = new THREE.DirectionalLight(0xffffff, 1.4);
+  dirLight.position.set(2, 6, 8);
+  coverScene.add(dirLight);
+
+  var backRimLight = new THREE.DirectionalLight(0xffffff, 0.9);
+  backRimLight.position.set(-3, -2, -5);
+  coverScene.add(backRimLight);
+
+  coverGroup = new THREE.Group();
+
+  // 순백색 고운 질감의 머티리얼 (1번 사진처럼 반짝이는 백색 실루엣)
+  var whiteMat = new THREE.MeshStandardMaterial({
+    color: 0xffffff,
+    roughness: 0.28,
+    metalness: 0.05,
+    side: THREE.DoubleSide
+  });
+
+  // 코드에 등록되어 있는 2번째 나비: moon-halo (달무리 나비)
+  var modelPath = '3DButterfly/moon-halo.glb';
+  var targetAntennaPrefix = 'Antenna_ball';
+
+  var wingL = null, wingR = null;
+
+  var gltfLoader = new THREE.GLTFLoader();
+  gltfLoader.load(modelPath, function(gltf) {
+    var model = gltf.scene;
+
+    model.traverse(function(child) {
+      if (child.isMesh) {
+        child.material = whiteMat;
+        if (child.name.startsWith('Wing_L')) {
+          wingL = child;
+        } else if (child.name.startsWith('Wing_R')) {
+          wingR = child;
+        } else if (child.name.startsWith('Antenna_')) {
+          child.visible = child.name.startsWith(targetAntennaPrefix);
+        }
+      }
+    });
+
+    // 🌟 1번 사진처럼 날개가 어느 정도 접혀 있는 포즈
+    if (wingL && wingR) {
+      wingL.rotation.y = -0.58; // 접힌 날개 각도
+      wingR.rotation.y = 0.58;
+    }
+
+    // 아이폰 17 화면 전체에 여유 있게 꽉 차도록 비율 조정
+    model.scale.set(0.92, 0.92, 0.92);
+    coverGroup.add(model);
+  }, undefined, function(err) {
+    console.error("표지 나비 3D 모델 로드 오류:", err);
+  });
+
+  // 🌟 1번 사진과 동일한 앉아 있는 구도:
+  // 몸체가 우측 하단에서 좌측 상단 대각선 방향으로 비스듬히 향함
+  coverGroup.position.set(0.1, -0.05, 0);
+  coverGroup.rotation.set(0.22, -1.18, 0.45);
+
+  coverScene.add(coverGroup);
+
+  var clock = new THREE.Clock();
+
+  function coverAnimate() {
+    coverAnimFrameId = requestAnimationFrame(coverAnimate);
+    var t = clock.getElapsedTime();
+
+    // 1번 사진의 앉아 있는 형태를 유지하면서 아주 미세하고 우아한 생동감만 부여
+    if (wingL && wingR) {
+      var breathFlap = Math.sin(t * 1.6) * 0.04;
+      wingL.rotation.y = -0.58 + breathFlap;
+      wingR.rotation.y = 0.58 - breathFlap;
+    }
+
+    coverGroup.position.y = -0.05 + Math.sin(t * 1.2) * 0.06;
+    coverGroup.rotation.z = 0.45 + Math.sin(t * 0.8) * 0.02;
+
+    coverRenderer.render(coverScene, coverCamera);
+  }
+  coverAnimate();
+}
+
+window.addEventListener('resize', function() {
+  if (coverCamera && coverRenderer) {
+    var c = document.getElementById('cover-three-container');
+    if (c) {
+      var w = c.clientWidth || window.innerWidth;
+      var h = c.clientHeight || window.innerHeight;
+      coverCamera.aspect = w / h;
+      coverCamera.updateProjectionMatrix();
+      coverRenderer.setSize(w, h);
+    }
+  }
+});
+
+/* ==========================================================================
    🌟 3D 엔진 : Three.js 뷰어 (자연스럽게 활짝 펼쳐진 살짝 V자 착석 애니메이션)
    ========================================================================== */
 var fullScene, fullCamera, fullRenderer, fullGroup;
@@ -1278,7 +1412,6 @@ function initFullButterflyViewer(textureURL) {
   dirLight.position.set(0, 5, 10);
   fullScene.add(dirLight);
 
-  // 🌟 나비틀 바운딩 박스 크롭 텍스처를 1:1 온전한 종횡비 그대로 매핑
   var textureLoader = new THREE.TextureLoader();
   var userTexture = textureLoader.load(textureURL);
   userTexture.flipY = false;
@@ -1367,7 +1500,6 @@ function initFullButterflyViewer(textureURL) {
     var now = performance.now();
     var elapsedSec = (now - previewStartTime) / 1000;
 
-    // 손을 떼었을 때 원래 각도(등쪽)로 자동 복귀
     if (!isUserDragging) {
       butterflyRotX += (DEFAULT_ROT_X - butterflyRotX) * 0.08;
       var diffY = (DEFAULT_ROT_Y - butterflyRotY);
@@ -1378,7 +1510,6 @@ function initFullButterflyViewer(textureURL) {
     fullGroup.rotation.x = butterflyRotX;
     fullGroup.rotation.y = butterflyRotY;
 
-    // 기 모으기 카운팅: 1초간 가만히 누르고 있었을 때 발동
     if (isPressingScreen && !isFlyingAway) {
       var pressDuration = (now - pressStartTime) / 1000;
 
@@ -1396,42 +1527,34 @@ function initFullButterflyViewer(textureURL) {
       }
     }
 
-    // 🌟 [수정 완료] 날개를 너무 꽉 접지 않고, 자연스럽게 살짝만 V자로 접히는 애니메이션
     if (!isFlyingAway) {
       var settleDuration = 3.6;
       var tNorm = Math.min(1.0, elapsedSec / settleDuration);
 
-      // 초반 빠르고 큰 펄럭임 -> 서서히 느려지며 부드럽게 잦아듦
       var flapFade = Math.pow(1.0 - tNorm, 1.6);
       var currentFlapSpeed = 10.0 + (16.0 * flapFade);
       var currentFlapAmp = 0.90 * flapFade;
       var dynamicFlap = Math.sin(time * currentFlapSpeed) * currentFlapAmp;
 
-      // 🌟 [핵심 변경] 과도한 78도 접힘을 없애고, 약 14도(0.24 rad)만 아주 자연스럽게 접힘
       var settleEase = 1 - Math.pow(1 - tNorm, 3);
       var gentleFoldAngle = 0.24 * settleEase;
 
       if (leftWingMesh && rightWingMesh) {
-        // 날개 평면의 사진이 찌그러져 보이지 않도록 정면을 향해 넓게 펼쳐진 상태 유지
         leftWingMesh.rotation.y = initialRotL.y - gentleFoldAngle + dynamicFlap;
         rightWingMesh.rotation.y = initialRotR.y + gentleFoldAngle - dynamicFlap;
 
-        // 비틀림 오차를 완전히 제거하여 날개 평면 보존
         leftWingMesh.rotation.z = initialRotL.z;
         rightWingMesh.rotation.z = initialRotR.z;
         leftWingMesh.rotation.x = initialRotL.x;
         rightWingMesh.rotation.x = initialRotR.x;
 
-        // 종횡비 1:1:1 고정
         leftWingMesh.scale.set(1, 1, 1);
         rightWingMesh.scale.set(1, 1, 1);
       }
 
-      // 비행 호버링 모션도 착석 시 안정화
       fullGroup.position.y = Math.sin(time * 2.2) * (0.12 * flapFade);
 
     } else {
-      // 위로 날아오를 때의 활발한 날갯짓 비상 모션
       var flyFlapSpeed = 26.0;
       var flyFlapAmp = 0.78;
       var flyAngle = Math.sin(time * flyFlapSpeed) * flyFlapAmp;
@@ -1468,9 +1591,6 @@ function initFullButterflyViewer(textureURL) {
   bindInteractiveEvents(container);
 }
 
-/* ==========================================================================
-   기 모으기 파티클 & 원형 UI & 진동 컨트롤
-   ========================================================================== */
 function initEnergyParticleSystem() {
   particleCanvas = document.getElementById('energy-particles-canvas');
   if (!particleCanvas) return;
@@ -1604,9 +1724,6 @@ function resetChargeState() {
   if (flyLabel) flyLabel.innerText = "HOLD TO CHARGE";
 }
 
-/* ==========================================================================
-   터치 & 마우스 드래그(360도) 및 롱프레스(1초 정지 후 발동)/스와이프 비상
-   ========================================================================== */
 function bindInteractiveEvents(targetEl) {
   var touchStartY = 0;
   var touchMovedDist = 0;
@@ -2122,4 +2239,6 @@ document.getElementById('dev-btn-skip-prev').addEventListener('click', function(
   }
 });
 
+// 초기 구동 시 첫 화면 3D 나비 로드
+initCoverButterfly3D();
 updateDevScreenBadge();

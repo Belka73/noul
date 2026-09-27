@@ -3,8 +3,7 @@
 /* ==========================================================================
    너울(Noul) 전역 스타일시트
    - 아이폰 17 / 최신 iOS 세이프 에어리어 규격 최적화
-   - 슬라이더 이동에 따른 순백색 트랙 채움 동적 연동
-   - 사용자 터치 좌표에 나타나는 기 모으기 원형 인디케이터 스타일 반영
+   - [추가] 표지 화면 1번 사진 3D 나비 컨테이너 및 미세 블러/글로우 스타일
    ========================================================================== */
 
 * {
@@ -116,22 +115,17 @@ html, body {
   filter: drop-shadow(0 0 20px rgba(255, 255, 255, 0.4));
 }
 
-.ambient-butterfly {
+/* 🌟 첫페이지 3D 나비 뷰포트 레이어 (1번 사진 구도 및 몽환적인 살짝 블러 처리) */
+.cover-three-viewport {
   position: absolute;
-  width: 80px;
-  height: 80px;
-  opacity: 0.25;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 1;
   pointer-events: none;
-}
-.butterfly-pos-top-right {
-  top: 12%;
-  right: 10%;
-  transform: rotate(18deg);
-}
-.butterfly-pos-bottom-left {
-  bottom: 22%;
-  left: 8%;
-  transform: rotate(-15deg);
+  overflow: hidden;
+  filter: blur(1.8px) drop-shadow(0 0 22px rgba(255, 255, 255, 0.45));
+  will-change: transform, filter;
 }
 
 /* 메뉴 카드 */
@@ -289,7 +283,6 @@ html, body {
   justify-content: center;
 }
 
-/* 슬라이더 바 흰색 채움 동적 연동 */
 #blur-slider {
   --blur-percent: 0%;
   -webkit-appearance: none;
@@ -578,9 +571,6 @@ html, body {
   z-index: 1;
 }
 
-/* ==========================================================================
-   🌟 사용자가 터치한 곳에 생성되는 기 모으기 원형 인디케이터
-   ========================================================================== */
 .energy-charge-widget {
   position: fixed;
   left: 50%;
