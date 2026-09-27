@@ -1,10 +1,11 @@
 /* ==========================================================================
    🌟 너울(Noul) 메인 애플리케이션 로직 (app.js)
    - 아이폰 17 화면비 및 모바일 WebKit 규격 최적화
-   - [해결 1] 흐림 조정 슬라이더: WebKit 필터 무시 결함을 극복하는 순수 픽셀 조작 Fast-Blur 엔진 탑재 (100% 작동 보장)
-   - [해결 2] 3D 프리뷰 등장 시 빠른 날개짓 -> 서서히 느려지며 날개를 접고 정지하는 단일 일체형 애니메이션
-   - [해결 3] 진동 피드백: 터치 제스처 즉각 동기화 Web Audio + 햅틱 트리거
-   - [해결 4] 1초간 정지한 채 누를 때만 5초 카운팅 시작 / 터치 좌표에 원형 생성 / 3초간 UI 페이드아웃
+   - [해결] 날개 접힘 시 사진 텍스처 종횡비/투영 왜곡 방지 (비틀림 없는 입체 롤링 축 적용)
+   - [유지] 고속 픽셀 박스 블러 엔진 (흐림 조절 100% 작동)
+   - [유지] 단일 흐름 착석 애니메이션 (빠른 날개짓 -> 서서히 느려지며 접고 정지)
+   - [유지] 햅틱/웹오디오 3중 진동 피드백
+   - [유지] 1초 가만히 터치 시 5초 카운팅 시작 / 터치 좌표 원형 UI / 3초 UI 페이드아웃
    ========================================================================== */
 
 function showScreen(screenId) {
@@ -432,8 +433,7 @@ document.getElementById('btn-confirm-shape').addEventListener('click', function(
 });
 
 /* ==========================================================================
-   🌟 [해결 1] 흐림도 100% 작동 보장: 고속 멀티패스 박스 블러 엔진
-   - 브라우저 Canvas 필터 미지원/버그를 완벽히 우회하여 실제 픽셀을 흐림 처리
+   🌟 고속 멀티패스 박스 블러 엔진 (WebKit 필터 미지원/결함 완벽 해결)
    ========================================================================== */
 function fastBoxBlur(imageData, radius) {
   if (radius < 1) return;
@@ -581,7 +581,6 @@ function initAlignUI() {
   drawAlignCanvas();
 }
 
-// 🌟 100% 실시간 픽셀 흐림 렌더링
 function drawAlignCanvas() {
   actx.clearRect(0, 0, alignCanvas.width, alignCanvas.height);
   if (!rawImage || !rawImage.width || rawImage.width === 0) return;
@@ -592,10 +591,8 @@ function drawAlignCanvas() {
   tempCanvas.height = alignCanvas.height;
   var tctx = tempCanvas.getContext('2d', { willReadFrequently: true });
 
-  // 원본 이미지 그리기
   tctx.drawImage(rawImage, imgX, imgY, rawImage.width * imgScale, rawImage.height * imgScale);
 
-  // 흐림 조절이 들어갔을 때 실제 픽셀 블러 적용
   if (currentBlurPx > 0) {
     var imgData = tctx.getImageData(0, 0, tempCanvas.width, tempCanvas.height);
     fastBoxBlur(imgData, currentBlurPx * 1.3);
@@ -1356,23 +1353,37 @@ function initFullButterflyViewer(textureURL) {
       }
     }
 
-    // 단일 흐름 애니메이션: 빠르게 날개짓하다 서서히 느려지며 날개를 접은 채 자연스럽게 정지
+    // 🌟 [해결] 날개 접힘 시 사진 왜곡 방지 및 유기적인 단일 흐름 착석 모션
     if (!isFlyingAway) {
       var landingDuration = 3.8;
       var progress = Math.min(1.0, elapsedSec / landingDuration);
       var easeProgress = 1 - Math.pow(1 - progress, 3);
 
       var currentFlapSpeed = 24.0 * (1 - easeProgress);
-      var currentFlapAmp = 0.9 * (1 - easeProgress);
-      var currentFoldAngle = 0.65 * easeProgress;
+      var currentFlapAmp = 0.85 * (1 - easeProgress);
 
+      // 날개짓 플랩 (Y축)
       var dynamicFlap = Math.sin(time * currentFlapSpeed) * currentFlapAmp;
 
+      // 🌟 날개 접힘 각도: 날개 평면을 Y축으로 무리하게 꺾어 사진을 찌그러뜨리지 않고,
+      // 날개의 롤링(Z축)과 피치(X축)를 복합 회전시켜 사진의 종횡비를 100% 온전하게 보존
+      var foldZ = 0.38 * easeProgress;
+      var foldX = 0.16 * easeProgress;
+      var foldY = 0.18 * easeProgress;
+
       if (leftWingMesh && rightWingMesh) {
-        leftWingMesh.rotation.y = initialRotL.y - currentFoldAngle + dynamicFlap;
-        rightWingMesh.rotation.y = initialRotR.y + currentFoldAngle - dynamicFlap;
-        leftWingMesh.rotation.z = initialRotL.z;
-        rightWingMesh.rotation.z = initialRotR.z;
+        leftWingMesh.rotation.y = initialRotL.y - foldY + dynamicFlap;
+        rightWingMesh.rotation.y = initialRotR.y + foldY - dynamicFlap;
+
+        leftWingMesh.rotation.z = initialRotL.z + foldZ;
+        rightWingMesh.rotation.z = initialRotR.z - foldZ;
+
+        leftWingMesh.rotation.x = initialRotL.x + foldX;
+        rightWingMesh.rotation.x = initialRotR.x + foldX;
+
+        // 메쉬 스케일 비율을 1:1:1로 엄격히 유지하여 텍스처 왜곡 방지
+        leftWingMesh.scale.set(1, 1, 1);
+        rightWingMesh.scale.set(1, 1, 1);
       }
 
       fullGroup.position.y = Math.sin(time * 2.0) * (0.14 * (1 - easeProgress));
@@ -1387,6 +1398,8 @@ function initFullButterflyViewer(textureURL) {
         rightWingMesh.rotation.y = initialRotR.y - flyAngle;
         leftWingMesh.rotation.z = initialRotL.z;
         rightWingMesh.rotation.z = initialRotR.z;
+        leftWingMesh.rotation.x = initialRotL.x;
+        rightWingMesh.rotation.x = initialRotR.x;
       }
 
       fullGroup.position.y += 0.22;
