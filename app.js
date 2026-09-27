@@ -573,7 +573,7 @@ window.addEventListener('touchmove', function(e) {
 
 window.addEventListener('touchend', function() { isDragging = false; startPinchDist = 0; });
 
-/* 🌟 선택된 나비 틀의 가로/세로 비율과 위치를 1:1로 추출 */
+/* 🌟 선택된 나비 틀의 가로/세로 비율과 위치를 1:1로 추출 (외곽선 및 배경 마진 제거) */
 function exportAlignedTexture() {
   var currentWing = butterflyPathData[selectedButterflyShape] || wingDataset[0];
   
@@ -583,7 +583,6 @@ function exportAlignedTexture() {
   var shapeOffsetX = (160 - shapePixelWidth) / 2;
   var shapeOffsetY = (160 - shapePixelHeight) / 2;
 
-  // 160x160 미리보기 뷰포트 기준, alignCanvas(600x600) 내의 나비틀 실제 좌표
   var canvasScale = alignCanvas.width / 160;
   var cropX = shapeOffsetX * canvasScale;
   var cropY = shapeOffsetY * canvasScale;
@@ -598,9 +597,6 @@ function exportAlignedTexture() {
   dreamCanvas.height = targetHeight;
   var dctx = dreamCanvas.getContext('2d');
 
-  dctx.fillStyle = "#ffffff";
-  dctx.fillRect(0, 0, targetWidth, targetHeight);
-
   if (rawImage && rawImage.width) {
     var ratioX = targetWidth / cropW;
     var ratioY = targetHeight / cropH;
@@ -609,7 +605,7 @@ function exportAlignedTexture() {
     if (currentBlurPx > 0) {
       dctx.filter = 'blur(' + (currentBlurPx * ratioX) + 'px)';
     }
-    // 나비 틀의 좌상단(cropX, cropY)을 텍스처 (0, 0)에 1:1 정렬
+    // 흰색 바탕을 미리 채우지 않고 사용자가 배치한 사진 그대로를 1:1 정밀 맵핑
     dctx.drawImage(
       rawImage,
       (imgX - cropX) * ratioX,
@@ -1111,8 +1107,9 @@ function initFullButterflyViewer(textureURL) {
   var textureLoader = new THREE.TextureLoader();
   var userTexture = textureLoader.load(textureURL);
   userTexture.flipY = false;
-  userTexture.wrapS = THREE.ClampToEdgeWrapping;
-  userTexture.wrapT = THREE.ClampToEdgeWrapping;
+  // 외곽선 띠와 늘어짐을 방지하는 정밀 텍스처 래핑
+  userTexture.wrapS = THREE.RepeatWrapping;
+  userTexture.wrapT = THREE.RepeatWrapping;
 
   fullGroup = new THREE.Group();
 
@@ -1491,6 +1488,8 @@ function openSpecimen3DModal(item, textureUrl) {
 
   var tex = new THREE.TextureLoader().load(textureUrl);
   tex.flipY = false;
+  tex.wrapS = THREE.RepeatWrapping;
+  tex.wrapT = THREE.RepeatWrapping;
 
   var wingMat = new THREE.MeshStandardMaterial({ map: tex, side: THREE.DoubleSide, roughness: 0.45 });
   var whiteMat = new THREE.MeshStandardMaterial({ color: 0xffffff, side: THREE.DoubleSide, roughness: 0.3 });
