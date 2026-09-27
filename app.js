@@ -573,30 +573,26 @@ window.addEventListener('touchmove', function(e) {
 
 window.addEventListener('touchend', function() { isDragging = false; startPinchDist = 0; });
 
-/* 🌟 선택된 나비 틀의 가로/세로 비율과 위치를 1:1로 추출 */
+/* 🌟 원래 방식으로 텍스처 추출 */
 function exportAlignedTexture() {
   var size = 1024;
   var dreamCanvas = document.createElement('canvas');
   dreamCanvas.width = size;
   dreamCanvas.height = size;
   var dctx = dreamCanvas.getContext('2d');
+  dctx.fillStyle = "#ffffff";
+  dctx.fillRect(0, 0, size, size);
 
+  var scaleRatio = size / alignCanvas.width;
   if (rawImage && rawImage.width) {
-    var ratio = size / alignCanvas.width;
     dctx.save();
     if (currentBlurPx > 0) {
-      dctx.filter = 'blur(' + (currentBlurPx * ratio) + 'px)';
+      dctx.filter = 'blur(' + (currentBlurPx * scaleRatio) + 'px)';
     }
-    dctx.drawImage(
-      rawImage,
-      imgX * ratio,
-      imgY * ratio,
-      rawImage.width * imgScale * ratio,
-      rawImage.height * imgScale * ratio
-    );
+    dctx.drawImage(rawImage, imgX * scaleRatio, imgY * scaleRatio, rawImage.width * imgScale * scaleRatio, rawImage.height * imgScale * scaleRatio);
     dctx.restore();
   }
-  currentExtractedTexture = dreamCanvas.toDataURL('image/png');
+  currentExtractedTexture = dreamCanvas.toDataURL('image/jpeg', 0.85);
 }
 
 function createFallbackDummyTexture(colorA, colorB) {
@@ -613,60 +609,7 @@ function createFallbackDummyTexture(colorA, colorB) {
   ctx.beginPath();
   ctx.arc(256, 256, 130, 0, Math.PI * 2);
   ctx.fill();
-  return c.toDataURL('image/png');
-}
-
-/* 🌟 3D 정면 평면 투영(Planar Projection) 셰이더 생성기 */
-function createPlanarWingMaterial(texture, wingShapeData) {
-  var w = wingShapeData.w;
-  var h = wingShapeData.h;
-  var maxDim = Math.max(w, h);
-  var scale = 140 / maxDim;
-  var offX = (160 - w * scale) / 2;
-  var offY = (160 - h * scale) / 2;
-
-  var uScale = 160 / (w * scale);
-  var vScale = 160 / (h * scale);
-  var uOffset = offX / 160;
-  var vOffset = offY / 160;
-
-  var uniforms = {
-    uTexture: { value: texture },
-    uScale: { value: new THREE.Vector2(uScale, vScale) },
-    uOffset: { value: new THREE.Vector2(uOffset, vOffset) },
-    uModelBBoxMin: { value: new THREE.Vector2(-2.2, -2.2) },
-    uModelBBoxMax: { value: new THREE.Vector2(2.2, 2.2) }
-  };
-
-  var mat = new THREE.ShaderMaterial({
-    uniforms: uniforms,
-    side: THREE.DoubleSide,
-    vertexShader: [
-      "varying vec3 vWorldPos;",
-      "void main() {",
-      "  vec4 wp = modelMatrix * vec4(position, 1.0);",
-      "  vWorldPos = wp.xyz;",
-      "  gl_Position = projectionMatrix * viewMatrix * wp;",
-      "}"
-    ].join("\n"),
-    fragmentShader: [
-      "uniform sampler2D uTexture;",
-      "uniform vec2 uScale;",
-      "uniform vec2 uOffset;",
-      "uniform vec2 uModelBBoxMin;",
-      "uniform vec2 uModelBBoxMax;",
-      "varying vec3 vWorldPos;",
-      "void main() {",
-      "  float u = (vWorldPos.x - uModelBBoxMin.x) / (uModelBBoxMax.x - uModelBBoxMin.x);",
-      "  float v = (vWorldPos.y - uModelBBoxMin.y) / (uModelBBoxMax.y - uModelBBoxMin.y);",
-      "  vec2 uvCoord = vec2(u, 1.0 - v);",
-      "  vec2 mappedUV = (uvCoord - uOffset) / uScale;",
-      "  vec4 texColor = texture2D(uTexture, uvCoord);",
-      "  gl_FragColor = texColor;",
-      "}"
-    ].join("\n")
-  });
-  return mat;
+  return c.toDataURL('image/jpeg', 0.85);
 }
 
 /* 설문 데이터 및 표시 로직 */
@@ -1144,9 +1087,12 @@ function initFullButterflyViewer(textureURL) {
 
   fullGroup = new THREE.Group();
 
-  var currentWingData = butterflyPathData[selectedButterflyShape] || wingDataset[0];
-  var planarWingMat = createPlanarWingMaterial(userTexture, currentWingData);
-
+  var wingMat = new THREE.MeshStandardMaterial({
+    map: userTexture,
+    side: THREE.DoubleSide,
+    roughness: 0.5,
+    metalness: 0.0
+  });
   var whiteMat = new THREE.MeshStandardMaterial({
     color: 0xffffff,
     side: THREE.DoubleSide,
@@ -1170,11 +1116,11 @@ function initFullButterflyViewer(textureURL) {
         var name = child.name;
         if (name.startsWith('Wing_L')) {
           leftWingMesh = child;
-          child.material = planarWingMat;
+          child.material = wingMat;
           initialRotL = { x: child.rotation.x, y: child.rotation.y, z: child.rotation.z };
         } else if (name.startsWith('Wing_R')) {
           rightWingMesh = child;
-          child.material = planarWingMat;
+          child.material = wingMat;
           initialRotR = { x: child.rotation.x, y: child.rotation.y, z: child.rotation.z };
         } 
         else if (name.startsWith('Body')) {
@@ -1197,13 +1143,6 @@ function initFullButterflyViewer(textureURL) {
     model.position.set(0, 0, 0);
 
     fullGroup.add(model);
-
-    // 나비 날개 크기를 자동으로 계산하여 1:1 투영 정렬
-    var box = new THREE.Box3().setFromObject(model);
-    if (planarWingMat.uniforms) {
-      planarWingMat.uniforms.uModelBBoxMin.value.set(box.min.x, box.min.y);
-      planarWingMat.uniforms.uModelBBoxMax.value.set(box.max.x, box.max.y);
-    }
   }, undefined, function(err) {
     console.error(modelPath + " 로드 오류:", err);
   });
@@ -1524,9 +1463,7 @@ function openSpecimen3DModal(item, textureUrl) {
   var tex = new THREE.TextureLoader().load(textureUrl);
   tex.flipY = false;
 
-  var currentWingData = butterflyPathData[item.wingId] || wingDataset[0];
-  var modalWingMat = createPlanarWingMaterial(tex, currentWingData);
-
+  var wingMat = new THREE.MeshStandardMaterial({ map: tex, side: THREE.DoubleSide, roughness: 0.45 });
   var whiteMat = new THREE.MeshStandardMaterial({ color: 0xffffff, side: THREE.DoubleSide, roughness: 0.3 });
 
   var targetAntennaPrefix = 'Antenna_' + item.antId;
@@ -1541,9 +1478,9 @@ function openSpecimen3DModal(item, textureUrl) {
       if (child.isMesh) {
         var name = child.name;
         if (name.startsWith('Wing_L')) {
-          modalWingL = child; child.material = modalWingMat;
+          modalWingL = child; child.material = wingMat;
         } else if (name.startsWith('Wing_R')) {
-          modalWingR = child; child.material = modalWingMat;
+          modalWingR = child; child.material = wingMat;
         } else if (name.startsWith('Body')) {
           child.material = whiteMat;
         } else if (name.startsWith('Antenna_')) {
@@ -1556,12 +1493,6 @@ function openSpecimen3DModal(item, textureUrl) {
     model.scale.set(0.88, 0.88, 0.88);
     model.position.set(0, -0.35, 0);
     group.add(model);
-
-    var box = new THREE.Box3().setFromObject(model);
-    if (modalWingMat.uniforms) {
-      modalWingMat.uniforms.uModelBBoxMin.value.set(box.min.x, box.min.y);
-      modalWingMat.uniforms.uModelBBoxMax.value.set(box.max.x, box.max.y);
-    }
   }, undefined, function(err) {
     console.error("모달 3D 모델 로드 오류:", err);
   });
