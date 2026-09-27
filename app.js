@@ -2,8 +2,8 @@
    🌟 너울(Noul) 메인 애플리케이션 로직 (app.js)
    - 아이폰 17 화면비 및 모바일 WebKit 규격 최적화
    - [해결 1] 흐림 조정 패널: 슬라이더 이동 시 실시간 블러 100% 작동
-   - [해결 2] 3D 나비 날개: SVG 나비틀 바운딩 박스 기준 1:1 정밀 텍스처 투영 (왜곡 완전 해결)
-   - [해결 3] 날개 애니메이션 전면 개편: 초반 빠르고 큰 날갯짓 -> 서서히 감속/소폭화 -> 등 뒤로 곧게 접힘
+   - [해결 2] 3D 나비 날개: SVG 나비틀 바운딩 박스 기준 1:1 정밀 텍스처 투영
+   - [해결 3] 날개 착석 애니메이션: 과도한 접힘 해제 -> 자연스럽고 우아하게 살짝만 접힘(V자 각도 유지)
    - [유지] 요청된 사항 외 기존 기능/인터랙션/UI 일체 보존
    ========================================================================== */
 
@@ -446,7 +446,6 @@ function executeReliableFastBlur(canvas, radius) {
   var kernelSize = r * 2 + 1;
   var temp = new Uint8ClampedArray(src.length);
 
-  // 1. 수평 블러 (O(N) 누적합 방식)
   for (var y = 0; y < h; y++) {
     var rowStart = y * w * 4;
     var rSum = 0, gSum = 0, bSum = 0, aSum = 0;
@@ -479,7 +478,6 @@ function executeReliableFastBlur(canvas, radius) {
     }
   }
 
-  // 2. 수직 블러 (O(N) 누적합 방식)
   for (var x = 0; x < w; x++) {
     var rSum = 0, gSum = 0, bSum = 0, aSum = 0;
 
@@ -706,7 +704,6 @@ function exportAlignedTexture() {
     return;
   }
 
-  // 1. 전체 화면 임시 렌더링 (블러/대칭 포함)
   var baseCanvas = document.createElement('canvas');
   baseCanvas.width = alignCanvas.width;
   baseCanvas.height = alignCanvas.height;
@@ -733,20 +730,17 @@ function exportAlignedTexture() {
     baseCanvas = symCanvas;
   }
 
-  // 2. 현재 선택된 나비 틀의 2D 뷰포트 상 실제 위치 계산
   var currentWing = butterflyPathData[selectedButterflyShape] || wingDataset[0];
   var heroScale = 140 / Math.max(currentWing.w, currentWing.h);
   var heroOffsetX = (160 - currentWing.w * heroScale) / 2;
   var heroOffsetY = (160 - currentWing.h * heroScale) / 2;
 
-  // 160x160 SVG 좌표 -> 600x600 캔버스 좌표 환산 비율
   var cRatio = alignCanvas.width / 160;
   var cropX = heroOffsetX * cRatio;
   var cropY = heroOffsetY * cRatio;
   var cropW = (currentWing.w * heroScale) * cRatio;
   var cropH = (currentWing.h * heroScale) * cRatio;
 
-  // 3. 나비틀 영역만 1:1 고해상도로 크롭 추출 (왜곡 원천 차단)
   var outW = 1024;
   var outH = Math.round(1024 * (currentWing.h / currentWing.w));
   var finalCanvas = document.createElement('canvas');
@@ -1160,7 +1154,7 @@ btnSurveyPrev.addEventListener('click', function() {
 });
 
 /* ==========================================================================
-   🌟 3D 엔진 : Three.js 뷰어 (전면 수정된 자연스러운 날갯짓 및 2번 사진 착석 모션)
+   🌟 3D 엔진 : Three.js 뷰어 (자연스럽게 활짝 펼쳐진 살짝 V자 착석 애니메이션)
    ========================================================================== */
 var fullScene, fullCamera, fullRenderer, fullGroup;
 var leftWingMesh, rightWingMesh, antennaMesh;
@@ -1402,49 +1396,42 @@ function initFullButterflyViewer(textureURL) {
       }
     }
 
-    // 🌟 [수정 핵심] 날개 펄럭임 및 2번 사진 착석 모션 전면 개편
+    // 🌟 [수정 완료] 날개를 너무 꽉 접지 않고, 자연스럽게 살짝만 V자로 접히는 애니메이션
     if (!isFlyingAway) {
-      // 1. 착석 완료 시점 (약 4.2초)
-      var settleDuration = 4.2;
+      var settleDuration = 3.6;
       var tNorm = Math.min(1.0, elapsedSec / settleDuration);
 
-      // 2. 펄럭임 감속 및 진폭 축소 커브 (초반 빠르고 큼 -> 서서히 느리고 작아짐)
-      var flapFade = Math.pow(1.0 - tNorm, 1.8);
-      var currentFlapSpeed = 10.0 + (18.0 * flapFade); // 28 rad/s -> 10 rad/s로 부드럽게 감속
-      var currentFlapAmp = 0.95 * flapFade;            // 초반 0.95rad의 큰 펄럭임 -> 0으로 소멸
+      // 초반 빠르고 큰 펄럭임 -> 서서히 느려지며 부드럽게 잦아듦
+      var flapFade = Math.pow(1.0 - tNorm, 1.6);
+      var currentFlapSpeed = 10.0 + (16.0 * flapFade);
+      var currentFlapAmp = 0.90 * flapFade;
       var dynamicFlap = Math.sin(time * currentFlapSpeed) * currentFlapAmp;
 
-      // 3. 2번째 사진처럼 등 뒤로 곧게 접어 올리는 각도 (Cubic Ease In-Out 적용)
-      // 중간 단계(tNorm > 0.35)부터 날개가 천천히 등 뒤로 모아지기 시작함
-      var foldProgress = Math.max(0, (tNorm - 0.35) / 0.65);
-      var foldEase = foldProgress < 0.5 
-        ? 4 * foldProgress * foldProgress * foldProgress 
-        : 1 - Math.pow(-2 * foldProgress + 2, 3) / 2;
-
-      // 최대 접힘 각도: 약 78도(1.36 rad) -> 등 뒤로 날개 두 장이 위로 우뚝 포개어짐 (2번째 사진 형상)
-      var foldAngle = 1.36 * foldEase;
+      // 🌟 [핵심 변경] 과도한 78도 접힘을 없애고, 약 14도(0.24 rad)만 아주 자연스럽게 접힘
+      var settleEase = 1 - Math.pow(1 - tNorm, 3);
+      var gentleFoldAngle = 0.24 * settleEase;
 
       if (leftWingMesh && rightWingMesh) {
-        // 날개가 중앙으로 오므라들지 않도록 Y축(경첩축) 중심으로 등 뒤를 향해 깔끔하게 접힘
-        leftWingMesh.rotation.y = initialRotL.y - foldAngle + dynamicFlap;
-        rightWingMesh.rotation.y = initialRotR.y + foldAngle - dynamicFlap;
+        // 날개 평면의 사진이 찌그러져 보이지 않도록 정면을 향해 넓게 펼쳐진 상태 유지
+        leftWingMesh.rotation.y = initialRotL.y - gentleFoldAngle + dynamicFlap;
+        rightWingMesh.rotation.y = initialRotR.y + gentleFoldAngle - dynamicFlap;
 
-        // X, Z축 비틀림을 완전히 제거하여 날개 평면이 비틀리거나 찌그러지지 않도록 고정
+        // 비틀림 오차를 완전히 제거하여 날개 평면 보존
         leftWingMesh.rotation.z = initialRotL.z;
         rightWingMesh.rotation.z = initialRotR.z;
         leftWingMesh.rotation.x = initialRotL.x;
         rightWingMesh.rotation.x = initialRotR.x;
 
-        // 종횡비 고정
+        // 종횡비 1:1:1 고정
         leftWingMesh.scale.set(1, 1, 1);
         rightWingMesh.scale.set(1, 1, 1);
       }
 
-      // 비행 중 상하 호버링도 착석 시 서서히 안정화
-      fullGroup.position.y = Math.sin(time * 2.2) * (0.16 * flapFade);
+      // 비행 호버링 모션도 착석 시 안정화
+      fullGroup.position.y = Math.sin(time * 2.2) * (0.12 * flapFade);
 
     } else {
-      // 화면 밖으로 날아오를 때의 비상 애니메이션
+      // 위로 날아오를 때의 활발한 날갯짓 비상 모션
       var flyFlapSpeed = 26.0;
       var flyFlapAmp = 0.78;
       var flyAngle = Math.sin(time * flyFlapSpeed) * flyFlapAmp;
