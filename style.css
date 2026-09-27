@@ -4,6 +4,7 @@
    너울(Noul) 전역 스타일시트
    - 아이폰 17 / 최신 iOS 세이프 에어리어 규격 최적화
    - 슬라이더 이동에 따른 순백색 트랙 채움 동적 연동
+   - 2번 사진 참조 기 모으기 원형 충전 인디케이터 스타일 탑재
    ========================================================================== */
 
 * {
@@ -215,9 +216,7 @@ html, body {
   transform: translateY(0);
 }
 
-/* ==========================================================================
-   형태 선택 및 정렬 뷰포트
-   ========================================================================== */
+/* 형태 선택 및 정렬 뷰포트 */
 .hero-fixed-anchor {
   display: flex;
   flex-direction: column;
@@ -249,7 +248,7 @@ html, body {
   height: 100%;
 }
 
-/* 🌟 조정 패널 (흐림 조정 + 좌우 대칭) */
+/* 조정 패널 (흐림 조정 + 좌우 대칭) */
 .blur-slider-wrapper {
   width: 250px;
   margin: 16px auto 0;
@@ -290,7 +289,7 @@ html, body {
   justify-content: center;
 }
 
-/* 🌟 1번 사진 반영: 원의 위치에 맞춰 슬라이더 바가 흰색으로 채워지도록 그라데이션 트랙 설정 */
+/* 슬라이더 바 흰색 채움 동적 연동 */
 #blur-slider {
   --blur-percent: 0%;
   -webkit-appearance: none;
@@ -577,6 +576,51 @@ html, body {
   filter: blur(28px);
   pointer-events: none;
   z-index: 1;
+}
+
+/* ==========================================================================
+   🌟 2번 사진 참조: 5초 기 모으기 원형 충전 인디케이터
+   ========================================================================== */
+.energy-charge-widget {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+  z-index: 25;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 1;
+  transition: opacity 0.2s ease;
+}
+
+.energy-charge-widget.hidden {
+  display: none !important;
+}
+
+.charge-outer-circle {
+  width: 140px;
+  height: 140px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.18);
+  border: 1.5px solid rgba(255, 255, 255, 0.35);
+  box-shadow: 0 0 35px rgba(255, 255, 255, 0.25), inset 0 0 20px rgba(255, 255, 255, 0.12);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  backdrop-blur: 8px;
+}
+
+.charge-inner-fill {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: #ffffff;
+  box-shadow: 0 0 25px 5px rgba(255, 255, 255, 0.95);
+  transform: scale(1);
+  will-change: width, height, transform, box-shadow;
 }
 
 /* 나비 박제 표본실 */
