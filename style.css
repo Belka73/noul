@@ -56,7 +56,7 @@ html, body {
   flex-shrink: 0;
 }
 
-/* 🌟 뒤로가기 버튼 (원 프레임 지우고 화살표만 유지) */
+/* 🌟 뒤로가기 버튼 */
 .app-back-btn {
   position: absolute;
   top: max(1.25rem, env(safe-area-inset-top));
@@ -183,7 +183,7 @@ html, body {
   box-shadow: 0 0 20px rgba(255, 255, 255, 0.35);
 }
 
-/* 🌟 촬영 안내 화면 애니메이션 */
+/* 촬영 안내 화면 애니메이션 */
 .guide-title-wrapper {
   position: absolute;
   top: 50%;
@@ -215,7 +215,7 @@ html, body {
 }
 
 /* ==========================================================================
-   🌟 형태 선택 및 정렬 뷰포트
+   형태 선택 및 정렬 뷰포트
    ========================================================================== */
 .hero-fixed-anchor {
   display: flex;
@@ -248,7 +248,7 @@ html, body {
   height: 100%;
 }
 
-/* 🌟 흐림도 조절바 디자인 */
+/* 흐림도 조절바 */
 .blur-slider-wrapper {
   width: 240px;
   margin: 32px auto 0;
@@ -325,7 +325,7 @@ html, body {
   border: none;
 }
 
-/* 🌟 형태 선택 하단 도크 위치 및 높이 보정 */
+/* 형태 선택 하단 도크 */
 .shape-bottom-fixed-dock {
   position: absolute;
   bottom: 0;
@@ -469,7 +469,6 @@ html, body {
   resize: none;
 }
 
-/* 설문 키워드 알약 상하단 자연스러운 페이드 처리 */
 .vertical-scroll-chips {
   overflow-y: auto;
   scrollbar-width: none;
@@ -480,7 +479,6 @@ html, body {
   display: none;
 }
 
-/* 질문 영역 고정 공간 확보 */
 .survey-title-box {
   min-height: 104px;
   height: 104px;
@@ -491,7 +489,6 @@ html, body {
   flex-shrink: 0;
 }
 
-/* 버튼 액션 */
 .btn-next-action {
   background: #ffffff;
   color: #000000;
@@ -512,7 +509,30 @@ html, body {
 }
 
 /* ==========================================================================
-   🌟 나비 박제 표본실 (호버 크기 튀는 문제 해결 & 레이아웃 안정화)
+   🌟 2번 사진: 3D 프리뷰 화면 뒤쪽 순백 후광 글로우 (RGB 점/노이즈 완벽 차단)
+   ========================================================================== */
+.preview-ethereal-glow-bg {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 320px;
+  height: 320px;
+  border-radius: 50%;
+  background: radial-gradient(
+    circle,
+    rgba(255, 255, 255, 0.6) 0%,
+    rgba(255, 255, 255, 0.25) 30%,
+    rgba(255, 255, 255, 0.08) 55%,
+    rgba(255, 255, 255, 0) 75%
+  );
+  filter: blur(28px);
+  pointer-events: none;
+  z-index: 1;
+}
+
+/* ==========================================================================
+   나비 박제 표본실
    ========================================================================== */
 .gallery-header-guide {
   position: absolute;
@@ -536,7 +556,6 @@ html, body {
   cursor: grabbing;
 }
 
-/* 박제 보드판 (여백 확장: 860px * 1320px) */
 .specimen-frame-board {
   position: absolute;
   width: 860px;
@@ -563,7 +582,6 @@ html, body {
   height: 100%;
 }
 
-/* 카드 자체의 scale을 덮어쓰지 않고 내부 그래픽만 미세 반응 */
 .specimen-card-item {
   position: absolute;
   display: flex;
@@ -633,9 +651,7 @@ html, body {
   line-height: 1.2;
 }
 
-/* ==========================================================================
-   🌟 개별 나비 3D 상세 보기 모달 레이어 (아이폰 17 기준 클린 모달 UI 반영)
-   ========================================================================== */
+/* 모달 레이어 */
 .specimen-modal-layer {
   position: fixed;
   inset: 0;
@@ -695,7 +711,6 @@ html, body {
   transform: scale(0.92);
 }
 
-/* 모달 상단 3D 스테이지 */
 .specimen-modal-stage {
   width: 100%;
   height: 210px;
@@ -704,7 +719,6 @@ html, body {
   flex-shrink: 0;
 }
 
-/* 좌측 상단 날짜 숫자만 배치 */
 .specimen-stage-date-top {
   position: absolute;
   top: 22px;
@@ -721,7 +735,6 @@ html, body {
   color: #a3a3a3;
 }
 
-/* 모달 하단 아카이브 박스 */
 .specimen-modal-archive-box {
   width: 100%;
   padding: 0.6rem 1.4rem 1.4rem;
@@ -731,7 +744,6 @@ html, body {
   gap: 0.9rem;
 }
 
-/* 🌟 알약 키워드 상하 스크롤 래퍼 */
 .specimen-tags-scroll-wrap {
   width: 100%;
   max-height: 96px;

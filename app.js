@@ -1,9 +1,10 @@
 /* ==========================================================================
    🌟 너울(Noul) 메인 애플리케이션 로직 (app.js)
    - 아이폰 17 화면비 및 애니메이션/위치 보정 반영 완료
-   - 나비 7종 .glb 동적 로드 및 3종 더듬이 가시성 제어 완벽 반영
-   - 박제 액자(2D 갤러리): 더듬이 상단 잘림 방지 (overflow: visible) 반영
-   - 나비 둘러보기 상세 모달: 영문 라벨 제거, 날짜 상단 이동, 알약 스크롤 반영
+   - 나비 7종 .glb 동적 로드 및 3종 더듬이 가시성 제어
+   - 날개 무음영(MeshBasicMaterial) & 몸통/더듬이 전용 음영(MeshStandardMaterial) 분리
+   - 후광 배경 순수 화이트 글로우 전환 (RGB 색번짐/노이즈 완벽 차단)
+   - 로딩 완료 화면 문구 정리 및 나비 확대
    ========================================================================== */
 
 function showScreen(screenId) {
@@ -123,7 +124,7 @@ btnOpeningNext.addEventListener('click', function() {
   }
 });
 
-/* 🌟 6번째 화면 타이핑 후 상단 이동 애니메이션 로직 */
+/* 🌟 촬영 안내 타이핑 후 상단 이동 애니메이션 로직 */
 var guideTitleWrap = document.querySelector('.guide-title-wrapper');
 var guideAnimatedTitle = document.getElementById('guide-animated-title');
 var guideCenterCard = document.getElementById('guide-center-card');
@@ -223,7 +224,7 @@ function updateHeroPreview() {
   }
 }
 
-/* 직선형 가로 캐러셀 렌더러 */
+/* 가로 캐러셀 렌더러 */
 var carouselContainer = document.getElementById('arch-carousel-container');
 
 function renderCarouselItems() {
@@ -436,7 +437,7 @@ document.getElementById('btn-confirm-shape').addEventListener('click', function(
   showScreen('screen-survey');
 });
 
-/* 사진 조작 및 슬라이더 */
+/* 🌟 사진 조작 및 슬라이더 (흐림도 실시간 연동 강화) */
 var rawImage = new Image();
 var alignCanvas = document.getElementById('align-canvas');
 var actx = alignCanvas.getContext('2d');
@@ -449,13 +450,18 @@ var currentBlurPx = 0;
 
 var blurSlider = document.getElementById('blur-slider');
 
+function applyBlurValue(val) {
+  currentBlurPx = parseFloat(val) || 0;
+  drawAlignCanvas();
+}
+
 if (blurSlider) {
-  var onBlurInput = function(e) {
-    currentBlurPx = parseFloat(e.target.value) || 0;
-    drawAlignCanvas();
-  };
-  blurSlider.addEventListener('input', onBlurInput);
-  blurSlider.addEventListener('change', onBlurInput);
+  blurSlider.addEventListener('input', function(e) {
+    applyBlurValue(e.target.value);
+  });
+  blurSlider.addEventListener('change', function(e) {
+    applyBlurValue(e.target.value);
+  });
 }
 
 function handleFile(file) {
@@ -573,7 +579,6 @@ window.addEventListener('touchmove', function(e) {
 
 window.addEventListener('touchend', function() { isDragging = false; startPinchDist = 0; });
 
-/* 🌟 원래 방식으로 텍스처 추출 */
 function exportAlignedTexture() {
   var size = 1024;
   var dreamCanvas = document.createElement('canvas');
@@ -867,6 +872,7 @@ inputQ7Name.addEventListener('input', function(e) {
 
 var showcaseInterval = null;
 
+/* 🌟 1번 사진 수정사항 완벽 반영: 상단 텍스트 및 영문 문구 삭제, 본문 문구 수정, 나비 확대 */
 function startAnswerShowcaseSequence() {
   if (showcaseInterval) {
     clearInterval(showcaseInterval);
@@ -909,14 +915,26 @@ function startAnswerShowcaseSequence() {
 
       if (item.isFinal) {
         if (blackCurtain) blackCurtain.classList.add('fade-active');
-        if (mainTitle) mainTitle.innerHTML = '마침내,<br><span class="text-white">빛의 날개가 펼쳐집니다</span>';
-        if (subDesc) subDesc.innerText = '어둠 속에서 비로소 고유한 숨결이 깨어납니다.';
-        if (loadingSvg) {
-          loadingSvg.classList.remove('text-white');
-          loadingSvg.classList.add('scale-125');
-          loadingSvg.style.filter = "drop-shadow(0 0 35px rgba(255, 255, 255, 1))";
+        
+        // 🌟 1번 사진 요청사항: 상단 텍스트 완전 제거
+        if (mainTitle) {
+          mainTitle.innerHTML = '';
+          mainTitle.style.display = 'none';
         }
-        showcaseAnswers.innerHTML = '<div class="py-2 px-2 text-center w-full space-y-2"><span class="inline-block text-[10px] font-mono tracking-widest text-neutral-400 uppercase">Soul Awakening</span><p class="text-[1.05rem] font-bold text-white leading-relaxed break-keep drop-shadow-lg">이제 마음 깊은 곳에서 숨 쉬던 <strong class="text-white font-extrabold underline decoration-white/40 underline-offset-4">‘' + item.name + '’</strong>(이)가<br>찬란한 빛의 날개를 펴고 깨어납니다.</p></div>';
+        if (subDesc) {
+          subDesc.innerText = '';
+          subDesc.style.display = 'none';
+        }
+
+        // 🌟 1번 사진 요청사항: 중앙 나비 크기 대폭 확대 (w-36 h-36)
+        if (loadingSvg) {
+          loadingSvg.classList.remove('text-white', 'w-20', 'h-20');
+          loadingSvg.classList.add('w-36', 'h-36', 'scale-110');
+          loadingSvg.style.filter = "drop-shadow(0 0 45px rgba(255, 255, 255, 1))";
+        }
+
+        // 🌟 1번 사진 요청사항: 영문 SOUL AWAKENING 삭제, '이제 마음 깊은 곳에서 숨쉬던' 삭제
+        showcaseAnswers.innerHTML = '<div class="py-2 px-2 text-center w-full space-y-2"><p class="text-[1.12rem] font-bold text-white leading-relaxed break-keep drop-shadow-lg"><strong class="text-white font-extrabold underline decoration-white/40 underline-offset-4">‘' + item.name + '’</strong>(이)가<br>찬란한 빛의 날개를 펴고 깨어납니다.</p></div>';
       } else {
         var answers = (userSelections[item.key] && userSelections[item.key].length > 0) 
                         ? userSelections[item.key] 
@@ -986,42 +1004,9 @@ btnSurveyPrev.addEventListener('click', function() {
   }
 });
 
-/* 후광 오라 스프라이트 생성기 (순수 부드러운 화이트 톤 & 축소) */
-function createEtherealGlowSprite(size, opacity) {
-  size = size || 3.4;
-  opacity = opacity || 0.45;
-  var canvas = document.createElement('canvas');
-  canvas.width = 512;
-  canvas.height = 512;
-  var ctx = canvas.getContext('2d');
-  
-  var grad = ctx.createRadialGradient(256, 256, 0, 256, 256, 256);
-  grad.addColorStop(0.0, 'rgba(255, 255, 255, 1.0)');
-  grad.addColorStop(0.2, 'rgba(255, 255, 255, 0.7)');
-  grad.addColorStop(0.55, 'rgba(255, 255, 255, 0.18)');
-  grad.addColorStop(0.85, 'rgba(255, 255, 255, 0.03)');
-  grad.addColorStop(1.0, 'rgba(255, 255, 255, 0)');
-  
-  ctx.fillStyle = grad;
-  ctx.fillRect(0, 0, 512, 512);
-
-  var texture = new THREE.CanvasTexture(canvas);
-  var mat = new THREE.SpriteMaterial({
-    map: texture,
-    blending: THREE.AdditiveBlending,
-    transparent: true,
-    opacity: opacity,
-    depthWrite: false
-  });
-  var sprite = new THREE.Sprite(mat);
-  sprite.scale.set(size, size, 1);
-  return sprite;
-}
-
 /* 3D 엔진 : Three.js 뷰어 */
 var fullScene, fullCamera, fullRenderer, fullGroup;
 var leftWingMesh, rightWingMesh, antennaMesh;
-var fullGlow1, fullGlow2;
 var isFlyingAway = false, touchStartY = 0;
 var animFrameId = null;
 
@@ -1054,6 +1039,11 @@ async function saveButterflyToSupabase() {
   }
 }
 
+/* 🌟 2번 사진 수정사항 반영:
+   1) 날개: MeshBasicMaterial로 음영 경계선 완전 제거
+   2) 몸통/더듬이: MeshStandardMaterial로 입체 음영 적용
+   3) 뒤쪽 후광: 텍스처 노이즈(RGB 픽셀 점) 유발하던 Three.js 스프라이트를 제거하고 클린 CSS 후광 연동
+*/
 function initFullButterflyViewer(textureURL) {
   var container = document.getElementById('three-container');
   if (animFrameId) {
@@ -1075,7 +1065,8 @@ function initFullButterflyViewer(textureURL) {
   fullRenderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
   container.appendChild(fullRenderer.domElement);
 
-  var ambientLight = new THREE.AmbientLight(0xffffff, 0.95);
+  // 몸통과 더듬이에 입체감을 주기 위한 조명
+  var ambientLight = new THREE.AmbientLight(0xffffff, 0.85);
   fullScene.add(ambientLight);
   var dirLight = new THREE.DirectionalLight(0xffffff, 0.7);
   dirLight.position.set(0, 5, 10);
@@ -1087,12 +1078,13 @@ function initFullButterflyViewer(textureURL) {
 
   fullGroup = new THREE.Group();
 
-  var wingMat = new THREE.MeshStandardMaterial({
+  // 🌟 [핵심] 날개: 빛/그림자 계산을 받지 않아 펄럭일 때 음영 경계선이 안 생김!
+  var wingMat = new THREE.MeshBasicMaterial({
     map: userTexture,
-    side: THREE.DoubleSide,
-    roughness: 0.5,
-    metalness: 0.0
+    side: THREE.DoubleSide
   });
+
+  // 🌟 [핵심] 몸통 및 더듬이: 조명 음영이 들어가는 PBR 재질 적용
   var whiteMat = new THREE.MeshStandardMaterial({
     color: 0xffffff,
     side: THREE.DoubleSide,
@@ -1147,14 +1139,6 @@ function initFullButterflyViewer(textureURL) {
     console.error(modelPath + " 로드 오류:", err);
   });
 
-  fullGlow1 = createEtherealGlowSprite(3.2, 0.5);
-  fullGlow1.position.set(0, 0, -0.06);
-  fullGroup.add(fullGlow1);
-
-  fullGlow2 = createEtherealGlowSprite(4.2, 0.25);
-  fullGlow2.position.set(0, 0, -0.09);
-  fullGroup.add(fullGlow2);
-
   fullGroup.position.set(0, 0, 0);
   fullScene.add(fullGroup);
 
@@ -1162,10 +1146,6 @@ function initFullButterflyViewer(textureURL) {
   function animate() {
     animFrameId = requestAnimationFrame(animate);
     var time = clock.getElapsedTime();
-
-    var pulse = 1 + Math.sin(time * 2.8) * 0.04;
-    if (fullGlow1) fullGlow1.scale.set(3.2 * pulse, 3.2 * pulse, 1);
-    if (fullGlow2) fullGlow2.scale.set(4.2 * pulse, 4.2 * pulse, 1);
 
     var flapSpeed = (!isFlyingAway) ? 5.2 : 22.0;
     var flapIntensity = (!isFlyingAway) ? 0.48 : 0.72;
@@ -1463,7 +1443,7 @@ function openSpecimen3DModal(item, textureUrl) {
   var tex = new THREE.TextureLoader().load(textureUrl);
   tex.flipY = false;
 
-  var wingMat = new THREE.MeshStandardMaterial({ map: tex, side: THREE.DoubleSide, roughness: 0.45 });
+  var wingMat = new THREE.MeshBasicMaterial({ map: tex, side: THREE.DoubleSide });
   var whiteMat = new THREE.MeshStandardMaterial({ color: 0xffffff, side: THREE.DoubleSide, roughness: 0.3 });
 
   var targetAntennaPrefix = 'Antenna_' + item.antId;

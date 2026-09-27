@@ -130,7 +130,7 @@
       <div class="pb-3 text-[11px] text-neutral-500 font-mono"></div>
     </section>
 
-    <!-- 0.55 🌟 나비 둘러보기 (박제 액자 화면) -->
+    <!-- 0.55 나비 둘러보기 (박제 액자 화면) -->
     <section id="screen-gallery" class="screen flex-1 relative z-20 w-full h-full bg-[#0a0a0c] overflow-hidden select-none">
       <button id="btn-gallery-back" type="button" class="app-back-btn">
         <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -143,9 +143,7 @@
         <p class="text-[11px] text-neutral-400 mt-0.5">상하좌우로 둘러보고 나비를 눌러 자세히 감상해보세요</p>
       </div>
 
-      <!-- 상하좌우 팬/드래그가 일어나는 뷰포트 -->
       <div id="gallery-pan-viewport" class="gallery-viewport-drag">
-        <!-- 나무 프레임과 고급 린넨 백보드 질감 -->
         <div id="gallery-specimen-board" class="specimen-frame-board">
           <div class="specimen-frame-corner top-left"></div>
           <div class="specimen-frame-corner top-right"></div>
@@ -155,7 +153,6 @@
         </div>
       </div>
 
-      <!-- 🌟 개별 나비 3D 상세 보기 모달 -->
       <div id="specimen-detail-modal" class="specimen-modal-layer hidden">
         <div class="specimen-modal-backdrop"></div>
         <div class="specimen-modal-content">
@@ -163,7 +160,6 @@
             ✕
           </button>
           
-          <!-- 상단 3D 뷰어 영역 및 좌측 상단 생성 날짜 -->
           <div class="specimen-modal-stage">
             <div id="specimen-three-container" class="w-full h-full relative"></div>
             <div class="specimen-stage-date-top">
@@ -171,18 +167,15 @@
             </div>
           </div>
 
-          <!-- 하단 아카이브 상세 정보 박스 UI -->
           <div class="specimen-modal-archive-box">
             <div class="text-center pt-1">
               <h3 id="modal-butterfly-name" class="text-2xl font-black text-white tracking-tight drop-shadow-[0_0_12px_rgba(255,255,255,0.4)]"></h3>
             </div>
 
-            <!-- 상하 스크롤이 가능한 키워드 알약 컨테이너 -->
             <div class="specimen-tags-scroll-wrap">
               <div id="modal-specimen-tags" class="flex flex-wrap items-center justify-center gap-1.5 py-1"></div>
             </div>
 
-            <!-- 미래의 나에게 남기는 메시지 카드 -->
             <div class="specimen-timeticket-card text-center">
               <p id="modal-specimen-memo" class="text-[12px] text-white leading-relaxed font-light break-keep">
                 "천천히 가도 괜찮아. 어둠 속에서도 너만의 고유한 빛이 있으니까."
@@ -333,13 +326,11 @@
       </div>
 
       <div class="shape-bottom-fixed-dock">
-        <!-- 직선형 캐러셀 컨테이너 (위아래 빛 잘림 방지) -->
         <div id="carousel-stage" class="carousel-stage-wrapper">
           <div id="arch-carousel-container" class="horizontal-scroll-carousel">
           </div>
         </div>
 
-        <!-- 하단 알약 바 (날개 | 더듬이 | 흐림도) -->
         <div class="arch-pill-nav">
           <button id="tab-wing" type="button" class="deco-pill-btn active-tab">날개</button>
           <button id="tab-antenna" type="button" class="deco-pill-btn">더듬이</button>
@@ -403,7 +394,7 @@
       </footer>
     </section>
 
-    <!-- 4. 로딩 화면 -->
+    <!-- 4. 로딩 화면 (1번 사진) -->
     <section id="screen-loading" class="screen flex-col flex-1 justify-between items-center py-10 px-5 text-center relative overflow-hidden z-10 w-full">
       <div class="photo-butterfly-bg-wrapper pointer-events-none">
         <div class="photo-bg-layer"></div>
@@ -422,8 +413,9 @@
       </div>
 
       <div class="relative w-full max-w-[340px] my-auto z-10 flex flex-col items-center">
-        <div class="mb-5">
-          <svg id="loading-butterfly-svg" class="w-20 h-20 text-white drop-shadow-[0_0_28px_rgba(255,255,255,0.95)] animate-pulse transition-all duration-1000" viewBox="0 0 100 100">
+        <!-- 🌟 중앙 나비 (크기 확대 반영) -->
+        <div class="mb-5 flex items-center justify-center">
+          <svg id="loading-butterfly-svg" class="w-24 h-24 text-white drop-shadow-[0_0_32px_rgba(255,255,255,0.95)] animate-pulse transition-all duration-1000" viewBox="0 0 100 100">
             <path id="loading-wing-path" d="" fill="#ffffff" stroke="#ffffff" stroke-width="1"/>
           </svg>
         </div>
@@ -450,8 +442,11 @@
       </div>
     </section>
 
-    <!-- 5. 프리뷰 및 비행 화면 -->
+    <!-- 5. 프리뷰 및 비행 화면 (2번 사진) -->
     <section id="screen-preview" class="screen fixed inset-0 z-50 flex-col justify-between py-6 overflow-hidden bg-black" style="background: #000000 !important;">
+      <!-- 🌟 RGB 픽셀 점 노이즈 없는 순백색 후광 글로우 레이어 -->
+      <div class="preview-ethereal-glow-bg"></div>
+
       <header class="text-center pt-3 z-10">
         <h2 id="preview-butterfly-name" class="text-3xl font-black text-white mt-1 drop-shadow-[0_0_15px_rgba(255,255,255,0.5)] tracking-tight">‘나비’</h2>
         <p class="text-xs text-neutral-300 mt-1 font-normal">화면을 위로 쓸어 올려 어둠 속 너울로 날려보내세요.</p>
