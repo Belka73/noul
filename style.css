@@ -3,6 +3,7 @@
 /* ==========================================================================
    너울(Noul) 전역 스타일시트
    - 아이폰 17 / 최신 iOS 세이프 에어리어 규격 최적화
+   - 슬라이더 이동에 따른 순백색 트랙 채움 동적 연동
    ========================================================================== */
 
 * {
@@ -289,7 +290,9 @@ html, body {
   justify-content: center;
 }
 
+/* 🌟 1번 사진 반영: 원의 위치에 맞춰 슬라이더 바가 흰색으로 채워지도록 그라데이션 트랙 설정 */
 #blur-slider {
+  --blur-percent: 0%;
   -webkit-appearance: none;
   appearance: none;
   width: 100%;
@@ -305,7 +308,7 @@ html, body {
 #blur-slider::-webkit-slider-runnable-track {
   width: 100%;
   height: 4px;
-  background: #333333;
+  background: linear-gradient(to right, #ffffff 0%, #ffffff var(--blur-percent), #333333 var(--blur-percent), #333333 100%);
   border-radius: 9999px;
   border: none;
 }
@@ -326,7 +329,7 @@ html, body {
 #blur-slider::-moz-range-track {
   width: 100%;
   height: 4px;
-  background: #333333;
+  background: linear-gradient(to right, #ffffff 0%, #ffffff var(--blur-percent), #333333 var(--blur-percent), #333333 100%);
   border-radius: 9999px;
   border: none;
 }
@@ -340,7 +343,7 @@ html, body {
   border: none;
 }
 
-/* 🌟 2번 사진 참조: 소프트 토글 스위치 디자인 */
+/* 좌우 대칭 토글 스위치 디자인 */
 .minimal-pill-toggle {
   width: 54px;
   height: 30px;
@@ -364,7 +367,6 @@ html, body {
   transition: transform 0.28s cubic-bezier(0.2, 0.8, 0.2, 1);
   display: block;
 }
-/* 토글 ON 상태 */
 .minimal-pill-toggle.toggle-active {
   background-color: #ffffff;
 }

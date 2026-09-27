@@ -4,7 +4,8 @@
    - 날개 무음영 & 몸통/더듬이 전용 음영 분리
    - 후광 배경 순수 화이트 글로우 전환
    - 상단 타이틀 영구 고정 ('날개 형태 고르기')
-   - '조정' 탭: 사진 흐림도 실시간 조절 + 좌우 대칭 미러링 온오프 완벽 연동
+   - [수정 1] 흐림 조정 슬라이더 작동 & 회색 바 흰색 채움 동기화
+   - [수정 4] 프리뷰 화면: 360도 자유 드래그 회전 + 정면 착석 감속 & 날개 접힘 모션
    ========================================================================== */
 
 function showScreen(screenId) {
@@ -381,9 +382,7 @@ window.addEventListener('resize', function() {
   applyStraightSelection();
 });
 
-/* 🌟 하단 알약 탭 제어 (날개 | 더듬이 | 조정)
-   - 최상단 제목과 설명은 날개 선택 시 문구로 영구 고정
-*/
+/* 하단 알약 탭 제어 (날개 | 더듬이 | 조정) */
 var tabWing = document.getElementById('tab-wing');
 var tabAntenna = document.getElementById('tab-antenna');
 var tabBlur = document.getElementById('tab-blur');
@@ -396,7 +395,6 @@ function switchTab(tabKey) {
   activeCustomTab = tabKey;
   [tabWing, tabAntenna, tabBlur].forEach(function(b) { if (b) b.classList.remove('active-tab'); });
 
-  // 🌟 요청사항: 최상단 제목과 설명은 어떤 알약을 눌러도 '날개 형태 고르기'로 항상 고정
   if (shapeTitle) shapeTitle.innerText = "날개 형태 고르기";
   if (shapeDesc) shapeDesc.innerHTML = "<strong class='text-white'>[드래그]</strong> 이동, <strong class='text-white'>[두 손가락 핀치]</strong> 확대/축소";
 
@@ -434,7 +432,7 @@ document.getElementById('btn-confirm-shape').addEventListener('click', function(
   showScreen('screen-survey');
 });
 
-/* 🌟 사진 조작, 흐림도 슬라이더, 좌우 대칭(미러링) 완벽 구현 */
+/* 🌟 사진 조작, 흐림도 슬라이더(바 흰색 채움 연동), 좌우 대칭(미러링) */
 var rawImage = new Image();
 var alignCanvas = document.getElementById('align-canvas');
 var actx = alignCanvas.getContext('2d');
@@ -449,8 +447,19 @@ var isSymmetryEnabled = false;
 var blurSlider = document.getElementById('blur-slider');
 var toggleSymmetryBtn = document.getElementById('toggle-symmetry-btn');
 
+function updateSliderProgress(val, min, max) {
+  if (!blurSlider) return;
+  var minVal = parseFloat(min !== undefined ? min : (blurSlider.min || 0));
+  var maxVal = parseFloat(max !== undefined ? max : (blurSlider.max || 25));
+  var curVal = parseFloat(val);
+  var percent = ((curVal - minVal) / (maxVal - minVal)) * 100;
+  percent = Math.max(0, Math.min(100, percent));
+  blurSlider.style.setProperty('--blur-percent', percent + '%');
+}
+
 function applyBlurValue(val) {
   currentBlurPx = parseFloat(val) || 0;
+  updateSliderProgress(currentBlurPx);
   drawAlignCanvas();
 }
 
@@ -461,9 +470,10 @@ if (blurSlider) {
   blurSlider.addEventListener('change', function(e) {
     applyBlurValue(e.target.value);
   });
+  updateSliderProgress(blurSlider.value || 0);
 }
 
-// 🌟 좌우 대칭 온/오프 버튼 이벤트
+// 좌우 대칭 온/오프 버튼 이벤트
 if (toggleSymmetryBtn) {
   toggleSymmetryBtn.addEventListener('click', function() {
     isSymmetryEnabled = !isSymmetryEnabled;
@@ -488,6 +498,7 @@ function handleFile(file) {
       if (blurSlider) {
         blurSlider.value = 0;
         currentBlurPx = 0;
+        updateSliderProgress(0);
       }
       isSymmetryEnabled = false;
       if (toggleSymmetryBtn) {
@@ -522,14 +533,13 @@ function initAlignUI() {
   drawAlignCanvas();
 }
 
-// 🌟 캔버스 그리기: 흐림도 + 나비 몸통 중심축($X=300px$) 기준 좌우 대칭 미러링 완벽 처리
+// 캔버스 그리기: 흐림도 + 나비 몸통 중심축($X=300px$) 기준 좌우 대칭 미러링 처리
 function drawAlignCanvas() {
   actx.clearRect(0, 0, alignCanvas.width, alignCanvas.height);
   if (!rawImage || !rawImage.width || rawImage.width === 0) return;
 
-  var midX = alignCanvas.width / 2; // 300px (몸통 정중앙)
+  var midX = alignCanvas.width / 2; // 300px
 
-  // 1. 임시 오프스크린 버퍼에 원본 사진(흐림도 필터 적용) 렌더링
   var tempCanvas = document.createElement('canvas');
   tempCanvas.width = alignCanvas.width;
   tempCanvas.height = alignCanvas.height;
@@ -545,13 +555,9 @@ function drawAlignCanvas() {
   tctx.restore();
 
   if (!isSymmetryEnabled) {
-    // 일반 상태: 전체 사진 그대로 출력
     actx.drawImage(tempCanvas, 0, 0);
   } else {
-    // 🌟 좌우 대칭 ON: 몸통 중심축 기준 좌측 절반을 우측으로 완벽 반전 복사
-    // (1) 좌측 절반 원본 그리기
     actx.drawImage(tempCanvas, 0, 0, midX, alignCanvas.height, 0, 0, midX, alignCanvas.height);
-    // (2) 우측 절반에 좌측 절반을 수평 반전하여 복사
     actx.save();
     actx.translate(alignCanvas.width, 0);
     actx.scale(-1, 1);
@@ -622,7 +628,7 @@ window.addEventListener('touchmove', function(e) {
 
 window.addEventListener('touchend', function() { isDragging = false; startPinchDist = 0; });
 
-// 🌟 텍스처 추출: 흐림도 및 좌우 대칭 상태를 1024x1024 해상도로 완벽 유지하여 추출
+// 텍스처 추출
 function exportAlignedTexture() {
   var size = 1024;
   var dreamCanvas = document.createElement('canvas');
@@ -1062,14 +1068,24 @@ btnSurveyPrev.addEventListener('click', function() {
   }
 });
 
-/* 3D 엔진 : Three.js 뷰어 */
+/* 🌟 3D 엔진 : Three.js 뷰어 (360도 회전 & 착석 날개 접힘 모션) */
 var fullScene, fullCamera, fullRenderer, fullGroup;
 var leftWingMesh, rightWingMesh, antennaMesh;
-var isFlyingAway = false, touchStartY = 0;
+var isFlyingAway = false;
 var animFrameId = null;
 
 var initialRotL = { x: 0, y: 0, z: 0 };
 var initialRotR = { x: 0, y: 0, z: 0 };
+
+// 360도 회전 제어 변수
+var butterflyRotX = 0;
+var butterflyRotY = 0;
+var isRotating = false;
+var lastPointerX = 0, lastPointerY = 0;
+var pointerStartX = 0, pointerStartY = 0;
+
+// 착석 모션 상태 제어
+var previewStartTime = 0;
 
 async function saveButterflyToSupabase() {
   try {
@@ -1129,6 +1145,13 @@ function initFullButterflyViewer(textureURL) {
   userTexture.flipY = false;
 
   fullGroup = new THREE.Group();
+
+  // 🌟 사용자가 돌리기 전 최초 나비 모습: 나비의 등이 똑바로 보이도록 회전값 초기화
+  butterflyRotX = 0;
+  butterflyRotY = 0;
+  fullGroup.rotation.set(0, 0, 0);
+  previewStartTime = performance.now();
+  isFlyingAway = false;
 
   var wingMat = new THREE.MeshBasicMaterial({
     map: userTexture,
@@ -1193,24 +1216,55 @@ function initFullButterflyViewer(textureURL) {
   fullScene.add(fullGroup);
 
   var clock = new THREE.Clock();
+
   function animate() {
     animFrameId = requestAnimationFrame(animate);
     var time = clock.getElapsedTime();
+    var elapsedSec = (performance.now() - previewStartTime) / 1000;
 
-    var flapSpeed = (!isFlyingAway) ? 5.2 : 22.0;
-    var flapIntensity = (!isFlyingAway) ? 0.48 : 0.72;
-    var flapAngle = Math.sin(time * flapSpeed) * flapIntensity;
-
-    if (leftWingMesh && rightWingMesh) {
-      leftWingMesh.rotation.y = initialRotL.y + flapAngle;
-      rightWingMesh.rotation.y = initialRotR.y - flapAngle;
-      leftWingMesh.rotation.z = initialRotL.z;
-      rightWingMesh.rotation.z = initialRotR.z;
-    }
+    // 회전값 적용 (360도 자유 회전)
+    fullGroup.rotation.x = butterflyRotX;
+    fullGroup.rotation.y = butterflyRotY;
 
     if (!isFlyingAway) {
-      fullGroup.position.y = Math.sin(time * 1.8) * 0.12;
+      // 🌟 착석 모션 계산: 진입 직후(0~1.8초) 빠르게 날개짓하다가 점차 느려지며(1.8~3.2초) 날개를 살짝 접어 안착
+      var landingProgress = Math.min(1.0, elapsedSec / 3.0);
+      var easeLanding = Math.pow(landingProgress, 2); // 점진적 감속
+
+      // 속도: 초기 18.0에서 착석 후 1.0(호흡 수준)으로 감속
+      var curFlapSpeed = 18.0 * (1 - easeLanding) + 1.0 * easeLanding;
+      // 날갯짓 진폭: 점차 잔잔해짐
+      var curFlapAmp = 0.55 * (1 - easeLanding) + 0.04 * easeLanding;
+
+      // 🌟 날개 접힘 각도 (5번 사진처럼 양 날개가 등 위쪽으로 살짝 모여 접힘)
+      // Y축 기준으로 왼쪽 날개는 음의 각도, 오른쪽 날개는 양의 각도로 젖혀짐
+      var restingFoldAngle = 0.62 * easeLanding; 
+
+      var dynamicFlap = Math.sin(time * curFlapSpeed) * curFlapAmp;
+
+      if (leftWingMesh && rightWingMesh) {
+        leftWingMesh.rotation.y = initialRotL.y - restingFoldAngle + dynamicFlap;
+        rightWingMesh.rotation.y = initialRotR.y + restingFoldAngle - dynamicFlap;
+        leftWingMesh.rotation.z = initialRotL.z;
+        rightWingMesh.rotation.z = initialRotR.z;
+      }
+
+      // 살짝 떠 있는 부유감 (착석 시 미세한 호흡)
+      fullGroup.position.y = Math.sin(time * (1.8 * (1 - easeLanding) + 0.9 * easeLanding)) * (0.12 * (1 - easeLanding) + 0.02 * easeLanding);
+
     } else {
+      // 위로 날아올라 사라지는 비행 상태
+      var flyFlapSpeed = 22.0;
+      var flyFlapAmp = 0.72;
+      var flyAngle = Math.sin(time * flyFlapSpeed) * flyFlapAmp;
+
+      if (leftWingMesh && rightWingMesh) {
+        leftWingMesh.rotation.y = initialRotL.y + flyAngle;
+        rightWingMesh.rotation.y = initialRotR.y - flyAngle;
+        leftWingMesh.rotation.z = initialRotL.z;
+        rightWingMesh.rotation.z = initialRotR.z;
+      }
+
       fullGroup.position.y += 0.16;
       fullGroup.position.z -= 0.08;
 
@@ -1224,32 +1278,83 @@ function initFullButterflyViewer(textureURL) {
         isFlyingAway = false;
       }
     }
+
     fullRenderer.render(fullScene, fullCamera);
   }
   animate();
 
-  bindSwipeEvents(container);
+  bind3DRotationAndSwipe(container);
 }
 
-function bindSwipeEvents(targetEl) {
+// 🌟 360도 다각도 회전 및 상단 스와이프 날려보내기 제어
+function bind3DRotationAndSwipe(targetEl) {
+  var isPointerDown = false;
+
+  function onPointerDown(clientX, clientY) {
+    if (isFlyingAway) return;
+    isPointerDown = true;
+    pointerStartX = clientX;
+    pointerStartY = clientY;
+    lastPointerX = clientX;
+    lastPointerY = clientY;
+  }
+
+  function onPointerMove(clientX, clientY) {
+    if (!isPointerDown || isFlyingAway) return;
+    var deltaX = clientX - lastPointerX;
+    var deltaY = clientY - lastPointerY;
+
+    // 360도 전방향 회전 감도 반영
+    butterflyRotY += deltaX * 0.012;
+    butterflyRotX += deltaY * 0.012;
+
+    // X축 뒤집힘 자연스럽게 제한 (-80도 ~ 80도)
+    butterflyRotX = Math.max(-1.4, Math.min(1.4, butterflyRotX));
+
+    lastPointerX = clientX;
+    lastPointerY = clientY;
+  }
+
+  function onPointerUp(clientX, clientY) {
+    if (!isPointerDown) return;
+    isPointerDown = false;
+    var totalDeltaY = pointerStartY - clientY;
+    // 위로 65px 이상 밀어올렸을 때 비행 트리거
+    if (totalDeltaY > 65 && !isFlyingAway) {
+      isFlyingAway = true;
+    }
+  }
+
   targetEl.addEventListener('touchstart', function(e) {
-    touchStartY = e.touches[0].clientY;
+    if (e.touches.length === 1) {
+      onPointerDown(e.touches[0].clientX, e.touches[0].clientY);
+    }
   }, { passive: true });
 
-  targetEl.addEventListener('touchend', function(e) {
-    var deltaY = touchStartY - e.changedTouches[0].clientY;
-    if (deltaY > 50 && !isFlyingAway) isFlyingAway = true;
+  window.addEventListener('touchmove', function(e) {
+    if (isPointerDown && e.touches.length === 1) {
+      onPointerMove(e.touches[0].clientX, e.touches[0].clientY);
+    }
   }, { passive: true });
 
-  var isMouseDown = false;
+  window.addEventListener('touchend', function(e) {
+    if (e.changedTouches.length > 0) {
+      onPointerUp(e.changedTouches[0].clientX, e.changedTouches[0].clientY);
+    }
+  }, { passive: true });
+
   targetEl.addEventListener('mousedown', function(e) {
-    isMouseDown = true;
-    touchStartY = e.clientY;
+    onPointerDown(e.clientX, e.clientY);
   });
-  targetEl.addEventListener('mouseup', function(e) {
-    if (!isMouseDown) return;
-    isMouseDown = false;
-    if ((touchStartY - e.clientY) > 50 && !isFlyingAway) isFlyingAway = true;
+
+  window.addEventListener('mousemove', function(e) {
+    if (isPointerDown) {
+      onPointerMove(e.clientX, e.clientY);
+    }
+  });
+
+  window.addEventListener('mouseup', function(e) {
+    onPointerUp(e.clientX, e.clientY);
   });
 }
 
