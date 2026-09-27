@@ -1,10 +1,10 @@
 /* ==========================================================================
    🌟 너울(Noul) 메인 애플리케이션 로직 (app.js)
    - 아이폰 17 화면비 및 애니메이션/위치 보정 반영 완료
-   - 나비 7종 .glb 동적 로드 및 3종 더듬이 가시성 제어
-   - 날개 무음영(MeshBasicMaterial) & 몸통/더듬이 전용 음영(MeshStandardMaterial) 분리
-   - 후광 배경 순수 화이트 글로우 전환 (RGB 색번짐/노이즈 완벽 차단)
-   - 로딩 완료 화면 문구 정리 및 나비 확대
+   - 날개 무음영 & 몸통/더듬이 전용 음영 분리
+   - 후광 배경 순수 화이트 글로우 전환
+   - 상단 타이틀 영구 고정 ('날개 형태 고르기')
+   - '조정' 탭: 사진 흐림도 실시간 조절 + 좌우 대칭 미러링 온오프 완벽 연동
    ========================================================================== */
 
 function showScreen(screenId) {
@@ -31,7 +31,6 @@ document.getElementById('menu-btn-create').addEventListener('click', function() 
 document.getElementById('btn-opening-back').addEventListener('click', function() { clearTimeout(typeTimer); showScreen('screen-menu'); });
 document.getElementById('btn-guide-back-to-menu').addEventListener('click', function() { showScreen('screen-menu'); });
 
-// 나비 둘러보기 클릭 시 박제 갤러리로 이동
 document.getElementById('menu-btn-browse').addEventListener('click', function() { showScreen('screen-gallery'); });
 document.getElementById('btn-gallery-back').addEventListener('click', function() { showScreen('screen-menu'); });
 
@@ -124,7 +123,6 @@ btnOpeningNext.addEventListener('click', function() {
   }
 });
 
-/* 🌟 촬영 안내 타이핑 후 상단 이동 애니메이션 로직 */
 var guideTitleWrap = document.querySelector('.guide-title-wrapper');
 var guideAnimatedTitle = document.getElementById('guide-animated-title');
 var guideCenterCard = document.getElementById('guide-center-card');
@@ -224,7 +222,6 @@ function updateHeroPreview() {
   }
 }
 
-/* 가로 캐러셀 렌더러 */
 var carouselContainer = document.getElementById('arch-carousel-container');
 
 function renderCarouselItems() {
@@ -384,7 +381,9 @@ window.addEventListener('resize', function() {
   applyStraightSelection();
 });
 
-/* 하단 알약 탭 제어 (날개 | 더듬이 | 흐림도) */
+/* 🌟 하단 알약 탭 제어 (날개 | 더듬이 | 조정)
+   - 최상단 제목과 설명은 날개 선택 시 문구로 영구 고정
+*/
 var tabWing = document.getElementById('tab-wing');
 var tabAntenna = document.getElementById('tab-antenna');
 var tabBlur = document.getElementById('tab-blur');
@@ -397,24 +396,22 @@ function switchTab(tabKey) {
   activeCustomTab = tabKey;
   [tabWing, tabAntenna, tabBlur].forEach(function(b) { if (b) b.classList.remove('active-tab'); });
 
+  // 🌟 요청사항: 최상단 제목과 설명은 어떤 알약을 눌러도 '날개 형태 고르기'로 항상 고정
+  if (shapeTitle) shapeTitle.innerText = "날개 형태 고르기";
+  if (shapeDesc) shapeDesc.innerHTML = "<strong class='text-white'>[드래그]</strong> 이동, <strong class='text-white'>[두 손가락 핀치]</strong> 확대/축소";
+
   if (tabKey === 'wing') {
     tabWing.classList.add('active-tab');
-    shapeTitle.innerText = "날개 형태 고르기";
-    shapeDesc.innerHTML = "<strong class='text-white'>[드래그]</strong> 이동, <strong class='text-white'>[두 손가락 핀치]</strong> 확대/축소";
     if (blurSliderBox) blurSliderBox.classList.add('hidden-slider');
     if (carouselStage) carouselStage.style.display = 'flex';
     renderCarouselItems();
   } else if (tabKey === 'antenna') {
     tabAntenna.classList.add('active-tab');
-    shapeTitle.innerText = "더듬이 고르기";
-    shapeDesc.innerText = "나비의 감각을 깨울 더듬이 모양을 선택해 주세요.";
     if (blurSliderBox) blurSliderBox.classList.add('hidden-slider');
     if (carouselStage) carouselStage.style.display = 'flex';
     renderCarouselItems();
   } else if (tabKey === 'blur') {
     tabBlur.classList.add('active-tab');
-    shapeTitle.innerText = "사진 흐림도 조절";
-    shapeDesc.innerText = "슬라이더를 좌우로 움직여 날개 배경의 번짐 정도를 조절해 보세요.";
     if (blurSliderBox) blurSliderBox.classList.remove('hidden-slider');
     if (carouselStage) carouselStage.style.display = 'none';
   }
@@ -437,7 +434,7 @@ document.getElementById('btn-confirm-shape').addEventListener('click', function(
   showScreen('screen-survey');
 });
 
-/* 🌟 사진 조작 및 슬라이더 (흐림도 실시간 연동 강화) */
+/* 🌟 사진 조작, 흐림도 슬라이더, 좌우 대칭(미러링) 완벽 구현 */
 var rawImage = new Image();
 var alignCanvas = document.getElementById('align-canvas');
 var actx = alignCanvas.getContext('2d');
@@ -447,8 +444,10 @@ var startX = 0, startY = 0;
 var startPinchDist = 0, pinchStartScale = 1.0;
 var currentExtractedTexture = null;
 var currentBlurPx = 0;
+var isSymmetryEnabled = false;
 
 var blurSlider = document.getElementById('blur-slider');
+var toggleSymmetryBtn = document.getElementById('toggle-symmetry-btn');
 
 function applyBlurValue(val) {
   currentBlurPx = parseFloat(val) || 0;
@@ -464,6 +463,21 @@ if (blurSlider) {
   });
 }
 
+// 🌟 좌우 대칭 온/오프 버튼 이벤트
+if (toggleSymmetryBtn) {
+  toggleSymmetryBtn.addEventListener('click', function() {
+    isSymmetryEnabled = !isSymmetryEnabled;
+    if (isSymmetryEnabled) {
+      toggleSymmetryBtn.classList.add('toggle-active');
+      toggleSymmetryBtn.setAttribute('aria-pressed', 'true');
+    } else {
+      toggleSymmetryBtn.classList.remove('toggle-active');
+      toggleSymmetryBtn.setAttribute('aria-pressed', 'false');
+    }
+    drawAlignCanvas();
+  });
+}
+
 function handleFile(file) {
   if (!file) return;
   var reader = new FileReader();
@@ -474,6 +488,11 @@ function handleFile(file) {
       if (blurSlider) {
         blurSlider.value = 0;
         currentBlurPx = 0;
+      }
+      isSymmetryEnabled = false;
+      if (toggleSymmetryBtn) {
+        toggleSymmetryBtn.classList.remove('toggle-active');
+        toggleSymmetryBtn.setAttribute('aria-pressed', 'false');
       }
       initAlignUI();
       showScreen('screen-shape-select');
@@ -503,18 +522,42 @@ function initAlignUI() {
   drawAlignCanvas();
 }
 
+// 🌟 캔버스 그리기: 흐림도 + 나비 몸통 중심축($X=300px$) 기준 좌우 대칭 미러링 완벽 처리
 function drawAlignCanvas() {
   actx.clearRect(0, 0, alignCanvas.width, alignCanvas.height);
   if (!rawImage || !rawImage.width || rawImage.width === 0) return;
 
-  actx.save();
+  var midX = alignCanvas.width / 2; // 300px (몸통 정중앙)
+
+  // 1. 임시 오프스크린 버퍼에 원본 사진(흐림도 필터 적용) 렌더링
+  var tempCanvas = document.createElement('canvas');
+  tempCanvas.width = alignCanvas.width;
+  tempCanvas.height = alignCanvas.height;
+  var tctx = tempCanvas.getContext('2d');
+
+  tctx.save();
   if (currentBlurPx > 0) {
-    actx.filter = 'blur(' + currentBlurPx + 'px)';
+    tctx.filter = 'blur(' + currentBlurPx + 'px)';
   } else {
-    actx.filter = 'none';
+    tctx.filter = 'none';
   }
-  actx.drawImage(rawImage, imgX, imgY, rawImage.width * imgScale, rawImage.height * imgScale);
-  actx.restore();
+  tctx.drawImage(rawImage, imgX, imgY, rawImage.width * imgScale, rawImage.height * imgScale);
+  tctx.restore();
+
+  if (!isSymmetryEnabled) {
+    // 일반 상태: 전체 사진 그대로 출력
+    actx.drawImage(tempCanvas, 0, 0);
+  } else {
+    // 🌟 좌우 대칭 ON: 몸통 중심축 기준 좌측 절반을 우측으로 완벽 반전 복사
+    // (1) 좌측 절반 원본 그리기
+    actx.drawImage(tempCanvas, 0, 0, midX, alignCanvas.height, 0, 0, midX, alignCanvas.height);
+    // (2) 우측 절반에 좌측 절반을 수평 반전하여 복사
+    actx.save();
+    actx.translate(alignCanvas.width, 0);
+    actx.scale(-1, 1);
+    actx.drawImage(tempCanvas, 0, 0, midX, alignCanvas.height, 0, 0, midX, alignCanvas.height);
+    actx.restore();
+  }
 }
 
 var interactiveFrame = document.getElementById('interactive-align-frame');
@@ -579,6 +622,7 @@ window.addEventListener('touchmove', function(e) {
 
 window.addEventListener('touchend', function() { isDragging = false; startPinchDist = 0; });
 
+// 🌟 텍스처 추출: 흐림도 및 좌우 대칭 상태를 1024x1024 해상도로 완벽 유지하여 추출
 function exportAlignedTexture() {
   var size = 1024;
   var dreamCanvas = document.createElement('canvas');
@@ -589,13 +633,31 @@ function exportAlignedTexture() {
   dctx.fillRect(0, 0, size, size);
 
   var scaleRatio = size / alignCanvas.width;
+  var midX = size / 2;
+
   if (rawImage && rawImage.width) {
-    dctx.save();
+    var tempExport = document.createElement('canvas');
+    tempExport.width = size;
+    tempExport.height = size;
+    var tctx = tempExport.getContext('2d');
+
+    tctx.save();
     if (currentBlurPx > 0) {
-      dctx.filter = 'blur(' + (currentBlurPx * scaleRatio) + 'px)';
+      tctx.filter = 'blur(' + (currentBlurPx * scaleRatio) + 'px)';
     }
-    dctx.drawImage(rawImage, imgX * scaleRatio, imgY * scaleRatio, rawImage.width * imgScale * scaleRatio, rawImage.height * imgScale * scaleRatio);
-    dctx.restore();
+    tctx.drawImage(rawImage, imgX * scaleRatio, imgY * scaleRatio, rawImage.width * imgScale * scaleRatio, rawImage.height * imgScale * scaleRatio);
+    tctx.restore();
+
+    if (!isSymmetryEnabled) {
+      dctx.drawImage(tempExport, 0, 0);
+    } else {
+      dctx.drawImage(tempExport, 0, 0, midX, size, 0, 0, midX, size);
+      dctx.save();
+      dctx.translate(size, 0);
+      dctx.scale(-1, 1);
+      dctx.drawImage(tempExport, 0, 0, midX, size, 0, 0, midX, size);
+      dctx.restore();
+    }
   }
   currentExtractedTexture = dreamCanvas.toDataURL('image/jpeg', 0.85);
 }
@@ -872,7 +934,6 @@ inputQ7Name.addEventListener('input', function(e) {
 
 var showcaseInterval = null;
 
-/* 🌟 1번 사진 수정사항 완벽 반영: 상단 텍스트 및 영문 문구 삭제, 본문 문구 수정, 나비 확대 */
 function startAnswerShowcaseSequence() {
   if (showcaseInterval) {
     clearInterval(showcaseInterval);
@@ -916,7 +977,6 @@ function startAnswerShowcaseSequence() {
       if (item.isFinal) {
         if (blackCurtain) blackCurtain.classList.add('fade-active');
         
-        // 🌟 1번 사진 요청사항: 상단 텍스트 완전 제거
         if (mainTitle) {
           mainTitle.innerHTML = '';
           mainTitle.style.display = 'none';
@@ -926,14 +986,12 @@ function startAnswerShowcaseSequence() {
           subDesc.style.display = 'none';
         }
 
-        // 🌟 1번 사진 요청사항: 중앙 나비 크기 대폭 확대 (w-36 h-36)
         if (loadingSvg) {
           loadingSvg.classList.remove('text-white', 'w-20', 'h-20');
           loadingSvg.classList.add('w-36', 'h-36', 'scale-110');
           loadingSvg.style.filter = "drop-shadow(0 0 45px rgba(255, 255, 255, 1))";
         }
 
-        // 🌟 1번 사진 요청사항: 영문 SOUL AWAKENING 삭제, '이제 마음 깊은 곳에서 숨쉬던' 삭제
         showcaseAnswers.innerHTML = '<div class="py-2 px-2 text-center w-full space-y-2"><p class="text-[1.12rem] font-bold text-white leading-relaxed break-keep drop-shadow-lg"><strong class="text-white font-extrabold underline decoration-white/40 underline-offset-4">‘' + item.name + '’</strong>(이)가<br>찬란한 빛의 날개를 펴고 깨어납니다.</p></div>';
       } else {
         var answers = (userSelections[item.key] && userSelections[item.key].length > 0) 
@@ -1039,11 +1097,6 @@ async function saveButterflyToSupabase() {
   }
 }
 
-/* 🌟 2번 사진 수정사항 반영:
-   1) 날개: MeshBasicMaterial로 음영 경계선 완전 제거
-   2) 몸통/더듬이: MeshStandardMaterial로 입체 음영 적용
-   3) 뒤쪽 후광: 텍스처 노이즈(RGB 픽셀 점) 유발하던 Three.js 스프라이트를 제거하고 클린 CSS 후광 연동
-*/
 function initFullButterflyViewer(textureURL) {
   var container = document.getElementById('three-container');
   if (animFrameId) {
@@ -1065,7 +1118,6 @@ function initFullButterflyViewer(textureURL) {
   fullRenderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
   container.appendChild(fullRenderer.domElement);
 
-  // 몸통과 더듬이에 입체감을 주기 위한 조명
   var ambientLight = new THREE.AmbientLight(0xffffff, 0.85);
   fullScene.add(ambientLight);
   var dirLight = new THREE.DirectionalLight(0xffffff, 0.7);
@@ -1078,13 +1130,11 @@ function initFullButterflyViewer(textureURL) {
 
   fullGroup = new THREE.Group();
 
-  // 🌟 [핵심] 날개: 빛/그림자 계산을 받지 않아 펄럭일 때 음영 경계선이 안 생김!
   var wingMat = new THREE.MeshBasicMaterial({
     map: userTexture,
     side: THREE.DoubleSide
   });
 
-  // 🌟 [핵심] 몸통 및 더듬이: 조명 음영이 들어가는 PBR 재질 적용
   var whiteMat = new THREE.MeshStandardMaterial({
     color: 0xffffff,
     side: THREE.DoubleSide,
@@ -1203,10 +1253,7 @@ function bindSwipeEvents(targetEl) {
   });
 }
 
-/* ==========================================================================
-   🌟 나비 둘러보기 박제 전시관 로직
-   ========================================================================== */
-
+/* 박제 갤러리 로직 */
 var specimenButterfliesData = [
   { 
     id: 1, name: "윤슬", wingId: "crescent", antId: "crescent", x: 190, y: 220, scale: 2.10,

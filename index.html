@@ -295,6 +295,7 @@
     <section id="screen-shape-select" class="screen flex-1 relative z-10 w-full h-full bg-black overflow-hidden">
       <div class="hero-fixed-anchor">
         <header class="pt-1 pb-1 text-center pointer-events-auto">
+          <!-- 🌟 상단 텍스트는 영구 고정 -->
           <h2 id="shape-screen-title" class="text-2xl font-bold text-white tracking-tight">날개 형태 고르기</h2>
           <p id="shape-screen-desc" class="text-xs text-neutral-400 mt-0.5 font-normal"><strong class="text-white">[드래그]</strong> 이동, <strong class="text-white">[두 손가락 핀치]</strong> 확대/축소</p>
         </header>
@@ -318,9 +319,24 @@
           </div>
         </div>
 
-        <div id="blur-slider-box" class="blur-slider-wrapper pointer-events-auto">
-          <div class="custom-slider-track-wrap">
-            <input type="range" id="blur-slider" min="0" max="25" value="0" step="0.5">
+        <!-- 🌟 조정 패널 (흐림 조정 슬라이더 + 좌우 대칭 스위치) -->
+        <div id="blur-slider-box" class="blur-slider-wrapper pointer-events-auto hidden-slider">
+          <!-- 1. 흐림 조정 슬라이더 영역 -->
+          <div class="adjust-control-item">
+            <span class="adjust-section-label">흐림 조정</span>
+            <div class="custom-slider-track-wrap">
+              <input type="range" id="blur-slider" min="0" max="25" value="0" step="0.5">
+            </div>
+          </div>
+
+          <!-- 2. 좌우 대칭 온/오프 토글 스위치 영역 (2번 사진 디자인 반영) -->
+          <div class="adjust-control-item mt-3.5">
+            <span class="adjust-section-label">좌우 대칭</span>
+            <div class="flex items-center justify-center">
+              <button id="toggle-symmetry-btn" type="button" class="minimal-pill-toggle" aria-pressed="false">
+                <span class="toggle-knob"></span>
+              </button>
+            </div>
           </div>
         </div>
       </div>
@@ -331,10 +347,11 @@
           </div>
         </div>
 
+        <!-- 🌟 알약 바 이름 '조정'으로 변경 -->
         <div class="arch-pill-nav">
           <button id="tab-wing" type="button" class="deco-pill-btn active-tab">날개</button>
           <button id="tab-antenna" type="button" class="deco-pill-btn">더듬이</button>
-          <button id="tab-blur" type="button" class="deco-pill-btn">흐림도</button>
+          <button id="tab-blur" type="button" class="deco-pill-btn">조정</button>
         </div>
 
         <footer class="bottom-dock-unified flex gap-2.5 w-[84%] mx-auto z-20">
@@ -394,7 +411,7 @@
       </footer>
     </section>
 
-    <!-- 4. 로딩 화면 (1번 사진) -->
+    <!-- 4. 로딩 화면 -->
     <section id="screen-loading" class="screen flex-col flex-1 justify-between items-center py-10 px-5 text-center relative overflow-hidden z-10 w-full">
       <div class="photo-butterfly-bg-wrapper pointer-events-none">
         <div class="photo-bg-layer"></div>
@@ -413,7 +430,6 @@
       </div>
 
       <div class="relative w-full max-w-[340px] my-auto z-10 flex flex-col items-center">
-        <!-- 🌟 중앙 나비 (크기 확대 반영) -->
         <div class="mb-5 flex items-center justify-center">
           <svg id="loading-butterfly-svg" class="w-24 h-24 text-white drop-shadow-[0_0_32px_rgba(255,255,255,0.95)] animate-pulse transition-all duration-1000" viewBox="0 0 100 100">
             <path id="loading-wing-path" d="" fill="#ffffff" stroke="#ffffff" stroke-width="1"/>
@@ -442,9 +458,8 @@
       </div>
     </section>
 
-    <!-- 5. 프리뷰 및 비행 화면 (2번 사진) -->
+    <!-- 5. 프리뷰 및 비행 화면 -->
     <section id="screen-preview" class="screen fixed inset-0 z-50 flex-col justify-between py-6 overflow-hidden bg-black" style="background: #000000 !important;">
-      <!-- 🌟 RGB 픽셀 점 노이즈 없는 순백색 후광 글로우 레이어 -->
       <div class="preview-ethereal-glow-bg"></div>
 
       <header class="text-center pt-3 z-10">
