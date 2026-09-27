@@ -197,17 +197,21 @@ function updateHeroPreview() {
   var headTargetX = offsetX + (currentWing.headX * scale);
   var headTargetY = offsetY + (currentWing.headY * scale) + 0.4;
 
+  var wingD = currentWing.wingD || currentWing.d;
+  var bodyD = currentWing.bodyD || "";
+
   heroPathContainer.innerHTML = 
     '<defs>' +
       '<mask id="butterfly-outside-mask">' +
         '<rect x="-50" y="-50" width="260" height="260" fill="white"/>' +
         '<g transform="translate(' + offsetX + ', ' + offsetY + ') scale(' + scale + ')">' +
-          '<path d="' + currentWing.d + '" fill="black"/>' +
+          '<path d="' + wingD + '" fill="black"/>' +
         '</g>' +
       '</mask>' +
     '</defs>' +
     '<rect x="-50" y="-50" width="260" height="260" fill="rgba(0, 0, 0, 0.75)" mask="url(#butterfly-outside-mask)"/>' +
-    '<g transform="translate(' + headTargetX + ', ' + headTargetY + ')" filter="url(#antenna-subtle-contrast)">' +
+    (bodyD ? '<g transform="translate(' + offsetX + ', ' + offsetY + ') scale(' + scale + ')"><path d="' + bodyD + '" fill="#ffffff"/></g>' : '') +
+    '<g transform="translate(' + headTargetX + ', ' + headTargetY + ')" filter="url(#antenna-subtle-contrast)" color="#ffffff">' +
       ant.render(scale * 1.05) +
     '</g>';
 
@@ -446,10 +450,12 @@ var currentBlurPx = 0;
 var blurSlider = document.getElementById('blur-slider');
 
 if (blurSlider) {
-  blurSlider.addEventListener('input', function(e) {
+  var onBlurInput = function(e) {
     currentBlurPx = parseFloat(e.target.value) || 0;
     drawAlignCanvas();
-  });
+  };
+  blurSlider.addEventListener('input', onBlurInput);
+  blurSlider.addEventListener('change', onBlurInput);
 }
 
 function handleFile(file) {
@@ -567,25 +573,53 @@ window.addEventListener('touchmove', function(e) {
 
 window.addEventListener('touchend', function() { isDragging = false; startPinchDist = 0; });
 
+/* 🌟 선택된 나비 틀의 가로/세로 비율과 위치를 1:1로 추출 */
 function exportAlignedTexture() {
-  var size = 512;
-  var dreamCanvas = document.createElement('canvas');
-  dreamCanvas.width = size;
-  dreamCanvas.height = size;
-  var dctx = dreamCanvas.getContext('2d');
-  dctx.fillStyle = "#ffffff";
-  dctx.fillRect(0, 0, size, size);
+  var currentWing = butterflyPathData[selectedButterflyShape] || wingDataset[0];
+  
+  var scale = 140 / Math.max(currentWing.w, currentWing.h);
+  var shapePixelWidth = currentWing.w * scale;
+  var shapePixelHeight = currentWing.h * scale;
+  var shapeOffsetX = (160 - shapePixelWidth) / 2;
+  var shapeOffsetY = (160 - shapePixelHeight) / 2;
 
-  var scaleRatio = size / alignCanvas.width;
+  // 160x160 미리보기 뷰포트 기준, alignCanvas(600x600) 내의 나비틀 실제 좌표
+  var canvasScale = alignCanvas.width / 160;
+  var cropX = shapeOffsetX * canvasScale;
+  var cropY = shapeOffsetY * canvasScale;
+  var cropW = shapePixelWidth * canvasScale;
+  var cropH = shapePixelHeight * canvasScale;
+
+  var targetWidth = 1024;
+  var targetHeight = Math.round(1024 * (currentWing.h / currentWing.w));
+
+  var dreamCanvas = document.createElement('canvas');
+  dreamCanvas.width = targetWidth;
+  dreamCanvas.height = targetHeight;
+  var dctx = dreamCanvas.getContext('2d');
+
+  dctx.fillStyle = "#ffffff";
+  dctx.fillRect(0, 0, targetWidth, targetHeight);
+
   if (rawImage && rawImage.width) {
+    var ratioX = targetWidth / cropW;
+    var ratioY = targetHeight / cropH;
+
     dctx.save();
     if (currentBlurPx > 0) {
-      dctx.filter = 'blur(' + (currentBlurPx * scaleRatio) + 'px)';
+      dctx.filter = 'blur(' + (currentBlurPx * ratioX) + 'px)';
     }
-    dctx.drawImage(rawImage, imgX * scaleRatio, imgY * scaleRatio, rawImage.width * imgScale * scaleRatio, rawImage.height * imgScale * scaleRatio);
+    // 나비 틀의 좌상단(cropX, cropY)을 텍스처 (0, 0)에 1:1 정렬
+    dctx.drawImage(
+      rawImage,
+      (imgX - cropX) * ratioX,
+      (imgY - cropY) * ratioY,
+      rawImage.width * imgScale * ratioX,
+      rawImage.height * imgScale * ratioY
+    );
     dctx.restore();
   }
-  currentExtractedTexture = dreamCanvas.toDataURL('image/jpeg', 0.85);
+  currentExtractedTexture = dreamCanvas.toDataURL('image/png');
 }
 
 function createFallbackDummyTexture(colorA, colorB) {
@@ -602,7 +636,7 @@ function createFallbackDummyTexture(colorA, colorB) {
   ctx.beginPath();
   ctx.arc(256, 256, 130, 0, Math.PI * 2);
   ctx.fill();
-  return c.toDataURL('image/jpeg', 0.85);
+  return c.toDataURL('image/png');
 }
 
 /* 설문 데이터 및 표시 로직 */
@@ -909,9 +943,7 @@ function startAnswerShowcaseSequence() {
           loadingSvg.classList.add('scale-125');
           loadingSvg.style.filter = "drop-shadow(0 0 35px rgba(255, 255, 255, 1))";
         }
-        showcaseCard.style.backgroundColor = "rgba(255, 255, 255, 0.05)";
-        showcaseCard.style.borderColor = "rgba(255, 255, 255, 0.25)";
-        showcaseAnswers.innerHTML = '<div class="py-2.5 px-2 text-center w-full space-y-2.5"><span class="inline-block text-[10px] font-mono tracking-widest text-neutral-400 uppercase">Soul Awakening</span><p class="text-[1.05rem] font-bold text-white leading-relaxed break-keep drop-shadow-lg">이제 마음 깊은 곳에서 숨 쉬던 <strong class="text-white font-extrabold underline decoration-white/40 underline-offset-4">‘' + item.name + '’</strong>(이)가<br>찬란한 빛의 날개를 펴고 깨어납니다.</p></div>';
+        showcaseAnswers.innerHTML = '<div class="py-2 px-2 text-center w-full space-y-2"><span class="inline-block text-[10px] font-mono tracking-widest text-neutral-400 uppercase">Soul Awakening</span><p class="text-[1.05rem] font-bold text-white leading-relaxed break-keep drop-shadow-lg">이제 마음 깊은 곳에서 숨 쉬던 <strong class="text-white font-extrabold underline decoration-white/40 underline-offset-4">‘' + item.name + '’</strong>(이)가<br>찬란한 빛의 날개를 펴고 깨어납니다.</p></div>';
       } else {
         var answers = (userSelections[item.key] && userSelections[item.key].length > 0) 
                         ? userSelections[item.key] 
@@ -981,21 +1013,22 @@ btnSurveyPrev.addEventListener('click', function() {
   }
 });
 
-/* 후광 오라 스프라이트 생성기 */
-function createEtherealGlowSprite(colorHex, size, opacity) {
-  colorHex = colorHex || '#ffffff';
-  size = size || 5.2;
-  opacity = opacity || 0.5;
+/* 후광 오라 스프라이트 생성기 (순수 부드러운 화이트 톤 & 축소) */
+function createEtherealGlowSprite(size, opacity) {
+  size = size || 3.4;
+  opacity = opacity || 0.45;
   var canvas = document.createElement('canvas');
   canvas.width = 512;
   canvas.height = 512;
   var ctx = canvas.getContext('2d');
+  
   var grad = ctx.createRadialGradient(256, 256, 0, 256, 256, 256);
-  grad.addColorStop(0.0, 'rgba(255, 255, 255, 0.9)');
-  grad.addColorStop(0.24, 'rgba(255, 255, 255, 0.35)');
-  grad.addColorStop(0.5, colorHex);
-  grad.addColorStop(0.8, 'rgba(255, 255, 255, 0.05)');
-  grad.addColorStop(1.0, 'rgba(0, 0, 0, 0)');
+  grad.addColorStop(0.0, 'rgba(255, 255, 255, 1.0)');
+  grad.addColorStop(0.2, 'rgba(255, 255, 255, 0.7)');
+  grad.addColorStop(0.55, 'rgba(255, 255, 255, 0.18)');
+  grad.addColorStop(0.85, 'rgba(255, 255, 255, 0.03)');
+  grad.addColorStop(1.0, 'rgba(255, 255, 255, 0)');
+  
   ctx.fillStyle = grad;
   ctx.fillRect(0, 0, 512, 512);
 
@@ -1078,21 +1111,24 @@ function initFullButterflyViewer(textureURL) {
   var textureLoader = new THREE.TextureLoader();
   var userTexture = textureLoader.load(textureURL);
   userTexture.flipY = false;
+  userTexture.wrapS = THREE.ClampToEdgeWrapping;
+  userTexture.wrapT = THREE.ClampToEdgeWrapping;
 
   fullGroup = new THREE.Group();
 
   var wingMat = new THREE.MeshStandardMaterial({
     map: userTexture,
     side: THREE.DoubleSide,
-    roughness: 0.5
+    roughness: 0.5,
+    metalness: 0.0
   });
   var whiteMat = new THREE.MeshStandardMaterial({
     color: 0xffffff,
     side: THREE.DoubleSide,
-    roughness: 0.3
+    roughness: 0.35,
+    metalness: 0.0
   });
 
-  // 선택된 나비 모델 파일 동적 로드 (기본 폴더: 3DButterfly/)
   var modelPath = '3DButterfly/' + selectedButterflyShape + '.glb';
   var targetAntennaPrefix = 'Antenna_' + selectedAntennaType;
 
@@ -1140,11 +1176,11 @@ function initFullButterflyViewer(textureURL) {
     console.error(modelPath + " 로드 오류:", err);
   });
 
-  fullGlow1 = createEtherealGlowSprite('#ffffff', 4.8, 0.4);
+  fullGlow1 = createEtherealGlowSprite(3.2, 0.5);
   fullGlow1.position.set(0, 0, -0.06);
   fullGroup.add(fullGlow1);
 
-  fullGlow2 = createEtherealGlowSprite('#e5e5e5', 6.4, 0.2);
+  fullGlow2 = createEtherealGlowSprite(4.2, 0.25);
   fullGlow2.position.set(0, 0, -0.09);
   fullGroup.add(fullGlow2);
 
@@ -1156,9 +1192,9 @@ function initFullButterflyViewer(textureURL) {
     animFrameId = requestAnimationFrame(animate);
     var time = clock.getElapsedTime();
 
-    var pulse = 1 + Math.sin(time * 2.8) * 0.05;
-    if (fullGlow1) fullGlow1.scale.set(4.8 * pulse, 4.8 * pulse, 1);
-    if (fullGlow2) fullGlow2.scale.set(6.4 * pulse, 6.4 * pulse, 1);
+    var pulse = 1 + Math.sin(time * 2.8) * 0.04;
+    if (fullGlow1) fullGlow1.scale.set(3.2 * pulse, 3.2 * pulse, 1);
+    if (fullGlow2) fullGlow2.scale.set(4.2 * pulse, 4.2 * pulse, 1);
 
     var flapSpeed = (!isFlyingAway) ? 5.2 : 22.0;
     var flapIntensity = (!isFlyingAway) ? 0.48 : 0.72;
@@ -1435,12 +1471,12 @@ function openSpecimen3DModal(item, textureUrl) {
   }
 
   var w = container.clientWidth || 320;
-  var h = container.clientHeight || 185;
+  var h = container.clientHeight || 210;
 
   modalThreeScene = new THREE.Scene();
   modalThreeCamera = new THREE.PerspectiveCamera(40, w / h, 0.1, 100);
-  modalThreeCamera.position.set(0, 0, 7.0);
-  modalThreeCamera.lookAt(0, 0, 0);
+  modalThreeCamera.position.set(0, 0, 7.3);
+  modalThreeCamera.lookAt(0, -0.35, 0);
 
   modalThreeRenderer = new THREE.WebGLRenderer({ alpha: true, antialias: true });
   modalThreeRenderer.setSize(w, h);
@@ -1483,7 +1519,8 @@ function openSpecimen3DModal(item, textureUrl) {
       }
     });
 
-    model.scale.set(0.9, 0.9, 0.9);
+    model.scale.set(0.88, 0.88, 0.88);
+    model.position.set(0, -0.35, 0);
     group.add(model);
   }, undefined, function(err) {
     console.error("모달 3D 모델 로드 오류:", err);
@@ -1502,7 +1539,7 @@ function openSpecimen3DModal(item, textureUrl) {
       modalWingR.rotation.y = -flap;
     }
     group.rotation.y = Math.sin(t * 0.8) * 0.35;
-    group.position.y = Math.sin(t * 2.0) * 0.08;
+    group.position.y = -0.35 + Math.sin(t * 2.0) * 0.08;
 
     modalThreeRenderer.render(modalThreeScene, modalThreeCamera);
   }
