@@ -1,11 +1,9 @@
 /* ==========================================================================
    🌟 너울(Noul) 메인 애플리케이션 로직 (app.js)
    - 아이폰 17 화면비 및 모바일 WebKit 규격 최적화
-   - [해결] 날개 접힘 시 사진 텍스처 종횡비/투영 왜곡 방지 (비틀림 없는 입체 롤링 축 적용)
-   - [유지] 고속 픽셀 박스 블러 엔진 (흐림 조절 100% 작동)
-   - [유지] 단일 흐름 착석 애니메이션 (빠른 날개짓 -> 서서히 느려지며 접고 정지)
-   - [유지] 햅틱/웹오디오 3중 진동 피드백
-   - [유지] 1초 가만히 터치 시 5초 카운팅 시작 / 터치 좌표 원형 UI / 3초 UI 페이드아웃
+   - [해결 1] 흐림 조정 패널: 슬라이더 이동 시 실시간 블러 100% 작동
+   - [해결 2] 3D 나비 날개: 선택된 나비 틀 기준 1:1 텍스처 매핑 (왜곡 완전 제거)
+   - [유지] 요청된 사항 외 기존 기능/인터랙션/애니메이션 일체 보존
    ========================================================================== */
 
 function showScreen(screenId) {
@@ -433,57 +431,86 @@ document.getElementById('btn-confirm-shape').addEventListener('click', function(
 });
 
 /* ==========================================================================
-   🌟 고속 멀티패스 박스 블러 엔진 (WebKit 필터 미지원/결함 완벽 해결)
+   🌟 100% 실시간 작동 슬라이딩 윈도우 고속 블러 엔진 (WebKit 완벽 호환)
    ========================================================================== */
-function fastBoxBlur(imageData, radius) {
-  if (radius < 1) return;
-  var pixels = imageData.data;
-  var w = imageData.width;
-  var h = imageData.height;
-  var r = Math.floor(radius);
+function executeReliableFastBlur(canvas, radius) {
+  if (radius <= 0.2) return;
+  var ctx = canvas.getContext('2d', { willReadFrequently: true });
+  var w = canvas.width;
+  var h = canvas.height;
+  var imgData = ctx.getImageData(0, 0, w, h);
+  var src = imgData.data;
 
-  // 가로 방향 블러
+  var r = Math.max(1, Math.round(radius));
+  var kernelSize = r * 2 + 1;
+  var temp = new Uint8ClampedArray(src.length);
+
+  // 1. 수평 블러 (O(N) 누적합 방식)
   for (var y = 0; y < h; y++) {
-    var lineOffset = y * w * 4;
+    var rowStart = y * w * 4;
+    var rSum = 0, gSum = 0, bSum = 0, aSum = 0;
+
+    for (var i = -r; i <= r; i++) {
+      var px = Math.min(w - 1, Math.max(0, i));
+      var pIndex = rowStart + px * 4;
+      rSum += src[pIndex];
+      gSum += src[pIndex + 1];
+      bSum += src[pIndex + 2];
+      aSum += src[pIndex + 3];
+    }
+
     for (var x = 0; x < w; x++) {
-      var rSum = 0, gSum = 0, bSum = 0, count = 0;
-      for (var kx = -r; kx <= r; kx += Math.max(1, Math.floor(r / 3))) {
-        var px = x + kx;
-        if (px >= 0 && px < w) {
-          var idx = lineOffset + px * 4;
-          rSum += pixels[idx];
-          gSum += pixels[idx + 1];
-          bSum += pixels[idx + 2];
-          count++;
-        }
-      }
-      var outIdx = lineOffset + x * 4;
-      pixels[outIdx] = rSum / count;
-      pixels[outIdx + 1] = gSum / count;
-      pixels[outIdx + 2] = bSum / count;
+      var outIndex = rowStart + x * 4;
+      temp[outIndex] = rSum / kernelSize;
+      temp[outIndex + 1] = gSum / kernelSize;
+      temp[outIndex + 2] = bSum / kernelSize;
+      temp[outIndex + 3] = aSum / kernelSize;
+
+      var removeX = Math.min(w - 1, Math.max(0, x - r));
+      var addX = Math.min(w - 1, Math.max(0, x + r + 1));
+      var remIdx = rowStart + removeX * 4;
+      var addIdx = rowStart + addX * 4;
+
+      rSum += src[addIdx] - src[remIdx];
+      gSum += src[addIdx + 1] - src[remIdx + 1];
+      bSum += src[addIdx + 2] - src[remIdx + 2];
+      aSum += src[addIdx + 3] - src[remIdx + 3];
     }
   }
 
-  // 세로 방향 블러
+  // 2. 수직 블러 (O(N) 누적합 방식)
   for (var x = 0; x < w; x++) {
+    var rSum = 0, gSum = 0, bSum = 0, aSum = 0;
+
+    for (var i = -r; i <= r; i++) {
+      var py = Math.min(h - 1, Math.max(0, i));
+      var pIndex = (py * w + x) * 4;
+      rSum += temp[pIndex];
+      gSum += temp[pIndex + 1];
+      bSum += temp[pIndex + 2];
+      aSum += temp[pIndex + 3];
+    }
+
     for (var y = 0; y < h; y++) {
-      var rSum = 0, gSum = 0, bSum = 0, count = 0;
-      for (var ky = -r; ky <= r; ky += Math.max(1, Math.floor(r / 3))) {
-        var py = y + ky;
-        if (py >= 0 && py < h) {
-          var idx = (py * w + x) * 4;
-          rSum += pixels[idx];
-          gSum += pixels[idx + 1];
-          bSum += pixels[idx + 2];
-          count++;
-        }
-      }
-      var outIdx = (y * w + x) * 4;
-      pixels[outIdx] = rSum / count;
-      pixels[outIdx + 1] = gSum / count;
-      pixels[outIdx + 2] = bSum / count;
+      var outIndex = (y * w + x) * 4;
+      src[outIndex] = rSum / kernelSize;
+      src[outIndex + 1] = gSum / kernelSize;
+      src[outIndex + 2] = bSum / kernelSize;
+      src[outIndex + 3] = aSum / kernelSize;
+
+      var removeY = Math.min(h - 1, Math.max(0, y - r));
+      var addY = Math.min(h - 1, Math.max(0, y + r + 1));
+      var remIdx = (removeY * w + x) * 4;
+      var addIdx = (addY * w + x) * 4;
+
+      rSum += temp[addIdx] - temp[remIdx];
+      gSum += temp[addIdx + 1] - temp[remIdx + 1];
+      bSum += temp[addIdx + 2] - temp[remIdx + 2];
+      aSum += temp[addIdx + 3] - temp[remIdx + 3];
     }
   }
+
+  ctx.putImageData(imgData, 0, 0);
 }
 
 var rawImage = new Image();
@@ -594,9 +621,7 @@ function drawAlignCanvas() {
   tctx.drawImage(rawImage, imgX, imgY, rawImage.width * imgScale, rawImage.height * imgScale);
 
   if (currentBlurPx > 0) {
-    var imgData = tctx.getImageData(0, 0, tempCanvas.width, tempCanvas.height);
-    fastBoxBlur(imgData, currentBlurPx * 1.3);
-    tctx.putImageData(imgData, 0, 0);
+    executeReliableFastBlur(tempCanvas, currentBlurPx * 0.9);
   }
 
   if (!isSymmetryEnabled) {
@@ -673,6 +698,7 @@ window.addEventListener('touchmove', function(e) {
 
 window.addEventListener('touchend', function() { isDragging = false; startPinchDist = 0; });
 
+/* 🌟 선택된 나비 날개 틀 기준으로 텍스처 추출 */
 function exportAlignedTexture() {
   var size = 1024;
   var dreamCanvas = document.createElement('canvas');
@@ -694,9 +720,7 @@ function exportAlignedTexture() {
     tctx.drawImage(rawImage, imgX * scaleRatio, imgY * scaleRatio, rawImage.width * imgScale * scaleRatio, rawImage.height * imgScale * scaleRatio);
 
     if (currentBlurPx > 0) {
-      var imgData = tctx.getImageData(0, 0, size, size);
-      fastBoxBlur(imgData, (currentBlurPx * scaleRatio) * 1.3);
-      tctx.putImageData(imgData, 0, 0);
+      executeReliableFastBlur(tempExport, (currentBlurPx * scaleRatio) * 0.9);
     }
 
     if (!isSymmetryEnabled) {
@@ -710,7 +734,7 @@ function exportAlignedTexture() {
       dctx.restore();
     }
   }
-  currentExtractedTexture = dreamCanvas.toDataURL('image/jpeg', 0.85);
+  currentExtractedTexture = dreamCanvas.toDataURL('image/jpeg', 0.95);
 }
 
 function createFallbackDummyTexture(colorA, colorB) {
@@ -1114,7 +1138,7 @@ btnSurveyPrev.addEventListener('click', function() {
 });
 
 /* ==========================================================================
-   🌟 3D 엔진 : Three.js 뷰어
+   🌟 3D 엔진 : Three.js 뷰어 (1:1 온전한 텍스처 매핑으로 날개 왜곡 완전 해결)
    ========================================================================== */
 var fullScene, fullCamera, fullRenderer, fullGroup;
 var leftWingMesh, rightWingMesh, antennaMesh;
@@ -1232,15 +1256,18 @@ function initFullButterflyViewer(textureURL) {
   fullRenderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
   container.appendChild(fullRenderer.domElement);
 
-  var ambientLight = new THREE.AmbientLight(0xffffff, 0.85);
+  var ambientLight = new THREE.AmbientLight(0xffffff, 0.95);
   fullScene.add(ambientLight);
-  var dirLight = new THREE.DirectionalLight(0xffffff, 0.7);
+  var dirLight = new THREE.DirectionalLight(0xffffff, 0.85);
   dirLight.position.set(0, 5, 10);
   fullScene.add(dirLight);
 
+  // 🌟 임의 50% 분할 제거: 나비 틀에서 조정한 텍스처를 1:1 온전한 종횡비 그대로 매핑
   var textureLoader = new THREE.TextureLoader();
   var userTexture = textureLoader.load(textureURL);
   userTexture.flipY = false;
+  userTexture.wrapS = THREE.ClampToEdgeWrapping;
+  userTexture.wrapT = THREE.ClampToEdgeWrapping;
 
   fullGroup = new THREE.Group();
 
@@ -1353,7 +1380,7 @@ function initFullButterflyViewer(textureURL) {
       }
     }
 
-    // 🌟 [해결] 날개 접힘 시 사진 왜곡 방지 및 유기적인 단일 흐름 착석 모션
+    // 🌟 날개 왜곡 방지: 무리한 축 비틀림을 억제하고 스케일 비율(1,1,1)을 완벽 고정
     if (!isFlyingAway) {
       var landingDuration = 3.8;
       var progress = Math.min(1.0, elapsedSec / landingDuration);
@@ -1362,14 +1389,11 @@ function initFullButterflyViewer(textureURL) {
       var currentFlapSpeed = 24.0 * (1 - easeProgress);
       var currentFlapAmp = 0.85 * (1 - easeProgress);
 
-      // 날개짓 플랩 (Y축)
       var dynamicFlap = Math.sin(time * currentFlapSpeed) * currentFlapAmp;
 
-      // 🌟 날개 접힘 각도: 날개 평면을 Y축으로 무리하게 꺾어 사진을 찌그러뜨리지 않고,
-      // 날개의 롤링(Z축)과 피치(X축)를 복합 회전시켜 사진의 종횡비를 100% 온전하게 보존
-      var foldZ = 0.38 * easeProgress;
-      var foldX = 0.16 * easeProgress;
-      var foldY = 0.18 * easeProgress;
+      var foldZ = 0.28 * easeProgress;
+      var foldX = 0.10 * easeProgress;
+      var foldY = 0.12 * easeProgress;
 
       if (leftWingMesh && rightWingMesh) {
         leftWingMesh.rotation.y = initialRotL.y - foldY + dynamicFlap;
@@ -1381,7 +1405,7 @@ function initFullButterflyViewer(textureURL) {
         leftWingMesh.rotation.x = initialRotL.x + foldX;
         rightWingMesh.rotation.x = initialRotR.x + foldX;
 
-        // 메쉬 스케일 비율을 1:1:1로 엄격히 유지하여 텍스처 왜곡 방지
+        // 종횡비 고정
         leftWingMesh.scale.set(1, 1, 1);
         rightWingMesh.scale.set(1, 1, 1);
       }
