@@ -2,6 +2,7 @@
    🌟 너울(Noul) 메인 애플리케이션 로직 (app.js)
    - 아이폰 17 화면비 및 애니메이션/위치 보정 반영 완료
    - 3DButterfly/crescent.glb 모델 및 3종 더듬이 가시성 동적 제어 반영
+   - 박제 액자(2D 갤러리): 더듬이 상단 잘림 방지 (overflow: visible) 반영
    ========================================================================== */
 
 function showScreen(screenId) {
@@ -15,6 +16,8 @@ function showScreen(screenId) {
       switchTab('wing');
       updateHeroPreview();
       drawAlignCanvas();
+    } else if (screenId === 'screen-gallery') {
+      initSpecimenGallery();
     }
   }
   updateDevScreenBadge();
@@ -25,7 +28,11 @@ document.getElementById('btn-menu-back').addEventListener('click', function() { 
 document.getElementById('menu-btn-create').addEventListener('click', function() { showScreen('screen-opening'); resetOpeningFlow(); });
 document.getElementById('btn-opening-back').addEventListener('click', function() { clearTimeout(typeTimer); showScreen('screen-menu'); });
 document.getElementById('btn-guide-back-to-menu').addEventListener('click', function() { showScreen('screen-menu'); });
-document.getElementById('menu-btn-browse').addEventListener('click', function() { alert("다른 사람들이 띄운 나비들을 불러오는 중입니다. (전시 준비 중)"); });
+
+// 나비 둘러보기 클릭 시 박제 갤러리로 이동
+document.getElementById('menu-btn-browse').addEventListener('click', function() { showScreen('screen-gallery'); });
+document.getElementById('btn-gallery-back').addEventListener('click', function() { showScreen('screen-menu'); });
+
 document.getElementById('menu-btn-intro').addEventListener('click', function() { showScreen('screen-intro'); });
 document.getElementById('btn-intro-back').addEventListener('click', function() { showScreen('screen-menu'); });
 document.getElementById('btn-intro-bottom-back').addEventListener('click', function() { showScreen('screen-menu'); });
@@ -70,7 +77,6 @@ function resetOpeningFlow() {
   elOpeningNextGroup.classList.add('hidden');
   elOpeningNextGroup.classList.remove('visible');
 
-  // 질문 타이핑이 끝난 후 '예', '아니오' 표시
   typeWriterText("안녕하세요?<br>이곳에는 우연히 발걸음하셨나요?", function() {
     elOpeningChoiceGroup.classList.remove('hidden');
     requestAnimationFrame(function() {
@@ -437,16 +443,10 @@ var currentExtractedTexture = null;
 var currentBlurPx = 0;
 
 var blurSlider = document.getElementById('blur-slider');
-function updateSliderProgressStyle(val, max) {
-  var pct = ((val / max) * 100).toFixed(1);
-  blurSlider.style.background = 'linear-gradient(to right, #ffffff ' + pct + '%, #333333 ' + pct + '%)';
-}
 
 if (blurSlider) {
-  updateSliderProgressStyle(0, 25);
   blurSlider.addEventListener('input', function(e) {
     currentBlurPx = parseFloat(e.target.value) || 0;
-    updateSliderProgressStyle(currentBlurPx, 25);
     drawAlignCanvas();
   });
 }
@@ -461,7 +461,6 @@ function handleFile(file) {
       if (blurSlider) {
         blurSlider.value = 0;
         currentBlurPx = 0;
-        updateSliderProgressStyle(0, 25);
       }
       initAlignUI();
       showScreen('screen-shape-select');
@@ -588,17 +587,21 @@ function exportAlignedTexture() {
   currentExtractedTexture = dreamCanvas.toDataURL('image/jpeg', 0.85);
 }
 
-function createFallbackDummyTexture() {
+function createFallbackDummyTexture(colorA, colorB) {
   var c = document.createElement('canvas');
   c.width = 512; c.height = 512;
   var ctx = c.getContext('2d');
-  ctx.fillStyle = '#ffffff';
+  var grad = ctx.createLinearGradient(0, 0, 512, 512);
+  grad.addColorStop(0, colorA || '#2a5298');
+  grad.addColorStop(0.5, '#ffffff');
+  grad.addColorStop(1, colorB || '#1e3c72');
+  ctx.fillStyle = grad;
   ctx.fillRect(0, 0, 512, 512);
-  ctx.fillStyle = '#111111';
+  ctx.fillStyle = 'rgba(255,255,255,0.4)';
   ctx.beginPath();
-  ctx.arc(256, 256, 110, 0, Math.PI * 2);
+  ctx.arc(256, 256, 130, 0, Math.PI * 2);
   ctx.fill();
-  return c.toDataURL('image/jpeg', 0.8);
+  return c.toDataURL('image/jpeg', 0.85);
 }
 
 /* 설문 데이터 및 표시 로직 */
@@ -1209,6 +1212,240 @@ function bindSwipeEvents(targetEl) {
   });
 }
 
+/* ==========================================================================
+   🌟 [수정] 나비 둘러보기 박제 전시관 로직
+   - <svg>에 style="overflow: visible;"을 적용하여 더듬이 끝부분이 절대 잘리지 않도록 수정
+   - 나비와 이름표 충돌 없는 정확한 간격 배치
+   ========================================================================== */
+
+var specimenButterfliesData = [
+  { id: 1, name: "윤슬", wingId: "crescent", antId: "crescent", x: 190, y: 220, scale: 2.10 },
+  { id: 2, name: "칼퇴기원", wingId: "ember", antId: "ball", x: 490, y: 180, scale: 1.05 },
+  { id: 3, name: "바람결", wingId: "petal", antId: "star", x: 710, y: 200, scale: 1.45 },
+  { id: 4, name: "다정", wingId: "wave-fin", antId: "ball", x: 350, y: 440, scale: 1.10 },
+  { id: 5, name: "시온", wingId: "moon-halo", antId: "crescent", x: 610, y: 460, scale: 2.20 },
+  { id: 6, name: "새벽별", wingId: "dawn-ray", antId: "star", x: 160, y: 720, scale: 0.95 },
+  { id: 7, name: "온기", wingId: "starlight", antId: "ball", x: 440, y: 730, scale: 1.75 },
+  { id: 8, name: "달그림자", wingId: "crescent", antId: "star", x: 700, y: 750, scale: 1.15 },
+  { id: 9, name: "초록비", wingId: "petal", antId: "crescent", x: 260, y: 1040, scale: 1.85 },
+  { id: 10, name: "너울", wingId: "wave-fin", antId: "star", x: 600, y: 1050, scale: 1.25 }
+];
+
+var galleryViewport = document.getElementById('gallery-pan-viewport');
+var specimenBoard = document.getElementById('gallery-specimen-board');
+var specimenContainer = document.getElementById('specimen-items-container');
+
+var panX = -170, panY = -10;
+var isPanning = false;
+var panStartX = 0, panStartY = 0;
+
+function initSpecimenGallery() {
+  if (!specimenContainer) return;
+  specimenContainer.innerHTML = '';
+
+  clampPanPosition();
+  applySpecimenBoardTransform();
+
+  specimenButterfliesData.forEach(function(item) {
+    var wing = butterflyPathData[item.wingId] || wingDataset[0];
+    var ant = antennaDataset.find(function(a) { return a.id === item.antId; }) || antennaDataset[0];
+
+    var card = document.createElement('div');
+    card.className = 'specimen-card-item';
+    card.style.left = item.x + 'px';
+    card.style.top = item.y + 'px';
+    card.style.transform = 'translate(-50%, -50%) scale(' + item.scale + ')';
+
+    var scaleRatio = 110 / Math.max(wing.w, wing.h);
+    
+    // 🌟 style="overflow: visible;" 로 뷰박스 바깥으로 뻗어나가는 더듬이 잘림 완벽 방지
+    card.innerHTML = 
+      '<div class="specimen-butterfly-wrap">' +
+        '<div class="specimen-pin-head"></div>' +
+        '<svg class="specimen-shadow-drop" width="130" height="110" viewBox="0 0 ' + wing.w + ' ' + wing.h + '" style="overflow: visible;">' +
+          '<path d="' + wing.d + '" fill="#ffffff" stroke="none"/>' +
+          '<g transform="translate(' + wing.headX + ',' + wing.headY + ')" color="#ffffff">' +
+            ant.render(scaleRatio * 0.95) +
+          '</g>' +
+        '</svg>' +
+      '</div>' +
+      '<div class="specimen-pill-label">' +
+        '<span class="label-text">' + item.name + '</span>' +
+      '</div>';
+
+    card.addEventListener('click', function(e) {
+      e.stopPropagation();
+      openSpecimen3DModal(item, createFallbackDummyTexture('#ffffff', '#e0e0e0'));
+    });
+
+    specimenContainer.appendChild(card);
+  });
+
+  bindGalleryPanEvents();
+}
+
+function clampPanPosition() {
+  if (!galleryViewport || !specimenBoard) return;
+  var vpW = galleryViewport.clientWidth;
+  var vpH = galleryViewport.clientHeight;
+  var boardW = 860;
+  var boardH = 1320;
+
+  var minX = vpW - boardW;
+  var maxX = 0;
+  var minY = vpH - boardH;
+  var maxY = 0;
+
+  panX = Math.min(maxX, Math.max(minX, panX));
+  panY = Math.min(maxY, Math.max(minY, panY));
+}
+
+function applySpecimenBoardTransform() {
+  if (!specimenBoard) return;
+  specimenBoard.style.transform = 'translate3d(' + panX + 'px, ' + panY + 'px, 0)';
+}
+
+function bindGalleryPanEvents() {
+  if (!galleryViewport) return;
+
+  function onPointerDown(clientX, clientY) {
+    isPanning = true;
+    panStartX = clientX - panX;
+    panStartY = clientY - panY;
+  }
+
+  function onPointerMove(clientX, clientY) {
+    if (!isPanning) return;
+    panX = clientX - panStartX;
+    panY = clientY - panStartY;
+    clampPanPosition();
+    applySpecimenBoardTransform();
+  }
+
+  function onPointerUp() {
+    isPanning = false;
+  }
+
+  galleryViewport.addEventListener('touchstart', function(e) {
+    if (e.touches.length === 1) onPointerDown(e.touches[0].clientX, e.touches[0].clientY);
+  }, { passive: true });
+
+  window.addEventListener('touchmove', function(e) {
+    if (isPanning && e.touches.length === 1) onPointerMove(e.touches[0].clientX, e.touches[0].clientY);
+  }, { passive: true });
+
+  window.addEventListener('touchend', onPointerUp, { passive: true });
+
+  galleryViewport.addEventListener('mousedown', function(e) {
+    onPointerDown(e.clientX, e.clientY);
+  });
+  window.addEventListener('mousemove', function(e) {
+    if (isPanning) onPointerMove(e.clientX, e.clientY);
+  });
+  window.addEventListener('mouseup', onPointerUp);
+}
+
+// 3D 모달
+var modalThreeScene, modalThreeCamera, modalThreeRenderer;
+var modalWingL, modalWingR;
+var modalAnimFrameId = null;
+
+function openSpecimen3DModal(item, textureUrl) {
+  var modal = document.getElementById('specimen-detail-modal');
+  var nameEl = document.getElementById('modal-butterfly-name');
+  var metaEl = document.getElementById('modal-butterfly-meta');
+  var container = document.getElementById('specimen-three-container');
+
+  nameEl.innerText = '‘' + item.name + '’';
+  metaEl.innerText = '날개: ' + (butterflyPathData[item.wingId] ? butterflyPathData[item.wingId].name : '나비');
+  modal.classList.remove('hidden');
+
+  container.innerHTML = '';
+  if (modalAnimFrameId) {
+    cancelAnimationFrame(modalAnimFrameId);
+    modalAnimFrameId = null;
+  }
+
+  var w = container.clientWidth || 320;
+  var h = container.clientHeight || 360;
+
+  modalThreeScene = new THREE.Scene();
+  modalThreeCamera = new THREE.PerspectiveCamera(40, w / h, 0.1, 100);
+  modalThreeCamera.position.set(0, 0, 7.5);
+  modalThreeCamera.lookAt(0, 0, 0);
+
+  modalThreeRenderer = new THREE.WebGLRenderer({ alpha: true, antialias: true });
+  modalThreeRenderer.setSize(w, h);
+  modalThreeRenderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+  container.appendChild(modalThreeRenderer.domElement);
+
+  var amb = new THREE.AmbientLight(0xffffff, 0.95);
+  modalThreeScene.add(amb);
+  var dir = new THREE.DirectionalLight(0xffffff, 0.85);
+  dir.position.set(0, 5, 8);
+  modalThreeScene.add(dir);
+
+  var tex = new THREE.TextureLoader().load(textureUrl);
+  tex.flipY = false;
+
+  var wingMat = new THREE.MeshStandardMaterial({ map: tex, side: THREE.DoubleSide, roughness: 0.45 });
+  var whiteMat = new THREE.MeshStandardMaterial({ color: 0xffffff, side: THREE.DoubleSide, roughness: 0.3 });
+
+  var activeAntennaNode = 'Antenna_' + item.antId + '_crescent';
+  var group = new THREE.Group();
+
+  new THREE.GLTFLoader().load('3DButterfly/crescent.glb', function(gltf) {
+    var model = gltf.scene;
+    modalWingL = null; modalWingR = null;
+
+    model.traverse(function(child) {
+      if (child.isMesh) {
+        if (child.name === 'Wing_L_crescent' || child.name === 'Wing_L') {
+          modalWingL = child; child.material = wingMat;
+        } else if (child.name === 'Wing_R_crescent' || child.name === 'Wing_R') {
+          modalWingR = child; child.material = wingMat;
+        } else if (child.name === 'Body_crescent' || child.name === 'Body') {
+          child.material = whiteMat;
+        } else if (child.name.startsWith('Antenna_')) {
+          child.material = whiteMat;
+          child.visible = (child.name === activeAntennaNode);
+        }
+      }
+    });
+
+    model.scale.set(0.85, 0.85, 0.85);
+    group.add(model);
+  });
+
+  modalThreeScene.add(group);
+
+  var clock = new THREE.Clock();
+  function modalAnimate() {
+    modalAnimFrameId = requestAnimationFrame(modalAnimate);
+    var t = clock.getElapsedTime();
+    var flap = Math.sin(t * 6.5) * 0.45;
+
+    if (modalWingL && modalWingR) {
+      modalWingL.rotation.y = flap;
+      modalWingR.rotation.y = -flap;
+    }
+    group.rotation.y = Math.sin(t * 0.8) * 0.35;
+    group.position.y = Math.sin(t * 2.0) * 0.08;
+
+    modalThreeRenderer.render(modalThreeScene, modalThreeCamera);
+  }
+  modalAnimate();
+}
+
+document.getElementById('btn-close-specimen-modal').addEventListener('click', function() {
+  var modal = document.getElementById('specimen-detail-modal');
+  modal.classList.add('hidden');
+  if (modalAnimFrameId) {
+    cancelAnimationFrame(modalAnimFrameId);
+    modalAnimFrameId = null;
+  }
+});
+
 function updateDevScreenBadge() {
   var badge = document.getElementById('dev-current-screen-badge');
   if (!badge) return;
@@ -1229,7 +1466,8 @@ document.getElementById('dev-btn-skip-next').addEventListener('click', function(
   var activeId = activeScreen ? activeScreen.id : 'screen-cover';
 
   if (activeId === 'screen-cover') showScreen('screen-menu');
-  else if (activeId === 'screen-menu') showScreen('screen-intro');
+  else if (activeId === 'screen-menu') showScreen('screen-gallery');
+  else if (activeId === 'screen-gallery') showScreen('screen-intro');
   else if (activeId === 'screen-intro') { showScreen('screen-opening'); resetOpeningFlow(); }
   else if (activeId === 'screen-opening') startCaptureGuideCinematicFlow();
   else if (activeId === 'screen-capture-guide') {
@@ -1319,6 +1557,8 @@ document.getElementById('dev-btn-skip-prev').addEventListener('click', function(
   } else if (activeId === 'screen-opening') {
     showScreen('screen-intro');
   } else if (activeId === 'screen-intro') {
+    showScreen('screen-gallery');
+  } else if (activeId === 'screen-gallery') {
     showScreen('screen-menu');
   } else if (activeId === 'screen-menu') {
     showScreen('screen-cover');

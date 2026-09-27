@@ -130,6 +130,47 @@
       <div class="pb-3 text-[11px] text-neutral-500 font-mono"></div>
     </section>
 
+    <!-- 0.55 🌟 나비 둘러보기 (박제 액자 화면) -->
+    <section id="screen-gallery" class="screen flex-1 relative z-20 w-full h-full bg-[#0a0a0c] overflow-hidden select-none">
+      <button id="btn-gallery-back" type="button" class="app-back-btn">
+        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
+        </svg>
+      </button>
+
+      <div class="gallery-header-guide pointer-events-none">
+        <h2 class="text-sm font-bold text-white tracking-wider">나비 표본실</h2>
+        <p class="text-[11px] text-neutral-400 mt-0.5">상하좌우로 둘러보고 나비를 눌러 자세히 감상해보세요</p>
+      </div>
+
+      <!-- 상하좌우 팬/드래그가 일어나는 뷰포트 -->
+      <div id="gallery-pan-viewport" class="gallery-viewport-drag">
+        <!-- 나무 프레임과 고급 린넨 백보드 질감 -->
+        <div id="gallery-specimen-board" class="specimen-frame-board">
+          <div class="specimen-frame-corner top-left"></div>
+          <div class="specimen-frame-corner top-right"></div>
+          <div class="specimen-frame-corner bottom-left"></div>
+          <div class="specimen-frame-corner bottom-right"></div>
+          <div id="specimen-items-container" class="specimen-container-relative"></div>
+        </div>
+      </div>
+
+      <!-- 개별 나비 3D 상세 보기 모달 -->
+      <div id="specimen-detail-modal" class="specimen-modal-layer hidden">
+        <div class="specimen-modal-backdrop"></div>
+        <div class="specimen-modal-content">
+          <button id="btn-close-specimen-modal" type="button" class="specimen-modal-close-btn">
+            ✕
+          </button>
+          <div id="specimen-three-container" class="w-full h-full relative"></div>
+          <div class="specimen-modal-info">
+            <h3 id="modal-butterfly-name" class="text-xl font-black text-white tracking-tight"></h3>
+            <p id="modal-butterfly-meta" class="text-xs text-neutral-400 mt-1"></p>
+          </div>
+        </div>
+      </div>
+    </section>
+
     <!-- 0.6 전시 소개 화면 -->
     <section id="screen-intro" class="screen flex-col flex-1 justify-between py-6 px-4 text-center relative z-20 w-full bg-black overflow-hidden">
       <button id="btn-intro-back" type="button" class="app-back-btn">
@@ -262,7 +303,6 @@
           </div>
         </div>
 
-        <!-- 🌟 수정: 상단 숫자 라벨 제거 및 원형 슬라이더 -->
         <div id="blur-slider-box" class="blur-slider-wrapper pointer-events-auto">
           <div class="custom-slider-track-wrap">
             <input type="range" id="blur-slider" min="0" max="25" value="0" step="0.5">

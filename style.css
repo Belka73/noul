@@ -183,7 +183,7 @@ html, body {
   box-shadow: 0 0 20px rgba(255, 255, 255, 0.35);
 }
 
-/* 🌟 6번째 화면 애니메이션: 확실하게 화면 정중앙에서 타이핑 후 상단으로 이동 */
+/* 🌟 촬영 안내 화면 애니메이션 */
 .guide-title-wrapper {
   position: absolute;
   top: 50%;
@@ -248,7 +248,7 @@ html, body {
   height: 100%;
 }
 
-/* 🌟 [수정 1] 흐림도 슬라이더 디자인 (원형 노브와 바 Y축 완벽 중앙 일치) */
+/* 🌟 흐림도 조절바 디자인 */
 .blur-slider-wrapper {
   width: 210px;
   margin: 32px auto 0;
@@ -283,16 +283,14 @@ html, body {
   cursor: pointer;
 }
 
-/* iOS/Webkit 트랙 */
 #blur-slider::-webkit-slider-runnable-track {
   width: 100%;
-  height: 6px;
+  height: 4px;
   background: #333333;
   border-radius: 9999px;
   border: none;
 }
 
-/* iOS/Webkit 원형 노브 (정확히 중앙 위치: (6px - 24px) / 2 = -9px) */
 #blur-slider::-webkit-slider-thumb {
   -webkit-appearance: none;
   appearance: none;
@@ -303,13 +301,12 @@ html, body {
   cursor: pointer;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.6);
   border: none;
-  margin-top: -9px;
+  margin-top: -10px;
 }
 
-/* Firefox 트랙 및 노브 */
 #blur-slider::-moz-range-track {
   width: 100%;
-  height: 6px;
+  height: 4px;
   background: #333333;
   border-radius: 9999px;
   border: none;
@@ -395,7 +392,6 @@ html, body {
   transition: all 0.25s ease;
 }
 
-/* 🌟 [수정 2] 선택된 원의 빛 사이즈 축소 (가장자리 깨짐 및 잘림 제거) */
 .shape-thumb-btn.active {
   width: 78px;
   height: 78px;
@@ -480,7 +476,7 @@ html, body {
   display: none;
 }
 
-/* 🌟 [수정 3, 4] 질문 영역 고정 공간 확보 (1줄/2줄 상관없이 높이 104px 고정하여 하단 알약 및 이름 입력 박스 밀림 완전 차단) */
+/* 질문 영역 고정 공간 확보 */
 .survey-title-box {
   min-height: 104px;
   height: 104px;
@@ -509,4 +505,198 @@ html, body {
 @keyframes bounceUp {
   0%, 100% { transform: translateY(0); }
   50% { transform: translateY(-8px); }
+}
+
+/* ==========================================================================
+   🌟 [수정] 나비 박제 표본실 (호버 크기 튀는 문제 해결 & 레이아웃 안정화)
+   ========================================================================== */
+.gallery-header-guide {
+  position: absolute;
+  top: max(1.2rem, env(safe-area-inset-top));
+  width: 100%;
+  text-align: center;
+  z-index: 40;
+  text-shadow: 0 2px 10px rgba(0, 0, 0, 0.9);
+}
+
+.gallery-viewport-drag {
+  width: 100%;
+  height: 100%;
+  position: relative;
+  overflow: hidden;
+  touch-action: none;
+  cursor: grab;
+  background-color: #000000;
+}
+.gallery-viewport-drag:active {
+  cursor: grabbing;
+}
+
+/* 박제 보드판 (여백 확장: 860px * 1320px) */
+.specimen-frame-board {
+  position: absolute;
+  width: 860px;
+  height: 1320px;
+  background-color: #000000;
+  background-image: 
+    radial-gradient(rgba(255, 255, 255, 0.08) 1px, transparent 1px);
+  background-size: 26px 26px;
+  border: none;
+  outline: none;
+  box-shadow: none;
+  border-radius: 0;
+  transform-origin: 0 0;
+  will-change: transform;
+}
+
+.specimen-frame-corner {
+  display: none !important;
+}
+
+.specimen-container-relative {
+  position: relative;
+  width: 100%;
+  height: 100%;
+}
+
+/* 🌟 [수정 1] 카드 자체의 scale을 덮어쓰지 않고 내부 그래픽만 미세 반응 */
+.specimen-card-item {
+  position: absolute;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  will-change: transform;
+  z-index: 10;
+}
+
+/* 극단적으로 튀지 않고 1.025배만 아주 살짝 반응 */
+.specimen-butterfly-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform 0.22s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+.specimen-card-item:hover .specimen-butterfly-wrap,
+.specimen-card-item:active .specimen-butterfly-wrap {
+  transform: scale(1.025);
+}
+
+/* 은은한 흰색 빛 유지 */
+.specimen-shadow-drop {
+  filter: drop-shadow(0 0 7px rgba(255, 255, 255, 0.45));
+  transition: filter 0.2s ease;
+}
+.specimen-card-item:hover .specimen-shadow-drop,
+.specimen-card-item:active .specimen-shadow-drop {
+  filter: drop-shadow(0 0 11px rgba(255, 255, 255, 0.7));
+}
+
+/* 중앙 핀 */
+.specimen-pin-head {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: #ffffff;
+  box-shadow: 0 0 5px rgba(255, 255, 255, 0.8);
+  z-index: 5;
+  pointer-events: none;
+}
+
+/* 🌟 [수정 2] 이름표 z-index 최상위 설정 및 여백 확보로 나비와 겹치지 않게 방어 */
+.specimen-pill-label {
+  margin-top: 10px;
+  background-color: #ffffff;
+  border-radius: 9999px;
+  padding: 4px 14px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.6), 0 0 8px rgba(255, 255, 255, 0.25);
+  white-space: nowrap;
+  position: relative;
+  z-index: 20;
+  pointer-events: none;
+}
+
+.specimen-pill-label .label-text {
+  font-size: 11px;
+  font-weight: 800;
+  color: #000000;
+  letter-spacing: -0.3px;
+  line-height: 1.2;
+}
+
+/* 🌟 개별 나비 3D 상세 보기 모달 레이어 */
+.specimen-modal-layer {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.specimen-modal-layer.hidden {
+  display: none !important;
+}
+
+.specimen-modal-backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.88);
+  backdrop-blur: 12px;
+}
+
+.specimen-modal-content {
+  position: relative;
+  width: 90%;
+  max-width: 360px;
+  height: 480px;
+  background: #000000;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 28px;
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.9);
+  overflow: hidden;
+  z-index: 10;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.specimen-modal-close-btn {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  z-index: 20;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.1);
+  color: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  cursor: pointer;
+}
+.specimen-modal-close-btn:active {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+.specimen-modal-info {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  padding: 1.25rem;
+  background: linear-gradient(to top, #000000 70%, transparent);
+  text-align: center;
+  z-index: 15;
+  pointer-events: none;
 }
