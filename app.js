@@ -2,7 +2,7 @@
    🌟 너울(Noul) 메인 애플리케이션 로직 (app.js)
    - 아이폰 17 화면비 및 모바일 WebKit 규격 최적화
    - [해결 1] 흐림 조정 패널: 슬라이더 이동 시 실시간 블러 100% 작동
-   - [해결 2] 3D 나비 날개: 선택된 나비 틀 기준 1:1 텍스처 매핑 (왜곡 완전 제거)
+   - [해결 2] 3D 나비 날개: SVG 나비틀 바운딩 박스 기준 1:1 정밀 텍스처 투영 (왜곡 완전 해결)
    - [유지] 요청된 사항 외 기존 기능/인터랙션/애니메이션 일체 보존
    ========================================================================== */
 
@@ -431,7 +431,7 @@ document.getElementById('btn-confirm-shape').addEventListener('click', function(
 });
 
 /* ==========================================================================
-   🌟 100% 실시간 작동 슬라이딩 윈도우 고속 블러 엔진 (WebKit 완벽 호환)
+   🌟 100% 작동 슬라이딩 윈도우 고속 블러 엔진 (WebKit 완벽 호환)
    ========================================================================== */
 function executeReliableFastBlur(canvas, radius) {
   if (radius <= 0.2) return;
@@ -698,43 +698,64 @@ window.addEventListener('touchmove', function(e) {
 
 window.addEventListener('touchend', function() { isDragging = false; startPinchDist = 0; });
 
-/* 🌟 선택된 나비 날개 틀 기준으로 텍스처 추출 */
+/* 🌟 선택된 나비 날개 틀의 바운딩 박스를 1:1 정밀 추출하여 3D 텍스처로 생성 */
 function exportAlignedTexture() {
-  var size = 1024;
-  var dreamCanvas = document.createElement('canvas');
-  dreamCanvas.width = size;
-  dreamCanvas.height = size;
-  var dctx = dreamCanvas.getContext('2d', { willReadFrequently: true });
-  dctx.fillStyle = "#ffffff";
-  dctx.fillRect(0, 0, size, size);
-
-  var scaleRatio = size / alignCanvas.width;
-  var midX = size / 2;
-
-  if (rawImage && rawImage.width) {
-    var tempExport = document.createElement('canvas');
-    tempExport.width = size;
-    tempExport.height = size;
-    var tctx = tempExport.getContext('2d', { willReadFrequently: true });
-
-    tctx.drawImage(rawImage, imgX * scaleRatio, imgY * scaleRatio, rawImage.width * imgScale * scaleRatio, rawImage.height * imgScale * scaleRatio);
-
-    if (currentBlurPx > 0) {
-      executeReliableFastBlur(tempExport, (currentBlurPx * scaleRatio) * 0.9);
-    }
-
-    if (!isSymmetryEnabled) {
-      dctx.drawImage(tempExport, 0, 0);
-    } else {
-      dctx.drawImage(tempExport, 0, 0, midX, size, 0, 0, midX, size);
-      dctx.save();
-      dctx.translate(size, 0);
-      dctx.scale(-1, 1);
-      dctx.drawImage(tempExport, 0, 0, midX, size, 0, 0, midX, size);
-      dctx.restore();
-    }
+  if (!rawImage || !rawImage.width) {
+    currentExtractedTexture = createFallbackDummyTexture();
+    return;
   }
-  currentExtractedTexture = dreamCanvas.toDataURL('image/jpeg', 0.95);
+
+  // 1. 전체 화면 임시 렌더링 (블러/대칭 포함)
+  var baseCanvas = document.createElement('canvas');
+  baseCanvas.width = alignCanvas.width;
+  baseCanvas.height = alignCanvas.height;
+  var bctx = baseCanvas.getContext('2d', { willReadFrequently: true });
+
+  bctx.drawImage(rawImage, imgX, imgY, rawImage.width * imgScale, rawImage.height * imgScale);
+
+  if (currentBlurPx > 0) {
+    executeReliableFastBlur(baseCanvas, currentBlurPx * 0.9);
+  }
+
+  if (isSymmetryEnabled) {
+    var midX = alignCanvas.width / 2;
+    var symCanvas = document.createElement('canvas');
+    symCanvas.width = alignCanvas.width;
+    symCanvas.height = alignCanvas.height;
+    var sctx = symCanvas.getContext('2d');
+    sctx.drawImage(baseCanvas, 0, 0, midX, alignCanvas.height, 0, 0, midX, alignCanvas.height);
+    sctx.save();
+    sctx.translate(alignCanvas.width, 0);
+    sctx.scale(-1, 1);
+    sctx.drawImage(baseCanvas, 0, 0, midX, alignCanvas.height, 0, 0, midX, alignCanvas.height);
+    sctx.restore();
+    baseCanvas = symCanvas;
+  }
+
+  // 2. 현재 선택된 나비 틀의 2D 뷰포트 상 실제 위치 계산
+  var currentWing = butterflyPathData[selectedButterflyShape] || wingDataset[0];
+  var heroScale = 140 / Math.max(currentWing.w, currentWing.h);
+  var heroOffsetX = (160 - currentWing.w * heroScale) / 2;
+  var heroOffsetY = (160 - currentWing.h * heroScale) / 2;
+
+  // 160x160 SVG 좌표 -> 600x600 캔버스 좌표 환산 비율
+  var cRatio = alignCanvas.width / 160;
+  var cropX = heroOffsetX * cRatio;
+  var cropY = heroOffsetY * cRatio;
+  var cropW = (currentWing.w * heroScale) * cRatio;
+  var cropH = (currentWing.h * heroScale) * cRatio;
+
+  // 3. 나비틀 영역만 1:1 고해상도로 크롭 추출 (왜곡 원천 차단)
+  var outW = 1024;
+  var outH = Math.round(1024 * (currentWing.h / currentWing.w));
+  var finalCanvas = document.createElement('canvas');
+  finalCanvas.width = outW;
+  finalCanvas.height = outH;
+  var fctx = finalCanvas.getContext('2d');
+
+  fctx.drawImage(baseCanvas, cropX, cropY, cropW, cropH, 0, 0, outW, outH);
+
+  currentExtractedTexture = finalCanvas.toDataURL('image/jpeg', 0.95);
 }
 
 function createFallbackDummyTexture(colorA, colorB) {
@@ -1262,7 +1283,7 @@ function initFullButterflyViewer(textureURL) {
   dirLight.position.set(0, 5, 10);
   fullScene.add(dirLight);
 
-  // 🌟 임의 50% 분할 제거: 나비 틀에서 조정한 텍스처를 1:1 온전한 종횡비 그대로 매핑
+  // 🌟 나비틀 바운딩 박스 크롭 텍스처를 1:1 온전한 종횡비 그대로 매핑
   var textureLoader = new THREE.TextureLoader();
   var userTexture = textureLoader.load(textureURL);
   userTexture.flipY = false;
