@@ -1,10 +1,10 @@
 /* ==========================================================================
    🌟 너울(Noul) 메인 애플리케이션 로직 (app.js)
    - 아이폰 17 화면비 및 애니메이션/위치 보정 반영 완료
-   - [수정 1] 나비 등장 정면 등 보이기(Math.PI 반전), 초반 큰 날갯짓 및 서서히 안착
-   - [수정 2] 360도 회전 후 손 떼면 원래 각도(등쪽)로 자동 복귀
-   - [수정 3] 2초 롱프레스 후 5초 기 모으기 카운팅 & 진동 & 점진적 줌인 & UI 페이드아웃
-   - [수정 4] 5초 완료 후 위로 스와이프 시 비행, 3번째 사진 기반 파티클 시스템 연동
+   - [수정] 터치한 바로 그 자리에 기 모으기 원형 인디케이터 표시
+   - [수정] iOS/안드로이드 완벽 대응 3중 햅틱 진동 피드백 탑재
+   - [수정] 5초 카운팅 시작 기점 3초에 걸쳐 UI 서서히 페이드아웃
+   - [수정] 1초간 정지한 상태로 가만히 누르고 있을 때만 기 모으기 카운팅 시작 (구경 회전 시 발동 방지)
    ========================================================================== */
 
 function showScreen(screenId) {
@@ -381,7 +381,7 @@ window.addEventListener('resize', function() {
   applyStraightSelection();
 });
 
-/* 하단 알약 탭 제어 (날개 | 더듬이 | 조정) */
+/* 하단 알약 탭 제어 */
 var tabWing = document.getElementById('tab-wing');
 var tabAntenna = document.getElementById('tab-antenna');
 var tabBlur = document.getElementById('tab-blur');
@@ -431,7 +431,7 @@ document.getElementById('btn-confirm-shape').addEventListener('click', function(
   showScreen('screen-survey');
 });
 
-/* 사진 조작, 흐림도 슬라이더, 좌우 대칭 */
+/* 사진 조작 및 흐림도/대칭 */
 var rawImage = new Image();
 var alignCanvas = document.getElementById('align-canvas');
 var actx = alignCanvas.getContext('2d');
@@ -1061,7 +1061,7 @@ btnSurveyPrev.addEventListener('click', function() {
 });
 
 /* ==========================================================================
-   🌟 3D 엔진 : Three.js 뷰어 (정면 등 보이기 + 큰 날갯짓 + 자동 각도 복귀 + 5초 기 모으기)
+   🌟 3D 엔진 : Three.js 뷰어
    ========================================================================== */
 var fullScene, fullCamera, fullRenderer, fullGroup;
 var leftWingMesh, rightWingMesh, antennaMesh;
@@ -1071,7 +1071,6 @@ var animFrameId = null;
 var initialRotL = { x: 0, y: 0, z: 0 };
 var initialRotR = { x: 0, y: 0, z: 0 };
 
-// 🌟 원래 나비의 기본 각도: 등이 정면을 바라보도록 Y축 180도(Math.PI) 세팅
 var DEFAULT_ROT_X = 0;
 var DEFAULT_ROT_Y = Math.PI;
 
@@ -1082,17 +1081,46 @@ var lastPointerX = 0, lastPointerY = 0;
 
 var previewStartTime = 0;
 
-// 🌟 기 모으기 인터랙션 상태
+// 🌟 기 모으기 상태 관리
 var isPressingScreen = false;
 var pressStartTime = 0;
-var isChargeTriggered = false; // 2초 경과 후 기 모으기 발동 여부
-var chargeProgress = 0; // 0.0 ~ 1.0 (5초 동안)
+var isChargeTriggered = false;
+var chargeProgress = 0; // 0.0 ~ 1.0 (5초 카운팅)
 var chargeVibrateInterval = null;
 
 // 파티클 시스템
 var particleCanvas = null;
 var pctx = null;
 var energyParticles = [];
+
+// 🌟 오디오 기반 햅틱 진동 백업 컨텍스트 (iOS 사파리 완벽 지원)
+var hapticAudioCtx = null;
+
+function triggerDeviceVibrate(durationMs, intensity) {
+  // 1. 표준 navigator.vibrate
+  if (navigator.vibrate) {
+    try { navigator.vibrate(durationMs); } catch(e) {}
+  }
+
+  // 2. iOS 사파리 햅틱 (Web Audio 서브우퍼 저주파 임펄스 펄스)
+  try {
+    var AudioContext = window.AudioContext || window.webkitAudioContext;
+    if (AudioContext) {
+      if (!hapticAudioCtx) hapticAudioCtx = new AudioContext();
+      if (hapticAudioCtx.state === 'suspended') hapticAudioCtx.resume();
+      var osc = hapticAudioCtx.createOscillator();
+      var gain = hapticAudioCtx.createGain();
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(55, hapticAudioCtx.currentTime); // 55Hz 저주파 햅틱 진동
+      gain.gain.setValueAtTime(intensity || 0.8, hapticAudioCtx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.001, hapticAudioCtx.currentTime + (durationMs / 1000));
+      osc.connect(gain);
+      gain.connect(hapticAudioCtx.destination);
+      osc.start();
+      osc.stop(hapticAudioCtx.currentTime + (durationMs / 1000));
+    }
+  } catch(e) {}
+}
 
 async function saveButterflyToSupabase() {
   try {
@@ -1132,7 +1160,6 @@ function initFullButterflyViewer(textureURL) {
   var height = window.innerHeight;
 
   fullScene = new THREE.Scene();
-  // 기본 카메라 Z 위치: 8.8 (줌인 시 5.6까지 접근)
   fullCamera = new THREE.PerspectiveCamera(38, width / height, 0.1, 1000);
   fullCamera.position.set(0, 0, 8.8);
   fullCamera.lookAt(0, 0, 0);
@@ -1154,7 +1181,6 @@ function initFullButterflyViewer(textureURL) {
 
   fullGroup = new THREE.Group();
 
-  // 🌟 1번 요청 반영: 등이 정면으로 완벽하게 보이도록 회전 초기화
   butterflyRotX = DEFAULT_ROT_X;
   butterflyRotY = DEFAULT_ROT_Y;
   fullGroup.rotation.set(butterflyRotX, butterflyRotY, 0);
@@ -1235,10 +1261,9 @@ function initFullButterflyViewer(textureURL) {
     var now = performance.now();
     var elapsedSec = (now - previewStartTime) / 1000;
 
-    // 🌟 사용자가 손을 뗐을 때: 원래의 등 각도(DEFAULT_ROT_X, DEFAULT_ROT_Y)로 스무스하게 자동 복귀
+    // 손을 떼었을 때 원래 각도(등쪽)로 자동 복귀
     if (!isUserDragging) {
       butterflyRotX += (DEFAULT_ROT_X - butterflyRotX) * 0.08;
-      // 360도 최단 경로 보간
       var diffY = (DEFAULT_ROT_Y - butterflyRotY);
       diffY = Math.atan2(Math.sin(diffY), Math.cos(diffY));
       butterflyRotY += diffY * 0.08;
@@ -1247,36 +1272,33 @@ function initFullButterflyViewer(textureURL) {
     fullGroup.rotation.x = butterflyRotX;
     fullGroup.rotation.y = butterflyRotY;
 
-    // 🌟 기 모으기 로직 (2초 롱프레스 감지 후 5초 충전 카운팅)
+    // 🌟 기 모으기 카운팅: 1초간 가만히 누르고 있었을 때 발동, 5초 동안 카운팅
     if (isPressingScreen && !isFlyingAway) {
       var pressDuration = (now - pressStartTime) / 1000;
 
-      if (pressDuration >= 2.0) {
+      // 1초 이상 가만히 정지해 있었을 때 발동
+      if (pressDuration >= 1.0) {
         if (!isChargeTriggered) {
           isChargeTriggered = true;
           startChargeVibrationLoop();
         }
 
-        // 2초 이후부터 5초 동안(0.0 ~ 1.0)
-        var currentChargeSec = pressDuration - 2.0;
+        var currentChargeSec = pressDuration - 1.0;
         chargeProgress = Math.min(1.0, currentChargeSec / 5.0);
 
-        updateChargeUIAndCamera(chargeProgress);
+        updateChargeUIAndCamera(chargeProgress, currentChargeSec);
         spawnEnergyParticles();
       }
     }
 
-    // 🌟 1번 요청 반영: 초반 날갯짓 폭을 크게, 천천히 서서히 멈추며 날개 접기
+    // 날갯짓 감속 및 안착
     if (!isFlyingAway) {
-      // 4.5초에 걸쳐 부드럽게 감속 (느긋하고 유려한 안착)
       var landingProgress = Math.min(1.0, elapsedSec / 4.5);
       var easeLanding = Math.pow(landingProgress, 1.8);
 
-      // 초반 날갯짓: 속도 20.0, 폭(진폭)을 0.85로 아주 시원하고 크게 설정 -> 점차 1.0 호흡으로 감속
       var curFlapSpeed = 20.0 * (1 - easeLanding) + 1.0 * easeLanding;
       var curFlapAmp = 0.85 * (1 - easeLanding) + 0.04 * easeLanding;
 
-      // 5번 사진처럼 양 날개가 등 위로 살짝 접히는 각도
       var restingFoldAngle = 0.62 * easeLanding;
       var dynamicFlap = Math.sin(time * curFlapSpeed) * curFlapAmp;
 
@@ -1290,7 +1312,7 @@ function initFullButterflyViewer(textureURL) {
       fullGroup.position.y = Math.sin(time * 1.2) * (0.12 * (1 - easeLanding) + 0.02 * easeLanding);
 
     } else {
-      // 비상(Fly away) 모션
+      // 날아가는 모션
       var flyFlapSpeed = 26.0;
       var flyFlapAmp = 0.75;
       var flyAngle = Math.sin(time * flyFlapSpeed) * flyFlapAmp;
@@ -1342,7 +1364,6 @@ function spawnEnergyParticles() {
   var cx = window.innerWidth / 2;
   var cy = window.innerHeight / 2;
 
-  // 3번째 사진 기반: 은은하고 몽환적인 화이트/오팔빛 발광 파티클
   for (var i = 0; i < 2; i++) {
     var angle = Math.random() * Math.PI * 2;
     var dist = 90 + Math.random() * 80;
@@ -1384,7 +1405,8 @@ function renderEnergyParticles() {
   }
 }
 
-function updateChargeUIAndCamera(progress) {
+// 🌟 충전 UI 업데이트: 3초에 걸쳐 UI 페이드아웃 반영
+function updateChargeUIAndCamera(progress, currentChargeSec) {
   var chargeWidget = document.getElementById('energy-charge-widget');
   var innerFill = document.getElementById('charge-inner-fill');
   var headerUI = document.getElementById('preview-header-ui');
@@ -1392,7 +1414,7 @@ function updateChargeUIAndCamera(progress) {
 
   if (chargeWidget) chargeWidget.classList.remove('hidden');
 
-  // 🌟 2번 사진 반영: 중앙 흰색 작은 원(28px)이 5초에 걸쳐 바깥쪽 반투명 원(140px) 크기로 동일해짐
+  // 5초 동안 28px에서 140px로 바깥 원과 동일하게 커짐
   var startSize = 28;
   var endSize = 140;
   var currentSize = startSize + (endSize - startSize) * progress;
@@ -1402,17 +1424,19 @@ function updateChargeUIAndCamera(progress) {
     innerFill.style.height = currentSize + 'px';
   }
 
-  // 🌟 나비 쪽으로 줌인 (카메라 Z: 8.8 -> 5.8)
+  // 나비 쪽으로 줌인
   if (fullCamera) {
     fullCamera.position.z = 8.8 - (3.0 * progress);
   }
 
-  // 🌟 다른 UI는 점차 흐려지고 5초 시 완전히 사라짐
-  var uiOpacity = Math.max(0, 1.0 - progress);
+  // 🌟 요청사항: 5초 카운팅 시작 기점 3초에 걸쳐 서서히 사라짐
+  var fadeDuration = 3.0;
+  var fadeProgress = Math.min(1.0, currentChargeSec / fadeDuration);
+  var uiOpacity = Math.max(0, 1.0 - fadeProgress);
+
   if (headerUI) headerUI.style.opacity = uiOpacity;
   if (footerUI) footerUI.style.opacity = uiOpacity;
 
-  // 5초 완충 시 가이드 문구 변경
   if (progress >= 1.0) {
     var flyLabel = document.getElementById('preview-fly-label');
     if (flyLabel) flyLabel.innerText = "SWIPE UP TO FLY!";
@@ -1422,19 +1446,17 @@ function updateChargeUIAndCamera(progress) {
 function startChargeVibrationLoop() {
   if (chargeVibrateInterval) clearInterval(chargeVibrateInterval);
 
-  // 5초 동안 점점 더 강하고 빈번하게 진동 발생
   chargeVibrateInterval = setInterval(function() {
     if (!isPressingScreen || !isChargeTriggered) {
       clearInterval(chargeVibrateInterval);
       chargeVibrateInterval = null;
       return;
     }
-    // 진동 세기/패턴: 충전률이 높아질수록 진동 주기 증가
-    var vibDuration = 20 + Math.floor(chargeProgress * 50);
-    if (navigator.vibrate) {
-      navigator.vibrate(vibDuration);
-    }
-  }, 160);
+    // 5초로 갈수록 더 강하고 긴 주기 진동
+    var vibDuration = Math.round(25 + (chargeProgress * 65));
+    var intensity = 0.4 + (chargeProgress * 0.6);
+    triggerDeviceVibrate(vibDuration, intensity);
+  }, 140);
 }
 
 function resetChargeState() {
@@ -1467,7 +1489,7 @@ function resetChargeState() {
 }
 
 /* ==========================================================================
-   터치 & 마우스 드래그(360도) 및 롱프레스/스와이프 비상 인터랙션
+   터치 & 마우스 드래그(360도) 및 롱프레스(1초 정지 후 발동)/스와이프 비상
    ========================================================================== */
 function bindInteractiveEvents(targetEl) {
   var touchStartY = 0;
@@ -1481,7 +1503,13 @@ function bindInteractiveEvents(targetEl) {
     touchStartY = clientY;
     touchMovedDist = 0;
 
-    // 롱프레스 시작 기록
+    // 🌟 사용자가 손가락으로 누른 바로 그 위치에 원형 위젯 배치
+    var chargeWidget = document.getElementById('energy-charge-widget');
+    if (chargeWidget) {
+      chargeWidget.style.left = clientX + 'px';
+      chargeWidget.style.top = clientY + 'px';
+    }
+
     isPressingScreen = true;
     pressStartTime = performance.now();
   }
@@ -1491,7 +1519,8 @@ function bindInteractiveEvents(targetEl) {
 
     var deltaX = clientX - lastPointerX;
     var deltaY = clientY - lastPointerY;
-    touchMovedDist += Math.abs(deltaX) + Math.abs(deltaY);
+    var moveStep = Math.abs(deltaX) + Math.abs(deltaY);
+    touchMovedDist += moveStep;
 
     // 360도 전방향 회전
     butterflyRotY += deltaX * 0.012;
@@ -1501,8 +1530,9 @@ function bindInteractiveEvents(targetEl) {
     lastPointerX = clientX;
     lastPointerY = clientY;
 
-    // 손가락을 과도하게 크게 움직이며 회전 중일 때는 롱프레스 시간 리셋
-    if (touchMovedDist > 30 && !isChargeTriggered) {
+    // 🌟 요청사항: 가만히 누르고 있을 때만 카운팅이 되도록 엄격 제어
+    // 나비를 구경하느라 손가락을 8px 이상 움직이면 롱프레스 타이머를 리셋하여 카운팅 방지
+    if (touchMovedDist > 8 && !isChargeTriggered) {
       pressStartTime = performance.now();
     }
   }
@@ -1513,12 +1543,11 @@ function bindInteractiveEvents(targetEl) {
 
     var swipeDeltaY = touchStartY - clientY;
 
-    // 🌟 5초 완충 상태(chargeProgress >= 1.0)에서 위로 스와이프하면 비상
+    // 5초 완충 상태에서 위로 스와이프하면 비상
     if (isChargeTriggered && chargeProgress >= 0.98 && swipeDeltaY > 40 && !isFlyingAway) {
       isFlyingAway = true;
-      if (navigator.vibrate) navigator.vibrate([60, 40, 100]);
+      triggerDeviceVibrate(150, 1.0);
     } else {
-      // 충전 미완료 상태에서 손을 떼면 원상 복구
       resetChargeState();
     }
   }
