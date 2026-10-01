@@ -2,8 +2,11 @@
 
 /* ==========================================================================
    너울(Noul) 전역 스타일시트
-   - 아이폰 17 / 최신 iOS 세이프 에어리어 규격 최적화
-   - [추가] 표지 화면 1번 사진 3D 나비 컨테이너 및 미세 블러/글로우 스타일
+   - 아이폰 17 규격 최적화 (402×874 pt / 430×932)
+   - 표지 화면 시네마틱 애니메이션 복원
+   - [수정 1] 1번 사진: 키워드 및 입력 상자를 정확히 화면 수직/수평 중앙에 배치
+   - [수정 2] 표본실 갤러리 이름표 크기 고정 및 선택형 알약 스타일 반영
+   - [수정 3] 로딩 후 프리뷰 전환 시 화이트 플래시 속도 완화
    ========================================================================== */
 
 * {
@@ -51,10 +54,74 @@ html, body {
   display: flex;
 }
 
+/* 표지 화면 */
+.cover-viewport {
+  background-color: #000000;
+  position: relative;
+  overflow: hidden;
+}
+
+.cover-viewport::before {
+  content: '';
+  position: absolute;
+  inset: -12px;
+  background-image: url('image/cover-bg.png');
+  background-size: cover;
+  background-position: center center;
+  background-repeat: no-repeat;
+  filter: blur(4px);
+  transform: scale(1.06);
+  z-index: 0;
+  pointer-events: none;
+  opacity: 0;
+  animation: coverBgFadeIn 1.2s cubic-bezier(0.16, 1, 0.3, 1) 2.3s forwards;
+}
+
+@keyframes coverBgFadeIn {
+  from { opacity: 0; }
+  to { opacity: 0.38; }
+}
+
+.cover-anim-logo {
+  opacity: 0;
+  transform: translateY(8px);
+  animation: coverElemFadeInUp 1.0s cubic-bezier(0.16, 1, 0.3, 1) 0.5s forwards;
+}
+
+.cover-anim-desc {
+  opacity: 0;
+  transform: translateY(6px);
+  animation: coverElemFadeInUp 1.0s cubic-bezier(0.16, 1, 0.3, 1) 1.4s forwards;
+}
+
+.cover-anim-btn {
+  opacity: 0;
+  transform: translateY(14px);
+  animation: coverElemFadeInUp 0.9s cubic-bezier(0.16, 1, 0.3, 1) 3.3s forwards;
+}
+
+@keyframes coverElemFadeInUp {
+  0% {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.cover-viewport .relative.z-10 {
+  position: relative;
+  z-index: 10 !important;
+}
+
 /* 모든 화면의 하단 버튼 위치 통일 */
 .bottom-dock-unified {
   padding-bottom: max(2.5rem, calc(1.5rem + env(safe-area-inset-bottom, 0px))) !important;
   flex-shrink: 0;
+  position: relative;
+  z-index: 20 !important;
 }
 
 /* 뒤로가기 버튼 */
@@ -81,18 +148,18 @@ html, body {
   opacity: 0.7;
 }
 
-/* 플래시 및 암전 효과 */
+/* 🌟 플래시 및 암전 효과: 전환 시간을 1.4s로 늘려 부드럽고 천천히 넘어가도록 조정 */
 #cinematic-white-flash {
   position: fixed;
   inset: 0;
   background: #ffffff;
-  z-index: 9999;
+  z-index: 99999;
   pointer-events: none;
   opacity: 0;
-  transition: opacity 0.4s ease;
+  transition: opacity 1.4s ease-in-out;
 }
 #cinematic-white-flash.flash-active {
-  opacity: 1;
+  opacity: 1 !important;
 }
 
 #cinematic-black-curtain {
@@ -115,7 +182,6 @@ html, body {
   filter: drop-shadow(0 0 20px rgba(255, 255, 255, 0.4));
 }
 
-/* 🌟 첫페이지 3D 나비 뷰포트 레이어 (1번 사진 구도 및 몽환적인 살짝 블러 처리) */
 .cover-three-viewport {
   position: absolute;
   inset: 0;
@@ -146,7 +212,7 @@ html, body {
   border-color: rgba(255, 255, 255, 0.25);
 }
 
-/* 오프닝 화면 */
+/* 오프닝 & 브릿지 화면 */
 .opening-stage {
   flex: 1;
   display: flex;
@@ -154,7 +220,7 @@ html, body {
   justify-content: center;
   align-items: center;
   gap: 2rem;
-  padding: 0 1rem;
+  padding: 0 1.2rem;
 }
 .opening-pill-btn {
   padding: 0.75rem 2rem;
@@ -177,27 +243,53 @@ html, body {
   font-weight: 700;
   font-size: 0.95rem;
   box-shadow: 0 0 20px rgba(255, 255, 255, 0.35);
+  cursor: pointer;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+.opening-action-btn:active {
+  transform: scale(0.96);
 }
 
-/* 촬영 안내 화면 애니메이션 */
+.button-group-fade {
+  opacity: 0;
+  transform: translateY(12px);
+  transition: opacity 0.5s cubic-bezier(0.16, 1, 0.3, 1), transform 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.button-group-fade.visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* 촬영 안내 화면 */
 .guide-title-wrapper {
   position: absolute;
   top: 50%;
   left: 0;
   width: 100%;
   transform: translateY(-50%);
-  transition: transform 0.7s cubic-bezier(0.16, 1, 0.3, 1);
+  transition: all 0.7s cubic-bezier(0.16, 1, 0.3, 1);
   z-index: 25;
+  box-sizing: border-box;
+  padding: 0 16px;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  align-items: center;
 }
 .guide-title-wrapper.moved-to-top {
-  transform: translateY(-38vh);
+  position: absolute !important;
+  top: max(1.25rem, env(safe-area-inset-top)) !important;
+  transform: none !important;
+  padding-top: 0 !important;
+  min-height: 80px !important;
 }
 #guide-animated-title {
-  font-size: 1.32rem;
+  font-size: 1.38rem;
   font-weight: 700;
   color: #ffffff;
   text-align: center;
-  line-height: 1.45;
+  line-height: 1.36;
+  letter-spacing: -0.3px;
 }
 
 .guide-fade-elem {
@@ -210,7 +302,7 @@ html, body {
   transform: translateY(0);
 }
 
-/* 형태 선택 및 정렬 뷰포트 */
+/* 형태 선택 */
 .hero-fixed-anchor {
   display: flex;
   flex-direction: column;
@@ -242,7 +334,6 @@ html, body {
   height: 100%;
 }
 
-/* 조정 패널 (흐림 조정 + 좌우 대칭) */
 .blur-slider-wrapper {
   width: 250px;
   margin: 16px auto 0;
@@ -335,7 +426,6 @@ html, body {
   border: none;
 }
 
-/* 좌우 대칭 토글 스위치 디자인 */
 .minimal-pill-toggle {
   width: 54px;
   height: 30px;
@@ -367,7 +457,6 @@ html, body {
   background-color: #000000;
 }
 
-/* 형태 선택 하단 도크 */
 .shape-bottom-fixed-dock {
   position: absolute;
   bottom: 0;
@@ -452,7 +541,6 @@ html, body {
   stroke: #000000 !important;
 }
 
-/* 알약 바 */
 .arch-pill-nav {
   display: inline-flex;
   padding: 4px;
@@ -480,7 +568,6 @@ html, body {
   box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
 }
 
-/* 설문 칩 스타일 */
 .chip-base {
   padding: 0.55rem 0.95rem;
   border-radius: 9999px;
@@ -492,13 +579,307 @@ html, body {
   transform: scale(0.95);
 }
 
-/* 입력 필드 카드 */
+/* ==========================================================================
+   2번 사진 화면: 말풍선 물리 낙하 배경 레이어 및 UI 수직 정렬
+   ========================================================================== */
+#field-step-6 {
+  flex: 1;
+  width: 100%;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 0 16px;
+  min-height: 0;
+  z-index: 10;
+  overflow: hidden;
+  transform: translateY(-40px);
+}
+
+#field-step-6.hidden {
+  display: none !important;
+}
+
+.bubble-physics-bg-layer {
+  position: absolute;
+  inset: -60px -20px -60px -20px;
+  width: calc(100% + 40px);
+  height: calc(100% + 120px);
+  z-index: 1;
+  pointer-events: none;
+}
+
+.memo-inner-centered-wrapper {
+  width: 100%;
+  max-width: 340px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  z-index: 10 !important;
+}
+
+.selected-concern-chips-wrap {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 1.25rem;
+  padding: 0;
+  min-height: 2.2rem;
+}
+
+.concern-pill-badge {
+  display: inline-block;
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  color: #ffffff !important;
+  font-size: 1.35rem !important;
+  font-weight: 800 !important;
+  letter-spacing: -0.3px;
+  text-align: center;
+  text-shadow: 0 0 16px rgba(255, 255, 255, 0.85), 0 0 32px rgba(255, 255, 255, 0.45);
+}
+
+.memo-input-container {
+  opacity: 0;
+  transform: translateY(20px);
+  transition: opacity 0.55s cubic-bezier(0.16, 1, 0.3, 1), transform 0.55s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.memo-input-container.revealed {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* ==========================================================================
+   핵심 고민 화면
+   ========================================================================== */
+#screen-survey-core-concern {
+  display: none;
+  width: 100%;
+  height: 100%;
+  position: absolute;
+  top: 0;
+  left: 0;
+  flex-direction: column;
+  justify-content: space-between;
+}
+#screen-survey-core-concern.active {
+  display: flex;
+}
+
+.core-concern-stage {
+  flex: 1;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
+  padding-top: 0 !important;
+  overflow: hidden;
+  position: relative;
+  z-index: 10;
+}
+
+.core-concern-title-wrapper {
+  position: absolute;
+  top: 50%;
+  left: 0;
+  width: 100%;
+  text-align: center;
+  padding: 0 16px;
+  box-sizing: border-box;
+  transform: translateY(-50%);
+  transition: all 0.7s cubic-bezier(0.16, 1, 0.3, 1);
+  z-index: 25;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  align-items: center;
+}
+
+.core-concern-title-wrapper.moved-to-top {
+  position: relative !important;
+  top: 0 !important;
+  transform: none !important;
+  padding-top: 20px !important;
+  min-height: 120px !important;
+  flex-shrink: 0;
+}
+
+#core-concern-title {
+  font-size: 1.38rem;
+  font-weight: 700;
+  color: #ffffff;
+  line-height: 1.36;
+  text-align: center;
+  letter-spacing: -0.3px;
+}
+
+.core-concern-scroll-container {
+  flex: 1;
+  width: 100%;
+  max-width: 100%;
+  overflow-x: auto;
+  overflow-y: hidden;
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+  touch-action: pan-x;
+  padding: 8px 24px;
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  cursor: grab;
+  z-index: 20;
+  opacity: 0;
+  transform: translateY(24px);
+  transition: opacity 0.6s cubic-bezier(0.16, 1, 0.3, 1), transform 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.core-concern-scroll-container.revealed {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.core-concern-scroll-container:active {
+  cursor: grabbing;
+}
+
+.core-concern-scroll-container::-webkit-scrollbar {
+  display: none;
+}
+
+.core-concern-scroll-grid {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1.35rem;
+  width: max-content;
+  margin: auto;
+}
+
+.core-concern-row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 1.6rem;
+  width: max-content;
+  flex-wrap: nowrap;
+}
+
+.core-concern-text-btn {
+  background: transparent !important;
+  border: none !important;
+  outline: none !important;
+  box-shadow: none !important;
+  padding: 6px 8px;
+  font-size: 1.15rem;
+  font-weight: 500;
+  cursor: pointer;
+  white-space: nowrap;
+  letter-spacing: -0.25px;
+  color: #555555;
+  transition: color 0.25s ease, transform 0.25s ease, text-shadow 0.25s ease;
+}
+
+.core-concern-text-btn.core-concern-unselected {
+  color: #555555 !important;
+}
+
+.core-concern-text-btn.core-concern-selected {
+  color: #ffffff !important;
+  font-weight: 800 !important;
+  transform: scale(1.12);
+  text-shadow: 0 0 16px rgba(255, 255, 255, 0.85), 0 0 32px rgba(255, 255, 255, 0.45);
+}
+
+.core-concern-text-btn:active {
+  transform: scale(0.96);
+}
+
+#survey-custom-input-anchor.custom-anchor-hidden {
+  display: none !important;
+}
+
+#survey-custom-input-anchor.custom-anchor-visible {
+  display: flex !important;
+}
+
+.custom-keyword-single-bar {
+  width: 86%;
+  max-width: 330px;
+  height: 46px;
+  border-radius: 9999px;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 16px;
+  box-sizing: border-box;
+  transition: border-color 0.2s ease, background 0.2s ease;
+  position: relative;
+}
+
+.custom-keyword-single-bar:focus-within {
+  background: rgba(255, 255, 255, 0.12);
+  border-color: rgba(255, 255, 255, 0.35);
+}
+
+.custom-keyword-single-bar input {
+  width: 100%;
+  height: 100%;
+  background: transparent;
+  border: none;
+  outline: none;
+  color: #ffffff;
+  font-size: 0.88rem;
+  font-weight: 600;
+  text-align: center;
+  letter-spacing: -0.2px;
+}
+
+.custom-keyword-single-bar input::placeholder {
+  color: rgba(255, 255, 255, 0.7);
+  font-weight: 500;
+}
+
+.custom-bar-clear-btn {
+  position: absolute;
+  right: 14px;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.18);
+  border: none;
+  color: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 10px;
+  cursor: pointer;
+  transition: opacity 0.15s ease, transform 0.15s ease;
+}
+.custom-bar-clear-btn:active {
+  transform: scale(0.9);
+}
+
 .glass-input-card-v2 {
   background: rgba(255, 255, 255, 0.05);
   border: 1px solid rgba(255, 255, 255, 0.15);
   border-radius: 1.5rem;
   padding: 1.2rem;
   display: flex;
+  width: 100%;
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
 }
 .glass-input-card-v2 textarea, 
 .glass-input-card-v2 input {
@@ -522,8 +903,7 @@ html, body {
 }
 
 .survey-title-box {
-  min-height: 104px;
-  height: 104px;
+  min-height: 120px;
   display: flex;
   flex-direction: column;
   justify-content: flex-start;
@@ -541,6 +921,51 @@ html, body {
   cursor: not-allowed;
 }
 
+/* ==========================================================================
+   2D 포스터 스타일 & 3D 물리 뷰포트
+   ========================================================================== */
+#stats-header {
+  position: absolute;
+  top: max(1.25rem, env(safe-area-inset-top)) !important;
+  left: 0;
+  width: 100%;
+  padding-top: 0 !important;
+  padding-bottom: 0 !important;
+  min-height: 80px !important;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  z-index: 30;
+}
+#stats-header h1 {
+  font-size: 1.38rem;
+  font-weight: 700;
+  color: #ffffff;
+  line-height: 1.36;
+  letter-spacing: -0.3px;
+  text-align: center;
+}
+
+.stats-three-container {
+  width: 100%;
+  height: 100%;
+  position: relative;
+  touch-action: none;
+  background-color: #000000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: grab;
+}
+.stats-three-container:active {
+  cursor: grabbing;
+}
+.stats-three-container canvas {
+  width: 100% !important;
+  height: 100% !important;
+  display: block;
+}
+
 /* 바운스 애니메이션 */
 .bounce-guide {
   animation: bounceUp 1.8s infinite ease-in-out;
@@ -550,7 +975,7 @@ html, body {
   50% { transform: translateY(-8px); }
 }
 
-/* 3D 프리뷰 화면 뒤쪽 순백 후광 글로우 */
+/* 3D 프리뷰 */
 .preview-ethereal-glow-bg {
   position: absolute;
   top: 50%;
@@ -568,7 +993,7 @@ html, body {
   );
   filter: blur(28px);
   pointer-events: none;
-  z-index: 1;
+  z-10;
 }
 
 .energy-charge-widget {
@@ -669,8 +1094,8 @@ html, body {
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  will-change: transform;
   z-index: 10;
+  transform: translate(-50%, -50%);
 }
 
 .specimen-butterfly-wrap {
@@ -679,10 +1104,11 @@ html, body {
   align-items: center;
   justify-content: center;
   transition: transform 0.22s cubic-bezier(0.2, 0.8, 0.2, 1);
+  transform-origin: center center;
 }
 .specimen-card-item:hover .specimen-butterfly-wrap,
 .specimen-card-item:active .specimen-butterfly-wrap {
-  transform: scale(1.025);
+  filter: brightness(1.08);
 }
 
 .specimen-shadow-drop {
@@ -708,27 +1134,47 @@ html, body {
   pointer-events: none;
 }
 
+/* 중간 크기 고정 및 미선택 알약 스타일 */
 .specimen-pill-label {
-  margin-top: 10px;
-  background-color: #ffffff;
+  margin-top: 14px;
   border-radius: 9999px;
-  padding: 4px 14px;
+  padding: 5px 14px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.6), 0 0 8px rgba(255, 255, 255, 0.25);
   white-space: nowrap;
   position: relative;
   z-index: 20;
   pointer-events: none;
+  background-color: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  box-shadow: none;
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  transform: none !important;
 }
 
 .specimen-pill-label .label-text {
-  font-size: 11px;
-  font-weight: 800;
-  color: #000000;
-  letter-spacing: -0.3px;
+  font-size: 11.5px;
+  font-weight: 600;
+  color: #c4c4c4;
+  letter-spacing: -0.2px;
   line-height: 1.2;
+  transition: color 0.25s ease;
+}
+
+/* 사용자가 터치한 나비의 활성 흰색 알약 스타일 */
+.specimen-pill-label.active-touched {
+  background-color: #ffffff !important;
+  border-color: #ffffff !important;
+  box-shadow: 0 0 16px 2px rgba(255, 255, 255, 0.75), 0 2px 10px rgba(0, 0, 0, 0.6) !important;
+  transform: scale(1.04) !important;
+}
+
+.specimen-pill-label.active-touched .label-text {
+  color: #000000 !important;
+  font-weight: 800 !important;
 }
 
 /* 모달 레이어 */

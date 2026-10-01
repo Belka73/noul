@@ -8,7 +8,6 @@
   <!-- 라이브러리 CDN -->
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-  <!-- glTF 3D 모델 로더 -->
   <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -20,48 +19,34 @@
 </head>
 <body>
 
-  <aside id="dev-quick-navigator" style="position: fixed; top: 12px; right: 12px; z-index: 99999; display: flex; flex-direction: column; align-items: flex-end; gap: 6px; font-family: monospace;">
-    <div style="display: flex; gap: 6px;">
-      <button id="dev-btn-skip-prev" type="button" 
-              style="background: #3b82f6; color: #ffffff; font-weight: 800; font-size: 11px; padding: 7px 11px; border-radius: 9999px; border: 2px solid #ffffff; box-shadow: 0 4px 15px rgba(59, 130, 246, 0.6); cursor: pointer;">
-        [DEV] 이전 ⏮️
-      </button>
-      <button id="dev-btn-skip-next" type="button" 
-              style="background: #22c55e; color: #000000; font-weight: 800; font-size: 11px; padding: 7px 11px; border-radius: 9999px; border: 2px solid #ffffff; box-shadow: 0 4px 15px rgba(34, 197, 94, 0.6); cursor: pointer;">
-        [DEV] 다음 ⏭️
-      </button>
-    </div>
-    <div id="dev-current-screen-badge" style="background: rgba(0,0,0,0.85); color: #86efac; border: 1px solid #22c55e; padding: 3px 8px; border-radius: 6px; font-size: 10px;">
-      화면: screen-cover
-    </div>
-  </aside>
-
   <div id="cinematic-white-flash"></div>
 
   <main class="app-viewport box-border">
 
-    <!-- 0. 표지 화면 (기존 2마리 제거 및 1번 사진 구도의 3D 나비 2번 배치) -->
+    <!-- 0. 표지 화면 -->
     <section id="screen-cover" class="screen active cover-viewport flex-col justify-between py-6 text-center z-20">
-      
-      <!-- 🌟 1번 사진 스타일의 3D 2번째 나비(달무리 나비) 배경 뷰어 컨테이너 (살짝 블러 처리) -->
       <div id="cover-three-container" class="cover-three-viewport"></div>
 
       <div class="relative z-10 flex flex-col items-center justify-center my-auto px-4 pointer-events-none">
-        <svg class="noul-perfect-logo" viewBox="0 0 1000 750" fill="none" xmlns="http://www.w3.org/2000/svg">
-          <path d="M 92,106 L 140,106 L 140,432 C 182,433 260,432 352,416 L 352,476 C 255,492 176,493 92,493 Z" fill="#ffffff"/>
-          <rect x="255" y="240" width="150" height="46" fill="#ffffff"/>
-          <rect x="405" y="94" width="47" height="410" fill="#ffffff"/>
-          <path fill-rule="evenodd" clip-rule="evenodd" d="M 705,254 C 825,254 884,286 884,330 C 884,374 825,406 705,406 C 585,406 526,374 526,330 C 526,286 585,254 705,254 Z M 705,296 C 618,296 575,314 575,330 C 575,346 618,364 705,364 C 792,364 835,346 835,330 C 835,314 792,296 705,296 Z" fill="#ffffff"/>
-          <rect x="503" y="420" width="405" height="38" fill="#ffffff"/>
-          <rect x="682" y="458" width="47" height="38" fill="#ffffff"/>
-          <path d="M 530,496 L 880,496 L 880,594 L 577,594 L 577,618 L 888,618 L 888,655 L 530,655 L 530,557 L 833,557 L 833,533 L 530,533 Z" fill="#ffffff"/>
-        </svg>
-        <p class="text-xs text-neutral-300 mt-6 font-normal tracking-wide leading-relaxed drop-shadow-[0_2px_8px_rgba(0,0,0,0.8)]">
-          당신의 마음과 숨결을 담아<br>빛의 날개를 깨우는 여정
-        </p>
+        <div class="cover-anim-logo">
+          <svg class="noul-perfect-logo" viewBox="0 0 1000 750" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M 92,106 L 140,106 L 140,432 C 182,433 260,432 352,416 L 352,476 C 255,492 176,493 92,493 Z" fill="#ffffff"/>
+            <rect x="255" y="240" width="150" height="46" fill="#ffffff"/>
+            <rect x="405" y="94" width="47" height="410" fill="#ffffff"/>
+            <path fill-rule="evenodd" clip-rule="evenodd" d="M 705,254 C 825,254 884,286 884,330 C 884,374 825,406 705,406 C 585,406 526,374 526,330 C 526,286 585,254 705,254 Z M 705,296 C 618,296 575,314 575,330 C 575,346 618,364 705,364 C 792,364 835,346 835,330 C 835,314 792,296 705,296 Z" fill="#ffffff"/>
+            <rect x="503" y="420" width="405" height="38" fill="#ffffff"/>
+            <rect x="682" y="458" width="47" height="38" fill="#ffffff"/>
+            <path d="M 530,496 L 880,496 L 880,594 L 577,594 L 577,618 L 888,618 L 888,655 L 530,655 L 530,557 L 833,557 L 833,533 L 530,533 Z" fill="#ffffff"/>
+          </svg>
+        </div>
+        <div class="cover-anim-desc">
+          <p class="text-xs text-neutral-300 mt-6 font-normal tracking-wide leading-relaxed drop-shadow-[0_2px_8px_rgba(0,0,0,0.8)]">
+            당신의 마음과 숨결을 담아<br>빛의 날개를 깨우는 여정
+          </p>
+        </div>
       </div>
 
-      <footer class="bottom-dock-unified w-full flex justify-center z-20">
+      <footer class="bottom-dock-unified w-full flex justify-center z-20 cover-anim-btn">
         <button id="btn-start-cover" type="button" 
                 class="w-[84%] py-3.5 rounded-2xl bg-white text-black font-bold text-sm cursor-pointer active:scale-95 transition-all text-center block shadow-lg shadow-white/10">
           시작하기
@@ -218,7 +203,7 @@
 
       <div class="opening-stage">
         <div class="opening-text-box">
-          <h2 id="opening-text" class="text-base sm:text-[1.08rem] font-medium text-white tracking-tight"></h2>
+          <h2 id="opening-text" class="text-base sm:text-[1.08rem] font-medium text-white tracking-tight leading-relaxed"></h2>
         </div>
 
         <div class="opening-button-anchor">
@@ -229,7 +214,7 @@
 
           <div id="opening-next-group" class="button-group-fade hidden">
             <button id="btn-opening-next" type="button" class="opening-action-btn">
-              다음으로 ≫
+              다음으로
             </button>
           </div>
         </div>
@@ -237,14 +222,121 @@
       <div class="pb-3"></div>
     </section>
 
+    <!-- 3. 설문 화면 -->
+    <section id="screen-survey" class="screen flex-col flex-1 justify-between overflow-hidden relative z-10 h-full w-full bg-black">
+      <header class="w-full pt-3 pb-0 flex-shrink-0 flex justify-center">
+        <div class="w-[84%] h-1 bg-white/10 rounded-full overflow-hidden">
+          <div id="progress-bar" class="h-full bg-white transition-all duration-300 rounded-full shadow-[0_0_10px_rgba(255,255,255,0.8)]" style="width: 14.28%;"></div>
+        </div>
+      </header>
+
+      <div class="survey-title-box text-center pb-2 flex-shrink-0 px-4" style="padding-top: 20px !important;">
+        <h1 id="question-title" class="text-[1.38rem] font-bold text-white tracking-tight leading-[1.36] break-keep"></h1>
+        <p id="question-desc" class="text-xs text-neutral-400 mt-2 font-normal tracking-tight"></p>
+        
+        <div id="survey-custom-input-anchor" class="custom-anchor-hidden w-full flex justify-center mt-3">
+          <div id="custom-keyword-single-bar" class="custom-keyword-single-bar">
+            <input id="input-custom-keyword" type="text" maxlength="15" placeholder="직접 입력" autocomplete="off" spellcheck="false">
+            <button id="btn-custom-keyword-clear" type="button" class="custom-bar-clear-btn hidden" aria-label="입력 지우기">
+              ✕
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div id="survey-chip-wrapper" class="flex-1 w-full min-h-0 py-1 vertical-scroll-chips px-2">
+        <div id="organic-chip-container" class="flex flex-col items-center gap-2.5 w-full py-2"></div>
+      </div>
+
+      <!-- 키워드와 메모 입력창 래퍼 -->
+      <div id="field-step-6" class="hidden flex-1 w-full flex-col justify-center items-center px-4 min-h-0">
+        <!-- 🌟 말풍선 물리 낙하 배경 캔버스 -->
+        <canvas id="bubble-physics-canvas" class="bubble-physics-bg-layer"></canvas>
+
+        <div class="memo-inner-centered-wrapper">
+          <div id="selected-concern-chips" class="selected-concern-chips-wrap"></div>
+          <div class="glass-input-card-v2" style="height: 195px;">
+            <textarea id="input-q6-memo" maxlength="50" placeholder="자유롭게 입력해주세요."></textarea>
+          </div>
+          <div class="w-full flex justify-end pt-2 pr-1">
+            <span id="memo-counter" class="text-xs text-neutral-400 font-mono tracking-normal">0/50</span>
+          </div>
+        </div>
+      </div>
+
+      <div id="field-step-7" class="hidden flex-1 w-full flex-col justify-center items-center px-4 min-h-0">
+        <div class="w-full max-w-[340px] flex flex-col">
+          <div class="glass-input-card-v2" style="height: 76px; justify-center: center; padding: 1.15rem 1.35rem !important;">
+            <input id="input-q7-name" type="text" maxlength="10" placeholder="예: 윤슬, 쉼표, 칼퇴, 다정, 시온, 바람..." autocomplete="off" spellcheck="false">
+          </div>
+          <div class="w-full flex justify-end pt-2 pr-1">
+            <span id="char-counter" class="text-xs text-neutral-400 font-mono tracking-normal">0/10</span>
+          </div>
+        </div>
+      </div>
+
+      <footer class="bottom-dock-unified w-full flex flex-col items-center gap-2 z-20">
+        <button id="btn-survey-next" type="button" disabled 
+                class="btn-next-action w-[84%] py-3.5 rounded-2xl font-bold text-sm tracking-wide active:scale-[0.98] transition-all">
+          다음 질문으로
+        </button>
+
+        <button id="btn-survey-prev" type="button" class="py-1 text-neutral-400 text-[11px] text-center invisible hover:text-white transition-all font-medium">
+          ← 이전 질문으로 돌아가기
+        </button>
+      </footer>
+    </section>
+
+    <!-- 3.5 핵심 고민 선택 화면 -->
+    <section id="screen-survey-core-concern" class="screen flex-col flex-1 justify-between text-center relative z-20 w-full bg-black overflow-hidden select-none">
+      <header class="w-full pt-3 pb-0 flex-shrink-0 flex justify-center">
+        <div class="w-[84%] h-1 bg-white/10 rounded-full overflow-hidden">
+          <div class="h-full bg-white transition-all duration-300 rounded-full shadow-[0_0_10px_rgba(255,255,255,0.8)]" style="width: 75%;"></div>
+        </div>
+      </header>
+
+      <div class="core-concern-stage flex-1 flex flex-col items-center justify-start w-full relative min-h-0">
+        <div id="core-concern-title-wrapper" class="core-concern-title-wrapper pointer-events-none">
+          <h2 id="core-concern-title" class="text-[1.38rem] font-bold text-white tracking-tight leading-[1.36] break-keep"></h2>
+        </div>
+
+        <div id="core-concern-scroll-container" class="core-concern-scroll-container w-full">
+          <div id="core-concern-scroll-grid" class="core-concern-scroll-grid"></div>
+        </div>
+      </div>
+
+      <footer class="bottom-dock-unified w-full flex flex-col items-center gap-2 z-20">
+        <button id="btn-core-concern-next" type="button" disabled
+                class="btn-next-action w-[84%] py-3.5 rounded-2xl font-bold text-sm tracking-wide active:scale-[0.98] transition-all">
+          다음 질문으로
+        </button>
+        <button id="btn-core-concern-prev" type="button" class="py-1 text-neutral-400 text-[11px] text-center hover:text-white transition-all font-medium">
+          ← 이전 질문으로 돌아가기
+        </button>
+      </footer>
+    </section>
+
+    <!-- 브릿지 페이지 -->
+    <section id="screen-survey-bridge" class="screen flex-col flex-1 justify-between py-6 px-4 text-center relative z-20 w-full bg-black overflow-hidden select-none">
+      <div class="opening-stage">
+        <div class="opening-text-box">
+          <h2 id="bridge-typing-text" class="text-base sm:text-[1.08rem] font-medium text-white tracking-tight leading-relaxed"></h2>
+        </div>
+
+        <div class="opening-button-anchor">
+          <div id="bridge-next-group" class="button-group-fade hidden">
+            <button id="btn-goto-stats" type="button" class="opening-action-btn">
+              다음으로
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div class="pb-3"></div>
+    </section>
+
     <!-- 1. 촬영 안내 화면 -->
     <section id="screen-capture-guide" class="screen flex-col flex-1 justify-between text-center relative z-20 w-full bg-black overflow-hidden">
-      <button id="btn-guide-back-to-menu" type="button" class="app-back-btn">
-        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
-        </svg>
-      </button>
-
       <div class="guide-title-wrapper pointer-events-none">
         <h2 id="guide-animated-title"></h2>
       </div>
@@ -256,7 +348,7 @@
             <path stroke-linecap="round" stroke-linejoin="round" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"></path>
           </svg>
         </div>
-        <h3 class="text-base sm:text-lg font-bold text-white tracking-tight leading-snug">종이 정면 위에서 수직으로 찍어주세요</h3>
+        <h3 class="text-base sm:lg font-bold text-white tracking-tight leading-snug">종이 정면 위에서 수직으로 찍어주세요</h3>
         <p class="text-xs text-neutral-400 leading-relaxed font-normal">
           기울어지지 않도록 스마트폰을 도안과 평행하게<br>정면 위에서 촬영해 주세요.
         </p>
@@ -334,62 +426,12 @@
 
         <footer class="bottom-dock-unified flex gap-2.5 w-[84%] mx-auto z-20">
           <button id="btn-rephoto-from-shape" type="button" class="w-1/3 py-3.5 rounded-2xl border border-white/15 bg-white/5 text-neutral-300 text-sm active:scale-95 transition-all">다시 촬영</button>
-          <button id="btn-confirm-shape" type="button" class="flex-1 py-3.5 rounded-2xl bg-white text-black font-bold text-sm active:scale-95 transition-all shadow-lg shadow-white/10">이 형태로 질문 시작</button>
+          <button id="btn-confirm-shape" type="button" class="flex-1 py-3.5 rounded-2xl bg-white text-black font-bold text-sm active:scale-95 transition-all shadow-lg shadow-white/10">완성하기</button>
         </footer>
       </div>
     </section>
 
-    <!-- 3. 설문 화면 -->
-    <section id="screen-survey" class="screen flex-col flex-1 justify-between overflow-hidden relative z-10 h-full w-full bg-black">
-      <header class="w-full pt-3 pb-0 flex-shrink-0 flex justify-center">
-        <div class="w-[84%] h-1 bg-white/10 rounded-full overflow-hidden">
-          <div id="progress-bar" class="h-full bg-white transition-all duration-300 rounded-full shadow-[0_0_10px_rgba(255,255,255,0.8)]" style="width: 14.28%;"></div>
-        </div>
-      </header>
-
-      <div class="survey-title-box text-center pb-3 flex-shrink-0 px-4" style="padding-top: 24px !important;">
-        <h1 id="question-title" class="text-[1.38rem] font-bold text-white tracking-tight leading-[1.36] break-keep"></h1>
-        <p id="question-desc" class="text-xs text-neutral-400 mt-2 font-normal tracking-tight"></p>
-      </div>
-
-      <div id="survey-chip-wrapper" class="flex-1 w-full min-h-0 py-1 vertical-scroll-chips px-2">
-        <div id="organic-chip-container" class="flex flex-col items-center gap-2.5 w-full py-2"></div>
-      </div>
-
-      <div id="field-step-6" class="hidden flex-1 w-full flex-col justify-center items-center px-4 min-h-0">
-        <div class="w-full max-w-[340px] flex flex-col">
-          <div class="glass-input-card-v2" style="height: 195px;">
-            <textarea id="input-q6-memo" maxlength="50" placeholder="(선택) 자유롭게 입력해주세요."></textarea>
-          </div>
-          <div class="w-full flex justify-end pt-2 pr-1">
-            <span id="memo-counter" class="text-xs text-neutral-400 font-mono tracking-normal">0/50</span>
-          </div>
-        </div>
-      </div>
-
-      <div id="field-step-7" class="hidden flex-1 w-full flex-col justify-center items-center px-4 min-h-0">
-        <div class="w-full max-w-[340px] flex flex-col">
-          <div class="glass-input-card-v2" style="height: 76px; justify-content: center; padding: 1.15rem 1.35rem !important;">
-            <input id="input-q7-name" type="text" maxlength="10" placeholder="예: 윤슬, 쉼표, 칼퇴, 다정, 시온, 바람..." autocomplete="off" spellcheck="false">
-          </div>
-          <div class="w-full flex justify-end pt-2 pr-1">
-            <span id="char-counter" class="text-xs text-neutral-400 font-mono tracking-normal">0/10</span>
-          </div>
-        </div>
-      </div>
-
-      <footer class="bottom-dock-unified w-full flex flex-col items-center gap-1.5 z-20">
-        <button id="btn-survey-next" type="button" disabled 
-                class="btn-next-action w-[84%] py-3.5 rounded-2xl font-bold text-sm tracking-wide active:scale-[0.98] transition-all">
-          다음 질문으로
-        </button>
-        <button id="btn-survey-prev" type="button" class="py-1 text-neutral-400 text-[11px] text-center invisible hover:text-white transition-all font-medium">
-          ← 이전 질문으로 돌아가기
-        </button>
-      </footer>
-    </section>
-
-    <!-- 4. 로딩 화면 -->
+    <!-- 4. 로딩 화면 (원래 상태로 완전 복원) -->
     <section id="screen-loading" class="screen flex-col flex-1 justify-between items-center py-10 px-5 text-center relative overflow-hidden z-10 w-full">
       <div class="photo-butterfly-bg-wrapper pointer-events-none">
         <div class="photo-bg-layer"></div>
@@ -408,24 +450,19 @@
       </div>
 
       <div class="relative w-full max-w-[340px] my-auto z-10 flex flex-col items-center">
-        <div class="mb-5 flex items-center justify-center">
-          <svg id="loading-butterfly-svg" class="w-24 h-24 text-white drop-shadow-[0_0_32px_rgba(255,255,255,0.95)] animate-pulse transition-all duration-1000" viewBox="0 0 100 100">
-            <path id="loading-wing-path" d="" fill="#ffffff" stroke="#ffffff" stroke-width="1"/>
-          </svg>
+        <!-- 나비와 카테고리 텍스트 -->
+        <div class="flex flex-col items-center flex-shrink-0">
+          <div class="mb-5 flex items-center justify-center">
+            <svg id="loading-butterfly-svg" class="w-36 h-36 text-white drop-shadow-[0_0_35px_rgba(255,255,255,0.95)] animate-pulse transition-all duration-1000" viewBox="0 0 100 100">
+              <path id="loading-wing-path" d="" fill="#ffffff" stroke="#ffffff" stroke-width="1"/>
+            </svg>
+          </div>
+          <span id="showcase-category" class="inline-block text-[11px] font-bold text-neutral-400 tracking-wider uppercase mb-2">#새겨진 이야기</span>
         </div>
 
-        <div id="showcase-card" class="answer-fade visible-state w-full text-center py-2">
-          <span id="showcase-category" class="inline-block text-[11px] font-bold text-neutral-400 tracking-wider uppercase mb-2">#나의 고유한 모습</span>
-          <div id="showcase-answers" class="flex flex-wrap items-center justify-center gap-2 max-h-[140px] overflow-hidden py-1"></div>
-        </div>
-
-        <div id="loading-step-dots" class="flex items-center justify-center gap-1.5 mt-3">
-          <span class="step-dot w-1.5 h-1.5 rounded-full bg-white transition-all duration-300"></span>
-          <span class="step-dot w-1.5 h-1.5 rounded-full bg-white/30 transition-all duration-300"></span>
-          <span class="step-dot w-1.5 h-1.5 rounded-full bg-white/30 transition-all duration-300"></span>
-          <span class="step-dot w-1.5 h-1.5 rounded-full bg-white/30 transition-all duration-300"></span>
-          <span class="step-dot w-1.5 h-1.5 rounded-full bg-white/30 transition-all duration-300"></span>
-          <span class="step-dot w-1.5 h-1.5 rounded-full bg-white/30 transition-all duration-300"></span>
+        <!-- 키워드 쇼케이스 -->
+        <div id="showcase-card" class="answer-fade visible-state w-full text-center flex flex-col items-center relative">
+          <div id="showcase-answers" class="flex flex-wrap items-center justify-center gap-2 py-1 w-full px-2 overflow-y-auto vertical-scroll-chips" style="max-height: calc(50vh - 130px);"></div>
         </div>
       </div>
 
@@ -436,30 +473,24 @@
       </div>
     </section>
 
-    <!-- 5. 프리뷰 및 비행 화면 (기 모으기 충전 링 & 파티클 오버레이 탑재) -->
+    <!-- 5. 프리뷰 및 비행 화면 -->
     <section id="screen-preview" class="screen fixed inset-0 z-50 flex-col justify-between py-6 overflow-hidden bg-black select-none" style="background: #000000 !important;">
       <div class="preview-ethereal-glow-bg"></div>
 
-      <!-- 상단 헤더 (충전 중 페이드아웃) -->
       <header id="preview-header-ui" class="text-center pt-3 z-10 transition-opacity duration-300">
         <h2 id="preview-butterfly-name" class="text-3xl font-black text-white mt-1 drop-shadow-[0_0_15px_rgba(255,255,255,0.5)] tracking-tight">‘나비’</h2>
         <p id="preview-guide-text" class="text-xs text-neutral-300 mt-1 font-normal">화면을 길게 눌러 기를 모은 뒤 위로 날려보내세요.</p>
       </header>
 
-      <!-- 3D 나비 컨테이너 -->
       <div id="three-container" class="w-full h-full absolute inset-0 z-0 pointer-events-auto"></div>
-
-      <!-- 기 모으기 파티클 캔버스 레이어 -->
       <canvas id="energy-particles-canvas" class="absolute inset-0 w-full h-full z-10 pointer-events-none"></canvas>
 
-      <!-- 원형 충전 인디케이터 -->
       <div id="energy-charge-widget" class="energy-charge-widget hidden pointer-events-none z-20">
         <div class="charge-outer-circle">
           <div id="charge-inner-fill" class="charge-inner-fill"></div>
         </div>
       </div>
 
-      <!-- 하단 안내 도크 (충전 중 페이드아웃) -->
       <footer id="preview-footer-ui" class="w-full pb-6 flex flex-col items-center gap-2 z-10 pointer-events-none transition-opacity duration-300">
         <div class="bounce-guide flex flex-col items-center">
           <svg class="w-7 h-7 text-white drop-shadow-[0_0_8px_rgba(255,255,255,0.7)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -487,6 +518,23 @@
     </section>
 
   </main>
+
+  <!-- [DEV] 버튼 -->
+  <aside id="dev-quick-navigator" style="position: fixed; top: 12px; right: 12px; z-index: 2147483647 !important; display: flex; flex-direction: column; align-items: flex-end; gap: 6px; font-family: monospace; pointer-events: auto !important;">
+    <div style="display: flex; gap: 6px;">
+      <button id="dev-btn-skip-prev" type="button" 
+              style="background: #3b82f6; color: #ffffff; font-weight: 800; font-size: 11px; padding: 7px 11px; border-radius: 9999px; border: 2px solid #ffffff; box-shadow: 0 4px 15px rgba(59, 130, 246, 0.6); cursor: pointer; pointer-events: auto !important;">
+        [DEV] 이전 ⏮️
+      </button>
+      <button id="dev-btn-skip-next" type="button" 
+              style="background: #22c55e; color: #000000; font-weight: 800; font-size: 11px; padding: 7px 11px; border-radius: 9999px; border: 2px solid #ffffff; box-shadow: 0 4px 15px rgba(34, 197, 94, 0.6); cursor: pointer; pointer-events: auto !important;">
+        [DEV] 다음 ⏭️
+      </button>
+    </div>
+    <div id="dev-current-screen-badge" style="background: rgba(0,0,0,0.85); color: #86efac; border: 1px solid #22c55e; padding: 3px 8px; border-radius: 6px; font-size: 10px; pointer-events: none;">
+      화면: screen-cover
+    </div>
+  </aside>
 
   <script src="butterflies.js"></script>
   <script src="app.js"></script>

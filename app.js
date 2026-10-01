@@ -1,46 +1,398 @@
 /* ==========================================================================
    🌟 너울(Noul) 메인 애플리케이션 로직 (app.js)
-   - 아이폰 17 화면비 및 모바일 WebKit 규격 최적화
-   - [추가] 표지 화면(screen-cover): 1번 사진 구도/자세의 2번째 나비(moon-halo) 3D 순백색 렌더러
-   - [해결 1] 흐림 조정 패널: 슬라이더 이동 시 실시간 블러 100% 작동
-   - [해결 2] 3D 나비 날개: SVG 나비틀 바운딩 박스 기준 1:1 정밀 텍스처 투영
-   - [해결 3] 날개 착석 애니메이션: 과도한 접힘 해제 -> 자연스럽고 우아하게 살짝만 접힘(V자 각도 유지)
-   - [유지] 요청된 사항 외 기존 기능/인터랙션/UI 일체 보존
+   - [DEV 완벽 복원]: 브라우저 전역 클릭 위임 라우터
+   - [신규 플로우]: 나비 커스텀 -> 1번 사진 -> 2번 사진(위로 메모, 키워드 삭제) -> 로딩
    ========================================================================== */
 
+var ALL_SCREENS = [
+  'screen-cover',
+  'screen-menu',
+  'screen-gallery',
+  'screen-intro',
+  'screen-opening',
+  'screen-survey',
+  'screen-survey-core-concern',
+  'screen-capture-guide',
+  'screen-shape-select',
+  'screen-survey-bridge',
+  'screen-loading',
+  'screen-preview',
+  'screen-complete'
+];
+
+// DEV 네비게이션 및 전역 상태 변수
+var showcaseInterval = null;
+var currentStepIdx = 0; // 0: 이름, 1: 성향, 2: 고민다중, 3: 위로메모
+var userSelections = { q1: [], q2: [], q1_custom: "", q2_custom: "", core_concern: "", q6_memo: "", q7_name: "" };
+
 function showScreen(screenId) {
+  clearTimeout(typeTimer);
+  clearTimeout(guideTypeTimer);
+  clearTimeout(surveyTitleTypeTimer);
+  clearTimeout(coreConcernTypeTimer);
+
   document.querySelectorAll('.screen').forEach(function(s) {
     s.classList.remove('active');
   });
+
   var target = document.getElementById(screenId);
   if (target) {
     target.classList.add('active');
-    if (screenId === 'screen-cover') {
-      initCoverButterfly3D();
-    } else if (screenId === 'screen-shape-select') {
-      switchTab('wing');
-      updateHeroPreview();
-      drawAlignCanvas();
-    } else if (screenId === 'screen-gallery') {
-      initSpecimenGallery();
+    try {
+      if (screenId === 'screen-cover') {
+        stopBubblePhysics();
+        initCoverButterfly3D();
+      } else if (screenId === 'screen-opening') {
+        stopBubblePhysics();
+        resetOpeningFlow();
+      } else if (screenId === 'screen-survey') {
+        renderSurveyStep();
+      } else if (screenId === 'screen-survey-core-concern') {
+        stopBubblePhysics();
+        initCoreConcernScreen();
+      } else if (screenId === 'screen-capture-guide') {
+        stopBubblePhysics();
+        startCaptureGuideCinematicFlow();
+      } else if (screenId === 'screen-shape-select') {
+        stopBubblePhysics();
+        switchTab('wing');
+        updateHeroPreview();
+        drawAlignCanvas();
+      } else if (screenId === 'screen-gallery') {
+        stopBubblePhysics();
+        initSpecimenGallery();
+      } else if (screenId === 'screen-survey-bridge') {
+        stopBubblePhysics();
+        playBridgeTypingSequence();
+      } else {
+        stopBubblePhysics();
+      }
+    } catch(e) {
+      console.warn("화면 진입 시각효과 경고:", e);
     }
   }
   updateDevScreenBadge();
 }
 
-document.getElementById('btn-start-cover').addEventListener('click', function() { showScreen('screen-menu'); });
-document.getElementById('btn-menu-back').addEventListener('click', function() { showScreen('screen-cover'); });
-document.getElementById('menu-btn-create').addEventListener('click', function() { showScreen('screen-opening'); resetOpeningFlow(); });
-document.getElementById('btn-opening-back').addEventListener('click', function() { clearTimeout(typeTimer); showScreen('screen-menu'); });
-document.getElementById('btn-guide-back-to-menu').addEventListener('click', function() { showScreen('screen-menu'); });
+function updateDevScreenBadge() {
+  var badge = document.getElementById('dev-current-screen-badge');
+  if (!badge) return;
+  var activeScreen = document.querySelector('.screen.active');
+  var name = activeScreen ? activeScreen.id : 'none';
+  if (name === 'screen-survey') {
+    if (currentStepIdx === 0) name += ' (1/4: 이름)';
+    else if (currentStepIdx === 1) name += ' (2/4: 성향)';
+    else if (currentStepIdx === 2) name += ' (3/4: 고민선택)';
+    else if (currentStepIdx === 3) name += ' (4/4: 위로메모)';
+  } else if (name === 'screen-survey-core-concern') {
+    name += ' (핵심고민)';
+  }
+  badge.innerText = '화면: ' + name;
+}
 
-document.getElementById('menu-btn-browse').addEventListener('click', function() { showScreen('screen-gallery'); });
-document.getElementById('btn-gallery-back').addEventListener('click', function() { showScreen('screen-menu'); });
+// 🌟 로딩 화면용 답변 쇼케이스 시퀀스 & 사용자가 고른 나비 모양 적용
+function startAnswerShowcaseSequence() {
+  if (showcaseInterval) { clearInterval(showcaseInterval); showcaseInterval = null; }
+  
+  // 사용자가 선택한 나비 형태를 로딩 SVG에 반영
+  var currentWing = butterflyPathData[selectedButterflyShape] || wingDataset[0];
+  var loadingSvg = document.getElementById('loading-butterfly-svg');
+  var loadingPath = document.getElementById('loading-wing-path');
+  if (loadingSvg && currentWing) {
+    loadingSvg.setAttribute('viewBox', currentWing.viewBox);
+  }
+  if (loadingPath && currentWing) {
+    loadingPath.setAttribute('d', currentWing.d);
+  }
 
-document.getElementById('menu-btn-intro').addEventListener('click', function() { showScreen('screen-intro'); });
-document.getElementById('btn-intro-back').addEventListener('click', function() { showScreen('screen-menu'); });
-document.getElementById('btn-intro-bottom-back').addEventListener('click', function() { showScreen('screen-menu'); });
+  var pBar = document.getElementById('generation-progress-bar');
+  var progress = 0;
+  var step = 0;
+  var categoryEl = document.getElementById('showcase-category');
+  var answersEl = document.getElementById('showcase-answers');
 
+  // 순서: 0(이름) > 1(어떤 사람) > 2(고민들) > 3(제일 고민되는거) > 4(따뜻한 한마디)
+  function renderShowcaseStep(s) {
+    if (answersEl) answersEl.innerHTML = '';
+
+    if (s === 0) {
+      // 1. 이름 (텍스트 형태)
+      if (categoryEl) categoryEl.innerText = '#새겨진 이야기';
+      var sp = document.createElement('span');
+      sp.className = 'concern-pill-badge';
+      sp.innerText = userSelections.q7_name ? userSelections.q7_name.trim() : '나비';
+      if (answersEl) answersEl.appendChild(sp);
+
+    } else if (s === 1) {
+      // 2. 당신은 어떤 사람인가요 (발광 없는 깔끔한 흰색 알약 스타일)
+      if (categoryEl) categoryEl.innerText = '#나의 고유한 모습';
+      var q1Items = (userSelections.q1 && userSelections.q1.length > 0) ? userSelections.q1 : ['야행성', '사색가'];
+      q1Items.forEach(function(ans) {
+        var pill = document.createElement('span');
+        pill.className = 'chip-base chip-selected pointer-events-none';
+        pill.style.setProperty('background', '#ffffff', 'important');
+        pill.style.setProperty('border', 'none', 'important');
+        pill.style.setProperty('color', '#000000', 'important');
+        pill.style.setProperty('font-weight', '700', 'important');
+        pill.style.setProperty('box-shadow', 'none', 'important'); // 🌟 발광 완벽 제거
+        pill.innerText = ans;
+        if (answersEl) answersEl.appendChild(pill);
+      });
+
+    } else if (s === 2) {
+      // 3. 고민들 (발광 없는 깔끔한 흰색 알약 스타일)
+      if (categoryEl) categoryEl.innerText = '#마주친 마음의 고민';
+      var q2Items = (userSelections.q2 && userSelections.q2.length > 0) ? userSelections.q2 : ['완벽주의 강박', '비교중독'];
+      q2Items.forEach(function(ans) {
+        var pill = document.createElement('span');
+        pill.className = 'chip-base chip-selected pointer-events-none';
+        pill.style.setProperty('background', '#ffffff', 'important');
+        pill.style.setProperty('border', 'none', 'important');
+        pill.style.setProperty('color', '#000000', 'important');
+        pill.style.setProperty('font-weight', '700', 'important');
+        pill.style.setProperty('box-shadow', 'none', 'important'); // 🌟 발광 완벽 제거
+        pill.innerText = ans;
+        if (answersEl) answersEl.appendChild(pill);
+      });
+
+    } else if (s === 3) {
+      // 4. 제일 고민되는거 (텍스트 형태)
+      if (categoryEl) categoryEl.innerText = '#가장 깊은 고민';
+      var coreItem = userSelections.core_concern || (userSelections.q2 && userSelections.q2[0]) || '완벽주의 강박';
+      var sp = document.createElement('span');
+      sp.className = 'concern-pill-badge';
+      sp.innerText = coreItem;
+      if (answersEl) answersEl.appendChild(sp);
+
+    } else if (s === 4) {
+      // 5. 따뜻한 한마디
+      if (categoryEl) categoryEl.innerText = '#나에게 건네는 온기';
+      var memoText = userSelections.q6_memo ? userSelections.q6_memo.trim() : '너의 찬란한 날갯짓을 응원해.';
+      var sp = document.createElement('span');
+      sp.className = 'concern-pill-badge text-[1.1rem] leading-snug';
+      sp.innerText = memoText;
+      if (answersEl) answersEl.appendChild(sp);
+    }
+  }
+
+  renderShowcaseStep(0);
+  if (pBar) pBar.style.width = '0%';
+
+  showcaseInterval = setInterval(function() {
+    progress += 1.0;
+    if (pBar) pBar.style.width = Math.min(100, progress) + '%';
+
+    if (progress > 20 && step === 0) {
+      step = 1;
+      renderShowcaseStep(1);
+    } else if (progress > 40 && step === 1) {
+      step = 2;
+      renderShowcaseStep(2);
+    } else if (progress > 60 && step === 2) {
+      step = 3;
+      renderShowcaseStep(3);
+    } else if (progress > 80 && step === 3) {
+      step = 4;
+      renderShowcaseStep(4);
+    }
+
+    if (progress >= 100) {
+      clearInterval(showcaseInterval);
+      showcaseInterval = null;
+
+      var whiteFlash = document.getElementById('cinematic-white-flash');
+      if (whiteFlash) {
+        whiteFlash.classList.add('flash-active');
+      }
+
+      setTimeout(function() {
+        var butterflyName = userSelections.q7_name ? userSelections.q7_name.trim() : "나비";
+        var nameHeader = document.getElementById('preview-butterfly-name');
+        if (nameHeader) nameHeader.innerText = '‘' + butterflyName + '’';
+        initFullButterflyViewer(currentExtractedTexture || createFallbackDummyTexture());
+        showScreen('screen-preview');
+
+        setTimeout(function() {
+          if (whiteFlash) {
+            whiteFlash.classList.remove('flash-active');
+          }
+        }, 1200);
+      }, 1400);
+    }
+  }, 90);
+}
+
+// --------------------------------------------------------------------------
+// DEV 전역 이벤트 위임 바인딩
+// --------------------------------------------------------------------------
+document.addEventListener('click', function(e) {
+  var target = e.target;
+  if (!target) return;
+
+  var btnNext = target.closest('#dev-btn-skip-next');
+  var btnPrev = target.closest('#dev-btn-skip-prev');
+
+  if (btnNext) {
+    e.preventDefault();
+    e.stopPropagation();
+
+    clearTimeout(typeTimer);
+    clearTimeout(guideTypeTimer);
+    clearTimeout(surveyTitleTypeTimer);
+    clearTimeout(coreConcernTypeTimer);
+    if (showcaseInterval) { clearInterval(showcaseInterval); showcaseInterval = null; }
+    if (animFrameId) { cancelAnimationFrame(animFrameId); animFrameId = null; }
+
+    var activeScreen = document.querySelector('.screen.active');
+    var curId = activeScreen ? activeScreen.id : 'screen-cover';
+
+    if (curId === 'screen-survey') {
+      if (currentStepIdx === 0) {
+        if (!userSelections.q7_name) userSelections.q7_name = "테스트나비";
+        currentStepIdx = 1;
+        renderSurveyStep();
+        return;
+      } else if (currentStepIdx === 1) {
+        if (userSelections.q1.length === 0) userSelections.q1 = ["야행성", "사색가"];
+        currentStepIdx = 2;
+        renderSurveyStep();
+        return;
+      } else if (currentStepIdx === 2) {
+        if (userSelections.q2.length === 0) userSelections.q2 = ["완벽주의 강박", "비교중독", "수면 부족", "거절 공포", "텅 빈 잔고", "미래 막막함"];
+        showScreen('screen-survey-core-concern');
+        return;
+      } else if (currentStepIdx === 3) {
+        exportAlignedTexture();
+        showScreen('screen-loading');
+        startAnswerShowcaseSequence();
+        return;
+      }
+    } else if (curId === 'screen-survey-core-concern') {
+      if (!userSelections.core_concern && userSelections.q2.length > 0) {
+        userSelections.core_concern = userSelections.q2[0];
+      }
+      showScreen('screen-capture-guide');
+      return;
+    }
+
+    var curIdx = ALL_SCREENS.indexOf(curId);
+    if (curIdx === -1) curIdx = 0;
+    var nextIdx = (curIdx + 1) % ALL_SCREENS.length;
+    var targetId = ALL_SCREENS[nextIdx];
+
+    if (targetId === 'screen-survey') {
+      currentStepIdx = 0;
+    } else if (targetId === 'screen-survey-core-concern') {
+      if (userSelections.q2.length === 0) userSelections.q2 = ["완벽주의 강박", "비교중독", "수면 부족", "거절 공포", "텅 빈 잔고", "미래 막막함"];
+    } else if (targetId === 'screen-shape-select') {
+      setTimeout(function() {
+        if (alignCanvas && actx) {
+          actx.fillStyle = "#ffffff";
+          actx.fillRect(0, 0, alignCanvas.width, alignCanvas.height);
+          actx.fillStyle = "#222222";
+          actx.beginPath();
+          actx.arc(300, 300, 140, 0, Math.PI * 2);
+          drawAlignCanvas();
+        }
+      }, 30);
+    } else if (targetId === 'screen-loading') {
+      if (!userSelections.q7_name) userSelections.q7_name = "테스트나비";
+      if (userSelections.q1.length === 0) userSelections.q1 = ["야행성", "사색가"];
+      if (userSelections.q2.length === 0) userSelections.q2 = ["완벽주의 강박", "비교중독"];
+      if (!userSelections.core_concern) userSelections.core_concern = "완벽주의 강박";
+      if (!userSelections.q6_memo) userSelections.q6_memo = "모든 순간이 찬란하기를.";
+      exportAlignedTexture();
+      startAnswerShowcaseSequence();
+    } else if (targetId === 'screen-preview') {
+      var butterflyName = userSelections.q7_name ? userSelections.q7_name.trim() : "나비";
+      var nameHeader = document.getElementById('preview-butterfly-name');
+      if (nameHeader) nameHeader.innerText = '‘' + butterflyName + '’';
+      initFullButterflyViewer(currentExtractedTexture || createFallbackDummyTexture());
+    }
+
+    showScreen(targetId);
+    return;
+  }
+
+  if (btnPrev) {
+    e.preventDefault();
+    e.stopPropagation();
+
+    clearTimeout(typeTimer);
+    clearTimeout(guideTypeTimer);
+    clearTimeout(surveyTitleTypeTimer);
+    clearTimeout(coreConcernTypeTimer);
+    if (showcaseInterval) { clearInterval(showcaseInterval); showcaseInterval = null; }
+    if (animFrameId) { cancelAnimationFrame(animFrameId); animFrameId = null; }
+
+    var activeScreen = document.querySelector('.screen.active');
+    var curId = activeScreen ? activeScreen.id : 'screen-cover';
+
+    if (curId === 'screen-survey') {
+      if (currentStepIdx === 3) {
+        showScreen('screen-survey-bridge');
+        return;
+      } else if (currentStepIdx > 0) {
+        currentStepIdx--;
+        renderSurveyStep();
+        return;
+      }
+    } else if (curId === 'screen-survey-core-concern') {
+      currentStepIdx = 2;
+      showScreen('screen-survey');
+      return;
+    }
+
+    var curIdx = ALL_SCREENS.indexOf(curId);
+    if (curIdx === -1) curIdx = 0;
+    var prevIdx = (curIdx - 1 + ALL_SCREENS.length) % ALL_SCREENS.length;
+    var targetId = ALL_SCREENS[prevIdx];
+
+    if (targetId === 'screen-survey') {
+      currentStepIdx = 3;
+    }
+
+    showScreen(targetId);
+    return;
+  }
+}, true);
+
+// --------------------------------------------------------------------------
+// 기본 버튼 이벤트 바인딩
+// --------------------------------------------------------------------------
+function bindAppNavEvents() {
+  var bStartCover = document.getElementById('btn-start-cover');
+  if (bStartCover) bStartCover.onclick = function() { showScreen('screen-menu'); };
+
+  var bMenuBack = document.getElementById('btn-menu-back');
+  if (bMenuBack) bMenuBack.onclick = function() { showScreen('screen-cover'); };
+
+  var mCreate = document.getElementById('menu-btn-create');
+  if (mCreate) mCreate.onclick = function() { showScreen('screen-opening'); };
+
+  var bOpenBack = document.getElementById('btn-opening-back');
+  if (bOpenBack) bOpenBack.onclick = function() { clearTimeout(typeTimer); showScreen('screen-menu'); };
+
+  var mBrowse = document.getElementById('menu-btn-browse');
+  if (mBrowse) mBrowse.onclick = function() { showScreen('screen-gallery'); };
+
+  var bGalBack = document.getElementById('btn-gallery-back');
+  if (bGalBack) bGalBack.onclick = function() { showScreen('screen-menu'); };
+
+  var mIntro = document.getElementById('menu-btn-intro');
+  if (mIntro) mIntro.onclick = function() { showScreen('screen-intro'); };
+
+  var bIntroBack = document.getElementById('btn-intro-back');
+  if (bIntroBack) bIntroBack.onclick = function() { showScreen('screen-menu'); };
+
+  var bIntroBtmBack = document.getElementById('btn-intro-bottom-back');
+  if (bIntroBtmBack) bIntroBtmBack.onclick = function() { showScreen('screen-menu'); };
+}
+bindAppNavEvents();
+
+// --------------------------------------------------------------------------
+// 오프닝 및 타이핑 플로우
+// --------------------------------------------------------------------------
 var openingCurrentStep = 1;
 var elOpeningText = document.getElementById('opening-text');
 var elOpeningChoiceGroup = document.getElementById('opening-choice-group');
@@ -48,9 +400,10 @@ var elOpeningNextGroup = document.getElementById('opening-next-group');
 var btnOpeningNext = document.getElementById('btn-opening-next');
 var typeTimer = null;
 
-function typeWriterText(textWithHtml, onComplete) {
+function typeWriterText(targetElement, textWithHtml, onComplete) {
   clearTimeout(typeTimer);
-  elOpeningText.innerHTML = "";
+  if (!targetElement) return;
+  targetElement.innerHTML = "";
   var tokens = textWithHtml.match(/(<[^>]+>|[^<])/g) || [];
   var idx = 0;
   var currentContent = "";
@@ -59,15 +412,15 @@ function typeWriterText(textWithHtml, onComplete) {
     if (idx < tokens.length) {
       var char = tokens[idx];
       currentContent += char;
-      elOpeningText.innerHTML = currentContent;
+      targetElement.innerHTML = currentContent;
       idx++;
-      var delay = 100;
+      var delay = 85;
       if (char.startsWith('<')) delay = 0;
-      else if (char === '?' || char === '.') delay = 500;
-      else if (char === ',') delay = 300;
+      else if (char === '?' || char === '.') delay = 450;
+      else if (char === ',') delay = 250;
       typeTimer = setTimeout(nextChar, delay);
     } else {
-      setTimeout(function() { if (onComplete) onComplete(); }, 250);
+      setTimeout(function() { if (onComplete) onComplete(); }, 200);
     }
   }
   nextChar();
@@ -76,55 +429,98 @@ function typeWriterText(textWithHtml, onComplete) {
 function resetOpeningFlow() {
   clearTimeout(typeTimer);
   openingCurrentStep = 1;
-  elOpeningChoiceGroup.classList.remove('visible');
-  elOpeningChoiceGroup.classList.add('hidden');
-  elOpeningNextGroup.classList.add('hidden');
-  elOpeningNextGroup.classList.remove('visible');
+  if (elOpeningChoiceGroup) {
+    elOpeningChoiceGroup.classList.remove('visible');
+    elOpeningChoiceGroup.classList.add('hidden');
+  }
+  if (elOpeningNextGroup) {
+    elOpeningNextGroup.classList.add('hidden');
+    elOpeningNextGroup.classList.remove('visible');
+  }
 
-  typeWriterText("안녕하세요?<br>이곳에는 우연히 발걸음하셨나요?", function() {
-    elOpeningChoiceGroup.classList.remove('hidden');
-    requestAnimationFrame(function() {
-      elOpeningChoiceGroup.classList.add('visible');
-    });
+  typeWriterText(elOpeningText, "안녕하세요?<br>지금, 걱정 없는 삶을 살아가고 있나요?", function() {
+    if (btnOpeningNext) btnOpeningNext.innerHTML = "다음으로";
+    if (elOpeningNextGroup) {
+      elOpeningNextGroup.classList.remove('hidden');
+      requestAnimationFrame(function() { elOpeningNextGroup.classList.add('visible'); });
+    }
   });
 }
 
-document.getElementById('btn-opening-yes').addEventListener('click', function() {
-  openingCurrentStep = 2;
-  elOpeningChoiceGroup.classList.remove('visible');
-  elOpeningChoiceGroup.classList.add('hidden');
-  typeWriterText("우연한 발걸음이어도 좋습니다.<br>내면의 무언가가 이곳으로 이끌었을지도<br>모르겠네요.", function() {
-    btnOpeningNext.innerHTML = "다음으로 ≫";
-    elOpeningNextGroup.classList.remove('hidden');
-    requestAnimationFrame(function() { elOpeningNextGroup.classList.add('visible'); });
-  });
-});
+if (btnOpeningNext) {
+  btnOpeningNext.onclick = function() {
+    if (openingCurrentStep === 1) {
+      openingCurrentStep = 2;
+      if (elOpeningNextGroup) {
+        elOpeningNextGroup.classList.remove('visible');
+        elOpeningNextGroup.classList.add('hidden');
+      }
+      typeWriterText(elOpeningText, "저마다의 이유는 다르겠지만,<br>쉽게 털어놓지 못할 고민도 있겠지요.", function() {
+        btnOpeningNext.innerHTML = "다음으로";
+        if (elOpeningNextGroup) {
+          elOpeningNextGroup.classList.remove('hidden');
+          requestAnimationFrame(function() { elOpeningNextGroup.classList.add('visible'); });
+        }
+      });
+    } else if (openingCurrentStep === 2) {
+      openingCurrentStep = 3;
+      if (elOpeningNextGroup) {
+        elOpeningNextGroup.classList.remove('visible');
+        elOpeningNextGroup.classList.add('hidden');
+      }
+      typeWriterText(elOpeningText, "오늘 이곳에서,<br>당신의 마음 깊은 곳에 묻어둔 이야기를<br>조심스레 꺼내어보려 합니다.", function() {
+        btnOpeningNext.innerHTML = "다음으로";
+        if (elOpeningNextGroup) {
+          elOpeningNextGroup.classList.remove('hidden');
+          requestAnimationFrame(function() { elOpeningNextGroup.classList.add('visible'); });
+        }
+      });
+    } else if (openingCurrentStep === 3) {
+      openingCurrentStep = 4;
+      if (elOpeningNextGroup) {
+        elOpeningNextGroup.classList.remove('visible');
+        elOpeningNextGroup.classList.add('hidden');
+      }
+      typeWriterText(elOpeningText, "먼저 당신에 대해<br>몇 가지 알아가보고자 합니다.", function() {
+        btnOpeningNext.innerHTML = "다음으로";
+        if (elOpeningNextGroup) {
+          elOpeningNextGroup.classList.remove('hidden');
+          requestAnimationFrame(function() { elOpeningNextGroup.classList.add('visible'); });
+        }
+      });
+    } else if (openingCurrentStep === 4) {
+      currentStepIdx = 0;
+      showScreen('screen-survey');
+    }
+  };
+}
 
-document.getElementById('btn-opening-no').addEventListener('click', function() {
-  openingCurrentStep = 2;
-  elOpeningChoiceGroup.classList.remove('visible');
-  elOpeningChoiceGroup.classList.add('hidden');
-  typeWriterText("찾아와 주셨군요.<br>당신을 맞이할 준비가 되어 있었습니다.", function() {
-    btnOpeningNext.innerHTML = "다음으로 ≫";
-    elOpeningNextGroup.classList.remove('hidden');
-    requestAnimationFrame(function() { elOpeningNextGroup.classList.add('visible'); });
-  });
-});
+// --------------------------------------------------------------------------
+// 🌟 1번 사진: 브릿지 페이지 대사 수정 반영
+// --------------------------------------------------------------------------
+function playBridgeTypingSequence() {
+  var textEl = document.getElementById('bridge-typing-text');
+  var nextGroup = document.getElementById('bridge-next-group');
+  if (!textEl || !nextGroup) return;
 
-btnOpeningNext.addEventListener('click', function() {
-  if (openingCurrentStep === 2) {
-    openingCurrentStep = 3;
-    elOpeningNextGroup.classList.remove('visible');
-    elOpeningNextGroup.classList.add('hidden');
-    typeWriterText("오늘 이곳에서, 깊은 곳에 잠들어 있던<br><strong class='text-white font-bold'>당신의 나비를 깨워볼까요?</strong>", function() {
-      btnOpeningNext.innerHTML = "나비 깨우기 ≫";
-      elOpeningNextGroup.classList.remove('hidden');
-      requestAnimationFrame(function() { elOpeningNextGroup.classList.add('visible'); });
-    });
-  } else if (openingCurrentStep === 3) {
-    startCaptureGuideCinematicFlow();
-  }
-});
+  nextGroup.classList.add('hidden');
+  nextGroup.classList.remove('visible');
+
+  var msg = "이제 거의 다 왔어요.<br>마지막 온기를 채울 차례예요.";
+  typeWriterText(textEl, msg, function() {
+    nextGroup.classList.remove('hidden');
+    requestAnimationFrame(function() { nextGroup.classList.add('visible'); });
+  });
+}
+
+// 1번 사진 '다음으로' 버튼 클릭 시 -> 2번 사진(위로 적는 페이지)으로 이동
+var bGotoStats = document.getElementById('btn-goto-stats');
+if (bGotoStats) {
+  bGotoStats.onclick = function() { 
+    currentStepIdx = 3;
+    showScreen('screen-survey');
+  };
+}
 
 var guideTitleWrap = document.querySelector('.guide-title-wrapper');
 var guideAnimatedTitle = document.getElementById('guide-animated-title');
@@ -133,13 +529,12 @@ var guideBottomDock = document.getElementById('guide-bottom-dock');
 var guideTypeTimer = null;
 
 function startCaptureGuideCinematicFlow() {
-  showScreen('screen-capture-guide');
   clearTimeout(guideTypeTimer);
   
   if (guideTitleWrap) guideTitleWrap.classList.remove('moved-to-top');
-  guideAnimatedTitle.innerHTML = "";
-  guideCenterCard.classList.remove('revealed');
-  guideBottomDock.classList.remove('revealed');
+  if (guideAnimatedTitle) guideAnimatedTitle.innerHTML = "";
+  if (guideCenterCard) guideCenterCard.classList.remove('revealed');
+  if (guideBottomDock) guideBottomDock.classList.remove('revealed');
 
   var introMessage = "고치에서 깨어날 당신의 나비는<br>어떤 모습인가요?";
   var tokens = introMessage.match(/(<[^>]+>|[^<])/g) || [];
@@ -150,9 +545,9 @@ function startCaptureGuideCinematicFlow() {
     if (idx < tokens.length) {
       var char = tokens[idx];
       curText += char;
-      guideAnimatedTitle.innerHTML = curText;
+      if (guideAnimatedTitle) guideAnimatedTitle.innerHTML = curText;
       idx++;
-      var delay = 90;
+      var delay = 80;
       if (char.startsWith('<')) delay = 0;
       else if (char === '?' || char === '.') delay = 400;
       guideTypeTimer = setTimeout(typeNext, delay);
@@ -160,34 +555,37 @@ function startCaptureGuideCinematicFlow() {
       setTimeout(function() {
         if (guideTitleWrap) guideTitleWrap.classList.add('moved-to-top');
         setTimeout(function() {
-          guideCenterCard.classList.add('revealed');
-          guideBottomDock.classList.add('revealed');
-        }, 500);
+          if (guideCenterCard) guideCenterCard.classList.add('revealed');
+          if (guideBottomDock) guideBottomDock.classList.add('revealed');
+        }, 450);
       }, 350);
     }
   }
-  setTimeout(typeNext, 250);
+  setTimeout(typeNext, 200);
 }
 
+// --------------------------------------------------------------------------
+// Supabase 연동 & 형태 선택
+// --------------------------------------------------------------------------
 var SUPABASE_URL = 'https://djmdzsbfsobsutphragw.supabase.co';
 var SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRqbWR6c2Jmc29ic3V0cGhyYWd3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODk4ODQ3NTgsImV4cCI6MjEwNTQ2MDc1OH0.BC7llaSjbq6cYhDlRqrwJaycpQ6gSNcp5LgYBeM6WEM';
 var supabase = null;
 try {
   if (window.supabase) supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-} catch (err) {
-  console.warn("Supabase 연결 지연:", err);
-}
+} catch (err) {}
 
 var activeCustomTab = 'wing';
 var selectedButterflyShape = 'crescent';
 var selectedAntennaType = 'ball';
 
 var butterflyPathData = {};
-wingDataset.forEach(function(w) { butterflyPathData[w.id] = w; });
+if (typeof wingDataset !== 'undefined') {
+  wingDataset.forEach(function(w) { butterflyPathData[w.id] = w; });
+}
 
 function updateHeroPreview() {
   var heroPathContainer = document.getElementById('hero-path-container');
-  if (!heroPathContainer) return;
+  if (!heroPathContainer || typeof wingDataset === 'undefined') return;
 
   var currentWing = butterflyPathData[selectedButterflyShape] || wingDataset[0];
   var ant = antennaDataset.find(function(a) { return a.id === selectedAntennaType; }) || antennaDataset[0];
@@ -228,6 +626,7 @@ function updateHeroPreview() {
 var carouselContainer = document.getElementById('arch-carousel-container');
 
 function renderCarouselItems() {
+  if (!carouselContainer || typeof wingDataset === 'undefined') return;
   carouselContainer.innerHTML = '';
   if (activeCustomTab === 'wing') {
     wingDataset.forEach(function(w) {
@@ -258,11 +657,12 @@ function renderCarouselItems() {
 }
 
 function bindItemClickEvents() {
+  if (!carouselContainer) return;
   carouselContainer.querySelectorAll('.shape-thumb-btn').forEach(function(btn) {
-    btn.addEventListener('click', function() {
+    btn.onclick = function() {
       setActiveItemVisual(btn);
       snapItemToExactCenter(btn.closest('.arch-track-item'));
-    });
+    };
   });
 }
 
@@ -382,9 +782,10 @@ if (carouselContainer) {
 window.addEventListener('resize', function() {
   updateCarouselPadding();
   applyStraightSelection();
+  resizeBubblePhysicsCanvas();
 });
 
-/* 하단 알약 탭 제어 */
+// 알약 탭 제어
 var tabWing = document.getElementById('tab-wing');
 var tabAntenna = document.getElementById('tab-antenna');
 var tabBlur = document.getElementById('tab-blur');
@@ -401,42 +802,47 @@ function switchTab(tabKey) {
   if (shapeDesc) shapeDesc.innerHTML = "<strong class='text-white'>[드래그]</strong> 이동, <strong class='text-white'>[두 손가락 핀치]</strong> 확대/축소";
 
   if (tabKey === 'wing') {
-    tabWing.classList.add('active-tab');
+    if (tabWing) tabWing.classList.add('active-tab');
     if (blurSliderBox) blurSliderBox.classList.add('hidden-slider');
     if (carouselStage) carouselStage.style.display = 'flex';
     renderCarouselItems();
   } else if (tabKey === 'antenna') {
-    tabAntenna.classList.add('active-tab');
+    if (tabAntenna) tabAntenna.classList.add('active-tab');
     if (blurSliderBox) blurSliderBox.classList.add('hidden-slider');
     if (carouselStage) carouselStage.style.display = 'flex';
     renderCarouselItems();
   } else if (tabKey === 'blur') {
-    tabBlur.classList.add('active-tab');
+    if (tabBlur) tabBlur.classList.add('active-tab');
     if (blurSliderBox) blurSliderBox.classList.remove('hidden-slider');
     if (carouselStage) carouselStage.style.display = 'none';
   }
 }
 
-tabWing.addEventListener('click', function() { switchTab('wing'); });
-tabAntenna.addEventListener('click', function() { switchTab('antenna'); });
-if (tabBlur) tabBlur.addEventListener('click', function() { switchTab('blur'); });
+if (tabWing) tabWing.onclick = function() { switchTab('wing'); };
+if (tabAntenna) tabAntenna.onclick = function() { switchTab('antenna'); };
+if (tabBlur) tabBlur.onclick = function() { switchTab('blur'); };
 
-document.getElementById('btn-rephoto-from-shape').addEventListener('click', function() {
-  cameraInput.value = '';
-  albumInput.value = '';
-  startCaptureGuideCinematicFlow();
-});
+var btnRephoto = document.getElementById('btn-rephoto-from-shape');
+if (btnRephoto) {
+  btnRephoto.onclick = function() {
+    if (cameraInput) cameraInput.value = '';
+    if (albumInput) albumInput.value = '';
+    showScreen('screen-capture-guide');
+  };
+}
 
-document.getElementById('btn-confirm-shape').addEventListener('click', function() {
-  exportAlignedTexture();
-  currentStepIdx = 0;
-  renderSurveyStep();
-  showScreen('screen-survey');
-});
+// 나비 커스텀 후 '완성하기' 클릭 시 -> 1번 사진 브릿지 페이지로 이동
+var btnConfirmShape = document.getElementById('btn-confirm-shape');
+if (btnConfirmShape) {
+  btnConfirmShape.onclick = function() {
+    exportAlignedTexture();
+    showScreen('screen-survey-bridge');
+  };
+}
 
-/* ==========================================================================
-   🌟 100% 작동 슬라이딩 윈도우 고속 블러 엔진 (WebKit 완벽 호환)
-   ========================================================================== */
+// --------------------------------------------------------------------------
+// 캔버스 드로잉 및 블러
+// --------------------------------------------------------------------------
 function executeReliableFastBlur(canvas, radius) {
   if (radius <= 0.2) return;
   var ctx = canvas.getContext('2d', { willReadFrequently: true });
@@ -456,59 +862,36 @@ function executeReliableFastBlur(canvas, radius) {
     for (var i = -r; i <= r; i++) {
       var px = Math.min(w - 1, Math.max(0, i));
       var pIndex = rowStart + px * 4;
-      rSum += src[pIndex];
-      gSum += src[pIndex + 1];
-      bSum += src[pIndex + 2];
-      aSum += src[pIndex + 3];
+      rSum += src[pIndex]; gSum += src[pIndex + 1]; bSum += src[pIndex + 2]; aSum += src[pIndex + 3];
     }
 
     for (var x = 0; x < w; x++) {
       var outIndex = rowStart + x * 4;
-      temp[outIndex] = rSum / kernelSize;
-      temp[outIndex + 1] = gSum / kernelSize;
-      temp[outIndex + 2] = bSum / kernelSize;
-      temp[outIndex + 3] = aSum / kernelSize;
-
+      temp[outIndex] = rSum / kernelSize; temp[outIndex + 1] = gSum / kernelSize; temp[outIndex + 2] = bSum / kernelSize; temp[outIndex + 3] = aSum / kernelSize;
       var removeX = Math.min(w - 1, Math.max(0, x - r));
       var addX = Math.min(w - 1, Math.max(0, x + r + 1));
       var remIdx = rowStart + removeX * 4;
       var addIdx = rowStart + addX * 4;
-
-      rSum += src[addIdx] - src[remIdx];
-      gSum += src[addIdx + 1] - src[remIdx + 1];
-      bSum += src[addIdx + 2] - src[remIdx + 2];
-      aSum += src[addIdx + 3] - src[remIdx + 3];
+      rSum += src[addIdx] - src[remIdx]; gSum += src[addIdx + 1] - src[remIdx + 1]; bSum += src[addIdx + 2] - src[remIdx + 2]; aSum += src[addIdx + 3] - src[remIdx + 3];
     }
   }
 
   for (var x = 0; x < w; x++) {
     var rSum = 0, gSum = 0, bSum = 0, aSum = 0;
-
     for (var i = -r; i <= r; i++) {
       var py = Math.min(h - 1, Math.max(0, i));
       var pIndex = (py * w + x) * 4;
-      rSum += temp[pIndex];
-      gSum += temp[pIndex + 1];
-      bSum += temp[pIndex + 2];
-      aSum += temp[pIndex + 3];
+      rSum += temp[pIndex]; gSum += temp[pIndex + 1]; bSum += temp[pIndex + 2]; aSum += temp[pIndex + 3];
     }
 
     for (var y = 0; y < h; y++) {
       var outIndex = (y * w + x) * 4;
-      src[outIndex] = rSum / kernelSize;
-      src[outIndex + 1] = gSum / kernelSize;
-      src[outIndex + 2] = bSum / kernelSize;
-      src[outIndex + 3] = aSum / kernelSize;
-
+      src[outIndex] = rSum / kernelSize; src[outIndex + 1] = gSum / kernelSize; src[outIndex + 2] = bSum / kernelSize; src[outIndex + 3] = aSum / kernelSize;
       var removeY = Math.min(h - 1, Math.max(0, y - r));
       var addY = Math.min(h - 1, Math.max(0, y + r + 1));
       var remIdx = (removeY * w + x) * 4;
       var addIdx = (addY * w + x) * 4;
-
-      rSum += temp[addIdx] - temp[remIdx];
-      gSum += temp[addIdx + 1] - temp[remIdx + 1];
-      bSum += temp[addIdx + 2] - temp[remIdx + 2];
-      aSum += temp[addIdx + 3] - temp[remIdx + 3];
+      rSum += temp[addIdx] - temp[remIdx]; gSum += temp[addIdx + 1] - temp[remIdx + 1]; bSum += temp[addIdx + 2] - temp[remIdx + 2]; aSum += temp[addIdx + 3] - temp[remIdx + 3];
     }
   }
 
@@ -517,7 +900,7 @@ function executeReliableFastBlur(canvas, radius) {
 
 var rawImage = new Image();
 var alignCanvas = document.getElementById('align-canvas');
-var actx = alignCanvas.getContext('2d', { willReadFrequently: true });
+var actx = alignCanvas ? alignCanvas.getContext('2d', { willReadFrequently: true }) : null;
 var imgX = 0, imgY = 0, imgScale = 1.0;
 var isDragging = false;
 var startX = 0, startY = 0;
@@ -546,13 +929,12 @@ function applyBlurValue(val) {
 }
 
 if (blurSlider) {
-  blurSlider.addEventListener('input', function(e) { applyBlurValue(e.target.value); });
-  blurSlider.addEventListener('change', function(e) { applyBlurValue(e.target.value); });
-  updateSliderProgress(blurSlider.value || 0);
+  blurSlider.oninput = function(e) { applyBlurValue(e.target.value); };
+  blurSlider.onchange = function(e) { applyBlurValue(e.target.value); };
 }
 
 if (toggleSymmetryBtn) {
-  toggleSymmetryBtn.addEventListener('click', function() {
+  toggleSymmetryBtn.onclick = function() {
     isSymmetryEnabled = !isSymmetryEnabled;
     if (isSymmetryEnabled) {
       toggleSymmetryBtn.classList.add('toggle-active');
@@ -562,7 +944,7 @@ if (toggleSymmetryBtn) {
       toggleSymmetryBtn.setAttribute('aria-pressed', 'false');
     }
     drawAlignCanvas();
-  });
+  };
 }
 
 function handleFile(file) {
@@ -592,17 +974,17 @@ function handleFile(file) {
 
 var cameraInput = document.getElementById('camera-input');
 var albumInput = document.getElementById('album-input');
-cameraInput.addEventListener('click', function(e) { e.target.value = null; });
-albumInput.addEventListener('click', function(e) { e.target.value = null; });
-cameraInput.addEventListener('change', function(e) {
-  if (e.target.files && e.target.files[0]) handleFile(e.target.files[0]);
-});
-albumInput.addEventListener('change', function(e) {
-  if (e.target.files && e.target.files[0]) handleFile(e.target.files[0]);
-});
+if (cameraInput) {
+  cameraInput.onclick = function(e) { e.target.value = null; };
+  cameraInput.onchange = function(e) { if (e.target.files && e.target.files[0]) handleFile(e.target.files[0]); };
+}
+if (albumInput) {
+  albumInput.onclick = function(e) { e.target.value = null; };
+  albumInput.onchange = function(e) { if (e.target.files && e.target.files[0]) handleFile(e.target.files[0]); };
+}
 
 function initAlignUI() {
-  if (!rawImage || !rawImage.width || rawImage.width === 0) return;
+  if (!rawImage || !rawImage.width || !alignCanvas) return;
   var baseScale = alignCanvas.width / Math.min(rawImage.width, rawImage.height);
   imgScale = baseScale;
   imgX = (alignCanvas.width - rawImage.width * imgScale) / 2;
@@ -611,8 +993,9 @@ function initAlignUI() {
 }
 
 function drawAlignCanvas() {
+  if (!alignCanvas || !actx) return;
   actx.clearRect(0, 0, alignCanvas.width, alignCanvas.height);
-  if (!rawImage || !rawImage.width || rawImage.width === 0) return;
+  if (!rawImage || !rawImage.width) return;
 
   var midX = alignCanvas.width / 2;
   var tempCanvas = document.createElement('canvas');
@@ -639,69 +1022,70 @@ function drawAlignCanvas() {
 }
 
 var interactiveFrame = document.getElementById('interactive-align-frame');
-
-interactiveFrame.addEventListener('mousedown', function(e) {
-  isDragging = true;
-  var rect = alignCanvas.getBoundingClientRect();
-  var scaleFactor = alignCanvas.width / rect.width;
-  startX = (e.clientX - rect.left) * scaleFactor - imgX;
-  startY = (e.clientY - rect.top) * scaleFactor - imgY;
-});
-
-window.addEventListener('mousemove', function(e) {
-  if (!isDragging) return;
-  var rect = alignCanvas.getBoundingClientRect();
-  var scaleFactor = alignCanvas.width / rect.width;
-  imgX = (e.clientX - rect.left) * scaleFactor - startX;
-  imgY = (e.clientY - rect.top) * scaleFactor - startY;
-  drawAlignCanvas();
-});
-
-window.addEventListener('mouseup', function() { isDragging = false; });
-
-interactiveFrame.addEventListener('wheel', function(e) {
-  e.preventDefault();
-  var zoom = e.deltaY < 0 ? 1.06 : 0.94;
-  imgScale *= zoom;
-  drawAlignCanvas();
-}, { passive: false });
-
-interactiveFrame.addEventListener('touchstart', function(e) {
-  var rect = alignCanvas.getBoundingClientRect();
-  var scaleFactor = alignCanvas.width / rect.width;
-  if (e.touches.length === 1) {
+if (interactiveFrame && alignCanvas) {
+  interactiveFrame.onmousedown = function(e) {
     isDragging = true;
-    startX = (e.touches[0].clientX - rect.left) * scaleFactor - imgX;
-    startY = (e.touches[0].clientY - rect.top) * scaleFactor - imgY;
-  } else if (e.touches.length === 2) {
-    isDragging = false;
-    startPinchDist = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY);
-    pinchStartScale = imgScale;
-  }
-}, { passive: false });
+    var rect = alignCanvas.getBoundingClientRect();
+    var scaleFactor = alignCanvas.width / rect.width;
+    startX = (e.clientX - rect.left) * scaleFactor - imgX;
+    startY = (e.clientY - rect.top) * scaleFactor - imgY;
+  };
 
-window.addEventListener('touchmove', function(e) {
-  if (!document.getElementById('screen-shape-select').classList.contains('active')) return;
-  var rect = alignCanvas.getBoundingClientRect();
-  var scaleFactor = alignCanvas.width / rect.width;
-  if (e.touches.length === 1 && isDragging) {
-    if (e.cancelable) e.preventDefault();
-    imgX = (e.touches[0].clientX - rect.left) * scaleFactor - startX;
-    imgY = (e.touches[0].clientY - rect.top) * scaleFactor - startY;
+  window.addEventListener('mousemove', function(e) {
+    if (!isDragging || !alignCanvas) return;
+    var rect = alignCanvas.getBoundingClientRect();
+    var scaleFactor = alignCanvas.width / rect.width;
+    imgX = (e.clientX - rect.left) * scaleFactor - startX;
+    imgY = (e.clientY - rect.top) * scaleFactor - startY;
     drawAlignCanvas();
-  } else if (e.touches.length === 2 && startPinchDist > 0) {
-    if (e.cancelable) e.preventDefault();
-    var currentDist = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY);
-    var factor = currentDist / startPinchDist;
-    imgScale = pinchStartScale * factor;
-    drawAlignCanvas();
-  }
-}, { passive: false });
+  });
 
-window.addEventListener('touchend', function() { isDragging = false; startPinchDist = 0; });
+  window.addEventListener('mouseup', function() { isDragging = false; });
+
+  interactiveFrame.addEventListener('wheel', function(e) {
+    e.preventDefault();
+    var zoom = e.deltaY < 0 ? 1.06 : 0.94;
+    imgScale *= zoom;
+    drawAlignCanvas();
+  }, { passive: false });
+
+  interactiveFrame.addEventListener('touchstart', function(e) {
+    var rect = alignCanvas.getBoundingClientRect();
+    var scaleFactor = alignCanvas.width / rect.width;
+    if (e.touches.length === 1) {
+      isDragging = true;
+      startX = (e.touches[0].clientX - rect.left) * scaleFactor - imgX;
+      startY = (e.touches[0].clientY - rect.top) * scaleFactor - imgY;
+    } else if (e.touches.length === 2) {
+      isDragging = false;
+      startPinchDist = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY);
+      pinchStartScale = imgScale;
+    }
+  }, { passive: false });
+
+  window.addEventListener('touchmove', function(e) {
+    if (!document.getElementById('screen-shape-select').classList.contains('active')) return;
+    var rect = alignCanvas.getBoundingClientRect();
+    var scaleFactor = alignCanvas.width / rect.width;
+    if (e.touches.length === 1 && isDragging) {
+      if (e.cancelable) e.preventDefault();
+      imgX = (e.touches[0].clientX - rect.left) * scaleFactor - startX;
+      imgY = (e.touches[0].clientY - rect.top) * scaleFactor - startY;
+      drawAlignCanvas();
+    } else if (e.touches.length === 2 && startPinchDist > 0) {
+      if (e.cancelable) e.preventDefault();
+      var currentDist = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY);
+      var factor = currentDist / startPinchDist;
+      imgScale = pinchStartScale * factor;
+      drawAlignCanvas();
+    }
+  }, { passive: false });
+
+  window.addEventListener('touchend', function() { isDragging = false; startPinchDist = 0; });
+}
 
 function exportAlignedTexture() {
-  if (!rawImage || !rawImage.width) {
+  if (!rawImage || !rawImage.width || !alignCanvas) {
     currentExtractedTexture = createFallbackDummyTexture();
     return;
   }
@@ -757,7 +1141,8 @@ function exportAlignedTexture() {
 
 function createFallbackDummyTexture(colorA, colorB) {
   var c = document.createElement('canvas');
-  c.width = 512; c.height = 512;
+  c.width = 512;
+  c.height = 512;
   var ctx = c.getContext('2d');
   var grad = ctx.createLinearGradient(0, 0, 512, 512);
   grad.addColorStop(0, colorA || '#2a5298');
@@ -772,11 +1157,14 @@ function createFallbackDummyTexture(colorA, colorB) {
   return c.toDataURL('image/jpeg', 0.85);
 }
 
-/* 설문 데이터 및 표시 로직 */
+// --------------------------------------------------------------------------
+// 설문조사
+// --------------------------------------------------------------------------
 var surveyQuestions = [
+  { title: "당신의 이름은 무엇인가요?", desc: "" },
   {
-    title: "당신은 어떤 나비인가요?",
-    desc: "자신을 소개해 주세요. (다중 선택)",
+    title: "당신은 어떤 사람인가요?",
+    desc: "(다중 선택)",
     category: "#나의 고유한 모습",
     options: [
       "야행성", "아침형", "집돌이·집순이", "외향형", "계획파", "즉흥파", "사색가", "행동파", "마이웨이", "눈치러",
@@ -787,33 +1175,9 @@ var surveyQuestions = [
     ]
   },
   {
-    title: "고치에서 나온 당신,<br>어떤 여정을 떠날 건가요?",
-    desc: "향하고 싶은 방향을 골라주세요. (다중 선택)",
-    category: "#향하고 싶은 여정",
-    options: [
-      "취업 뽀개기", "칼퇴 보장", "자취방 독립", "내 작은 카페", "자격증 합격", "목표 어학 점수", "해외 한 달 살기", "1,000만 원 저축", "내 브랜드 론칭", "숙면 8시간",
-      "콘서트 올콘", "운동 습관化", "포트폴리오 완성", "악연 손절", "첫 월급 선물", "창작물 완판", "바다 여행", "완벽주의 탈출", "채널 1만 구독", "면접 당당함",
-      "학자금 완납", "좋아하는 일로 밥벌이", "운전면허 드라이브", "온전한 호캉스", "완독 10권", "바디프로필", "나만의 작업실", "타인 시선 무시", "팀 프로젝트 대박", "쿨한 멘탈",
-      "내 집 마련 기반", "악기 마스터", "고요한 밤산책", "다정한 연애", "단골 아지트", "집밥 챙겨먹기", "번아웃 브레이크", "거절하는 용기", "내 스타일대로", "워홀·교환학생",
-      "매일 셀프 칭찬", "개인 전시·팝업", "수면 패턴 정상화", "공모전 수상", "대범한 배짱", "주말 카페 멍때리기", "가족 여행 보내기", "하루 종일 넷플릭스", "비교 끊기", "그냥 오늘 행복"
-    ]
-  },
-  {
-    title: "긴 여정을 위해<br>챙겨가야 할 것은?",
-    desc: "비행 동안 나비가 품고 갈 마음을 골라주세요. (다중 선택)",
-    category: "#품고 날아갈 마음",
-    options: [
-      "흔들려도 그냥 둠", "남 눈치 안 보고 멍때림", "망해도 별일 아니라고 넘김", "내 속도대로 천천히 감", "할 만큼 했다고 인정함", "억지로 애쓰지 않음", "싫은 건 싫다고 생각함", "오늘 하루만 버텨봄", "완벽하지 않아도 만족함", "혼자만의 침묵을 즐김",
-      "남의 말 한 귀로 흘림", "당장 답을 찾지 않음", "아무 계획 없이 흘러감", "내 감정에 솔직해짐", "쉬는 것에 당당해짐", "안 되는 건 쿨하게 포기함", "넘어져도 급하게 안 일어남", "나를 가장 먼저 챙김", "작은 틈을 내어 숨을 쉼", "그때그때 마음 가는 대로 함",
-      "타인의 기대에서 한 발 물러섬", "서두르지 않는 뻔뻔함", "실수해도 씩씩하게 웃기", "지금 이대로 충분하다는 안도", "세상 참견 차단하기", "실패를 경험으로 치기", "내 선택을 끝까지 믿기", "억지 인연 붙잡지 않기", "감정 기복에 휘둘리지 않기", "나만의 속도 존중하기",
-      "작은 일에 일희일비 안 하기", "거절 앞에 당당해지기", "지나간 일 곱씹지 않기", "타인과의 비교 단호히 끊기", "힘 빼고 유연하게 살기", "있는 그대로의 나 사랑하기", "번아웃 전에 먼저 멈추기", "단단한 자기 확신 갖기", "굳이 설명하지 않는 대범함", "안 풀릴 땐 일단 자고 보기",
-      "세상 기준에 나를 맞추지 않기", "사소한 즐거움 먼저 찾기", "묵묵히 내 보폭 유지하기", "미움받을 약간의 용기", "쓸데없는 자책 지우기", "혼자만의 시간 지켜내기", "무리한 부탁 딱 자르기", "앞날을 기대하는 설렘", "어떤 순간에도 자책하지 않기", "그냥 오늘 하루 즐기기"
-    ]
-  },
-  {
-    title: "비행 중 마주친 나의 천적은?",
-    desc: "날갯짓을 가로막는 것은 무엇일까요? (다중 선택)",
-    category: "#마주친 마음의 천적",
+    title: "당신을 붙잡고 있는 것은 무엇인가요?",
+    desc: "(다중 선택)",
+    category: "#마주친 마음의 고민",
     options: [
       "비교중독", "만성 피로", "텅 빈 잔고", "완벽주의 강박", "미래 막막함", "거절 공포", "지나간 후회", "가면 증후군", "스마트폰 중독", "결정 장애",
       "눈치 보기", "벼락치기 습관", "타인 인정 욕구", "번아웃 무기력", "억지 미소", "취업 압박감", "수면 부족", "실패 공포증", "잦은 감정 기복", "뒤처짐 조급함",
@@ -822,35 +1186,8 @@ var surveyQuestions = [
       "월세·생활비 압박", "도파민 중독", "좁아진 시야", "낮은 자존감", "겉만 번지르르함", "감정 쓰레기통 역할", "무리한 부탁", "고립된 혼밥", "흐려진 목표", "그냥 온갖 귀찮음"
     ]
   },
-  {
-    title: "그 천적을 맞닥뜨렸을 때,<br>어떻게 맞설 건가요?",
-    desc: "비장의 한 수를 골라주세요. (다중 선택)",
-    category: "#나만의 비장의 한 수",
-    options: [
-      '"어쩌라고" 마인드', "일단 푹 자기", "칼같은 단호함", "한 귀로 흘리기", "연락 차단 모드", "뻔뻔한 배짱", '"그럴 수 있지"', "빠른 손절", "나만의 속도", "미련 없는 포기",
-      "쿨한 넘김", "거절하는 용기", "침묵의 멍때리기", "스스로 토닥이기", "당당한 마이웨이", "무반응과 무관심", "셀프 칭찬", "혼자만의 고요", "딴청 피우기", "근거 없는 자신감",
-      "할 말은 하기", "맛있는 한 끼", "단단한 자기 확신", "일희일비 안 하기", "억지 웃음 멈추기", "타인 기대 던지기", "내 보폭 지키기", "씩씩한 리셋", "망해도 고(Go)", "즉각 브레이크",
-      "시선 차단 선글라스", "감정 분리하기", "지나간 일 잊기", "힘 빼고 유연함", "눈치 안 보기", "있는 그대로 긍정", "선 긋기", "방어막 치기", "소신 지키기", "작은 일탈",
-      "유쾌한 무시", "대범한 무덤덤함", "질문 가볍게 넘기기", "내 기분 우선", "무리한 부탁 쳐내기", "혼밥의 자유", "심호흡 한 번", "비교 스위치 끄기", "굳은살 멘탈", "그냥 오늘 하루 즐기기"
-    ]
-  },
-  {
-    title: "나비에게 전하고 싶은 한마디는?",
-    desc: "먼 훗날 다시 마주할 나비에게 건넬 응원을 남겨주세요."
-  },
-  {
-    title: "먼 하늘 너울 속으로 날아오를 나비의 이름은?",
-    desc: "나비에게 고유한 이름을 붙여주세요."
-  }
+  { title: "나에게, 그리고 우리에게 건넬 다정한 한마디를 적어주세요.", desc: "" }
 ];
-
-var userSelections = {
-  q1: [], q2: [], q3: [], q4: [], q5: [],
-  q6_memo: "",
-  q7_name: ""
-};
-
-var currentStepIdx = 0;
 
 function buildAdaptiveVerticalRows(items) {
   var rows = [];
@@ -880,11 +1217,16 @@ var inputQ6Memo = document.getElementById('input-q6-memo');
 var memoCounter = document.getElementById('memo-counter');
 var inputQ7Name = document.getElementById('input-q7-name');
 var charCounter = document.getElementById('char-counter');
+var elSelectedConcernChips = document.getElementById('selected-concern-chips');
 
+var surveyCustomInputAnchor = document.getElementById('survey-custom-input-anchor');
+var inputCustomKeyword = document.getElementById('input-custom-keyword');
+var btnCustomKeywordClear = document.getElementById('btn-custom-keyword-clear');
 var surveyTitleTypeTimer = null;
 
-function typeWriterSurveyTitle(titleHtml) {
+function typeWriterSurveyTitle(titleHtml, onComplete) {
   clearTimeout(surveyTitleTypeTimer);
+  if (!elTitle) return;
   elTitle.innerHTML = "";
   var tokens = titleHtml.match(/(<[^>]+>|[^<])/g) || [];
   var idx = 0;
@@ -896,45 +1238,111 @@ function typeWriterSurveyTitle(titleHtml) {
       currentContent += char;
       elTitle.innerHTML = currentContent;
       idx++;
-      var delay = 85;
+      var delay = 80;
       if (char.startsWith('<')) delay = 0;
       else if (char === '?' || char === '.') delay = 350;
       else if (char === ',') delay = 200;
       surveyTitleTypeTimer = setTimeout(nextChar, delay);
+    } else {
+      if (onComplete) setTimeout(onComplete, 150);
     }
   }
   nextChar();
 }
 
+function updateCustomInputBarState() {
+  if (!inputCustomKeyword) return;
+  var currentCustom = "";
+  if (currentStepIdx === 1) currentCustom = userSelections.q1_custom || "";
+  else if (currentStepIdx === 2) currentCustom = userSelections.q2_custom || "";
+
+  inputCustomKeyword.value = currentCustom;
+  if (btnCustomKeywordClear) {
+    if (currentCustom.trim().length > 0) btnCustomKeywordClear.classList.remove('hidden');
+    else btnCustomKeywordClear.classList.add('hidden');
+  }
+}
+
 function renderSurveyStep() {
   var q = surveyQuestions[currentStepIdx];
-  typeWriterSurveyTitle(q.title);
-  elDesc.innerHTML = q.desc;
+  if (!q) return;
   
-  elProgressBar.style.width = (((currentStepIdx + 1) / 7) * 100) + '%';
+  if (elProgressBar) {
+    var pPercent = 25;
+    if (currentStepIdx === 0) pPercent = 25;
+    else if (currentStepIdx === 1) pPercent = 50;
+    else if (currentStepIdx === 2) pPercent = 75;
+    else if (currentStepIdx === 3) pPercent = 100;
+    elProgressBar.style.width = pPercent + '%';
+  }
 
-  btnSurveyPrev.classList.toggle('invisible', currentStepIdx === 0);
-  btnSurveyNext.innerText = currentStepIdx === 6 ? "완성된 나비 만나기" : "다음 질문으로";
+  if (btnSurveyPrev) {
+    btnSurveyPrev.classList.toggle('invisible', currentStepIdx === 0);
+  }
+  
+  if (btnSurveyNext) {
+    if (currentStepIdx === 3) btnSurveyNext.innerText = "완성하기";
+    else btnSurveyNext.innerText = "다음 질문으로";
+  }
 
-  if (currentStepIdx < 5) {
-    surveyChipWrapper.classList.remove('hidden');
-    elField6.classList.add('hidden');
-    elField6.classList.remove('flex');
-    elField7.classList.add('hidden');
-    elField7.classList.remove('flex');
+  var titleBox = document.querySelector('.survey-title-box');
+  if (titleBox) titleBox.style.display = 'flex';
+
+  if (currentStepIdx === 0) {
+    stopBubblePhysics();
+    typeWriterSurveyTitle(q.title);
+    if (elDesc) elDesc.innerHTML = q.desc;
+    if (surveyChipWrapper) surveyChipWrapper.classList.add('hidden');
+    if (elField6) { elField6.classList.add('hidden'); elField6.classList.remove('flex'); }
+    if (elField7) { elField7.classList.remove('hidden'); elField7.classList.add('flex'); }
+    if (surveyCustomInputAnchor) {
+      surveyCustomInputAnchor.classList.remove('custom-anchor-visible');
+      surveyCustomInputAnchor.classList.add('custom-anchor-hidden');
+    }
+  } else if (currentStepIdx === 1 || currentStepIdx === 2) {
+    stopBubblePhysics();
+    typeWriterSurveyTitle(q.title);
+    if (elDesc) elDesc.innerHTML = q.desc;
+    if (surveyChipWrapper) surveyChipWrapper.classList.remove('hidden');
+    if (elField6) { elField6.classList.add('hidden'); elField6.classList.remove('flex'); }
+    if (elField7) { elField7.classList.add('hidden'); elField7.classList.remove('flex'); }
+    if (surveyCustomInputAnchor) {
+      surveyCustomInputAnchor.classList.remove('custom-anchor-hidden');
+      surveyCustomInputAnchor.classList.add('custom-anchor-visible');
+    }
+    updateCustomInputBarState();
     renderVerticalScrollChips();
-  } else if (currentStepIdx === 5) {
-    surveyChipWrapper.classList.add('hidden');
-    elField6.classList.remove('hidden');
-    elField6.classList.add('flex');
-    elField7.classList.add('hidden');
-    elField7.classList.remove('flex');
-  } else {
-    surveyChipWrapper.classList.add('hidden');
-    elField6.classList.add('hidden');
-    elField6.classList.remove('flex');
-    elField7.classList.remove('hidden');
-    elField7.classList.add('flex');
+  } else if (currentStepIdx === 3) {
+    typeWriterSurveyTitle(q.title);
+    if (elDesc) elDesc.innerHTML = q.desc;
+    if (surveyChipWrapper) surveyChipWrapper.classList.add('hidden');
+    if (elField7) { elField7.classList.add('hidden'); elField7.classList.remove('flex'); }
+    if (surveyCustomInputAnchor) {
+      surveyCustomInputAnchor.classList.remove('custom-anchor-visible');
+      surveyCustomInputAnchor.classList.add('custom-anchor-hidden');
+    }
+
+    if (elField6) {
+      elField6.classList.remove('hidden');
+      elField6.classList.add('flex');
+    }
+
+    var memoBox = elField6 ? elField6.querySelector('.glass-input-card-v2') : null;
+    var memoCounterWrap = memoCounter ? memoCounter.parentElement : null;
+    if (memoBox) {
+      memoBox.style.opacity = '1';
+      memoBox.style.transform = 'translateY(0)';
+    }
+    if (memoCounterWrap) {
+      memoCounterWrap.style.opacity = '1';
+    }
+
+    if (elSelectedConcernChips) {
+      elSelectedConcernChips.innerHTML = '';
+      elSelectedConcernChips.style.display = 'none';
+    }
+
+    startBubblePhysics();
   }
 
   validateSurveyStep();
@@ -957,15 +1365,16 @@ function updateChipStyle(chip, isSelected) {
     chip.style.setProperty('border', '1px solid rgba(255, 255, 255, 0.14)', 'important');
     chip.style.setProperty('color', '#a3a3a3', 'important');
     chip.style.setProperty('font-weight', '500', 'important');
-    chip.style.setProperty('box-shadow', 'none', 'important');
+    chip.style.shadow = 'none';
   }
 }
 
 function renderVerticalScrollChips() {
+  if (!elOrganicContainer || !surveyChipWrapper) return;
   var q = surveyQuestions[currentStepIdx];
   var allOptions = q.options || [];
   var rows = buildAdaptiveVerticalRows(allOptions);
-  var stateKey = 'q' + (currentStepIdx + 1);
+  var stateKey = currentStepIdx === 1 ? 'q1' : 'q2';
 
   elOrganicContainer.innerHTML = '';
   surveyChipWrapper.scrollTop = 0;
@@ -982,7 +1391,7 @@ function renderVerticalScrollChips() {
       var isSelected = userSelections[stateKey].indexOf(item) > -1;
       updateChipStyle(chip, isSelected);
 
-      chip.addEventListener('click', function() {
+      chip.onclick = function() {
         var idx = userSelections[stateKey].indexOf(item);
         var nextState = false;
         if (idx > -1) {
@@ -994,179 +1403,339 @@ function renderVerticalScrollChips() {
         }
         updateChipStyle(chip, nextState);
         validateSurveyStep();
-      });
+      };
       rowDiv.appendChild(chip);
     });
     elOrganicContainer.appendChild(rowDiv);
   });
 }
 
+if (inputCustomKeyword) {
+  inputCustomKeyword.oninput = function(e) {
+    var val = e.target.value;
+    if (currentStepIdx === 1) userSelections.q1_custom = val;
+    else if (currentStepIdx === 2) userSelections.q2_custom = val;
+
+    if (btnCustomKeywordClear) {
+      if (val.trim().length > 0) btnCustomKeywordClear.classList.remove('hidden');
+      else btnCustomKeywordClear.classList.add('hidden');
+    }
+    validateSurveyStep();
+  };
+}
+
+if (btnCustomKeywordClear) {
+  btnCustomKeywordClear.onclick = function(e) {
+    e.stopPropagation();
+    if (inputCustomKeyword) {
+      inputCustomKeyword.value = "";
+      inputCustomKeyword.focus();
+    }
+    if (currentStepIdx === 1) userSelections.q1_custom = "";
+    else if (currentStepIdx === 2) userSelections.q2_custom = "";
+    btnCustomKeywordClear.classList.add('hidden');
+    validateSurveyStep();
+  };
+}
+
 function validateSurveyStep() {
+  if (!btnSurveyNext) return;
   var isValid = false;
-  if (currentStepIdx === 0) isValid = userSelections.q1.length > 0;
-  else if (currentStepIdx === 1) isValid = userSelections.q2.length > 0;
-  else if (currentStepIdx === 2) isValid = userSelections.q3.length > 0;
-  else if (currentStepIdx === 3) isValid = userSelections.q4.length > 0;
-  else if (currentStepIdx === 4) isValid = userSelections.q5.length > 0;
-  else if (currentStepIdx === 5) isValid = true;
-  else if (currentStepIdx === 6) isValid = userSelections.q7_name.trim().length > 0;
+  if (currentStepIdx === 0) {
+    isValid = userSelections.q7_name.trim().length > 0;
+  } else if (currentStepIdx === 1) {
+    var hasCustom1 = userSelections.q1_custom && userSelections.q1_custom.trim().length > 0;
+    isValid = userSelections.q1.length > 0 || hasCustom1;
+  } else if (currentStepIdx === 2) {
+    var hasCustom2 = userSelections.q2_custom && userSelections.q2_custom.trim().length > 0;
+    isValid = userSelections.q2.length > 0 || hasCustom2;
+  } else if (currentStepIdx === 3) {
+    isValid = true;
+  }
   btnSurveyNext.disabled = !isValid;
 }
 
-inputQ6Memo.addEventListener('input', function(e) {
-  userSelections.q6_memo = e.target.value;
-  memoCounter.innerText = e.target.value.length + '/50';
-  validateSurveyStep();
-});
-
-inputQ7Name.addEventListener('input', function(e) {
-  userSelections.q7_name = e.target.value.trim();
-  charCounter.innerText = e.target.value.length + '/10';
-  validateSurveyStep();
-});
-
-var showcaseInterval = null;
-
-function startAnswerShowcaseSequence() {
-  if (showcaseInterval) {
-    clearInterval(showcaseInterval);
-    showcaseInterval = null;
-  }
-
-  var showcaseCard = document.getElementById('showcase-card');
-  var showcaseCategory = document.getElementById('showcase-category');
-  var showcaseAnswers = document.getElementById('showcase-answers');
-  var progressBar = document.getElementById('generation-progress-bar');
-  var stepDots = document.querySelectorAll('.step-dot');
-  var loadingSvg = document.getElementById('loading-butterfly-svg');
-  var blackCurtain = document.getElementById('cinematic-black-curtain');
-  var whiteFlash = document.getElementById('cinematic-white-flash');
-  var mainTitle = document.getElementById('loading-main-title');
-  var subDesc = document.getElementById('loading-sub-desc');
-
-  var butterflyName = userSelections.q7_name ? userSelections.q7_name.trim() : "나비";
-
-  var steps = [
-    { key: 'q1', category: '#나의 고유한 모습', fallback: ["차분한", "나만의 속도"] },
-    { key: 'q2', category: '#향하고 싶은 여정', fallback: ["자유로운 비행", "나만의 작업실"] },
-    { key: 'q3', category: '#품고 날아갈 마음', fallback: ["단단한 자기 확신", "서두르지 않기"] },
-    { key: 'q4', category: '#마주친 마음의 천적', fallback: ["비교와 조급함", "번아웃 무기력"] },
-    { key: 'q5', category: '#나만의 비장의 한 수', fallback: ["유연한 태도", "그냥 오늘 하루 즐기기"] },
-    { isFinal: true, category: '#마침내 깨어난 날갯짓', name: butterflyName }
-  ];
-
-  var currentShowcaseIdx = 0;
-  var totalSteps = steps.length;
-  var stepDuration = 5000;
-
-  function renderStep(idx) {
-    var item = steps[idx];
-    showcaseCard.classList.remove('visible-state');
-    showcaseCard.classList.add('hidden-state');
-
-    setTimeout(function() {
-      showcaseCategory.innerText = item.category;
-
-      if (item.isFinal) {
-        if (blackCurtain) blackCurtain.classList.add('fade-active');
-        
-        if (mainTitle) {
-          mainTitle.innerHTML = '';
-          mainTitle.style.display = 'none';
-        }
-        if (subDesc) {
-          subDesc.innerText = '';
-          subDesc.style.display = 'none';
-        }
-
-        if (loadingSvg) {
-          loadingSvg.classList.remove('text-white', 'w-20', 'h-20');
-          loadingSvg.classList.add('w-36', 'h-36', 'scale-110');
-          loadingSvg.style.filter = "drop-shadow(0 0 45px rgba(255, 255, 255, 1))";
-        }
-
-        showcaseAnswers.innerHTML = '<div class="py-2 px-2 text-center w-full space-y-2"><p class="text-[1.12rem] font-bold text-white leading-relaxed break-keep drop-shadow-lg"><strong class="text-white font-extrabold underline decoration-white/40 underline-offset-4">‘' + item.name + '’</strong>(이)가<br>찬란한 빛의 날개를 펴고 깨어납니다.</p></div>';
-      } else {
-        var answers = (userSelections[item.key] && userSelections[item.key].length > 0) 
-                        ? userSelections[item.key] 
-                        : item.fallback;
-        showcaseAnswers.innerHTML = answers.map(function(ans) {
-          return '<span class="px-3.5 py-1.5 rounded-full bg-white/20 border border-white/30 text-white font-semibold text-xs tracking-tight shadow-sm">' + ans + '</span>';
-        }).join('');
-      }
-
-      stepDots.forEach(function(dot, dIdx) {
-        if (dIdx === idx) {
-          dot.classList.remove('bg-white/30');
-          dot.classList.add('bg-white', 'scale-125');
-        } else {
-          dot.classList.remove('bg-white', 'scale-125');
-          dot.classList.add('bg-white/30');
-        }
-      });
-
-      var percent = Math.min(100, Math.round(((idx + 1) / totalSteps) * 100));
-      if (progressBar) progressBar.style.width = percent + '%';
-
-      showcaseCard.classList.remove('hidden-state');
-      showcaseCard.classList.add('visible-state');
-    }, 400);
-  }
-
-  renderStep(0);
-
-  showcaseInterval = setInterval(function() {
-    currentShowcaseIdx++;
-    if (currentShowcaseIdx < totalSteps) {
-      renderStep(currentShowcaseIdx);
-    } else {
-      clearInterval(showcaseInterval);
-      showcaseInterval = null;
-      setTimeout(function() {
-        if (whiteFlash) whiteFlash.classList.add('flash-active');
-        setTimeout(function() {
-          var nameHeader = document.getElementById('preview-butterfly-name');
-          if (nameHeader) nameHeader.innerText = '‘' + butterflyName + '’';
-          showScreen('screen-preview');
-          initFullButterflyViewer(currentExtractedTexture || createFallbackDummyTexture());
-          setTimeout(function() {
-            if (whiteFlash) whiteFlash.classList.remove('flash-active');
-          }, 450);
-        }, 650);
-      }, 4600);
-    }
-  }, stepDuration);
+if (inputQ6Memo) {
+  inputQ6Memo.oninput = function(e) {
+    userSelections.q6_memo = e.target.value;
+    if (memoCounter) memoCounter.innerText = e.target.value.length + '/50';
+    validateSurveyStep();
+  };
 }
 
-btnSurveyNext.addEventListener('click', function() {
-  if (currentStepIdx < 6) {
-    currentStepIdx++;
-    renderSurveyStep();
-  } else {
-    showScreen('screen-loading');
-    startAnswerShowcaseSequence();
-  }
-});
+if (inputQ7Name) {
+  inputQ7Name.oninput = function(e) {
+    userSelections.q7_name = e.target.value.trim();
+    if (charCounter) charCounter.innerText = e.target.value.length + '/10';
+    validateSurveyStep();
+  };
+}
 
-btnSurveyPrev.addEventListener('click', function() {
-  if (currentStepIdx > 0) {
-    currentStepIdx--;
-    renderSurveyStep();
-  }
-});
+// 다음 버튼 클릭 시
+if (btnSurveyNext) {
+  btnSurveyNext.onclick = function() {
+    if (currentStepIdx === 0) {
+      currentStepIdx = 1;
+      renderSurveyStep();
+    } else if (currentStepIdx === 1) {
+      if (userSelections.q1_custom && userSelections.q1_custom.trim()) {
+        var customText1 = userSelections.q1_custom.trim();
+        if (userSelections.q1.indexOf(customText1) === -1) userSelections.q1.unshift(customText1);
+      }
+      currentStepIdx = 2;
+      renderSurveyStep();
+    } else if (currentStepIdx === 2) {
+      if (userSelections.q2_custom && userSelections.q2_custom.trim()) {
+        var customText2 = userSelections.q2_custom.trim();
+        if (userSelections.q2.indexOf(customText2) === -1) userSelections.q2.unshift(customText2);
+      }
+      if (!userSelections.q2 || userSelections.q2.length === 0) {
+        userSelections.q2 = ["비교중독", "수면 부족", "완벽주의 강박", "거절 공포", "텅 빈 잔고", "미래 막막함"];
+      }
+      showScreen('screen-survey-core-concern');
+    } else if (currentStepIdx === 3) {
+      showScreen('screen-loading');
+      startAnswerShowcaseSequence();
+    }
+  };
+}
 
-/* ==========================================================================
-   🌟 0. 표지 화면(screen-cover) 1번 사진 3D 나비 렌더러
-   - 코드에 저장되어 있는 2번째 나비 ('moon-halo', 달무리 나비)
-   - 1번 사진처럼 순백색(#ffffff)이며 측면에서 비스듬히 날개를 접고 앉아 있는 구도 재현
-   - 아이폰 17 화면비에서 나비 전체 모습이 화면 안에 다 들어오도록 화각 설정
-   ========================================================================== */
+// 이전 버튼 클릭 시
+if (btnSurveyPrev) {
+  btnSurveyPrev.onclick = function() {
+    if (currentStepIdx === 3) {
+      showScreen('screen-survey-bridge');
+    } else if (currentStepIdx === 2) {
+      currentStepIdx = 1;
+      renderSurveyStep();
+    } else if (currentStepIdx === 1) {
+      currentStepIdx = 0;
+      renderSurveyStep();
+    }
+  };
+}
+
+// --------------------------------------------------------------------------
+// 핵심 고민 화면 시네마틱 플로우
+// --------------------------------------------------------------------------
+var coreConcernTypeTimer = null;
+var elCoreConcernTitleWrap = document.getElementById('core-concern-title-wrapper');
+var elCoreConcernTitle = document.getElementById('core-concern-title');
+var elCoreConcernContainer = document.getElementById('core-concern-scroll-container');
+var elCoreConcernGrid = document.getElementById('core-concern-scroll-grid');
+var btnCoreConcernNext = document.getElementById('btn-core-concern-next');
+var btnCoreConcernPrev = document.getElementById('btn-core-concern-prev');
+
+function calculateRowDistribution(totalCount) {
+  if (totalCount <= 0) return [];
+  if (totalCount === 1) return [1];
+  if (totalCount === 2) return [2];
+  if (totalCount === 3) return [3];
+  if (totalCount === 4) return [2, 2];
+  if (totalCount === 5) return [2, 3];
+
+  if (totalCount <= 10) {
+    var base3 = Math.floor(totalCount / 3);
+    var rem3 = totalCount % 3;
+    if (rem3 === 0) return [base3, base3, base3];
+    if (rem3 === 1) return [base3, base3, base3 + 1];
+    return [base3, base3 + 1, base3 + 1];
+  }
+
+  var base5 = Math.floor(totalCount / 5);
+  var rem5 = totalCount % 5;
+  var rows5 = [base5, base5, base5, base5, base5];
+  for (var r = 0; r < rem5; r++) {
+    rows5[4 - r]++;
+  }
+  return rows5;
+}
+
+function initCoreConcernScreen() {
+  clearTimeout(coreConcernTypeTimer);
+
+  if (elCoreConcernTitleWrap) elCoreConcernTitleWrap.classList.remove('moved-to-top');
+  if (elCoreConcernTitle) elCoreConcernTitle.innerHTML = "";
+  if (elCoreConcernContainer) elCoreConcernContainer.classList.remove('revealed');
+
+  var selectedItems = [].concat(userSelections.q2 || []);
+  if (userSelections.q2_custom && userSelections.q2_custom.trim()) {
+    var cCustom = userSelections.q2_custom.trim();
+    if (selectedItems.indexOf(cCustom) === -1) selectedItems.unshift(cCustom);
+  }
+
+  if (selectedItems.length === 0) {
+    selectedItems = ["완벽주의 강박", "비교중독", "수면 부족", "거절 공포", "텅 빈 잔고", "미래 막막함"];
+    userSelections.q2 = [].concat(selectedItems);
+  }
+
+  if (!userSelections.core_concern && selectedItems.length > 0) {
+    userSelections.core_concern = selectedItems[0];
+  }
+
+  if (btnCoreConcernNext) btnCoreConcernNext.disabled = !userSelections.core_concern;
+  
+  if (elCoreConcernGrid) {
+    elCoreConcernGrid.innerHTML = '';
+  }
+
+  var distribution = calculateRowDistribution(selectedItems.length);
+  var itemCursor = 0;
+
+  distribution.forEach(function(countInRow) {
+    var rowDiv = document.createElement('div');
+    rowDiv.className = 'core-concern-row';
+
+    for (var i = 0; i < countInRow && itemCursor < selectedItems.length; i++) {
+      (function() {
+        var item = selectedItems[itemCursor];
+        var btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'core-concern-text-btn';
+        btn.innerText = item;
+
+        if (userSelections.core_concern === item) {
+          btn.classList.add('core-concern-selected');
+        } else {
+          btn.classList.add('core-concern-unselected');
+        }
+
+        btn.onclick = function() {
+          userSelections.core_concern = item;
+          var allButtons = elCoreConcernGrid.querySelectorAll('.core-concern-text-btn');
+          allButtons.forEach(function(b) {
+            b.classList.remove('core-concern-selected');
+            b.classList.add('core-concern-unselected');
+          });
+          btn.classList.remove('core-concern-unselected');
+          btn.classList.add('core-concern-selected');
+          if (btnCoreConcernNext) btnCoreConcernNext.disabled = false;
+        };
+
+        rowDiv.appendChild(btn);
+        itemCursor++;
+      })();
+    }
+    elCoreConcernGrid.appendChild(rowDiv);
+  });
+
+  if (elCoreConcernContainer) {
+    setTimeout(function() {
+      var scrollCenter = (elCoreConcernContainer.scrollWidth - elCoreConcernContainer.clientWidth) / 2;
+      elCoreConcernContainer.scrollLeft = Math.max(0, scrollCenter);
+    }, 50);
+
+    var isDown = false;
+    var startXCoord = 0;
+    var scrollLeftVal = 0;
+
+    elCoreConcernContainer.onmousedown = function(e) {
+      isDown = true;
+      startXCoord = e.pageX - elCoreConcernContainer.offsetLeft;
+      scrollLeftVal = elCoreConcernContainer.scrollLeft;
+    };
+    elCoreConcernContainer.onmouseleave = function() { isDown = false; };
+    elCoreConcernContainer.onmouseup = function() { isDown = false; };
+    elCoreConcernContainer.onmousemove = function(e) {
+      if (!isDown) return;
+      e.preventDefault();
+      var x = e.pageX - elCoreConcernContainer.offsetLeft;
+      var walk = (x - startXCoord) * 1.5;
+      elCoreConcernContainer.scrollLeft = scrollLeftVal - walk;
+    };
+  }
+
+  var typingMsg = "이 중에서 가장 꺼내기 힘든 것은<br>무엇인가요?";
+  var tokens = typingMsg.match(/(<[^>]+>|[^<])/g) || [];
+  var idx = 0;
+  var curText = "";
+
+  function typeNextCoreChar() {
+    if (idx < tokens.length) {
+      var char = tokens[idx];
+      curText += char;
+      if (elCoreConcernTitle) elCoreConcernTitle.innerHTML = curText;
+      idx++;
+      var delay = 75;
+      if (char.startsWith('<')) delay = 0;
+      else if (char === '?' || char === '.') delay = 350;
+      coreConcernTypeTimer = setTimeout(typeNextCoreChar, delay);
+    } else {
+      setTimeout(function() {
+        if (elCoreConcernTitleWrap) elCoreConcernTitleWrap.classList.add('moved-to-top');
+        setTimeout(function() {
+          if (elCoreConcernContainer) elCoreConcernContainer.classList.add('revealed');
+        }, 450);
+      }, 350);
+    }
+  }
+  setTimeout(typeNextCoreChar, 180);
+}
+
+// 핵심 고민 선택 후 다음으로 -> 도안 촬영 가이드로 직행
+if (btnCoreConcernNext) {
+  btnCoreConcernNext.onclick = function() {
+    if (!userSelections.core_concern) return;
+    showScreen('screen-capture-guide');
+  };
+}
+
+if (btnCoreConcernPrev) {
+  btnCoreConcernPrev.onclick = function() {
+    currentStepIdx = 2;
+    showScreen('screen-survey');
+  };
+}
+
+// --------------------------------------------------------------------------
+// 말풍선 물리 낙하 애니메이션
+// --------------------------------------------------------------------------
+var bubbleCanvas = null;
+var bctx = null;
+var bubbleAnimFrameId = null;
+var physicsBubbles = [];
+
+function resizeBubblePhysicsCanvas() {
+  bubbleCanvas = document.getElementById('bubble-physics-canvas');
+  if (!bubbleCanvas) return;
+  var parent = bubbleCanvas.parentElement;
+  if (!parent) return;
+  var rect = parent.getBoundingClientRect();
+  bubbleCanvas.width = rect.width;
+  bubbleCanvas.height = rect.height;
+}
+
+function startBubblePhysics() {
+  stopBubblePhysics();
+  bubbleCanvas = document.getElementById('bubble-physics-canvas');
+  if (!bubbleCanvas) return;
+  resizeBubblePhysicsCanvas();
+  bctx = bubbleCanvas.getContext('2d');
+  if (bctx) {
+    bctx.clearRect(0, 0, bubbleCanvas.width, bubbleCanvas.height);
+  }
+  physicsBubbles = [];
+}
+
+function stopBubblePhysics() {
+  if (bubbleAnimFrameId) {
+    cancelAnimationFrame(bubbleAnimFrameId);
+    bubbleAnimFrameId = null;
+  }
+  if (bubbleCanvas && bctx) {
+    bctx.clearRect(0, 0, bubbleCanvas.width, bubbleCanvas.height);
+  }
+}
+
+// --------------------------------------------------------------------------
+// 표지 3D 나비 & 나비 뷰어
+// --------------------------------------------------------------------------
 var coverScene, coverCamera, coverRenderer, coverGroup;
 var coverAnimFrameId = null;
 
 function initCoverButterfly3D() {
   var container = document.getElementById('cover-three-container');
-  if (!container) return;
+  if (!container || !window.THREE) return;
 
   if (coverAnimFrameId) {
     cancelAnimationFrame(coverAnimFrameId);
@@ -1178,7 +1747,6 @@ function initCoverButterfly3D() {
   var h = container.clientHeight || window.innerHeight;
 
   coverScene = new THREE.Scene();
-  // 아이폰 17 세로 화면비(약 9:19.5)를 고려하여 나비 날개 양끝이 화면 안에 모두 들어오도록 카메라 거리 세팅
   coverCamera = new THREE.PerspectiveCamera(42, w / h, 0.1, 100);
   coverCamera.position.set(0, 0, 7.8);
   coverCamera.lookAt(0, 0, 0);
@@ -1188,7 +1756,6 @@ function initCoverButterfly3D() {
   coverRenderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
   container.appendChild(coverRenderer.domElement);
 
-  // 화사하고 몽환적인 화이트 앰비언트/디렉셔널 라이팅
   var ambLight = new THREE.AmbientLight(0xffffff, 1.25);
   coverScene.add(ambLight);
 
@@ -1202,7 +1769,6 @@ function initCoverButterfly3D() {
 
   coverGroup = new THREE.Group();
 
-  // 순백색 고운 질감의 머티리얼 (1번 사진처럼 반짝이는 백색 실루엣)
   var whiteMat = new THREE.MeshStandardMaterial({
     color: 0xffffff,
     roughness: 0.28,
@@ -1210,47 +1776,37 @@ function initCoverButterfly3D() {
     side: THREE.DoubleSide
   });
 
-  // 코드에 등록되어 있는 2번째 나비: moon-halo (달무리 나비)
   var modelPath = '3DButterfly/moon-halo.glb';
   var targetAntennaPrefix = 'Antenna_ball';
-
   var wingL = null, wingR = null;
 
-  var gltfLoader = new THREE.GLTFLoader();
-  gltfLoader.load(modelPath, function(gltf) {
-    var model = gltf.scene;
+  if (window.THREE && THREE.GLTFLoader) {
+    try {
+      var gltfLoader = new THREE.GLTFLoader();
+      gltfLoader.load(modelPath, function(gltf) {
+        var model = gltf.scene;
+        model.traverse(function(child) {
+          if (child.isMesh) {
+            child.material = whiteMat;
+            if (child.name.startsWith('Wing_L')) wingL = child;
+            else if (child.name.startsWith('Wing_R')) wingR = child;
+            else if (child.name.startsWith('Antenna_')) child.visible = child.name.startsWith(targetAntennaPrefix);
+          }
+        });
 
-    model.traverse(function(child) {
-      if (child.isMesh) {
-        child.material = whiteMat;
-        if (child.name.startsWith('Wing_L')) {
-          wingL = child;
-        } else if (child.name.startsWith('Wing_R')) {
-          wingR = child;
-        } else if (child.name.startsWith('Antenna_')) {
-          child.visible = child.name.startsWith(targetAntennaPrefix);
+        if (wingL && wingR) {
+          wingL.rotation.y = -0.58;
+          wingR.rotation.y = 0.58;
         }
-      }
-    });
 
-    // 🌟 1번 사진처럼 날개가 어느 정도 접혀 있는 포즈
-    if (wingL && wingR) {
-      wingL.rotation.y = -0.58; // 접힌 날개 각도
-      wingR.rotation.y = 0.58;
-    }
+        model.scale.set(0.92, 0.92, 0.92);
+        coverGroup.add(model);
+      }, undefined, function() {});
+    } catch(err) {}
+  }
 
-    // 아이폰 17 화면 전체에 여유 있게 꽉 차도록 비율 조정
-    model.scale.set(0.92, 0.92, 0.92);
-    coverGroup.add(model);
-  }, undefined, function(err) {
-    console.error("표지 나비 3D 모델 로드 오류:", err);
-  });
-
-  // 🌟 1번 사진과 동일한 앉아 있는 구도:
-  // 몸체가 우측 하단에서 좌측 상단 대각선 방향으로 비스듬히 향함
   coverGroup.position.set(0.1, -0.05, 0);
   coverGroup.rotation.set(0.22, -1.18, 0.45);
-
   coverScene.add(coverGroup);
 
   var clock = new THREE.Clock();
@@ -1259,7 +1815,6 @@ function initCoverButterfly3D() {
     coverAnimFrameId = requestAnimationFrame(coverAnimate);
     var t = clock.getElapsedTime();
 
-    // 1번 사진의 앉아 있는 형태를 유지하면서 아주 미세하고 우아한 생동감만 부여
     if (wingL && wingR) {
       var breathFlap = Math.sin(t * 1.6) * 0.04;
       wingL.rotation.y = -0.58 + breathFlap;
@@ -1287,9 +1842,7 @@ window.addEventListener('resize', function() {
   }
 });
 
-/* ==========================================================================
-   🌟 3D 엔진 : Three.js 뷰어 (자연스럽게 활짝 펼쳐진 살짝 V자 착석 애니메이션)
-   ========================================================================== */
+/* 3D 뷰어 로직 */
 var fullScene, fullCamera, fullRenderer, fullGroup;
 var leftWingMesh, rightWingMesh, antennaMesh;
 var isFlyingAway = false;
@@ -1305,92 +1858,62 @@ var butterflyRotX = DEFAULT_ROT_X;
 var butterflyRotY = DEFAULT_ROT_Y;
 var isUserDragging = false;
 var lastPointerX = 0, lastPointerY = 0;
-
 var previewStartTime = 0;
 
-// 기 모으기 상태 관리
 var isPressingScreen = false;
 var pressStartTime = 0;
 var isChargeTriggered = false;
 var chargeProgress = 0;
 var chargeVibrateInterval = null;
 
-// 파티클 시스템
 var particleCanvas = null;
 var pctx = null;
 var energyParticles = [];
-
-var hapticAudioCtx = null;
-var dummyHapticInput = null;
 
 function triggerDeviceVibrate(durationMs, intensity) {
   if (navigator.vibrate) {
     try { navigator.vibrate(durationMs); } catch(e) {}
   }
-
-  try {
-    if (!dummyHapticInput) {
-      dummyHapticInput = document.createElement('input');
-      dummyHapticInput.type = 'checkbox';
-      dummyHapticInput.style.position = 'fixed';
-      dummyHapticInput.style.top = '-9999px';
-      dummyHapticInput.style.opacity = '0';
-      document.body.appendChild(dummyHapticInput);
-    }
-    dummyHapticInput.click();
-  } catch(e) {}
-
-  try {
-    var AudioContext = window.AudioContext || window.webkitAudioContext;
-    if (AudioContext) {
-      if (!hapticAudioCtx) hapticAudioCtx = new AudioContext();
-      if (hapticAudioCtx.state === 'suspended') hapticAudioCtx.resume();
-      var osc = hapticAudioCtx.createOscillator();
-      var gain = hapticAudioCtx.createGain();
-      osc.type = 'triangle';
-      osc.frequency.setValueAtTime(45, hapticAudioCtx.currentTime);
-      gain.gain.setValueAtTime(intensity || 0.9, hapticAudioCtx.currentTime);
-      gain.gain.exponentialRampToValueAtTime(0.001, hapticAudioCtx.currentTime + (durationMs / 1000));
-      osc.connect(gain);
-      gain.connect(hapticAudioCtx.destination);
-      osc.start();
-      osc.stop(hapticAudioCtx.currentTime + (durationMs / 1000));
-    }
-  } catch(e) {}
 }
 
 async function saveButterflyToSupabase() {
   try {
+    var newlyCreatedSpecimen = {
+      id: Date.now(),
+      name: userSelections.q7_name || '나비',
+      wingId: selectedButterflyShape,
+      antId: selectedAntennaType,
+      x: 350 + Math.floor(Math.random() * 200 - 100),
+      y: 350 + Math.floor(Math.random() * 200 - 100),
+      scale: 1.5,
+      q1: [].concat(userSelections.q1 || []),
+      core_concern: userSelections.core_concern || (userSelections.q2 && userSelections.q2[0]) || "",
+      memo: userSelections.q6_memo || '',
+      textureUrl: currentExtractedTexture,
+      date: new Date().toISOString().slice(0, 10).replace(/-/g, '. ')
+    };
+    specimenButterfliesData.unshift(newlyCreatedSpecimen);
+
     if (!supabase) return;
-    await supabase
-      .from('butterflies')
-      .insert([
-        {
-          name: userSelections.q7_name || '이름없는 나비',
-          wing_shape: selectedButterflyShape,
-          antenna_type: selectedAntennaType,
-          q1: userSelections.q1,
-          q2: userSelections.q2,
-          q3: userSelections.q3,
-          q4: userSelections.q4,
-          q5: userSelections.q5,
-          memo: userSelections.q6_memo || '',
-          revisit_date: null,
-          email: null,
-          texture_url: currentExtractedTexture
-        }
-      ]);
-  } catch (err) {
-    console.error("Supabase 연동 에러:", err);
-  }
+    await supabase.from('butterflies').insert([{
+      name: userSelections.q7_name || '이름없는 나비',
+      wing_shape: selectedButterflyShape,
+      antenna_type: selectedAntennaType,
+      q1: userSelections.q1,
+      q2: userSelections.q2,
+      core_concern: userSelections.core_concern,
+      q3: [], q4: [], q5: [],
+      memo: userSelections.q6_memo || '',
+      revisit_date: null, email: null,
+      texture_url: currentExtractedTexture
+    }]);
+  } catch (err) {}
 }
 
 function initFullButterflyViewer(textureURL) {
   var container = document.getElementById('three-container');
-  if (animFrameId) {
-    cancelAnimationFrame(animFrameId);
-    animFrameId = null;
-  }
+  if (animFrameId) { cancelAnimationFrame(animFrameId); animFrameId = null; }
+  if (!container || !window.THREE) return;
   container.innerHTML = '';
 
   var width = window.innerWidth;
@@ -1415,11 +1938,8 @@ function initFullButterflyViewer(textureURL) {
   var textureLoader = new THREE.TextureLoader();
   var userTexture = textureLoader.load(textureURL);
   userTexture.flipY = false;
-  userTexture.wrapS = THREE.ClampToEdgeWrapping;
-  userTexture.wrapT = THREE.ClampToEdgeWrapping;
 
   fullGroup = new THREE.Group();
-
   butterflyRotX = DEFAULT_ROT_X;
   butterflyRotY = DEFAULT_ROT_Y;
   fullGroup.rotation.set(butterflyRotX, butterflyRotY, 0);
@@ -1428,68 +1948,45 @@ function initFullButterflyViewer(textureURL) {
   isFlyingAway = false;
   resetChargeState();
 
-  var wingMat = new THREE.MeshBasicMaterial({
-    map: userTexture,
-    side: THREE.DoubleSide
-  });
-
-  var whiteMat = new THREE.MeshStandardMaterial({
-    color: 0xffffff,
-    side: THREE.DoubleSide,
-    roughness: 0.35,
-    metalness: 0.0
-  });
+  var wingMat = new THREE.MeshBasicMaterial({ map: userTexture, side: THREE.DoubleSide });
+  var whiteMat = new THREE.MeshStandardMaterial({ color: 0xffffff, side: THREE.DoubleSide, roughness: 0.35, metalness: 0.0 });
 
   var modelPath = '3DButterfly/' + selectedButterflyShape + '.glb';
   var targetAntennaPrefix = 'Antenna_' + selectedAntennaType;
 
-  var gltfLoader = new THREE.GLTFLoader();
-  gltfLoader.load(modelPath, function(gltf) {
-    var model = gltf.scene;
+  if (window.THREE && THREE.GLTFLoader) {
+    try {
+      var gltfLoader = new THREE.GLTFLoader();
+      gltfLoader.load(modelPath, function(gltf) {
+        var model = gltf.scene;
+        leftWingMesh = null; rightWingMesh = null; antennaMesh = null;
 
-    leftWingMesh = null;
-    rightWingMesh = null;
-    antennaMesh = null;
-
-    model.traverse(function(child) {
-      if (child.isMesh) {
-        var name = child.name;
-        if (name.startsWith('Wing_L')) {
-          leftWingMesh = child;
-          child.material = wingMat;
-          initialRotL = { x: child.rotation.x, y: child.rotation.y, z: child.rotation.z };
-        } else if (name.startsWith('Wing_R')) {
-          rightWingMesh = child;
-          child.material = wingMat;
-          initialRotR = { x: child.rotation.x, y: child.rotation.y, z: child.rotation.z };
-        } 
-        else if (name.startsWith('Body')) {
-          child.material = whiteMat;
-        } 
-        else if (name.startsWith('Antenna_')) {
-          child.material = whiteMat;
-          if (name.startsWith(targetAntennaPrefix)) {
-            child.visible = true;
-            antennaMesh = child;
-          } else {
-            child.visible = false;
+        model.traverse(function(child) {
+          if (child.isMesh) {
+            var name = child.name;
+            if (name.startsWith('Wing_L')) {
+              leftWingMesh = child; child.material = wingMat;
+              initialRotL = { x: child.rotation.x, y: child.rotation.y, z: child.rotation.z };
+            } else if (name.startsWith('Wing_R')) {
+              rightWingMesh = child; child.material = wingMat;
+              initialRotR = { x: child.rotation.x, y: child.rotation.y, z: child.rotation.z };
+            } else if (name.startsWith('Body')) {
+              child.material = whiteMat;
+            } else if (name.startsWith('Antenna_')) {
+              child.material = whiteMat;
+              if (name.startsWith(targetAntennaPrefix)) { child.visible = true; antennaMesh = child; }
+              else child.visible = false;
+            }
           }
-        }
-      }
-    });
+        });
 
-    model.scale.set(0.9, 0.9, 0.9);
-    model.rotation.x = 0;
-    model.position.set(0, 0, 0);
+        model.scale.set(0.9, 0.9, 0.9);
+        fullGroup.add(model);
+      }, undefined, function() {});
+    } catch(err) {}
+  }
 
-    fullGroup.add(model);
-  }, undefined, function(err) {
-    console.error(modelPath + " 로드 오류:", err);
-  });
-
-  fullGroup.position.set(0, 0, 0);
   fullScene.add(fullGroup);
-
   initEnergyParticleSystem();
 
   var clock = new THREE.Clock();
@@ -1512,16 +2009,13 @@ function initFullButterflyViewer(textureURL) {
 
     if (isPressingScreen && !isFlyingAway) {
       var pressDuration = (now - pressStartTime) / 1000;
-
       if (pressDuration >= 1.0) {
         if (!isChargeTriggered) {
           isChargeTriggered = true;
           startChargeVibrationLoop();
         }
-
         var currentChargeSec = pressDuration - 1.0;
         chargeProgress = Math.min(1.0, currentChargeSec / 5.0);
-
         updateChargeUIAndCamera(chargeProgress, currentChargeSec);
         spawnEnergyParticles();
       }
@@ -1530,44 +2024,21 @@ function initFullButterflyViewer(textureURL) {
     if (!isFlyingAway) {
       var settleDuration = 3.6;
       var tNorm = Math.min(1.0, elapsedSec / settleDuration);
-
       var flapFade = Math.pow(1.0 - tNorm, 1.6);
-      var currentFlapSpeed = 10.0 + (16.0 * flapFade);
-      var currentFlapAmp = 0.90 * flapFade;
-      var dynamicFlap = Math.sin(time * currentFlapSpeed) * currentFlapAmp;
-
-      var settleEase = 1 - Math.pow(1 - tNorm, 3);
-      var gentleFoldAngle = 0.24 * settleEase;
+      var dynamicFlap = Math.sin(time * (10.0 + 16.0 * flapFade)) * (0.90 * flapFade);
+      var gentleFoldAngle = 0.24 * (1 - Math.pow(1 - tNorm, 3));
 
       if (leftWingMesh && rightWingMesh) {
         leftWingMesh.rotation.y = initialRotL.y - gentleFoldAngle + dynamicFlap;
         rightWingMesh.rotation.y = initialRotR.y + gentleFoldAngle - dynamicFlap;
-
-        leftWingMesh.rotation.z = initialRotL.z;
-        rightWingMesh.rotation.z = initialRotR.z;
-        leftWingMesh.rotation.x = initialRotL.x;
-        rightWingMesh.rotation.x = initialRotR.x;
-
-        leftWingMesh.scale.set(1, 1, 1);
-        rightWingMesh.scale.set(1, 1, 1);
       }
-
       fullGroup.position.y = Math.sin(time * 2.2) * (0.12 * flapFade);
-
     } else {
-      var flyFlapSpeed = 26.0;
-      var flyFlapAmp = 0.78;
-      var flyAngle = Math.sin(time * flyFlapSpeed) * flyFlapAmp;
-
+      var flyAngle = Math.sin(time * 26.0) * 0.78;
       if (leftWingMesh && rightWingMesh) {
         leftWingMesh.rotation.y = initialRotL.y + flyAngle;
         rightWingMesh.rotation.y = initialRotR.y - flyAngle;
-        leftWingMesh.rotation.z = initialRotL.z;
-        rightWingMesh.rotation.z = initialRotR.z;
-        leftWingMesh.rotation.x = initialRotL.x;
-        rightWingMesh.rotation.x = initialRotR.x;
       }
-
       fullGroup.position.y += 0.22;
       fullGroup.position.z -= 0.10;
 
@@ -1587,7 +2058,6 @@ function initFullButterflyViewer(textureURL) {
     fullRenderer.render(fullScene, fullCamera);
   }
   animate();
-
   bindInteractiveEvents(container);
 }
 
@@ -1604,7 +2074,6 @@ function spawnEnergyParticles() {
   if (!pctx) return;
   var cx = window.innerWidth / 2;
   var cy = window.innerHeight / 2;
-
   for (var i = 0; i < 2; i++) {
     var angle = Math.random() * Math.PI * 2;
     var dist = 90 + Math.random() * 80;
@@ -1623,25 +2092,14 @@ function spawnEnergyParticles() {
 function renderEnergyParticles() {
   if (!pctx || !particleCanvas) return;
   pctx.clearRect(0, 0, particleCanvas.width, particleCanvas.height);
-
   for (var i = energyParticles.length - 1; i >= 0; i--) {
     var p = energyParticles[i];
-    p.x += p.vx;
-    p.y += p.vy;
-    p.alpha -= p.decay;
-
-    if (p.alpha <= 0) {
-      energyParticles.splice(i, 1);
-      continue;
-    }
-
+    p.x += p.vx; p.y += p.vy; p.alpha -= p.decay;
+    if (p.alpha <= 0) { energyParticles.splice(i, 1); continue; }
     pctx.save();
     pctx.fillStyle = 'rgba(255, 255, 255, ' + p.alpha + ')';
-    pctx.shadowColor = '#ffffff';
-    pctx.shadowBlur = 8;
-    pctx.beginPath();
-    pctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
-    pctx.fill();
+    pctx.shadowColor = '#ffffff'; pctx.shadowBlur = 8;
+    pctx.beginPath(); pctx.arc(p.x, p.y, p.size, 0, Math.PI * 2); pctx.fill();
     pctx.restore();
   }
 }
@@ -1653,24 +2111,11 @@ function updateChargeUIAndCamera(progress, currentChargeSec) {
   var footerUI = document.getElementById('preview-footer-ui');
 
   if (chargeWidget) chargeWidget.classList.remove('hidden');
+  var currentSize = 28 + (140 - 28) * progress;
+  if (innerFill) { innerFill.style.width = currentSize + 'px'; innerFill.style.height = currentSize + 'px'; }
+  if (fullCamera) fullCamera.position.z = 8.8 - (3.0 * progress);
 
-  var startSize = 28;
-  var endSize = 140;
-  var currentSize = startSize + (endSize - startSize) * progress;
-
-  if (innerFill) {
-    innerFill.style.width = currentSize + 'px';
-    innerFill.style.height = currentSize + 'px';
-  }
-
-  if (fullCamera) {
-    fullCamera.position.z = 8.8 - (3.0 * progress);
-  }
-
-  var fadeDuration = 3.0;
-  var fadeProgress = Math.min(1.0, currentChargeSec / fadeDuration);
-  var uiOpacity = Math.max(0, 1.0 - fadeProgress);
-
+  var uiOpacity = Math.max(0, 1.0 - Math.min(1.0, currentChargeSec / 3.0));
   if (headerUI) headerUI.style.opacity = uiOpacity;
   if (footerUI) footerUI.style.opacity = uiOpacity;
 
@@ -1682,28 +2127,19 @@ function updateChargeUIAndCamera(progress, currentChargeSec) {
 
 function startChargeVibrationLoop() {
   if (chargeVibrateInterval) clearInterval(chargeVibrateInterval);
-
   chargeVibrateInterval = setInterval(function() {
     if (!isPressingScreen || !isChargeTriggered) {
       clearInterval(chargeVibrateInterval);
       chargeVibrateInterval = null;
       return;
     }
-    var vibDuration = Math.round(30 + (chargeProgress * 70));
-    var intensity = 0.5 + (chargeProgress * 0.5);
-    triggerDeviceVibrate(vibDuration, intensity);
+    triggerDeviceVibrate(Math.round(30 + (chargeProgress * 70)), 0.5 + (chargeProgress * 0.5));
   }, 130);
 }
 
 function resetChargeState() {
-  isPressingScreen = false;
-  isChargeTriggered = false;
-  chargeProgress = 0;
-
-  if (chargeVibrateInterval) {
-    clearInterval(chargeVibrateInterval);
-    chargeVibrateInterval = null;
-  }
+  isPressingScreen = false; isChargeTriggered = false; chargeProgress = 0;
+  if (chargeVibrateInterval) { clearInterval(chargeVibrateInterval); chargeVibrateInterval = null; }
 
   var chargeWidget = document.getElementById('energy-charge-widget');
   var innerFill = document.getElementById('charge-inner-fill');
@@ -1711,11 +2147,7 @@ function resetChargeState() {
   var footerUI = document.getElementById('preview-footer-ui');
 
   if (chargeWidget) chargeWidget.classList.add('hidden');
-  if (innerFill) {
-    innerFill.style.width = '28px';
-    innerFill.style.height = '28px';
-  }
-
+  if (innerFill) { innerFill.style.width = '28px'; innerFill.style.height = '28px'; }
   if (fullCamera) fullCamera.position.z = 8.8;
   if (headerUI) headerUI.style.opacity = 1.0;
   if (footerUI) footerUI.style.opacity = 1.0;
@@ -1730,53 +2162,36 @@ function bindInteractiveEvents(targetEl) {
 
   function handlePointerStart(clientX, clientY) {
     if (isFlyingAway) return;
-
-    try {
-      if (hapticAudioCtx && hapticAudioCtx.state === 'suspended') {
-        hapticAudioCtx.resume();
-      }
-    } catch(e) {}
-
     isUserDragging = true;
-    lastPointerX = clientX;
-    lastPointerY = clientY;
-    touchStartY = clientY;
-    touchMovedDist = 0;
+    lastPointerX = clientX; lastPointerY = clientY;
+    touchStartY = clientY; touchMovedDist = 0;
 
     var chargeWidget = document.getElementById('energy-charge-widget');
     if (chargeWidget) {
       chargeWidget.style.left = clientX + 'px';
       chargeWidget.style.top = clientY + 'px';
     }
-
     isPressingScreen = true;
     pressStartTime = performance.now();
   }
 
   function handlePointerMove(clientX, clientY) {
     if (!isUserDragging || isFlyingAway) return;
-
     var deltaX = clientX - lastPointerX;
     var deltaY = clientY - lastPointerY;
-    var moveStep = Math.abs(deltaX) + Math.abs(deltaY);
-    touchMovedDist += moveStep;
+    touchMovedDist += Math.abs(deltaX) + Math.abs(deltaY);
 
     butterflyRotY += deltaX * 0.012;
     butterflyRotX += deltaY * 0.012;
     butterflyRotX = Math.max(-1.4, Math.min(1.4, butterflyRotX));
 
-    lastPointerX = clientX;
-    lastPointerY = clientY;
-
-    if (touchMovedDist > 8 && !isChargeTriggered) {
-      pressStartTime = performance.now();
-    }
+    lastPointerX = clientX; lastPointerY = clientY;
+    if (touchMovedDist > 8 && !isChargeTriggered) pressStartTime = performance.now();
   }
 
   function handlePointerEnd(clientX, clientY) {
     if (!isUserDragging) return;
     isUserDragging = false;
-
     var swipeDeltaY = touchStartY - clientY;
 
     if (isChargeTriggered && chargeProgress >= 0.98 && swipeDeltaY > 40 && !isFlyingAway) {
@@ -1787,107 +2202,33 @@ function bindInteractiveEvents(targetEl) {
     }
   }
 
-  targetEl.addEventListener('touchstart', function(e) {
-    if (e.touches.length === 1) {
-      handlePointerStart(e.touches[0].clientX, e.touches[0].clientY);
-    }
-  }, { passive: true });
-
-  window.addEventListener('touchmove', function(e) {
-    if (isUserDragging && e.touches.length === 1) {
-      handlePointerMove(e.touches[0].clientX, e.touches[0].clientY);
-    }
-  }, { passive: true });
-
-  window.addEventListener('touchend', function(e) {
-    if (e.changedTouches.length > 0) {
-      handlePointerEnd(e.changedTouches[0].clientX, e.changedTouches[0].clientY);
-    }
-  }, { passive: true });
-
-  targetEl.addEventListener('mousedown', function(e) {
-    handlePointerStart(e.clientX, e.clientY);
-  });
-
-  window.addEventListener('mousemove', function(e) {
-    if (isUserDragging) {
-      handlePointerMove(e.clientX, e.clientY);
-    }
-  });
-
-  window.addEventListener('mouseup', function(e) {
-    handlePointerEnd(e.clientX, e.clientY);
-  });
+  targetEl.ontouchstart = function(e) { if (e.touches.length === 1) handlePointerStart(e.touches[0].clientX, e.touches[0].clientY); };
+  window.addEventListener('touchmove', function(e) { if (isUserDragging && e.touches.length === 1) handlePointerMove(e.touches[0].clientX, e.touches[0].clientY); }, { passive: true });
+  window.addEventListener('touchend', function(e) { if (e.changedTouches.length > 0) handlePointerEnd(e.changedTouches[0].clientX, e.changedTouches[0].clientY); }, { passive: true });
+  targetEl.onmousedown = function(e) { handlePointerStart(e.clientX, e.clientY); };
+  window.addEventListener('mousemove', function(e) { if (isUserDragging) handlePointerMove(e.clientX, e.clientY); });
+  window.addEventListener('mouseup', function(e) { handlePointerEnd(e.clientX, e.clientY); });
 }
 
-/* 박제 갤러리 로직 */
+// --------------------------------------------------------------------------
+// 나비 표본실 갤러리
+// --------------------------------------------------------------------------
 var specimenButterfliesData = [
-  { 
-    id: 1, name: "윤슬", wingId: "crescent", antId: "crescent", x: 190, y: 220, scale: 2.10,
-    tags: ["야행성", "사색가", "자유로운 비행", "단단한 자기 확신", "나만의 속도", "사소한 즐거움"],
-    memo: "잔잔한 물결 위로 부서지는 햇살처럼 늘 반짝이기를.",
-    date: "2026. 10. 24"
-  },
-  { 
-    id: 2, name: "칼퇴기원", wingId: "ember", antId: "ball", x: 490, y: 180, scale: 1.05,
-    tags: ["칼퇴사수형", "쿨내진동", "칼퇴 보장", '"어쩌라고" 마인드', "빠른 손절"],
-    memo: "오늘 하루도 버텨낸 나 자신, 정시 퇴근의 자유를 누려라!",
-    date: "2026. 10. 25"
-  },
-  { 
-    id: 3, name: "바람결", wingId: "petal", antId: "star", x: 710, y: 200, scale: 1.45,
-    tags: ["산책러", "낭만주의자", "바다 여행", "내 속도대로 천천히 감", "심호흡 한 번"],
-    memo: "불어오는 바람에 모든 걱정을 실어 날려 보내자.",
-    date: "2026. 11. 02"
-  },
-  { 
-    id: 4, name: "다정", wingId: "wave-fin", antId: "ball", x: 350, y: 440, scale: 1.10,
-    tags: ["다정다감", "프로공감러", "다정한 연애", "스스로 토닥이기", "온전한 호캉스"],
-    memo: "세상에 다정한 온기를 건네는 존재이기를.",
-    date: "2026. 10. 28"
-  },
-  { 
-    id: 5, name: "시온", wingId: "moon-halo", antId: "crescent", x: 610, y: 460, scale: 2.20,
-    tags: ["완벽주의", "단단한 자기 확신", "나만의 작업실", "소신 지키기", "있는 그대로 긍정"],
-    memo: "어둠이 깊을수록 나의 빛은 더욱 선명해질 거야.",
-    date: "2026. 11. 10"
-  },
-  { 
-    id: 6, name: "새벽별", wingId: "dawn-ray", antId: "star", x: 160, y: 720, scale: 0.95,
-    tags: ["야행성", "아이디어 뱅크", "창작물 완판", "앞날을 기대하는 설렘"],
-    memo: "새벽 공기 속에 피어난 꿈들을 마침내 현실로 이뤄내길.",
-    date: "2026. 10. 30"
-  },
-  { 
-    id: 7, name: "온기", wingId: "starlight", antId: "ball", x: 440, y: 730, scale: 1.75,
-    tags: ["경청러", "담담이", "있는 그대로의 나 사랑하기", "심호흡 한 번", "단골 아지트"],
-    memo: "추운 계절이 지나면 반드시 따스한 봄날이 찾아올 거야.",
-    date: "2026. 11. 15"
-  },
-  { 
-    id: 8, name: "달그림자", wingId: "crescent", antId: "star", x: 700, y: 750, scale: 1.15,
-    tags: ["혼자가 편한", "과묵한 편", "고요한 밤산책", "혼자만의 침묵을 즐김"],
-    memo: "말없이 곁을 지켜주는 달빛처럼 고요하게 머물다 가길.",
-    date: "2026. 10. 29"
-  },
-  { 
-    id: 9, name: "초록비", wingId: "petal", antId: "crescent", x: 260, y: 1040, scale: 1.85,
-    tags: ["감성파", "루틴러", "자취방 독립", "작은 틈을 내어 숨을 쉼", "집밥 챙겨먹기"],
-    memo: "메마른 마음에 촉촉한 단비가 내리듯 평온하기를.",
-    date: "2026. 11. 05"
-  },
-  { 
-    id: 10, name: "너울", wingId: "wave-fin", antId: "star", x: 600, y: 1050, scale: 1.25,
-    tags: ["분위기 메이커", "직진러", "그냥 오늘 행복", "그냥 오늘 하루 즐기기", "씩씩한 리셋"],
-    memo: "수많은 작은 날갯짓이 모여 만들어낼 찬란한 너울의 파도.",
-    date: "2026. 11. 20"
-  }
+  { id: 1, name: "윤슬", wingId: "crescent", antId: "crescent", x: 190, y: 220, scale: 2.10, q1: ["사색가", "야행성"], core_concern: "완벽주의 강박", memo: "잔잔한 물결 위로 부서지는 햇살처럼 늘 반짝이기를.", date: "2026. 10. 24" },
+  { id: 2, name: "칼퇴기원", wingId: "ember", antId: "ball", x: 490, y: 180, scale: 1.05, q1: ["칼퇴사수형"], core_concern: "만성 피로", memo: "오늘 하루도 버텨낸 나 자신, 정시 퇴근의 자유를 누려라!", date: "2026. 10. 25" },
+  { id: 3, name: "바람결", wingId: "petal", antId: "star", x: 710, y: 200, scale: 1.45, q1: ["산책러", "낭만주의자"], core_concern: "미래 막막함", memo: "불어오는 바람에 모든 걱정을 실어 날려 보내자.", date: "2026. 11. 02" },
+  { id: 4, name: "다정", wingId: "wave-fin", antId: "ball", x: 350, y: 440, scale: 1.10, q1: ["다정다감", "프로공감러"], core_concern: "과도한 책임감", memo: "세상에 다정한 온기를 건네는 존재이기를.", date: "2026. 10. 28" },
+  { id: 5, name: "시온", wingId: "moon-halo", antId: "crescent", x: 610, y: 460, scale: 2.20, q1: ["완벽주의", "사색가"], core_concern: "뒤처짐 조급함", memo: "어둠이 깊을수록 나의 빛은 더욱 선명해질 거야.", date: "2026. 11. 10" },
+  { id: 6, name: "새벽별", wingId: "dawn-ray", antId: "star", x: 160, y: 720, scale: 0.95, q1: ["야행성"], core_concern: "수면 부족", memo: "새벽 공기 속에 피어난 꿈들을 마침내 현실로 이뤄내길.", date: "2026. 10. 30" },
+  { id: 7, name: "온기", wingId: "starlight", antId: "ball", x: 440, y: 730, scale: 1.75, q1: ["경청러", "담담이"], core_concern: "외로움", memo: "추운 계절이 지나면 반드시 따스한 봄날이 찾아올 거야.", date: "2026. 11. 15" },
+  { id: 8, name: "달그림자", wingId: "crescent", antId: "star", x: 700, y: 750, scale: 1.15, q1: ["혼자가 편한", "과묵한 편"], core_concern: "타인의 오해", memo: "말없이 곁을 지켜주는 달빛처럼 고요하게 머물다 가길.", date: "2026. 10. 29" },
+  { id: 9, name: "초록비", wingId: "petal", antId: "crescent", x: 260, y: 1040, scale: 1.85, q1: ["감성파", "루틴러"], core_concern: "번아웃 무기력", memo: "메마른 마음에 촉촉한 단비가 내리듯 평온하기를.", date: "2026. 11. 05" },
+  { id: 10, name: "너울", wingId: "wave-fin", antId: "star", x: 600, y: 1050, scale: 1.25, q1: ["분위기 메이커", "직진러"], core_concern: "텅 빈 잔고", memo: "수많은 작은 날갯짓이 모여 만들어낼 찬란한 너울의 파도.", date: "2026. 11. 20" }
 ];
 
 var galleryViewport = document.getElementById('gallery-pan-viewport');
 var specimenBoard = document.getElementById('gallery-specimen-board');
 var specimenContainer = document.getElementById('specimen-items-container');
-
 var panX = -170, panY = -10;
 var isPanning = false;
 var panStartX = 0, panStartY = 0;
@@ -1895,7 +2236,6 @@ var panStartX = 0, panStartY = 0;
 function initSpecimenGallery() {
   if (!specimenContainer) return;
   specimenContainer.innerHTML = '';
-
   clampPanPosition();
   applySpecimenBoardTransform();
 
@@ -1907,12 +2247,10 @@ function initSpecimenGallery() {
     card.className = 'specimen-card-item';
     card.style.left = item.x + 'px';
     card.style.top = item.y + 'px';
-    card.style.transform = 'translate(-50%, -50%) scale(' + item.scale + ')';
 
     var scaleRatio = 110 / Math.max(wing.w, wing.h);
-    
     card.innerHTML = 
-      '<div class="specimen-butterfly-wrap">' +
+      '<div class="specimen-butterfly-wrap" style="transform: scale(' + item.scale + ');">' +
         '<div class="specimen-pin-head"></div>' +
         '<svg class="specimen-shadow-drop" width="130" height="110" viewBox="0 0 ' + wing.w + ' ' + wing.h + '" style="overflow: visible;">' +
           '<path d="' + wing.d + '" fill="#ffffff" stroke="none"/>' +
@@ -1921,79 +2259,52 @@ function initSpecimenGallery() {
           '</g>' +
         '</svg>' +
       '</div>' +
-      '<div class="specimen-pill-label">' +
-        '<span class="label-text">' + item.name + '</span>' +
-      '</div>';
+      '<div class="specimen-pill-label"><span class="label-text">' + item.name + '</span></div>';
 
-    card.addEventListener('click', function(e) {
+    card.onclick = function(e) {
       e.stopPropagation();
-      openSpecimen3DModal(item, createFallbackDummyTexture('#ffffff', '#e0e0e0'));
-    });
+      if (specimenContainer) {
+        specimenContainer.querySelectorAll('.specimen-pill-label').forEach(function(label) {
+          label.classList.remove('active-touched');
+        });
+      }
+      var currentLabel = card.querySelector('.specimen-pill-label');
+      if (currentLabel) {
+        currentLabel.classList.add('active-touched');
+      }
 
+      openSpecimen3DModal(item, item.textureUrl || createFallbackDummyTexture('#ffffff', '#e0e0e0'));
+    };
     specimenContainer.appendChild(card);
   });
-
   bindGalleryPanEvents();
 }
 
 function clampPanPosition() {
   if (!galleryViewport || !specimenBoard) return;
-  var vpW = galleryViewport.clientWidth;
-  var vpH = galleryViewport.clientHeight;
-  var boardW = 860;
-  var boardH = 1320;
-
-  var minX = vpW - boardW;
-  var maxX = 0;
-  var minY = vpH - boardH;
-  var maxY = 0;
-
-  panX = Math.min(maxX, Math.max(minX, panX));
-  panY = Math.min(maxY, Math.max(minY, panY));
+  panX = Math.min(0, Math.max(galleryViewport.clientWidth - 860, panX));
+  panY = Math.min(0, Math.max(galleryViewport.clientHeight - 1320, panY));
 }
 
 function applySpecimenBoardTransform() {
-  if (!specimenBoard) return;
-  specimenBoard.style.transform = 'translate3d(' + panX + 'px, ' + panY + 'px, 0)';
+  if (specimenBoard) specimenBoard.style.transform = 'translate3d(' + panX + 'px, ' + panY + 'px, 0)';
 }
 
 function bindGalleryPanEvents() {
   if (!galleryViewport) return;
-
-  function onPointerDown(clientX, clientY) {
-    isPanning = true;
-    panStartX = clientX - panX;
-    panStartY = clientY - panY;
-  }
-
+  function onPointerDown(clientX, clientY) { isPanning = true; panStartX = clientX - panX; panStartY = clientY - panY; }
   function onPointerMove(clientX, clientY) {
     if (!isPanning) return;
-    panX = clientX - panStartX;
-    panY = clientY - panStartY;
-    clampPanPosition();
-    applySpecimenBoardTransform();
+    panX = clientX - panStartX; panY = clientY - panStartY;
+    clampPanPosition(); applySpecimenBoardTransform();
   }
+  function onPointerUp() { isPanning = false; }
 
-  function onPointerUp() {
-    isPanning = false;
-  }
-
-  galleryViewport.addEventListener('touchstart', function(e) {
-    if (e.touches.length === 1) onPointerDown(e.touches[0].clientX, e.touches[0].clientY);
-  }, { passive: true });
-
-  window.addEventListener('touchmove', function(e) {
-    if (isPanning && e.touches.length === 1) onPointerMove(e.touches[0].clientX, e.touches[0].clientY);
-  }, { passive: true });
-
+  galleryViewport.ontouchstart = function(e) { if (e.touches.length === 1) onPointerDown(e.touches[0].clientX, e.touches[0].clientY); };
+  window.addEventListener('touchmove', function(e) { if (isPanning && e.touches.length === 1) onPointerMove(e.touches[0].clientX, e.touches[0].clientY); }, { passive: true });
   window.addEventListener('touchend', onPointerUp, { passive: true });
-
-  galleryViewport.addEventListener('mousedown', function(e) {
-    onPointerDown(e.clientX, e.clientY);
-  });
-  window.addEventListener('mousemove', function(e) {
-    if (isPanning) onPointerMove(e.clientX, e.clientY);
-  });
+  galleryViewport.onmousedown = function(e) { onPointerDown(e.clientX, e.clientY); };
+  window.addEventListener('mousemove', function(e) { if (isPanning) onPointerMove(e.clientX, e.clientY); });
   window.addEventListener('mouseup', onPointerUp);
 }
 
@@ -2010,30 +2321,38 @@ function openSpecimen3DModal(item, textureUrl) {
   var dateEl = document.getElementById('modal-specimen-date');
   var container = document.getElementById('specimen-three-container');
 
-  nameEl.innerText = '‘' + item.name + '’';
+  if (nameEl) nameEl.innerText = '‘' + item.name + '’';
   
   if (tagsEl) {
-    var tags = item.tags || ["사색가", "자유로운 비행", "단단한 자기 확신"];
-    tagsEl.innerHTML = tags.map(function(t) {
+    var personalityTags = [];
+    if (item.q1 && item.q1.length > 0) {
+      personalityTags = [].concat(item.q1);
+    } else if (item.tags && item.tags.length > 0) {
+      personalityTags = [].concat(item.tags.filter(function(t) { return t !== item.core_concern; }));
+    }
+
+    var html = personalityTags.map(function(t) {
       return '<span class="specimen-glass-pill">#' + t + '</span>';
     }).join('');
+
+    var coreTag = item.core_concern || (item.tags && item.tags[item.tags.length - 1]);
+    if (coreTag) {
+      html += '<span class="specimen-glass-pill bg-white text-black font-bold border-white" style="box-shadow: 0 0 12px rgba(255, 255, 255, 0.45);">#' + coreTag + '</span>';
+    }
+
+    tagsEl.innerHTML = html;
   }
 
   if (memoEl) {
-    memoEl.innerText = item.memo ? ('"' + item.memo + '"') : '"천천히 가도 괜찮아. 어둠 속에서도 너만의 고유한 빛이 있으니까."';
+    var memoContent = item.memo || item.q6_memo;
+    memoEl.innerText = memoContent ? ('"' + memoContent + '"') : '"추운 계절이 지나면 반드시 따스한 봄날이 찾아올 거야."';
   }
+  if (dateEl) dateEl.innerText = item.date || "2026. 11. 15";
 
-  if (dateEl) {
-    dateEl.innerText = item.date || "2026. 10. 24";
-  }
-
-  modal.classList.remove('hidden');
-
+  if (modal) modal.classList.remove('hidden');
+  if (!container || !window.THREE) return;
   container.innerHTML = '';
-  if (modalAnimFrameId) {
-    cancelAnimationFrame(modalAnimFrameId);
-    modalAnimFrameId = null;
-  }
+  if (modalAnimFrameId) { cancelAnimationFrame(modalAnimFrameId); modalAnimFrameId = null; }
 
   var w = container.clientWidth || 320;
   var h = container.clientHeight || 210;
@@ -2059,41 +2378,36 @@ function openSpecimen3DModal(item, textureUrl) {
 
   var wingMat = new THREE.MeshBasicMaterial({ map: tex, side: THREE.DoubleSide });
   var whiteMat = new THREE.MeshStandardMaterial({ color: 0xffffff, side: THREE.DoubleSide, roughness: 0.3 });
-
   var targetAntennaPrefix = 'Antenna_' + item.antId;
   var modelPath = '3DButterfly/' + (item.wingId || 'crescent') + '.glb';
   var group = new THREE.Group();
 
-  new THREE.GLTFLoader().load(modelPath, function(gltf) {
-    var model = gltf.scene;
-    modalWingL = null; modalWingR = null;
+  if (window.THREE && THREE.GLTFLoader) {
+    try {
+      new THREE.GLTFLoader().load(modelPath, function(gltf) {
+        var model = gltf.scene;
+        modalWingL = null; modalWingR = null;
 
-    model.traverse(function(child) {
-      if (child.isMesh) {
-        var name = child.name;
-        if (name.startsWith('Wing_L')) {
-          modalWingL = child; child.material = wingMat;
-        } else if (name.startsWith('Wing_R')) {
-          modalWingR = child; child.material = wingMat;
-        } else if (name.startsWith('Body')) {
-          child.material = whiteMat;
-        } else if (name.startsWith('Antenna_')) {
-          child.material = whiteMat;
-          child.visible = name.startsWith(targetAntennaPrefix);
-        }
-      }
-    });
+        model.traverse(function(child) {
+          if (child.isMesh) {
+            var name = child.name;
+            if (name.startsWith('Wing_L')) { modalWingL = child; child.material = wingMat; }
+            else if (name.startsWith('Wing_R')) { modalWingR = child; child.material = wingMat; }
+            else if (child.name.startsWith('Body')) { child.material = whiteMat; }
+            else if (name.startsWith('Antenna_')) { child.material = whiteMat; child.visible = name.startsWith(targetAntennaPrefix); }
+          }
+        });
 
-    model.scale.set(0.88, 0.88, 0.88);
-    model.position.set(0, -0.35, 0);
-    group.add(model);
-  }, undefined, function(err) {
-    console.error("모달 3D 모델 로드 오류:", err);
-  });
+        model.scale.set(0.88, 0.88, 0.88);
+        model.position.set(0, -0.35, 0);
+        group.add(model);
+      }, undefined, function() {});
+    } catch(err) {}
+  }
 
   modalThreeScene.add(group);
-
   var clock = new THREE.Clock();
+
   function modalAnimate() {
     modalAnimFrameId = requestAnimationFrame(modalAnimate);
     var t = clock.getElapsedTime();
@@ -2111,134 +2425,19 @@ function openSpecimen3DModal(item, textureUrl) {
   modalAnimate();
 }
 
-document.getElementById('btn-close-specimen-modal').addEventListener('click', function() {
-  var modal = document.getElementById('specimen-detail-modal');
-  modal.classList.add('hidden');
-  if (modalAnimFrameId) {
-    cancelAnimationFrame(modalAnimFrameId);
-    modalAnimFrameId = null;
-  }
-});
-
-function updateDevScreenBadge() {
-  var badge = document.getElementById('dev-current-screen-badge');
-  if (!badge) return;
-  var activeScreen = document.querySelector('.screen.active');
-  var name = activeScreen ? activeScreen.id : 'none';
-  if (name === 'screen-survey') name += ' (문항 ' + (currentStepIdx + 1) + '/7)';
-  badge.innerText = '화면: ' + name;
+var btnCloseSpecimenModal = document.getElementById('btn-close-specimen-modal');
+if (btnCloseSpecimenModal) {
+  btnCloseSpecimenModal.onclick = function() {
+    var modal = document.getElementById('specimen-detail-modal');
+    if (modal) modal.classList.add('hidden');
+    if (modalAnimFrameId) { cancelAnimationFrame(modalAnimFrameId); modalAnimFrameId = null; }
+  };
 }
 
-document.getElementById('dev-btn-skip-next').addEventListener('click', function() {
-  clearTimeout(typeTimer);
-  clearTimeout(guideTypeTimer);
-  clearTimeout(surveyTitleTypeTimer);
-  if (showcaseInterval) { clearInterval(showcaseInterval); showcaseInterval = null; }
-  if (animFrameId) { cancelAnimationFrame(animFrameId); animFrameId = null; }
-
-  var activeScreen = document.querySelector('.screen.active');
-  var activeId = activeScreen ? activeScreen.id : 'screen-cover';
-
-  if (activeId === 'screen-cover') showScreen('screen-menu');
-  else if (activeId === 'screen-menu') showScreen('screen-gallery');
-  else if (activeId === 'screen-gallery') showScreen('screen-intro');
-  else if (activeId === 'screen-intro') { showScreen('screen-opening'); resetOpeningFlow(); }
-  else if (activeId === 'screen-opening') startCaptureGuideCinematicFlow();
-  else if (activeId === 'screen-capture-guide') {
-    showScreen('screen-shape-select');
-    setTimeout(function() {
-      actx.fillStyle = "#ffffff";
-      actx.fillRect(0, 0, alignCanvas.width, alignCanvas.height);
-      actx.fillStyle = "#222222";
-      actx.beginPath();
-      actx.arc(300, 300, 140, 0, Math.PI * 2);
-      actx.fill();
-      drawAlignCanvas();
-    }, 30);
-  } else if (activeId === 'screen-shape-select') {
-    exportAlignedTexture();
-    currentStepIdx = 0;
-    renderSurveyStep();
-    showScreen('screen-survey');
-  } else if (activeId === 'screen-survey') {
-    if (currentStepIdx === 0 && userSelections.q1.length === 0) userSelections.q1 = ["야행성", "사색가"];
-    if (currentStepIdx === 1 && userSelections.q2.length === 0) userSelections.q2 = ["칼퇴 보장", "바다 여행"];
-    if (currentStepIdx === 2 && userSelections.q3.length === 0) userSelections.q3 = ["내 속도대로 천천히 감"];
-    if (currentStepIdx === 3 && userSelections.q4.length === 0) userSelections.q4 = ["완벽주의 강박"];
-    if (currentStepIdx === 4 && userSelections.q5.length === 0) userSelections.q5 = ["쿨한 넘김"];
-    if (currentStepIdx === 5 && !userSelections.q6_memo) {
-      userSelections.q6_memo = "찬란하게 빛나길 바라.";
-      inputQ6Memo.value = userSelections.q6_memo;
-      memoCounter.innerText = userSelections.q6_memo.length + '/50';
-    }
-    if (currentStepIdx < 6) {
-      currentStepIdx++;
-      renderSurveyStep();
-    } else {
-      if (!userSelections.q7_name) {
-        userSelections.q7_name = "테스트나비";
-        inputQ7Name.value = "테스트나비";
-        charCounter.innerText = userSelections.q7_name.length + '/10';
-      }
-      showScreen('screen-loading');
-      startAnswerShowcaseSequence();
-    }
-  } else if (activeId === 'screen-loading') {
-    var butterflyName = userSelections.q7_name ? userSelections.q7_name.trim() : "나비";
-    var nameHeader = document.getElementById('preview-butterfly-name');
-    if (nameHeader) nameHeader.innerText = '‘' + butterflyName + '’';
-    showScreen('screen-preview');
-    initFullButterflyViewer(currentExtractedTexture || createFallbackDummyTexture());
-  } else if (activeId === 'screen-preview') {
-    showScreen('screen-complete');
-  } else if (activeId === 'screen-complete') {
-    showScreen('screen-cover');
-  }
-});
-
-document.getElementById('dev-btn-skip-prev').addEventListener('click', function() {
-  clearTimeout(typeTimer);
-  clearTimeout(guideTypeTimer);
-  clearTimeout(surveyTitleTypeTimer);
-  if (showcaseInterval) { clearInterval(showcaseInterval); showcaseInterval = null; }
-  if (animFrameId) { cancelAnimationFrame(animFrameId); animFrameId = null; }
-
-  var activeScreen = document.querySelector('.screen.active');
-  var activeId = activeScreen ? activeScreen.id : 'screen-cover';
-
-  if (activeId === 'screen-complete') {
-    showScreen('screen-preview');
-    initFullButterflyViewer(currentExtractedTexture || createFallbackDummyTexture());
-  } else if (activeId === 'screen-preview') {
-    showScreen('screen-loading');
-    startAnswerShowcaseSequence();
-  } else if (activeId === 'screen-loading') {
-    currentStepIdx = 6;
-    renderSurveyStep();
-    showScreen('screen-survey');
-  } else if (activeId === 'screen-survey') {
-    if (currentStepIdx > 0) {
-      currentStepIdx--;
-      renderSurveyStep();
-    } else {
-      showScreen('screen-shape-select');
-    }
-  } else if (activeId === 'screen-shape-select') {
-    startCaptureGuideCinematicFlow();
-  } else if (activeId === 'screen-capture-guide') {
-    showScreen('screen-opening');
-    resetOpeningFlow();
-  } else if (activeId === 'screen-opening') {
-    showScreen('screen-intro');
-  } else if (activeId === 'screen-intro') {
-    showScreen('screen-gallery');
-  } else if (activeId === 'screen-gallery') {
-    showScreen('screen-menu');
-  } else if (activeId === 'screen-menu') {
-    showScreen('screen-cover');
-  }
-});
-
-// 초기 구동 시 첫 화면 3D 나비 로드
-initCoverButterfly3D();
+// --------------------------------------------------------------------------
+// 앱 시작 실행
+// --------------------------------------------------------------------------
 updateDevScreenBadge();
+setTimeout(function() {
+  initCoverButterfly3D();
+}, 150);
