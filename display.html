@@ -161,7 +161,6 @@
 
     const renderer = new THREE.WebGLRenderer({ alpha: true, antialias: true, powerPreference: "high-performance" });
     renderer.setSize(window.innerWidth, window.innerHeight);
-    // 🌟 3. 모니터 해상도 뻥튀기 끄기 (pixelRatio = 1 고정)
     renderer.setPixelRatio(1);
     container.appendChild(renderer.domElement);
 
@@ -173,13 +172,13 @@
 
     const defaultFlock = [];
     const userFlock = [];
-    const MAX_USER_BUTTERFLIES = 12;
+    // 🌟 나비 개체 수 확장: 유저 나비 최대 15마리
+    const MAX_USER_BUTTERFLIES = 15;
 
     function buildButterfly(data = {}, isUser = false, isDelayedArrival = false) {
       const group = new THREE.Group();
       const innerGroup = new THREE.Group(); 
       
-      // 🌟 2. 투명 날개 겹침 계산 끄기 (transparent: false, alphaTest: 0.5 적용)
       let wingMat = new THREE.MeshBasicMaterial({ 
         color: 0xffffff, 
         side: THREE.DoubleSide, 
@@ -257,7 +256,12 @@
         initialVelocity = new THREE.Vector3((Math.random() - 0.5) * 0.04, 0.14, -0.04);
         group.scale.set(0.01, 0.01, 0.01);
       } else {
-        group.position.set((Math.random() - 0.5) * 20, (Math.random() - 0.5) * 12, (Math.random() - 0.5) * 8 - 4);
+        // 🌟 뒤쪽 먼 거리 레이어(-18 ~ -5)에 깊고 풍성하게 초기 배치
+        group.position.set(
+          (Math.random() - 0.5) * 26, 
+          (Math.random() - 0.5) * 16, 
+          -5.0 - Math.random() * 14.0
+        );
         initialVelocity = new THREE.Vector3((Math.random() - 0.5) * 0.08, (Math.random() - 0.5) * 0.08, (Math.random() - 0.5) * 0.05);
         group.scale.set(targetScale, targetScale, targetScale);
       }
@@ -284,7 +288,8 @@
       return butterflyRecord;
     }
 
-    for (let i = 0; i < 8; i++) {
+    // 🌟 나비 개체 수 확장: 기본 나비 15마리 (15 + 유저 15 = 총 30마리 군집 구성)
+    for (let i = 0; i < 15; i++) {
       defaultFlock.push(buildButterfly({}, false, false));
     }
 
@@ -318,7 +323,6 @@
         }
       }
 
-      // 🌟 손가락에 앉을 때 날개가 위로 바짝 모여 있는 우아한 포즈 (1번 사진)
       if (b.state === 'landing_rest') {
           b.flapAmp *= 0.88; 
           const flap = Math.sin(time * b.speed + b.seed) * 0.12 * b.flapAmp;
@@ -366,7 +370,6 @@
               b.velocity.set(0, 0, 0);
               b.group.position.lerp(handTarget3D, 0.3); 
               
-              // 🌟 옆모습으로 보이게 회전 + 머리가 '오른쪽'을 향하도록 설정
               dummyObj.position.copy(b.group.position);
               dummyObj.lookAt(camera.position); 
               dummyObj.rotateY(Math.PI / 2);
@@ -446,14 +449,15 @@
       
       b.group.position.add(b.velocity);
 
-      // 🌟 1. 보이지 않는 유리벽: 자유 비행 나비가 카메라 코앞(Z > 0.0)으로 오지 못하도록 제한 (손가락 착석 나비는 예외로 유지)
+      // 🌟 나비들을 뒤쪽 먼 레이어로 깊게 유지 (-22.0 ~ -3.5)
+      // (손가락 착석 나비는 예외 처리되어 손끝 좌표까지 자유롭게 날아옴)
       if (!b.isSpecialLanding || b.specialState !== 'leaving') {
-          if (b.group.position.x > 13) b.velocity.x -= 0.015;
-          if (b.group.position.x < -13) b.velocity.x += 0.015;
-          if (b.group.position.y > 8.5) b.velocity.y -= 0.015;
-          if (b.group.position.y < -8.5) b.velocity.y += 0.015;
-          if (b.group.position.z > 0.0) b.velocity.z -= 0.025; // 👈 앞쪽 한계선: 0.0 이상 앞으로 나오지 못하게 밀어냄
-          if (b.group.position.z < -8.0) b.velocity.z += 0.02; // 뒤쪽 한계선 유지
+          if (b.group.position.x > 15) b.velocity.x -= 0.015;
+          if (b.group.position.x < -15) b.velocity.x += 0.015;
+          if (b.group.position.y > 10.5) b.velocity.y -= 0.015;
+          if (b.group.position.y < -10.5) b.velocity.y += 0.015;
+          if (b.group.position.z > -3.5) b.velocity.z -= 0.025; // 앞쪽 한계선: -3.5 뒤쪽으로 유지
+          if (b.group.position.z < -22.0) b.velocity.z += 0.025; // 뒤쪽 한계선: -22.0 안쪽으로 복귀
       }
 
       if (b.velocity.lengthSq() > 0.00001 && b.state === 'flying' && !isFollowing) {
@@ -629,7 +633,8 @@
                   if (prevMode !== 'fist_gather') {
                       const allFlock = [...defaultFlock, ...userFlock];
                       allFlock.sort((a, b) => a.group.position.distanceTo(handTarget3D) - b.group.position.distanceTo(handTarget3D));
-                      fistButterflies = allFlock.slice(0, 7).map(b => b.id);
+                      // 🌟 30마리 비례: 주먹 쥐었을 때 10마리 집중 모임
+                      fistButterflies = allFlock.slice(0, 10).map(b => b.id);
                   }
               } else {
                   interactionMode = 'none';
