@@ -148,7 +148,7 @@ html, body {
   opacity: 0.7;
 }
 
-/* 🌟 플래시 및 암전 효과: 전환 시간을 1.4s로 늘려 부드럽고 천천히 넘어가도록 조정 */
+/* 플래시 및 암전 효과 */
 #cinematic-white-flash {
   position: fixed;
   inset: 0;
@@ -1134,7 +1134,6 @@ html, body {
   pointer-events: none;
 }
 
-/* 중간 크기 고정 및 미선택 알약 스타일 */
 .specimen-pill-label {
   margin-top: 14px;
   border-radius: 9999px;
@@ -1164,7 +1163,6 @@ html, body {
   transition: color 0.25s ease;
 }
 
-/* 사용자가 터치한 나비의 활성 흰색 알약 스타일 */
 .specimen-pill-label.active-touched {
   background-color: #ffffff !important;
   border-color: #ffffff !important;

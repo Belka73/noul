@@ -23,10 +23,8 @@
 
   <main class="app-viewport box-border">
 
-    <!-- 0. 표지 화면 -->
+    <!-- 0. 표지 화면 (3D 나비 제거됨) -->
     <section id="screen-cover" class="screen active cover-viewport flex-col justify-between py-6 text-center z-20">
-      <div id="cover-three-container" class="cover-three-viewport"></div>
-
       <div class="relative z-10 flex flex-col items-center justify-center my-auto px-4 pointer-events-none">
         <div class="cover-anim-logo">
           <svg class="noul-perfect-logo" viewBox="0 0 1000 750" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -250,7 +248,6 @@
 
       <!-- 키워드와 메모 입력창 래퍼 -->
       <div id="field-step-6" class="hidden flex-1 w-full flex-col justify-center items-center px-4 min-h-0">
-        <!-- 🌟 말풍선 물리 낙하 배경 캔버스 -->
         <canvas id="bubble-physics-canvas" class="bubble-physics-bg-layer"></canvas>
 
         <div class="memo-inner-centered-wrapper">
@@ -431,7 +428,7 @@
       </div>
     </section>
 
-    <!-- 4. 로딩 화면 (원래 상태로 완전 복원) -->
+    <!-- 4. 로딩 화면 (나비 위치 상단 고정 및 키워드 하단 배치) -->
     <section id="screen-loading" class="screen flex-col flex-1 justify-between items-center py-10 px-5 text-center relative overflow-hidden z-10 w-full">
       <div class="photo-butterfly-bg-wrapper pointer-events-none">
         <div class="photo-bg-layer"></div>
@@ -440,7 +437,7 @@
 
       <div id="cinematic-black-curtain"></div>
 
-      <div class="mt-8 z-10 space-y-1.5 pointer-events-none transition-all duration-700">
+      <div class="mt-8 z-10 space-y-1.5 pointer-events-none transition-all duration-700 flex-shrink-0">
         <h2 id="loading-main-title" class="text-2xl font-black text-white tracking-tight leading-snug drop-shadow-[0_2px_12px_rgba(0,0,0,0.8)] pt-2">
           나비를 깨우는 중
         </h2>
@@ -449,10 +446,11 @@
         </p>
       </div>
 
-      <div class="relative w-full max-w-[340px] my-auto z-10 flex flex-col items-center">
-        <!-- 나비와 카테고리 텍스트 -->
+      <!-- 중앙 나비 고정 및 키워드 컨테이너 -->
+      <div class="relative w-full max-w-[340px] flex-1 my-auto z-10 flex flex-col items-center justify-center min-h-0">
+        <!-- 나비 및 카테고리 헤더 (위치 불변) -->
         <div class="flex flex-col items-center flex-shrink-0">
-          <div class="mb-5 flex items-center justify-center">
+          <div class="mb-4 flex items-center justify-center">
             <svg id="loading-butterfly-svg" class="w-36 h-36 text-white drop-shadow-[0_0_35px_rgba(255,255,255,0.95)] animate-pulse transition-all duration-1000" viewBox="0 0 100 100">
               <path id="loading-wing-path" d="" fill="#ffffff" stroke="#ffffff" stroke-width="1"/>
             </svg>
@@ -460,13 +458,13 @@
           <span id="showcase-category" class="inline-block text-[11px] font-bold text-neutral-400 tracking-wider uppercase mb-2">#새겨진 이야기</span>
         </div>
 
-        <!-- 키워드 쇼케이스 -->
-        <div id="showcase-card" class="answer-fade visible-state w-full text-center flex flex-col items-center relative">
-          <div id="showcase-answers" class="flex flex-wrap items-center justify-center gap-2 py-1 w-full px-2 overflow-y-auto vertical-scroll-chips" style="max-height: calc(50vh - 130px);"></div>
+        <!-- 키워드 쇼케이스 (나비 아래쪽으로 배치) -->
+        <div id="showcase-card" class="answer-fade visible-state w-full text-center flex flex-col items-center relative flex-shrink min-h-0">
+          <div id="showcase-answers" class="flex flex-wrap items-center justify-center gap-2 py-1 w-full px-2 overflow-y-auto vertical-scroll-chips" style="max-height: 220px;"></div>
         </div>
       </div>
 
-      <div class="w-[84%] z-10 flex flex-col items-center pb-2">
+      <div class="w-[84%] z-10 flex flex-col items-center pb-2 flex-shrink-0">
         <div class="w-full h-1.5 bg-white/20 rounded-full overflow-hidden backdrop-blur-sm">
           <div id="generation-progress-bar" class="h-full bg-white rounded-full transition-all duration-500 ease-out shadow-[0_0_12px_rgba(255,255,255,0.9)]" style="width: 0%;"></div>
         </div>
