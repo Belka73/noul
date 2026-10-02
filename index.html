@@ -476,31 +476,37 @@
       </footer>
     </section>
 
-    <!-- 6. 완성 화면 (체크 아이콘/원 제거, 5초 타이핑 + 2초 후 자동 이동) -->
+    <!-- 6. 완성 화면 (오프닝 3번 사진 동일 타이핑 속도 + 2초 후 자동 이동) -->
     <section id="screen-complete" class="screen flex-col flex-1 justify-center items-center text-center p-6 relative z-10 w-full bg-black select-none">
       <div class="w-full max-w-[340px] px-2 flex flex-col items-center justify-center">
-        <h2 id="complete-typing-title" class="text-2xl font-bold text-white tracking-tight leading-relaxed break-keep"></h2>
+        <h2 id="complete-typing-title" class="text-base sm:text-[1.08rem] font-medium text-white tracking-tight leading-relaxed break-keep"></h2>
       </div>
     </section>
 
-    <!-- 7. 신규 공유 페이지 (5초 타이핑 문장 + 흰색 공유하기 바 + 검은색 처음으로 바) -->
-    <section id="screen-share" class="screen flex-col flex-1 justify-between items-center py-10 px-6 text-center relative z-20 w-full bg-black select-none">
-      <div class="w-full h-10 flex-shrink-0"></div>
+    <!-- 7. 신규 공유 페이지 (중앙 최종 3D 선명 나비 + 하단 타이핑 문장 + 공유/처음으로 버튼) -->
+    <section id="screen-share" class="screen flex-col flex-1 justify-between items-center py-6 px-6 text-center relative z-20 w-full bg-black select-none overflow-hidden">
+      <!-- 중앙 3D 나비 컨테이너 (로딩화면 각도/동작 + 선명한 텍스처 결과물) -->
+      <div id="share-three-container" class="absolute inset-0 w-full h-full pointer-events-none z-0"></div>
 
-      <div class="w-full max-w-[340px] my-auto flex flex-col items-center justify-center px-2">
-        <h2 id="share-typing-title" class="text-2xl font-bold text-white tracking-tight leading-relaxed break-keep"></h2>
+      <div class="w-full h-6 flex-shrink-0 z-10"></div>
+
+      <!-- 하단 문장 및 버튼 묶음 -->
+      <div class="w-full flex flex-col items-center z-10 mt-auto pb-4 gap-6">
+        <div class="w-full max-w-[340px] px-2 flex flex-col items-center justify-center">
+          <h2 id="share-typing-title" class="text-base sm:text-[1.08rem] font-medium text-white tracking-tight leading-relaxed break-keep"></h2>
+        </div>
+
+        <footer id="share-bottom-dock" class="bottom-dock-unified w-full flex flex-col items-center gap-3 z-20 opacity-0 transition-opacity duration-700 !pb-0">
+          <button id="btn-action-share" type="button" 
+                  class="w-[84%] py-3.5 rounded-full bg-white text-black font-bold text-sm cursor-pointer active:scale-95 transition-all text-center block shadow-[0_0_20px_rgba(255,255,255,0.25)]">
+            공유하기
+          </button>
+          <button id="btn-action-home" type="button" 
+                  class="w-[84%] py-3.5 rounded-full bg-black border border-white/25 text-white font-bold text-sm cursor-pointer active:scale-95 transition-all text-center block">
+            처음으로
+          </button>
+        </footer>
       </div>
-
-      <footer id="share-bottom-dock" class="bottom-dock-unified w-full flex flex-col items-center gap-3.5 z-20 opacity-0 transition-opacity duration-700">
-        <button id="btn-action-share" type="button" 
-                class="w-[84%] py-3.5 rounded-full bg-white text-black font-bold text-sm cursor-pointer active:scale-95 transition-all text-center block shadow-[0_0_20px_rgba(255,255,255,0.25)]">
-          공유하기
-        </button>
-        <button id="btn-action-home" type="button" 
-                class="w-[84%] py-3.5 rounded-full bg-black border border-white/25 text-white font-bold text-sm cursor-pointer active:scale-95 transition-all text-center block">
-          처음으로
-        </button>
-      </footer>
     </section>
 
   </main>
