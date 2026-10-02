@@ -1,8 +1,9 @@
 /* ==========================================================================
    🌟 너울(Noul) 메인 애플리케이션 로직 (app.js)
    - [DEV 완벽 복원]: 브라우저 전역 클릭 위임 라우터
-   - [신규 플로우]: 나비 커스텀 -> 1번 사진 -> 2번 사진(위로 메모, 키워드 삭제) -> 로딩
-   - [Supabase 연동]: 임시 표본 제거 & Supabase 실시간 연동
+   - [로딩 화면]: 사용자가 선택한 3D 나비 블러 회전/날개짓 연출 (1번 사진 레퍼런스 포즈)
+   - [완료 화면]: 하늘로 날아오름 안내 5초 타이핑 + 2초 후 자동 이동
+   - [공유 화면]: 5초 타이핑 + 흰색 공유하기 바 + 검은색 처음으로 바
    ========================================================================== */
 
 var ALL_SCREENS = [
@@ -18,7 +19,8 @@ var ALL_SCREENS = [
   'screen-survey-bridge',
   'screen-loading',
   'screen-preview',
-  'screen-complete'
+  'screen-complete',
+  'screen-share'
 ];
 
 // DEV 네비게이션 및 전역 상태 변수
@@ -26,12 +28,19 @@ var showcaseInterval = null;
 var currentStepIdx = 0; // 0: 이름, 1: 성향, 2: 고민다중, 3: 위로메모
 var userSelections = { q1: [], q2: [], q1_custom: "", q2_custom: "", core_concern: "", q6_memo: "", q7_name: "" };
 
+var completeTypeTimer = null;
+var shareTypeTimer = null;
+var autoTransitionTimer = null;
+
 function showScreen(screenId) {
   clearTimeout(typeTimer);
   clearTimeout(guideTypeTimer);
   clearTimeout(surveyTitleTypeTimer);
   clearTimeout(coreConcernTypeTimer);
   clearTimeout(openingDelayTimer);
+  clearTimeout(completeTypeTimer);
+  clearTimeout(shareTypeTimer);
+  clearTimeout(autoTransitionTimer);
 
   document.querySelectorAll('.screen').forEach(function(s) {
     s.classList.remove('active');
@@ -43,30 +52,47 @@ function showScreen(screenId) {
     try {
       if (screenId === 'screen-cover') {
         stopBubblePhysics();
+        stopLoading3DScene();
       } else if (screenId === 'screen-opening') {
         stopBubblePhysics();
+        stopLoading3DScene();
         resetOpeningFlow();
       } else if (screenId === 'screen-survey') {
+        stopLoading3DScene();
         renderSurveyStep();
       } else if (screenId === 'screen-survey-core-concern') {
         stopBubblePhysics();
+        stopLoading3DScene();
         initCoreConcernScreen();
       } else if (screenId === 'screen-capture-guide') {
         stopBubblePhysics();
+        stopLoading3DScene();
         startCaptureGuideCinematicFlow();
       } else if (screenId === 'screen-shape-select') {
         stopBubblePhysics();
+        stopLoading3DScene();
         switchTab('wing');
         updateHeroPreview();
         drawAlignCanvas();
       } else if (screenId === 'screen-gallery') {
         stopBubblePhysics();
+        stopLoading3DScene();
         initSpecimenGallery();
       } else if (screenId === 'screen-survey-bridge') {
         stopBubblePhysics();
+        stopLoading3DScene();
         playBridgeTypingSequence();
+      } else if (screenId === 'screen-loading') {
+        stopBubblePhysics();
+      } else if (screenId === 'screen-complete') {
+        stopLoading3DScene();
+        playCompleteScreenSequence();
+      } else if (screenId === 'screen-share') {
+        stopLoading3DScene();
+        playShareScreenSequence();
       } else {
         stopBubblePhysics();
+        stopLoading3DScene();
       }
     } catch(e) {
       console.warn("화면 진입 시각효과 경고:", e);
@@ -108,104 +134,121 @@ function updateDevScreenBadge() {
   badge.innerText = '화면: ' + name;
 }
 
-// 로딩 화면용 답변 쇼케이스 시퀀스
+// --------------------------------------------------------------------------
+// 🌟 1번 사진 레퍼런스: 로딩 화면용 3D 블러 나비 씬
+// --------------------------------------------------------------------------
+var loadingScene, loadingCamera, loadingRenderer, loadingGroup;
+var loadingWingL, loadingWingR;
+var loadingAnimFrameId = null;
+
+function initLoading3DScene(textureUrl) {
+  stopLoading3DScene();
+  var container = document.getElementById('loading-three-container');
+  if (!container || !window.THREE) return;
+  container.innerHTML = '';
+
+  var w = window.innerWidth;
+  var h = window.innerHeight;
+
+  loadingScene = new THREE.Scene();
+  loadingCamera = new THREE.PerspectiveCamera(40, w / h, 0.1, 100);
+  loadingCamera.position.set(0, 0, 7.5);
+  loadingCamera.lookAt(0, 0, 0);
+
+  loadingRenderer = new THREE.WebGLRenderer({ alpha: true, antialias: true });
+  loadingRenderer.setSize(w, h);
+  loadingRenderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+  container.appendChild(loadingRenderer.domElement);
+
+  var amb = new THREE.AmbientLight(0xffffff, 1.0);
+  loadingScene.add(amb);
+  var dir = new THREE.DirectionalLight(0xffffff, 0.9);
+  dir.position.set(3, 6, 8);
+  loadingScene.add(dir);
+
+  var texUrl = textureUrl || currentExtractedTexture || createFallbackDummyTexture('#ffffff', '#cfcfcf');
+  var tex = new THREE.TextureLoader().load(texUrl);
+  tex.flipY = false;
+
+  var wingMat = new THREE.MeshBasicMaterial({ map: tex, side: THREE.DoubleSide });
+  var whiteMat = new THREE.MeshStandardMaterial({ color: 0xffffff, side: THREE.DoubleSide, roughness: 0.35 });
+
+  var shapeId = selectedButterflyShape || 'crescent';
+  var antId = selectedAntennaType || 'ball';
+  var modelPath = '3DButterfly/' + shapeId + '.glb';
+  var targetAntennaPrefix = 'Antenna_' + antId;
+
+  loadingGroup = new THREE.Group();
+
+  // 1번 사진 각도 세팅 (비대칭 대각선 측면 포즈)
+  loadingGroup.rotation.set(0.25, -0.8, 0.35);
+  loadingGroup.position.set(0, 0.1, 0);
+
+  if (window.THREE && THREE.GLTFLoader) {
+    try {
+      new THREE.GLTFLoader().load(modelPath, function(gltf) {
+        var model = gltf.scene;
+        loadingWingL = null; loadingWingR = null;
+
+        model.traverse(function(child) {
+          if (child.isMesh) {
+            var name = child.name;
+            if (name.startsWith('Wing_L')) { loadingWingL = child; child.material = wingMat; }
+            else if (name.startsWith('Wing_R')) { loadingWingR = child; child.material = wingMat; }
+            else if (name.startsWith('Body')) { child.material = whiteMat; }
+            else if (name.startsWith('Antenna_')) { child.material = whiteMat; child.visible = name.startsWith(targetAntennaPrefix); }
+          }
+        });
+
+        model.scale.set(0.95, 0.95, 0.95);
+        loadingGroup.add(model);
+      }, undefined, function() {});
+    } catch(err) {}
+  }
+
+  loadingScene.add(loadingGroup);
+  var clock = new THREE.Clock();
+
+  function animateLoading() {
+    loadingAnimFrameId = requestAnimationFrame(animateLoading);
+    var t = clock.getElapsedTime();
+    var flap = Math.sin(t * 7.5) * 0.42;
+
+    if (loadingWingL && loadingWingR) {
+      loadingWingL.rotation.y = flap;
+      loadingWingR.rotation.y = -flap;
+    }
+    // 사진의 각도를 유지하며 우아하게 호흡하듯 살짝 부유
+    loadingGroup.position.y = 0.1 + Math.sin(t * 2.2) * 0.08;
+    loadingGroup.rotation.z = 0.35 + Math.sin(t * 1.5) * 0.04;
+
+    loadingRenderer.render(loadingScene, loadingCamera);
+  }
+  animateLoading();
+}
+
+function stopLoading3DScene() {
+  if (loadingAnimFrameId) {
+    cancelAnimationFrame(loadingAnimFrameId);
+    loadingAnimFrameId = null;
+  }
+  var container = document.getElementById('loading-three-container');
+  if (container) container.innerHTML = '';
+}
+
+// 로딩 진행바 시퀀스 (쇼케이스 텍스트는 전면 제거)
 function startAnswerShowcaseSequence() {
   if (showcaseInterval) { clearInterval(showcaseInterval); showcaseInterval = null; }
   
-  var currentWing = butterflyPathData[selectedButterflyShape] || wingDataset[0];
-  var loadingSvg = document.getElementById('loading-butterfly-svg');
-  var loadingPath = document.getElementById('loading-wing-path');
-  if (loadingSvg && currentWing) {
-    loadingSvg.setAttribute('viewBox', currentWing.viewBox);
-  }
-  if (loadingPath && currentWing) {
-    loadingPath.setAttribute('d', currentWing.d);
-  }
+  initLoading3DScene(currentExtractedTexture);
 
   var pBar = document.getElementById('generation-progress-bar');
   var progress = 0;
-  var step = 0;
-  var categoryEl = document.getElementById('showcase-category');
-  var answersEl = document.getElementById('showcase-answers');
-
-  function renderShowcaseStep(s) {
-    if (answersEl) answersEl.innerHTML = '';
-
-    if (s === 0) {
-      if (categoryEl) categoryEl.innerText = '#새겨진 이야기';
-      var sp = document.createElement('span');
-      sp.className = 'concern-pill-badge';
-      sp.innerText = userSelections.q7_name ? userSelections.q7_name.trim() : '나비';
-      if (answersEl) answersEl.appendChild(sp);
-
-    } else if (s === 1) {
-      if (categoryEl) categoryEl.innerText = '#나의 고유한 모습';
-      var q1Items = (userSelections.q1 && userSelections.q1.length > 0) ? userSelections.q1 : ['야행성', '사색가'];
-      q1Items.forEach(function(ans) {
-        var pill = document.createElement('span');
-        pill.className = 'chip-base chip-selected pointer-events-none';
-        pill.style.setProperty('background', '#ffffff', 'important');
-        pill.style.setProperty('border', 'none', 'important');
-        pill.style.setProperty('color', '#000000', 'important');
-        pill.style.setProperty('font-weight', '700', 'important');
-        pill.style.setProperty('box-shadow', 'none', 'important');
-        pill.innerText = ans;
-        if (answersEl) answersEl.appendChild(pill);
-      });
-
-    } else if (s === 2) {
-      if (categoryEl) categoryEl.innerText = '#마주친 마음의 고민';
-      var q2Items = (userSelections.q2 && userSelections.q2.length > 0) ? userSelections.q2 : ['완벽주의 강박', '비교중독'];
-      q2Items.forEach(function(ans) {
-        var pill = document.createElement('span');
-        pill.className = 'chip-base chip-selected pointer-events-none';
-        pill.style.setProperty('background', '#ffffff', 'important');
-        pill.style.setProperty('border', 'none', 'important');
-        pill.style.setProperty('color', '#000000', 'important');
-        pill.style.setProperty('font-weight', '700', 'important');
-        pill.style.setProperty('box-shadow', 'none', 'important');
-        pill.innerText = ans;
-        if (answersEl) answersEl.appendChild(pill);
-      });
-
-    } else if (s === 3) {
-      if (categoryEl) categoryEl.innerText = '#가장 깊은 고민';
-      var coreItem = userSelections.core_concern || (userSelections.q2 && userSelections.q2[0]) || '완벽주의 강박';
-      var sp = document.createElement('span');
-      sp.className = 'concern-pill-badge';
-      sp.innerText = coreItem;
-      if (answersEl) answersEl.appendChild(sp);
-
-    } else if (s === 4) {
-      if (categoryEl) categoryEl.innerText = '#나에게 건네는 온기';
-      var memoText = userSelections.q6_memo ? userSelections.q6_memo.trim() : '너의 찬란한 날갯짓을 응원해.';
-      var sp = document.createElement('span');
-      sp.className = 'concern-pill-badge text-[1.1rem] leading-snug';
-      sp.innerText = memoText;
-      if (answersEl) answersEl.appendChild(sp);
-    }
-  }
-
-  renderShowcaseStep(0);
   if (pBar) pBar.style.width = '0%';
 
   showcaseInterval = setInterval(function() {
-    progress += 1.0;
+    progress += 1.5;
     if (pBar) pBar.style.width = Math.min(100, progress) + '%';
-
-    if (progress > 20 && step === 0) {
-      step = 1;
-      renderShowcaseStep(1);
-    } else if (progress > 40 && step === 1) {
-      step = 2;
-      renderShowcaseStep(2);
-    } else if (progress > 60 && step === 2) {
-      step = 3;
-      renderShowcaseStep(3);
-    } else if (progress > 80 && step === 3) {
-      step = 4;
-      renderShowcaseStep(4);
-    }
 
     if (progress >= 100) {
       clearInterval(showcaseInterval);
@@ -213,11 +256,10 @@ function startAnswerShowcaseSequence() {
 
       setTimeout(function() {
         var whiteFlash = document.getElementById('cinematic-white-flash');
-        if (whiteFlash) {
-          whiteFlash.classList.add('flash-active');
-        }
+        if (whiteFlash) whiteFlash.classList.add('flash-active');
 
         setTimeout(function() {
+          stopLoading3DScene();
           var butterflyName = userSelections.q7_name ? userSelections.q7_name.trim() : "나비";
           var nameHeader = document.getElementById('preview-butterfly-name');
           if (nameHeader) nameHeader.innerText = '‘' + butterflyName + '’';
@@ -233,14 +275,122 @@ function startAnswerShowcaseSequence() {
           showScreen('screen-preview');
 
           setTimeout(function() {
-            if (whiteFlash) {
-              whiteFlash.classList.remove('flash-active');
-            }
+            if (whiteFlash) whiteFlash.classList.remove('flash-active');
           }, 1200);
         }, 1400);
-      }, 3000);
+      }, 1000);
     }
-  }, 150);
+  }, 75);
+}
+
+// --------------------------------------------------------------------------
+// 🌟 3번 사진 대응: 완료 화면 타이핑 (5초) + 2초 후 자동 전환
+// --------------------------------------------------------------------------
+function playCompleteScreenSequence() {
+  clearTimeout(completeTypeTimer);
+  clearTimeout(autoTransitionTimer);
+
+  var titleEl = document.getElementById('complete-typing-title');
+  if (!titleEl) return;
+  titleEl.innerHTML = "";
+
+  var rawName = userSelections.q7_name ? userSelections.q7_name.trim() : "나비";
+  // 요청 문구: 하늘로 '사용자 이름'이 (줄바꿈) 너울 속으로 날아 올랐습니다.
+  var targetText = "하늘로 '" + rawName + "'이<br>너울 속으로 날아 올랐습니다.";
+
+  var tokens = targetText.match(/(<[^>]+>|[^<])/g) || [];
+  var totalChars = targetText.replace(/<[^>]+>/g, '').length;
+  var speed = Math.max(55, Math.floor(5000 / Math.max(1, totalChars)));
+
+  var idx = 0;
+  var curContent = "";
+
+  function typeChar() {
+    if (idx < tokens.length) {
+      var tok = tokens[idx];
+      curContent += tok;
+      titleEl.innerHTML = curContent;
+      idx++;
+      var delay = tok.startsWith('<') ? 0 : speed;
+      completeTypeTimer = setTimeout(typeChar, delay);
+    } else {
+      // 5초 타이핑 완료 후 2초 대기 뒤 자동으로 다음 화면 이동
+      autoTransitionTimer = setTimeout(function() {
+        transitionToScreenWithFade('screen-share');
+      }, 2000);
+    }
+  }
+  typeChar();
+}
+
+// --------------------------------------------------------------------------
+// 🌟 신규 공유 페이지 시퀀스 (5초 타이핑 + 공유/처음으로 버튼 노출)
+// --------------------------------------------------------------------------
+function playShareScreenSequence() {
+  clearTimeout(shareTypeTimer);
+
+  var titleEl = document.getElementById('share-typing-title');
+  var bottomDock = document.getElementById('share-bottom-dock');
+  if (!titleEl) return;
+  titleEl.innerHTML = "";
+  if (bottomDock) bottomDock.style.opacity = '0';
+
+  var targetText = "당신의 나비를 더 멀리 날려보세요.";
+  var tokens = targetText.match(/(<[^>]+>|[^<])/g) || [];
+  var totalChars = targetText.length;
+  var speed = Math.max(65, Math.floor(5000 / Math.max(1, totalChars)));
+
+  var idx = 0;
+  var curContent = "";
+
+  function typeShareChar() {
+    if (idx < tokens.length) {
+      var tok = tokens[idx];
+      curContent += tok;
+      titleEl.innerHTML = curContent;
+      idx++;
+      var delay = tok.startsWith('<') ? 0 : speed;
+      shareTypeTimer = setTimeout(typeShareChar, delay);
+    } else {
+      // 타이핑 완료 후 버튼 자연스럽게 페이드인
+      if (bottomDock) {
+        bottomDock.style.opacity = '1';
+      }
+    }
+  }
+  typeShareChar();
+}
+
+// 공유하기 버튼 동작 (Web Share API 및 클립보드 복사 대응)
+var btnActionShare = document.getElementById('btn-action-share');
+if (btnActionShare) {
+  btnActionShare.onclick = function() {
+    var rawName = userSelections.q7_name ? userSelections.q7_name.trim() : "나비";
+    var shareData = {
+      title: '너울(Noul) - ' + rawName,
+      text: "내가 빚은 나비 '" + rawName + "'(이)가 너울 속으로 날아올랐습니다.",
+      url: window.location.href
+    };
+
+    if (navigator.share) {
+      navigator.share(shareData).catch(function() {});
+    } else if (navigator.clipboard) {
+      navigator.clipboard.writeText(window.location.href).then(function() {
+        alert("나비 링크가 클립보드에 복사되었습니다!");
+      }).catch(function() {
+        alert("링크 복사에 실패했습니다.");
+      });
+    } else {
+      alert("공유를 지원하지 않는 브라우저입니다.");
+    }
+  };
+}
+
+var btnActionHome = document.getElementById('btn-action-home');
+if (btnActionHome) {
+  btnActionHome.onclick = function() {
+    location.reload();
+  };
 }
 
 // --------------------------------------------------------------------------
@@ -262,6 +412,10 @@ document.addEventListener('click', function(e) {
     clearTimeout(surveyTitleTypeTimer);
     clearTimeout(coreConcernTypeTimer);
     clearTimeout(openingDelayTimer);
+    clearTimeout(completeTypeTimer);
+    clearTimeout(shareTypeTimer);
+    clearTimeout(autoTransitionTimer);
+
     if (showcaseInterval) { clearInterval(showcaseInterval); showcaseInterval = null; }
     if (animFrameId) { cancelAnimationFrame(animFrameId); animFrameId = null; }
 
@@ -353,6 +507,10 @@ document.addEventListener('click', function(e) {
     clearTimeout(surveyTitleTypeTimer);
     clearTimeout(coreConcernTypeTimer);
     clearTimeout(openingDelayTimer);
+    clearTimeout(completeTypeTimer);
+    clearTimeout(shareTypeTimer);
+    clearTimeout(autoTransitionTimer);
+
     if (showcaseInterval) { clearInterval(showcaseInterval); showcaseInterval = null; }
     if (animFrameId) { cancelAnimationFrame(animFrameId); animFrameId = null; }
 
@@ -649,13 +807,6 @@ function updateHeroPreview() {
     '<g transform="translate(' + headTargetX + ', ' + headTargetY + ')" filter="url(#antenna-subtle-contrast)" color="#ffffff">' +
       ant.render(scale * 1.05) +
     '</g>';
-
-  var loadingSvg = document.getElementById('loading-butterfly-svg');
-  if (loadingSvg) {
-    loadingSvg.setAttribute('viewBox', currentWing.viewBox);
-    var loadingPath = document.getElementById('loading-wing-path');
-    if (loadingPath) loadingPath.setAttribute('d', currentWing.d);
-  }
 }
 
 var carouselContainer = document.getElementById('arch-carousel-container');
@@ -1936,7 +2087,6 @@ function initFullButterflyViewer(textureURL) {
     fullGroup.rotation.x = butterflyRotX;
     fullGroup.rotation.y = butterflyRotY;
 
-    // 2초 동안 누르고 있을 때만 기 모으기 시작
     if (isPressingScreen && !isFlyingAway) {
       var pressDuration = (now - pressStartTime) / 1000;
       var HOLD_THRESHOLD = 2.0;
@@ -1947,13 +2097,12 @@ function initFullButterflyViewer(textureURL) {
           startChargeVibrationLoop();
         }
         var currentChargeSec = Math.max(0, pressDuration - HOLD_THRESHOLD);
-        chargeProgress = Math.min(1.0, currentChargeSec / 2.0); // 2초 완충
+        chargeProgress = Math.min(1.0, currentChargeSec / 2.0);
         updateChargeUIAndCamera(chargeProgress, currentChargeSec);
         spawnEnergyParticles();
       }
     }
 
-    // 나비 등장 및 날개짓
     if (!isFlyingAway) {
       var flyDuration = 3.6;
       var restFoldAngle = 0.25;
@@ -1979,7 +2128,6 @@ function initFullButterflyViewer(textureURL) {
         }
       }
     } else {
-      // 🌟 나비 비행 상승
       var flyAngle = Math.sin(time * 26.0) * 0.75;
       if (leftWingMesh && rightWingMesh) {
         leftWingMesh.rotation.y = initialRotL.y + 0.28 + flyAngle;
@@ -1988,12 +2136,10 @@ function initFullButterflyViewer(textureURL) {
       fullGroup.position.y += 0.09;
       fullGroup.position.z -= 0.04;
 
-      // 🌟 나비가 화면 상단 밖으로 벗어나는 순간: 전역 암전 커튼을 덮어 화면 전체를 100% 완전 검은 화면으로 전환
       if (fullGroup.position.y > 4.6 && !isFlyingTransitionTriggered) {
         isFlyingTransitionTriggered = true;
         saveButterflyToSupabase();
 
-        // 3D 뷰어 및 모든 잔상 숨김
         if (container) container.style.opacity = '0';
         var glowBgEl = document.querySelector('.preview-ethereal-glow-bg');
         if (glowBgEl) glowBgEl.style.opacity = '0';
@@ -2005,19 +2151,13 @@ function initFullButterflyViewer(textureURL) {
           footerUIEl.style.opacity = '0';
         }
 
-        // 최상단 전역 암전 커튼 활성화
         var globalCurtain = document.getElementById('cinematic-transition-curtain');
         if (globalCurtain) {
           globalCurtain.classList.add('active-curtain');
         }
 
-        // 🌟 완전한 검은 화면에서 2초 머문 뒤 자연스럽게 다음 페이지로 전환 (스르륵 Fade-in)
+        // 🌟 완전한 검은 화면에서 2초 머문 뒤 자연스럽게 완료 화면으로 전환
         setTimeout(function() {
-          var completeDesc = document.getElementById('complete-desc');
-          if (completeDesc) {
-            completeDesc.innerHTML = '<strong>‘' + (userSelections.q7_name || "나비") + '’</strong>(이)가 너울 속으로 합류했습니다.';
-          }
-
           showScreen('screen-complete');
           setTimeout(function() {
             if (globalCurtain) {
@@ -2158,7 +2298,6 @@ function resetChargeState() {
   if (flyLabel) flyLabel.innerText = "화면을 길게 눌러주세요.";
 }
 
-// 🌟 손을 떼는 순간 동그라미 즉시 소멸 & 스와이프 비행 시 하단 문구 완전 숨김
 function bindInteractiveEvents(targetEl) {
   var touchStartY = 0;
   var touchStartX = 0;
@@ -2204,7 +2343,6 @@ function bindInteractiveEvents(targetEl) {
     isUserDragging = false;
     var swipeDeltaY = touchStartY - clientY;
 
-    // 🌟 1. 사용자가 손가락을 떼는 즉시 기 모으는 동그라미는 무조건 즉시 숨김
     var chargeWidget = document.getElementById('energy-charge-widget');
     if (chargeWidget) {
       chargeWidget.classList.add('hidden');
@@ -2212,12 +2350,10 @@ function bindInteractiveEvents(targetEl) {
     }
     if (chargeVibrateInterval) { clearInterval(chargeVibrateInterval); chargeVibrateInterval = null; }
 
-    // 🌟 2. 기 완충 후 위로 스와이프 시 비행 시작
     if (isChargeTriggered && chargeProgress >= 1.0 && swipeDeltaY > 40 && !isFlyingAway) {
       isFlyingAway = true;
       triggerDeviceVibrate(180, 1.0);
 
-      // 🌟 비행 시작 즉시 하단 안내 문구와 화살표를 즉시 숨김
       var footerUI = document.getElementById('preview-footer-ui');
       if (footerUI) {
         footerUI.style.setProperty('display', 'none', 'important');
@@ -2229,7 +2365,6 @@ function bindInteractiveEvents(targetEl) {
     }
   }
 
-  // 모바일 롱프레스 시 기본 브라우저 메뉴가 뜨며 터치가 씹히는 문제 완전 방지
   targetEl.oncontextmenu = function(e) { e.preventDefault(); return false; };
 
   targetEl.ontouchstart = function(e) { 
@@ -2242,7 +2377,7 @@ function bindInteractiveEvents(targetEl) {
     if (e.changedTouches.length > 0) handlePointerEnd(e.changedTouches[0].clientX, e.changedTouches[0].clientY); 
   }, { passive: true });
   window.addEventListener('touchcancel', function(e) {
-    if (e.changedTouches.length > 0) handlePointerEnd(e.changedTouches[0].clientX, e.changedTouches[0].clientY);
+    if (e.changedTouches.length > 0) handlePointerEnd(e.changedTouches[0].clientX, e.changedTouches[0].clientY); 
     else resetChargeState();
   }, { passive: true });
 
@@ -2252,7 +2387,7 @@ function bindInteractiveEvents(targetEl) {
 }
 
 // --------------------------------------------------------------------------
-// 나비 표본실 갤러리 (🌟 임시 나비 데이터 비우고 Supabase 실시간 연동)
+// 나비 표본실 갤러리
 // --------------------------------------------------------------------------
 var specimenButterfliesData = [];
 
@@ -2266,7 +2401,6 @@ async function initSpecimenGallery() {
   gallerySpawnTimers.forEach(function(t) { clearTimeout(t); });
   gallerySpawnTimers = [];
 
-  // Supabase에서 실시간 데이터 로드
   if (supabase) {
     try {
       var res = await supabase
@@ -2299,7 +2433,6 @@ async function initSpecimenGallery() {
     }
   }
 
-  // 등록된 나비가 하나도 없을 때
   if (specimenButterfliesData.length === 0) {
     specimenContainer.innerHTML = 
       '<div style="grid-column: 1 / -1; text-align: center; padding: 4rem 1rem; color: #777777; font-size: 13px;">' +

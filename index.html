@@ -425,40 +425,21 @@
       </div>
     </section>
 
-    <!-- 4. 로딩 화면 -->
-    <section id="screen-loading" class="screen flex-col flex-1 justify-between items-center py-10 px-5 text-center relative overflow-hidden z-10 w-full">
-      <div class="photo-butterfly-bg-wrapper pointer-events-none">
-        <div class="photo-bg-layer"></div>
-        <div class="photo-bg-overlay"></div>
-      </div>
-
-      <div id="cinematic-black-curtain"></div>
+    <!-- 4. 로딩 화면 (1번 사진 레퍼런스: 배경 3D 나비 블러 회전/날개짓 & 기존 답변 쇼케이스 삭제) -->
+    <section id="screen-loading" class="screen flex-col flex-1 justify-between items-center py-10 px-5 text-center relative overflow-hidden z-10 w-full bg-black">
+      <div id="loading-three-container" class="loading-three-canvas-layer pointer-events-none"></div>
+      <div class="loading-blur-vignette-overlay pointer-events-none"></div>
 
       <div class="mt-8 z-10 space-y-1.5 pointer-events-none transition-all duration-700 flex-shrink-0">
         <h2 id="loading-main-title" class="text-2xl font-black text-white tracking-tight leading-snug drop-shadow-[0_2px_12px_rgba(0,0,0,0.8)] pt-2">
           나비를 깨우는 중
         </h2>
-        <p id="loading-sub-desc" class="text-xs text-neutral-200 font-normal leading-relaxed drop-shadow-md">
+        <p id="loading-sub-desc" class="text-xs text-neutral-300 font-normal leading-relaxed drop-shadow-md">
           당신이 건넨 마음의 조각들을 하나씩 새겨 넣고 있어요.
         </p>
       </div>
 
-      <div class="absolute left-1/2 top-[46%] -translate-x-1/2 -translate-y-1/2 z-10 flex flex-col items-center pointer-events-none">
-        <div class="flex items-center justify-center">
-          <svg id="loading-butterfly-svg" class="w-36 h-36 text-white drop-shadow-[0_0_35px_rgba(255,255,255,0.95)] animate-pulse transition-all duration-1000" viewBox="0 0 100 100">
-            <path id="loading-wing-path" d="" fill="#ffffff" stroke="#ffffff" stroke-width="1"/>
-          </svg>
-        </div>
-        <span id="showcase-category" class="inline-block text-[11px] font-bold text-neutral-400 tracking-wider uppercase mt-4">
-          #새겨진 이야기
-        </span>
-      </div>
-
-      <div class="relative w-full max-w-[340px] z-20 flex flex-col items-center justify-start pointer-events-auto mt-auto mb-4" style="height: 220px;">
-        <div id="showcase-card" class="answer-fade visible-state w-full text-center flex flex-col items-center h-full">
-          <div id="showcase-answers" class="flex flex-wrap items-center justify-center gap-2 py-1 w-full px-2 overflow-y-auto vertical-scroll-chips max-h-full"></div>
-        </div>
-      </div>
+      <div class="flex-1 w-full min-h-0"></div>
 
       <div class="w-[84%] z-10 flex flex-col items-center pb-2 flex-shrink-0">
         <div class="w-full h-1.5 bg-white/20 rounded-full overflow-hidden backdrop-blur-sm">
@@ -467,7 +448,7 @@
       </div>
     </section>
 
-    <!-- 5. 프리뷰 및 비행 화면 (🌟 [수정]: 기본 안내 문구를 '화면을 길게 눌러주세요.' 로 반영) -->
+    <!-- 5. 프리뷰 및 비행 화면 -->
     <section id="screen-preview" class="screen fixed inset-0 z-50 flex-col justify-between py-6 overflow-hidden bg-black select-none" style="background: #000000 !important;">
       <div class="preview-ethereal-glow-bg"></div>
 
@@ -495,20 +476,31 @@
       </footer>
     </section>
 
-    <!-- 6. 완성 화면 -->
-    <section id="screen-complete" class="screen flex-col flex-1 justify-center items-center text-center p-6 relative z-10 w-full bg-black">
-      <div class="w-20 h-20 rounded-full bg-white/10 border border-white/20 flex items-center justify-center mb-6 shadow-[0_0_30px_rgba(255,255,255,0.25)]">
-        <svg class="w-10 h-10 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
-        </svg>
+    <!-- 6. 완성 화면 (체크 아이콘/원 제거, 5초 타이핑 + 2초 후 자동 이동) -->
+    <section id="screen-complete" class="screen flex-col flex-1 justify-center items-center text-center p-6 relative z-10 w-full bg-black select-none">
+      <div class="w-full max-w-[340px] px-2 flex flex-col items-center justify-center">
+        <h2 id="complete-typing-title" class="text-2xl font-bold text-white tracking-tight leading-relaxed break-keep"></h2>
       </div>
-      <h2 class="text-2xl font-bold text-white mb-2 tracking-tight">하늘로 날아올라 갔습니다.</h2>
-      <p id="complete-desc" class="text-sm text-neutral-400 leading-relaxed mb-8">
-        ‘나비’(이)가 너울 속으로 합류했습니다.
-      </p>
-      <button onclick="location.reload()" type="button" class="w-[84%] py-3.5 rounded-2xl bg-white text-black text-xs font-bold shadow-lg shadow-white/20 active:scale-95 transition-all">
-        처음으로
-      </button>
+    </section>
+
+    <!-- 7. 신규 공유 페이지 (5초 타이핑 문장 + 흰색 공유하기 바 + 검은색 처음으로 바) -->
+    <section id="screen-share" class="screen flex-col flex-1 justify-between items-center py-10 px-6 text-center relative z-20 w-full bg-black select-none">
+      <div class="w-full h-10 flex-shrink-0"></div>
+
+      <div class="w-full max-w-[340px] my-auto flex flex-col items-center justify-center px-2">
+        <h2 id="share-typing-title" class="text-2xl font-bold text-white tracking-tight leading-relaxed break-keep"></h2>
+      </div>
+
+      <footer id="share-bottom-dock" class="bottom-dock-unified w-full flex flex-col items-center gap-3.5 z-20 opacity-0 transition-opacity duration-700">
+        <button id="btn-action-share" type="button" 
+                class="w-[84%] py-3.5 rounded-full bg-white text-black font-bold text-sm cursor-pointer active:scale-95 transition-all text-center block shadow-[0_0_20px_rgba(255,255,255,0.25)]">
+          공유하기
+        </button>
+        <button id="btn-action-home" type="button" 
+                class="w-[84%] py-3.5 rounded-full bg-black border border-white/25 text-white font-bold text-sm cursor-pointer active:scale-95 transition-all text-center block">
+          처음으로
+        </button>
+      </footer>
     </section>
 
   </main>

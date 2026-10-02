@@ -6,6 +6,7 @@
    - 표지 화면 시네마틱 애니메이션 복원
    - [수정 1] 1번 사진: 표본실 나비 한 줄에 2마리 정렬, 동일 크기, 위아래 스크롤 및 이름표 간격 고정
    - [수정 2] 2번 사진: 등이 보이는 3D 회전값, 유기적인 비행, 안정된 기모으기
+   - [추가] 로딩 화면 3D 캔버스 블러 및 완성/공유 페이지 스타일
    ========================================================================== */
 
 * {
@@ -174,7 +175,7 @@ html, body {
   opacity: 0.92;
 }
 
-/* 전역 화면 전환용 블랙 페이드 오버레이 (🌟 z-index 999999로 screen-preview보다 무조건 위로 배치) */
+/* 전역 화면 전환용 블랙 페이드 오버레이 */
 #cinematic-transition-curtain {
   position: fixed;
   inset: 0;
@@ -906,7 +907,7 @@ html, body {
   margin-right: auto !important;
 }
 
-/* 기 모으는 버튼 (🌟 !important 적용으로 숨김 시 무조건 완전 제거) */
+/* 기 모으는 버튼 */
 .energy-charge-widget {
   position: fixed;
   left: 50%;
@@ -951,6 +952,28 @@ html, body {
   border: 1px solid rgba(255, 255, 255, 0.4);
   transform: scale(1);
   will-change: width, height, transform;
+}
+
+/* 🌟 로딩 화면 3D 배경 레이어 & 블러 효과 */
+.loading-three-canvas-layer {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 2;
+  filter: blur(8px) brightness(0.95);
+  transform: scale(1.08);
+  pointer-events: none;
+}
+
+.loading-blur-vignette-overlay {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 3;
+  background: radial-gradient(circle at center, rgba(0, 0, 0, 0.1) 0%, rgba(0, 0, 0, 0.75) 85%);
+  pointer-events: none;
 }
 
 /* ==========================================================================
