@@ -632,6 +632,7 @@ html, body {
   min-height: 2.2rem;
 }
 
+/* 🌟 [수정 1] 나비 아래 글자 글로우 완전 제거 */
 .concern-pill-badge {
   display: inline-block;
   background: transparent !important;
@@ -642,7 +643,7 @@ html, body {
   font-weight: 800 !important;
   letter-spacing: -0.3px;
   text-align: center;
-  text-shadow: 0 0 16px rgba(255, 255, 255, 0.85), 0 0 32px rgba(255, 255, 255, 0.45);
+  text-shadow: none !important;
 }
 
 .memo-input-container {
@@ -997,7 +998,7 @@ html, body {
   z-10;
 }
 
-/* 🌟 꾹 누를 때 원형 기 이펙트: 사이즈 축소 및 전체 투명화 */
+/* 🌟 [수정 2] 기 모으는 버튼 글로우 제거 및 전체 투명도 강화 */
 .energy-charge-widget {
   position: fixed;
   left: 50%;
@@ -1021,8 +1022,8 @@ html, body {
   height: 96px;
   border-radius: 50%;
   background: rgba(255, 255, 255, 0.04);
-  border: 1px solid rgba(255, 255, 255, 0.22);
-  box-shadow: 0 0 20px rgba(255, 255, 255, 0.15), inset 0 0 10px rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  box-shadow: none !important;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1035,10 +1036,11 @@ html, body {
   width: 22px;
   height: 22px;
   border-radius: 50%;
-  background: rgba(255, 255, 255, 0.95);
-  box-shadow: 0 0 18px 4px rgba(255, 255, 255, 0.75);
+  background: rgba(255, 255, 255, 0.25);
+  box-shadow: none !important;
+  border: 1px solid rgba(255, 255, 255, 0.4);
   transform: scale(1);
-  will-change: width, height, transform, box-shadow;
+  will-change: width, height, transform;
 }
 
 /* 나비 박제 표본실 */

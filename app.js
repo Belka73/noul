@@ -195,7 +195,6 @@ function startAnswerShowcaseSequence() {
       clearInterval(showcaseInterval);
       showcaseInterval = null;
 
-      // 🌟 변경: 로딩이 다 차면 바로 넘어가지 않고 3초간 기다린 뒤 화이트 플래시 발동
       setTimeout(function() {
         var whiteFlash = document.getElementById('cinematic-white-flash');
         if (whiteFlash) {
@@ -1352,7 +1351,6 @@ function renderSurveyStep() {
   updateDevScreenBadge();
 }
 
-// 🌟 선택/취소 시 잔상 완전히 제거하도록 수정
 function updateChipStyle(chip, isSelected) {
   if (isSelected) {
     chip.classList.remove('chip-unselected');
@@ -1740,6 +1738,7 @@ var animFrameId = null;
 var initialRotL = { x: 0, y: 0, z: 0 };
 var initialRotR = { x: 0, y: 0, z: 0 };
 
+// 🌟 정면을 완벽히 응시하도록 기본 회전값 고정
 var DEFAULT_ROT_X = 0;
 var DEFAULT_ROT_Y = Math.PI;
 
@@ -1759,7 +1758,6 @@ var particleCanvas = null;
 var pctx = null;
 var energyParticles = [];
 
-// 🌟 터치 즉시 모바일 진동(Haptic Feedback) 확실하게 지원하도록 강화
 function triggerDeviceVibrate(durationMs, intensity) {
   try {
     if (navigator.vibrate) {
@@ -1877,7 +1875,6 @@ function initFullButterflyViewer(textureURL) {
           }
         });
 
-        // 나비 사이즈 살짝 축소 (기존 0.9 -> 0.76)
         model.scale.set(0.76, 0.76, 0.76);
         fullGroup.add(model);
       }, undefined, function() {});
@@ -1895,13 +1892,9 @@ function initFullButterflyViewer(textureURL) {
     var now = performance.now();
     var elapsedSec = (now - previewStartTime) / 1000;
 
-    if (!isUserDragging) {
-      butterflyRotX += (DEFAULT_ROT_X - butterflyRotX) * 0.08;
-      var diffY = (DEFAULT_ROT_Y - butterflyRotY);
-      diffY = Math.atan2(Math.sin(diffY), Math.cos(diffY));
-      butterflyRotY += diffY * 0.08;
-    }
-
+    // 🌟 [수정 2] 나비가 항상 정면을 유지 (360도 회전 배제)
+    butterflyRotX = DEFAULT_ROT_X;
+    butterflyRotY = DEFAULT_ROT_Y;
     fullGroup.rotation.x = butterflyRotX;
     fullGroup.rotation.y = butterflyRotY;
 
@@ -1920,45 +1913,48 @@ function initFullButterflyViewer(textureURL) {
     }
 
     if (!isFlyingAway) {
-      // 화면 전환 후 0.8초간 대기 후, 아래(-7.0)에서 화면 중앙(0.0)으로 2.3초간 날갯짓하며 올라온 뒤 정지
+      // 🌟 [수정 2] 나비가 더 천천히 올라오고(4.2초), 더 많은 날갯짓(38.0)을 수행
       var introDelay = 0.8;
-      var flyDuration = 2.3;
+      var flyDuration = 4.2;
+      // 🌟 [수정 2] 정지했을 때 양쪽 날개가 평면이 아니라 살짝 안쪽으로 접혀있게 설정 (약 16도 = 0.28 rad)
+      var restFoldAngle = 0.28;
+
       if (elapsedSec < introDelay) {
         fullGroup.position.y = -7.0;
         if (leftWingMesh && rightWingMesh) {
-          leftWingMesh.rotation.y = initialRotL.y;
-          rightWingMesh.rotation.y = initialRotR.y;
+          leftWingMesh.rotation.y = initialRotL.y + restFoldAngle;
+          rightWingMesh.rotation.y = initialRotR.y - restFoldAngle;
         }
       } else if (elapsedSec < introDelay + flyDuration) {
         var t = (elapsedSec - introDelay) / flyDuration;
         var easeOut = 1.0 - Math.pow(1.0 - t, 3);
         fullGroup.position.y = -7.0 + 7.0 * easeOut;
 
-        var currentFlapSpeed = 22.0 * (1.0 - t * 0.3);
-        var flap = Math.sin(time * currentFlapSpeed) * 0.65 * (1.0 - t * 0.2);
+        // 날갯짓 진동수 38.0으로 대폭 증가하여 더 많이 날갯짓
+        var currentFlapSpeed = 38.0 * (1.0 - t * 0.2);
+        var flap = Math.sin(time * currentFlapSpeed) * 0.72 * (1.0 - t * 0.2);
 
         if (leftWingMesh && rightWingMesh) {
-          leftWingMesh.rotation.y = initialRotL.y + flap;
-          rightWingMesh.rotation.y = initialRotR.y - flap;
+          leftWingMesh.rotation.y = initialRotL.y + restFoldAngle + flap;
+          rightWingMesh.rotation.y = initialRotR.y - restFoldAngle - flap;
         }
       } else {
-        // 정중앙 정지 완료
+        // 정중앙 정지 완료 시, 살짝 접힌 각도를 안정적으로 유지
         fullGroup.position.y = 0;
         if (leftWingMesh && rightWingMesh) {
-          leftWingMesh.rotation.y = initialRotL.y;
-          rightWingMesh.rotation.y = initialRotR.y;
+          leftWingMesh.rotation.y = initialRotL.y + restFoldAngle;
+          rightWingMesh.rotation.y = initialRotR.y - restFoldAngle;
         }
       }
     } else {
-      var flyAngle = Math.sin(time * 26.0) * 0.78;
+      var flyAngle = Math.sin(time * 30.0) * 0.82;
       if (leftWingMesh && rightWingMesh) {
-        leftWingMesh.rotation.y = initialRotL.y + flyAngle;
-        rightWingMesh.rotation.y = initialRotR.y - flyAngle;
+        leftWingMesh.rotation.y = initialRotL.y + 0.28 + flyAngle;
+        rightWingMesh.rotation.y = initialRotR.y - 0.28 - flyAngle;
       }
       fullGroup.position.y += 0.22;
       fullGroup.position.z -= 0.10;
 
-      // 🌟 변경: 나비가 화면 밖으로 날아가고 바로 넘어가지 않고, 3초 동안 검은색 페이드아웃 후 완성 페이지 전환
       if (fullGroup.position.y > 9.5 && !isFlyingTransitionTriggered) {
         isFlyingTransitionTriggered = true;
         saveButterflyToSupabase();
@@ -2028,7 +2024,6 @@ function renderEnergyParticles() {
     if (p.alpha <= 0) { energyParticles.splice(i, 1); continue; }
     pctx.save();
     pctx.fillStyle = 'rgba(255, 255, 255, ' + p.alpha + ')';
-    pctx.shadowColor = '#ffffff'; pctx.shadowBlur = 8;
     pctx.beginPath(); pctx.arc(p.x, p.y, p.size, 0, Math.PI * 2); pctx.fill();
     pctx.restore();
   }
@@ -2057,7 +2052,6 @@ function updateChargeUIAndCamera(progress, currentChargeSec) {
 
 function startChargeVibrationLoop() {
   if (chargeVibrateInterval) clearInterval(chargeVibrateInterval);
-  // 누르는 즉시 첫 진동 발생
   triggerDeviceVibrate(45, 0.6);
 
   chargeVibrateInterval = setInterval(function() {
@@ -2089,15 +2083,15 @@ function resetChargeState() {
   if (flyLabel) flyLabel.innerText = "HOLD TO CHARGE";
 }
 
+// 🌟 [수정 2] 기 모을 때 나비 360도 회전 기능 제거: 마우스/터치 드래그로 인한 나비 각도 변경 로직을 완전히 배제
 function bindInteractiveEvents(targetEl) {
   var touchStartY = 0;
-  var touchMovedDist = 0;
 
   function handlePointerStart(clientX, clientY) {
     if (isFlyingAway) return;
     isUserDragging = true;
     lastPointerX = clientX; lastPointerY = clientY;
-    touchStartY = clientY; touchMovedDist = 0;
+    touchStartY = clientY;
 
     var chargeWidget = document.getElementById('energy-charge-widget');
     if (chargeWidget) {
@@ -2107,22 +2101,13 @@ function bindInteractiveEvents(targetEl) {
     isPressingScreen = true;
     pressStartTime = performance.now();
 
-    // 모바일 터치 제스처 시점에 즉각 진동 권한 트리거
     triggerDeviceVibrate(30, 0.4);
   }
 
   function handlePointerMove(clientX, clientY) {
     if (!isUserDragging || isFlyingAway) return;
-    var deltaX = clientX - lastPointerX;
-    var deltaY = clientY - lastPointerY;
-    touchMovedDist += Math.abs(deltaX) + Math.abs(deltaY);
-
-    butterflyRotY += deltaX * 0.012;
-    butterflyRotX += deltaY * 0.012;
-    butterflyRotX = Math.max(-1.4, Math.min(1.4, butterflyRotX));
-
+    // 360도 회전 코드 제거됨 (나비 각도 변경 안 함)
     lastPointerX = clientX; lastPointerY = clientY;
-    if (touchMovedDist > 8 && !isChargeTriggered) pressStartTime = performance.now();
   }
 
   function handlePointerEnd(clientX, clientY) {
