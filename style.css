@@ -176,6 +176,21 @@ html, body {
   opacity: 0.92;
 }
 
+/* 🌟 전역 화면 전환용 블랙 페이드 오버레이 */
+#cinematic-transition-curtain {
+  position: fixed;
+  inset: 0;
+  background: #000000;
+  z-index: 99998;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.35s ease-in-out;
+}
+#cinematic-transition-curtain.active-curtain {
+  opacity: 1 !important;
+  pointer-events: auto !important;
+}
+
 /* 표지 화면 로고 */
 .noul-perfect-logo {
   width: 240px;
@@ -632,7 +647,6 @@ html, body {
   min-height: 2.2rem;
 }
 
-/* 🌟 [수정 1] 나비 아래 글자 글로우 완전 제거 */
 .concern-pill-badge {
   display: inline-block;
   background: transparent !important;
@@ -998,7 +1012,19 @@ html, body {
   z-10;
 }
 
-/* 🌟 [수정 2] 기 모으는 버튼 글로우 제거 및 전체 투명도 강화 */
+/* 상단 위로의 메모 한 줄 제한 및 생략(...) 스타일 */
+.preview-memo-subline {
+  white-space: nowrap !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  display: block !important;
+  width: 100% !important;
+  max-width: 320px !important;
+  margin-left: auto !important;
+  margin-right: auto !important;
+}
+
+/* 기 모으는 버튼 */
 .energy-charge-widget {
   position: fixed;
   left: 50%;
@@ -1043,7 +1069,9 @@ html, body {
   will-change: width, height, transform;
 }
 
-/* 나비 박제 표본실 */
+/* ==========================================================================
+   나비 박제 표본실 (🌟 글로우 제거, 자동 간격, 애니메이션)
+   ========================================================================== */
 .gallery-header-guide {
   position: absolute;
   top: max(1.2rem, env(safe-area-inset-top));
@@ -1092,6 +1120,7 @@ html, body {
   height: 100%;
 }
 
+/* 🌟 [수정]: 표본실 카드 아이템 (초기 투명 -> 0.2초 간격 무작위 등장 애니메이션) */
 .specimen-card-item {
   position: absolute;
   display: flex;
@@ -1100,7 +1129,15 @@ html, body {
   justify-content: center;
   cursor: pointer;
   z-index: 10;
-  transform: translate(-50%, -50%);
+  transform: translate(-50%, -50%) scale(0.7);
+  opacity: 0;
+  transition: opacity 0.45s cubic-bezier(0.16, 1, 0.3, 1), transform 0.45s cubic-bezier(0.16, 1, 0.3, 1);
+  will-change: transform, opacity;
+}
+
+.specimen-card-item.revealed {
+  opacity: 1;
+  transform: translate(-50%, -50%) scale(1);
 }
 
 .specimen-butterfly-wrap {
@@ -1108,23 +1145,20 @@ html, body {
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: transform 0.22s cubic-bezier(0.2, 0.8, 0.2, 1);
   transform-origin: center center;
 }
-.specimen-card-item:hover .specimen-butterfly-wrap,
-.specimen-card-item:active .specimen-butterfly-wrap {
-  filter: brightness(1.08);
-}
 
+/* 🌟 [수정]: 나비 둘러보기 모든 나비의 글로우를 완전 제거 */
 .specimen-shadow-drop {
-  filter: drop-shadow(0 0 7px rgba(255, 255, 255, 0.45));
-  transition: filter 0.2s ease;
+  filter: none !important;
+  transition: none !important;
 }
 .specimen-card-item:hover .specimen-shadow-drop,
 .specimen-card-item:active .specimen-shadow-drop {
-  filter: drop-shadow(0 0 11px rgba(255, 255, 255, 0.7));
+  filter: none !important;
 }
 
+/* 나비 핀 헤더 글로우 제거 */
 .specimen-pin-head {
   position: absolute;
   top: 50%;
@@ -1134,29 +1168,31 @@ html, body {
   height: 4px;
   border-radius: 50%;
   background: #ffffff;
-  box-shadow: 0 0 5px rgba(255, 255, 255, 0.8);
+  box-shadow: none !important;
   z-index: 5;
   pointer-events: none;
 }
 
+/* 🌟 [수정]: 나비 크기에 맞춰 겹치지 않게 절대 위치화 & 텍스트 길이에 따른 유연한 확장 */
 .specimen-pill-label {
-  margin-top: 14px;
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%) !important;
   border-radius: 9999px;
   padding: 5px 14px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   white-space: nowrap;
-  position: relative;
+  max-width: 140px;
   z-index: 20;
   pointer-events: none;
   background-color: rgba(255, 255, 255, 0.1);
   border: 1px solid rgba(255, 255, 255, 0.2);
   backdrop-filter: blur(8px);
   -webkit-backdrop-filter: blur(8px);
-  box-shadow: none;
-  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
-  transform: none !important;
+  box-shadow: none !important;
+  transition: background-color 0.25s ease, border-color 0.25s ease;
 }
 
 .specimen-pill-label .label-text {
@@ -1165,14 +1201,16 @@ html, body {
   color: #c4c4c4;
   letter-spacing: -0.2px;
   line-height: 1.2;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
   transition: color 0.25s ease;
 }
 
 .specimen-pill-label.active-touched {
   background-color: #ffffff !important;
   border-color: #ffffff !important;
-  box-shadow: 0 0 16px 2px rgba(255, 255, 255, 0.75), 0 2px 10px rgba(0, 0, 0, 0.6) !important;
-  transform: scale(1.04) !important;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.6) !important;
 }
 
 .specimen-pill-label.active-touched .label-text {

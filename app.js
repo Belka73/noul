@@ -74,6 +74,23 @@ function showScreen(screenId) {
   updateDevScreenBadge();
 }
 
+// 🌟 [수정]: 검은색 페이드 인/아웃 전환 헬퍼 함수
+function transitionToScreenWithFade(targetScreenId) {
+  var curtain = document.getElementById('cinematic-transition-curtain');
+  if (!curtain) {
+    showScreen(targetScreenId);
+    return;
+  }
+
+  curtain.classList.add('active-curtain');
+  setTimeout(function() {
+    showScreen(targetScreenId);
+    setTimeout(function() {
+      curtain.classList.remove('active-curtain');
+    }, 80);
+  }, 350);
+}
+
 function updateDevScreenBadge() {
   var badge = document.getElementById('dev-current-screen-badge');
   if (!badge) return;
@@ -94,7 +111,6 @@ function updateDevScreenBadge() {
 function startAnswerShowcaseSequence() {
   if (showcaseInterval) { clearInterval(showcaseInterval); showcaseInterval = null; }
   
-  // 사용자가 선택한 나비 형태를 로딩 SVG에 반영
   var currentWing = butterflyPathData[selectedButterflyShape] || wingDataset[0];
   var loadingSvg = document.getElementById('loading-butterfly-svg');
   var loadingPath = document.getElementById('loading-wing-path');
@@ -172,7 +188,6 @@ function startAnswerShowcaseSequence() {
   renderShowcaseStep(0);
   if (pBar) pBar.style.width = '0%';
 
-  // 15초(15,000ms) = 150ms * 100회
   showcaseInterval = setInterval(function() {
     progress += 1.0;
     if (pBar) pBar.style.width = Math.min(100, progress) + '%';
@@ -205,6 +220,14 @@ function startAnswerShowcaseSequence() {
           var butterflyName = userSelections.q7_name ? userSelections.q7_name.trim() : "나비";
           var nameHeader = document.getElementById('preview-butterfly-name');
           if (nameHeader) nameHeader.innerText = '‘' + butterflyName + '’';
+
+          var guideText = document.getElementById('preview-guide-text');
+          if (guideText) {
+            guideText.innerText = userSelections.q6_memo && userSelections.q6_memo.trim().length > 0 
+              ? userSelections.q6_memo.trim() 
+              : "너의 찬란한 날갯짓을 응원해.";
+          }
+
           initFullButterflyViewer(currentExtractedTexture || createFallbackDummyTexture());
           showScreen('screen-preview');
 
@@ -305,6 +328,14 @@ document.addEventListener('click', function(e) {
       var butterflyName = userSelections.q7_name ? userSelections.q7_name.trim() : "나비";
       var nameHeader = document.getElementById('preview-butterfly-name');
       if (nameHeader) nameHeader.innerText = '‘' + butterflyName + '’';
+
+      var guideText = document.getElementById('preview-guide-text');
+      if (guideText) {
+        guideText.innerText = userSelections.q6_memo && userSelections.q6_memo.trim().length > 0 
+          ? userSelections.q6_memo.trim() 
+          : "너의 찬란한 날갯짓을 응원해.";
+      }
+
       initFullButterflyViewer(currentExtractedTexture || createFallbackDummyTexture());
     }
 
@@ -357,7 +388,7 @@ document.addEventListener('click', function(e) {
 }, true);
 
 // --------------------------------------------------------------------------
-// 기본 버튼 이벤트 바인딩
+// 기본 버튼 이벤트 바인딩 (🌟 [수정]: 나비 둘러보기 & 전시 소개 페이드 인/아웃 적용)
 // --------------------------------------------------------------------------
 function bindAppNavEvents() {
   var bStartCover = document.getElementById('btn-start-cover');
@@ -372,14 +403,16 @@ function bindAppNavEvents() {
   var bOpenBack = document.getElementById('btn-opening-back');
   if (bOpenBack) bOpenBack.onclick = function() { clearTimeout(typeTimer); clearTimeout(openingDelayTimer); showScreen('screen-menu'); };
 
+  // 🌟 [수정]: 나비 둘러보기 진입 시 블랙 페이드 인/아웃 적용
   var mBrowse = document.getElementById('menu-btn-browse');
-  if (mBrowse) mBrowse.onclick = function() { showScreen('screen-gallery'); };
+  if (mBrowse) mBrowse.onclick = function() { transitionToScreenWithFade('screen-gallery'); };
 
   var bGalBack = document.getElementById('btn-gallery-back');
   if (bGalBack) bGalBack.onclick = function() { showScreen('screen-menu'); };
 
+  // 🌟 [수정]: 전시 소개 진입 시 블랙 페이드 인/아웃 적용
   var mIntro = document.getElementById('menu-btn-intro');
-  if (mIntro) mIntro.onclick = function() { showScreen('screen-intro'); };
+  if (mIntro) mIntro.onclick = function() { transitionToScreenWithFade('screen-intro'); };
 
   var bIntroBack = document.getElementById('btn-intro-back');
   if (bIntroBack) bIntroBack.onclick = function() { showScreen('screen-menu'); };
@@ -390,7 +423,7 @@ function bindAppNavEvents() {
 bindAppNavEvents();
 
 // --------------------------------------------------------------------------
-// 오프닝 및 타이핑 플로우 (🌟 나비만들기 진입 시 3초 정적 후 대사 등장)
+// 오프닝 및 타이핑 플로우
 // --------------------------------------------------------------------------
 var openingCurrentStep = 1;
 var elOpeningText = document.getElementById('opening-text');
@@ -1738,7 +1771,6 @@ var animFrameId = null;
 var initialRotL = { x: 0, y: 0, z: 0 };
 var initialRotR = { x: 0, y: 0, z: 0 };
 
-// 🌟 정면을 완벽히 응시하도록 기본 회전값 고정
 var DEFAULT_ROT_X = 0;
 var DEFAULT_ROT_Y = Math.PI;
 
@@ -1836,7 +1868,6 @@ function initFullButterflyViewer(textureURL) {
   butterflyRotY = DEFAULT_ROT_Y;
   fullGroup.rotation.set(butterflyRotX, butterflyRotY, 0);
 
-  // 3D 나비 초기 위치를 화면 아래에 숨겨둠
   fullGroup.position.set(0, -7.0, 0);
 
   previewStartTime = performance.now();
@@ -1892,31 +1923,34 @@ function initFullButterflyViewer(textureURL) {
     var now = performance.now();
     var elapsedSec = (now - previewStartTime) / 1000;
 
-    // 🌟 [수정 2] 나비가 항상 정면을 유지 (360도 회전 배제)
-    butterflyRotX = DEFAULT_ROT_X;
-    butterflyRotY = DEFAULT_ROT_Y;
+    if (!isUserDragging) {
+      butterflyRotX += (DEFAULT_ROT_X - butterflyRotX) * 0.05;
+      var diffY = (DEFAULT_ROT_Y - butterflyRotY);
+      diffY = Math.atan2(Math.sin(diffY), Math.cos(diffY));
+      butterflyRotY += diffY * 0.05;
+    }
+
     fullGroup.rotation.x = butterflyRotX;
     fullGroup.rotation.y = butterflyRotY;
 
     if (isPressingScreen && !isFlyingAway) {
       var pressDuration = (now - pressStartTime) / 1000;
-      if (pressDuration >= 0.15) {
+      var HOLD_THRESHOLD = 0.7;
+      if (pressDuration >= HOLD_THRESHOLD) {
         if (!isChargeTriggered) {
           isChargeTriggered = true;
           startChargeVibrationLoop();
         }
-        var currentChargeSec = Math.max(0, pressDuration - 0.15);
-        chargeProgress = Math.min(1.0, currentChargeSec / 4.0);
+        var currentChargeSec = Math.max(0, pressDuration - HOLD_THRESHOLD);
+        chargeProgress = Math.min(1.0, currentChargeSec / 3.5);
         updateChargeUIAndCamera(chargeProgress, currentChargeSec);
         spawnEnergyParticles();
       }
     }
 
     if (!isFlyingAway) {
-      // 🌟 [수정 2] 나비가 더 천천히 올라오고(4.2초), 더 많은 날갯짓(38.0)을 수행
       var introDelay = 0.8;
       var flyDuration = 4.2;
-      // 🌟 [수정 2] 정지했을 때 양쪽 날개가 평면이 아니라 살짝 안쪽으로 접혀있게 설정 (약 16도 = 0.28 rad)
       var restFoldAngle = 0.28;
 
       if (elapsedSec < introDelay) {
@@ -1930,30 +1964,44 @@ function initFullButterflyViewer(textureURL) {
         var easeOut = 1.0 - Math.pow(1.0 - t, 3);
         fullGroup.position.y = -7.0 + 7.0 * easeOut;
 
-        // 날갯짓 진동수 38.0으로 대폭 증가하여 더 많이 날갯짓
-        var currentFlapSpeed = 38.0 * (1.0 - t * 0.2);
-        var flap = Math.sin(time * currentFlapSpeed) * 0.72 * (1.0 - t * 0.2);
+        var currentFlapSpeed = 38.0 * (1.0 - t * 0.4);
+        var currentFlapAmp = 0.72 * Math.pow(1.0 - t, 0.75);
+        var flap = Math.sin(time * currentFlapSpeed) * currentFlapAmp;
 
         if (leftWingMesh && rightWingMesh) {
           leftWingMesh.rotation.y = initialRotL.y + restFoldAngle + flap;
           rightWingMesh.rotation.y = initialRotR.y - restFoldAngle - flap;
         }
       } else {
-        // 정중앙 정지 완료 시, 살짝 접힌 각도를 안정적으로 유지
         fullGroup.position.y = 0;
-        if (leftWingMesh && rightWingMesh) {
-          leftWingMesh.rotation.y = initialRotL.y + restFoldAngle;
-          rightWingMesh.rotation.y = initialRotR.y - restFoldAngle;
+        var settledElapsed = elapsedSec - (introDelay + flyDuration);
+        var settleDuration = 1.5;
+
+        if (settledElapsed < settleDuration) {
+          var settleRatio = 1.0 - (settledElapsed / settleDuration);
+          var gentleSpeed = 22.0 * settleRatio;
+          var gentleAmp = 0.25 * Math.pow(settleRatio, 2);
+          var gentleFlap = Math.sin(time * gentleSpeed) * gentleAmp;
+
+          if (leftWingMesh && rightWingMesh) {
+            leftWingMesh.rotation.y = initialRotL.y + restFoldAngle + gentleFlap;
+            rightWingMesh.rotation.y = initialRotR.y - restFoldAngle - gentleFlap;
+          }
+        } else {
+          if (leftWingMesh && rightWingMesh) {
+            leftWingMesh.rotation.y = initialRotL.y + restFoldAngle;
+            rightWingMesh.rotation.y = initialRotR.y - restFoldAngle;
+          }
         }
       }
     } else {
-      var flyAngle = Math.sin(time * 30.0) * 0.82;
+      var flyAngle = Math.sin(time * 26.0) * 0.75;
       if (leftWingMesh && rightWingMesh) {
         leftWingMesh.rotation.y = initialRotL.y + 0.28 + flyAngle;
         rightWingMesh.rotation.y = initialRotR.y - 0.28 - flyAngle;
       }
-      fullGroup.position.y += 0.22;
-      fullGroup.position.z -= 0.10;
+      fullGroup.position.y += 0.09;
+      fullGroup.position.z -= 0.04;
 
       if (fullGroup.position.y > 9.5 && !isFlyingTransitionTriggered) {
         isFlyingTransitionTriggered = true;
@@ -2040,13 +2088,13 @@ function updateChargeUIAndCamera(progress, currentChargeSec) {
   if (innerFill) { innerFill.style.width = currentSize + 'px'; innerFill.style.height = currentSize + 'px'; }
   if (fullCamera) fullCamera.position.z = 8.8 - (2.6 * progress);
 
-  var uiOpacity = Math.max(0, 1.0 - Math.min(1.0, currentChargeSec / 3.0));
+  var uiOpacity = Math.max(0, 1.0 - Math.min(1.0, currentChargeSec / 2.5));
   if (headerUI) headerUI.style.opacity = uiOpacity;
   if (footerUI) footerUI.style.opacity = uiOpacity;
 
   if (progress >= 1.0) {
     var flyLabel = document.getElementById('preview-fly-label');
-    if (flyLabel) flyLabel.innerText = "SWIPE UP TO FLY!";
+    if (flyLabel) flyLabel.innerText = "위로 올려 나비를 날려보내세요!";
   }
 }
 
@@ -2080,18 +2128,22 @@ function resetChargeState() {
   if (footerUI) footerUI.style.opacity = 1.0;
 
   var flyLabel = document.getElementById('preview-fly-label');
-  if (flyLabel) flyLabel.innerText = "HOLD TO CHARGE";
+  if (flyLabel) flyLabel.innerText = "화면을 길게 누르고 위로 올려주세요";
 }
 
-// 🌟 [수정 2] 기 모을 때 나비 360도 회전 기능 제거: 마우스/터치 드래그로 인한 나비 각도 변경 로직을 완전히 배제
 function bindInteractiveEvents(targetEl) {
   var touchStartY = 0;
+  var touchStartX = 0;
+  var movedDist = 0;
 
   function handlePointerStart(clientX, clientY) {
     if (isFlyingAway) return;
     isUserDragging = true;
-    lastPointerX = clientX; lastPointerY = clientY;
+    lastPointerX = clientX;
+    lastPointerY = clientY;
+    touchStartX = clientX;
     touchStartY = clientY;
+    movedDist = 0;
 
     var chargeWidget = document.getElementById('energy-charge-widget');
     if (chargeWidget) {
@@ -2100,14 +2152,26 @@ function bindInteractiveEvents(targetEl) {
     }
     isPressingScreen = true;
     pressStartTime = performance.now();
-
-    triggerDeviceVibrate(30, 0.4);
   }
 
   function handlePointerMove(clientX, clientY) {
     if (!isUserDragging || isFlyingAway) return;
-    // 360도 회전 코드 제거됨 (나비 각도 변경 안 함)
-    lastPointerX = clientX; lastPointerY = clientY;
+    var deltaX = clientX - lastPointerX;
+    var deltaY = clientY - lastPointerY;
+    movedDist += Math.abs(deltaX) + Math.abs(deltaY);
+
+    if (!isChargeTriggered) {
+      butterflyRotY += deltaX * 0.013;
+      butterflyRotX += deltaY * 0.013;
+      butterflyRotX = Math.max(-1.4, Math.min(1.4, butterflyRotX));
+      
+      if (movedDist > 10) {
+        pressStartTime = performance.now();
+      }
+    }
+
+    lastPointerX = clientX;
+    lastPointerY = clientY;
   }
 
   function handlePointerEnd(clientX, clientY) {
@@ -2132,7 +2196,7 @@ function bindInteractiveEvents(targetEl) {
 }
 
 // --------------------------------------------------------------------------
-// 나비 표본실 갤러리
+// 나비 표본실 갤러리 (🌟 [수정]: 글로우 제거, 나비 크기별 이름표 자동 배치, 10자 생략, 0.2초 랜덤 순차 등장)
 // --------------------------------------------------------------------------
 var specimenButterfliesData = [
   { id: 1, name: "윤슬", wingId: "crescent", antId: "crescent", x: 190, y: 220, scale: 2.10, q1: ["사색가", "야행성"], core_concern: "완벽주의 강박", memo: "잔잔한 물결 위로 부서지는 햇살처럼 늘 반짝이기를.", date: "2026. 10. 24" },
@@ -2153,12 +2217,19 @@ var specimenContainer = document.getElementById('specimen-items-container');
 var panX = -170, panY = -10;
 var isPanning = false;
 var panStartX = 0, panStartY = 0;
+var gallerySpawnTimers = [];
 
 function initSpecimenGallery() {
   if (!specimenContainer) return;
   specimenContainer.innerHTML = '';
   clampPanPosition();
   applySpecimenBoardTransform();
+
+  // 기존 등록된 타이머들 리셋
+  gallerySpawnTimers.forEach(function(t) { clearTimeout(t); });
+  gallerySpawnTimers = [];
+
+  var cardElements = [];
 
   specimenButterfliesData.forEach(function(item) {
     var wing = butterflyPathData[item.wingId] || wingDataset[0];
@@ -2170,6 +2241,14 @@ function initSpecimenGallery() {
     card.style.top = item.y + 'px';
 
     var scaleRatio = 110 / Math.max(wing.w, wing.h);
+    // 🌟 [수정]: 나비의 실제 렌더링 세로 크기를 계산하여 이름표가 나비와 겹치지 않도록 자동 간격 오프셋 계산
+    var butterflyRenderedHeight = (wing.h * scaleRatio) * item.scale;
+    var nameLabelTopOffset = Math.round(butterflyRenderedHeight / 2 + 16);
+
+    // 🌟 [수정]: 이름이 10글자 이상이면 ... 처리, 길이에 맞춰 유연하게 확장
+    var rawName = item.name || "나비";
+    var displayName = rawName.length > 10 ? rawName.slice(0, 10) + '...' : rawName;
+
     card.innerHTML = 
       '<div class="specimen-butterfly-wrap" style="transform: scale(' + item.scale + ');">' +
         '<div class="specimen-pin-head"></div>' +
@@ -2180,7 +2259,7 @@ function initSpecimenGallery() {
           '</g>' +
         '</svg>' +
       '</div>' +
-      '<div class="specimen-pill-label"><span class="label-text">' + item.name + '</span></div>';
+      '<div class="specimen-pill-label" style="top: ' + nameLabelTopOffset + 'px;"><span class="label-text" title="' + rawName + '">' + displayName + '</span></div>';
 
     card.onclick = function(e) {
       e.stopPropagation();
@@ -2197,7 +2276,28 @@ function initSpecimenGallery() {
       openSpecimen3DModal(item, item.textureUrl || createFallbackDummyTexture('#ffffff', '#e0e0e0'));
     };
     specimenContainer.appendChild(card);
+    cardElements.push(card);
   });
+
+  // 🌟 [수정]: 나비가 0.2초 간격으로 한 마리씩 랜덤하게 이름표와 함께 나타나도록 셔플 및 순차 트리거
+  var randomizedIndices = [];
+  for (var i = 0; i < cardElements.length; i++) randomizedIndices.push(i);
+  for (var i = randomizedIndices.length - 1; i > 0; i--) {
+    var j = Math.floor(Math.random() * (i + 1));
+    var temp = randomizedIndices[i];
+    randomizedIndices[i] = randomizedIndices[j];
+    randomizedIndices[j] = temp;
+  }
+
+  randomizedIndices.forEach(function(cardIdx, seq) {
+    var timer = setTimeout(function() {
+      if (cardElements[cardIdx]) {
+        cardElements[cardIdx].classList.add('revealed');
+      }
+    }, seq * 200); // 0.2초(200ms) 간격
+    gallerySpawnTimers.push(timer);
+  });
+
   bindGalleryPanEvents();
 }
 

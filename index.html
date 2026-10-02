@@ -20,6 +20,8 @@
 <body>
 
   <div id="cinematic-white-flash"></div>
+  <!-- 🌟 화면 전환용 블랙 페이드 오버레이 추가 -->
+  <div id="cinematic-transition-curtain"></div>
 
   <main class="app-viewport box-border">
 
@@ -278,7 +280,7 @@
           다음 질문으로
         </button>
 
-        <button id="btn-survey-prev" type="button" class="py-1 text-neutral-400 text-[11px] text-center invisible hover:text-white transition-all font-medium">
+        <button id="btn-survey-prev" type="button" class="py-1 text-neutral-400 text-[11px] text-center hover:text-white transition-all font-medium invisible">
           ← 이전 질문으로 돌아가기
         </button>
       </footer>
@@ -478,9 +480,9 @@
     <section id="screen-preview" class="screen fixed inset-0 z-50 flex-col justify-between py-6 overflow-hidden bg-black select-none" style="background: #000000 !important;">
       <div class="preview-ethereal-glow-bg"></div>
 
-      <header id="preview-header-ui" class="text-center pt-3 z-10 transition-opacity duration-300">
+      <header id="preview-header-ui" class="text-center pt-3 px-6 z-10 transition-opacity duration-300 w-full max-w-[420px] mx-auto">
         <h2 id="preview-butterfly-name" class="text-3xl font-black text-white mt-1 drop-shadow-[0_0_15px_rgba(255,255,255,0.5)] tracking-tight">‘나비’</h2>
-        <p id="preview-guide-text" class="text-xs text-neutral-300 mt-1 font-normal">화면을 길게 눌러 기를 모은 뒤 위로 날려보내세요.</p>
+        <p id="preview-guide-text" class="preview-memo-subline text-xs text-neutral-300 mt-1.5 font-normal tracking-tight">화면을 길게 눌러 기를 모은 뒤 위로 날려보내세요.</p>
       </header>
 
       <div id="three-container" class="w-full h-full absolute inset-0 z-0 pointer-events-auto"></div>
@@ -493,16 +495,16 @@
       </div>
 
       <footer id="preview-footer-ui" class="w-full pb-6 flex flex-col items-center gap-2 z-10 pointer-events-none transition-opacity duration-300">
-        <div class="bounce-guide flex flex-col items-center">
-          <svg class="w-7 h-7 text-white drop-shadow-[0_0_8px_rgba(255,255,255,0.7)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 15l7-7 7 7"></path>
+        <div class="bounce-guide flex flex-col items-center opacity-60">
+          <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" d="M5 15l7-7 7 7"></path>
           </svg>
-          <span id="preview-fly-label" class="text-xs font-bold text-white tracking-widest drop-shadow-[0_0_8px_rgba(255,255,255,0.7)]">HOLD TO CHARGE</span>
+          <span id="preview-fly-label" class="text-[11.5px] font-semibold text-neutral-300 tracking-tight mt-1">화면을 길게 누르고 위로 올려주세요</span>
         </div>
       </footer>
     </section>
 
-    <!-- 6. 완성 화면 (🌟 문구 및 하단 버튼 수정 완료) -->
+    <!-- 6. 완성 화면 (문구 및 하단 버튼) -->
     <section id="screen-complete" class="screen flex-col flex-1 justify-center items-center text-center p-6 relative z-10 w-full bg-black">
       <div class="w-20 h-20 rounded-full bg-white/10 border border-white/20 flex items-center justify-center mb-6 shadow-[0_0_30px_rgba(255,255,255,0.25)]">
         <svg class="w-10 h-10 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
