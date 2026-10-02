@@ -2,6 +2,7 @@
    🌟 너울(Noul) 메인 애플리케이션 로직 (app.js)
    - [DEV 완벽 복원]: 브라우저 전역 클릭 위임 라우터
    - [신규 플로우]: 나비 커스텀 -> 1번 사진 -> 2번 사진(위로 메모, 키워드 삭제) -> 로딩
+   - [Supabase 연동]: 임시 표본 제거 & Supabase 실시간 연동
    ========================================================================== */
 
 var ALL_SCREENS = [
@@ -1826,7 +1827,9 @@ async function saveButterflyToSupabase() {
       revisit_date: null, email: null,
       texture_url: currentExtractedTexture
     }]);
-  } catch (err) {}
+  } catch (err) {
+    console.error("Supabase 나비 저장 에러:", err);
+  }
 }
 
 function initFullButterflyViewer(textureURL) {
@@ -2155,7 +2158,7 @@ function resetChargeState() {
   if (flyLabel) flyLabel.innerText = "화면을 길게 눌러주세요.";
 }
 
-// 🌟 [핵심 수정]: 손을 떼는 순간 동그라미 즉시 소멸 & 스와이프 비행 시 하단 문구 완전 숨김
+// 🌟 손을 떼는 순간 동그라미 즉시 소멸 & 스와이프 비행 시 하단 문구 완전 숨김
 function bindInteractiveEvents(targetEl) {
   var touchStartY = 0;
   var touchStartX = 0;
@@ -2238,7 +2241,6 @@ function bindInteractiveEvents(targetEl) {
   window.addEventListener('touchend', function(e) { 
     if (e.changedTouches.length > 0) handlePointerEnd(e.changedTouches[0].clientX, e.changedTouches[0].clientY); 
   }, { passive: true });
-  // 모바일 브라우저 제스처 취소 시에도 손 떼면 즉시 숨김 보장
   window.addEventListener('touchcancel', function(e) {
     if (e.changedTouches.length > 0) handlePointerEnd(e.changedTouches[0].clientX, e.changedTouches[0].clientY);
     else resetChargeState();
@@ -2250,30 +2252,61 @@ function bindInteractiveEvents(targetEl) {
 }
 
 // --------------------------------------------------------------------------
-// 나비 표본실 갤러리
+// 나비 표본실 갤러리 (🌟 임시 나비 데이터 비우고 Supabase 실시간 연동)
 // --------------------------------------------------------------------------
-var specimenButterfliesData = [
-  { id: 1, name: "윤슬", wingId: "crescent", antId: "crescent", q1: ["사색가", "야행성"], core_concern: "완벽주의 강박", memo: "잔잔한 물결 위로 부서지는 햇살처럼 늘 반짝이기를.", date: "2026. 10. 24" },
-  { id: 2, name: "칼퇴기원", wingId: "ember", antId: "ball", q1: ["칼퇴사수형"], core_concern: "만성 피로", memo: "오늘 하루도 버텨낸 나 자신, 정시 퇴근의 자유를 누려라!", date: "2026. 10. 25" },
-  { id: 3, name: "바람결", wingId: "petal", antId: "star", q1: ["산책러", "낭만주의자"], core_concern: "미래 막막함", memo: "불어오는 바람에 모든 걱정을 실어 날려 보내자.", date: "2026. 11. 02" },
-  { id: 4, name: "다정", wingId: "wave-fin", antId: "ball", q1: ["다정다감", "프로공감러"], core_concern: "과도한 책임감", memo: "세상에 다정한 온기를 건네는 존재이기를.", date: "2026. 10. 28" },
-  { id: 5, name: "시온", wingId: "moon-halo", antId: "crescent", q1: ["완벽주의", "사색가"], core_concern: "뒤처짐 조급함", memo: "어둠이 깊을수록 나의 빛은 더욱 선명해질 거야.", date: "2026. 11. 10" },
-  { id: 6, name: "새벽별", wingId: "dawn-ray", antId: "star", q1: ["야행성"], core_concern: "수면 부족", memo: "새벽 공기 속에 피어난 꿈들을 마침내 현실로 이뤄내길.", date: "2026. 10. 30" },
-  { id: 7, name: "온기", wingId: "starlight", antId: "ball", q1: ["경청러", "담담이"], core_concern: "외로움", memo: "추운 계절이 지나면 반드시 따스한 봄날이 찾아올 거야.", date: "2026. 11. 15" },
-  { id: 8, name: "달그림자", wingId: "crescent", antId: "star", q1: ["혼자가 편한", "과묵한 편"], core_concern: "타인의 오해", memo: "말없이 곁을 지켜주는 달빛처럼 고요하게 머물다 가길.", date: "2026. 10. 29" },
-  { id: 9, name: "초록비", wingId: "petal", antId: "crescent", q1: ["감성파", "루틴러"], core_concern: "번아웃 무기력", memo: "메마른 마음에 촉촉한 단비가 내리듯 평온하기를.", date: "2026. 11. 05" },
-  { id: 10, name: "너울", wingId: "wave-fin", antId: "star", q1: ["분위기 메이커", "직진러"], core_concern: "텅 빈 잔고", memo: "수많은 작은 날갯짓이 모여 만들어낼 찬란한 너울의 파도.", date: "2026. 11. 20" }
-];
+var specimenButterfliesData = [];
 
 var specimenContainer = document.getElementById('specimen-items-container');
 var gallerySpawnTimers = [];
 
-function initSpecimenGallery() {
+async function initSpecimenGallery() {
   if (!specimenContainer) return;
   specimenContainer.innerHTML = '';
 
   gallerySpawnTimers.forEach(function(t) { clearTimeout(t); });
   gallerySpawnTimers = [];
+
+  // Supabase에서 실시간 데이터 로드
+  if (supabase) {
+    try {
+      var res = await supabase
+        .from('butterflies')
+        .select('*')
+        .order('id', { ascending: false })
+        .limit(50);
+
+      if (res.data && res.data.length > 0) {
+        specimenButterfliesData = res.data.map(function(item) {
+          var dateStr = "2026. 10. 24";
+          if (item.created_at) {
+            dateStr = new Date(item.created_at).toISOString().slice(0, 10).replace(/-/g, '. ');
+          }
+          return {
+            id: item.id,
+            name: item.name || "나비",
+            wingId: item.wing_shape || "crescent",
+            antId: item.antenna_type || "ball",
+            q1: Array.isArray(item.q1) ? item.q1 : [],
+            core_concern: item.core_concern || "",
+            memo: item.memo || "",
+            textureUrl: item.texture_url || null,
+            date: dateStr
+          };
+        });
+      }
+    } catch (err) {
+      console.error("Supabase 데이터 조회 오류:", err);
+    }
+  }
+
+  // 등록된 나비가 하나도 없을 때
+  if (specimenButterfliesData.length === 0) {
+    specimenContainer.innerHTML = 
+      '<div style="grid-column: 1 / -1; text-align: center; padding: 4rem 1rem; color: #777777; font-size: 13px;">' +
+        '아직 날려보낸 나비가 없습니다.<br>첫 번째 나비를 깨워보세요.' +
+      '</div>';
+    return;
+  }
 
   var cardElements = [];
 
@@ -2323,7 +2356,7 @@ function initSpecimenGallery() {
       if (cardEl) {
         cardEl.classList.add('revealed');
       }
-    }, idx * 150);
+    }, idx * 100);
     gallerySpawnTimers.push(timer);
   });
 }
@@ -2365,9 +2398,9 @@ function openSpecimen3DModal(item, textureUrl) {
 
   if (memoEl) {
     var memoContent = item.memo || item.q6_memo;
-    memoEl.innerText = memoContent ? ('"' + memoContent + '"') : '"추운 계절이 지나면 반드시 따스한 봄날이 찾아올 거야."';
+    memoEl.innerText = memoContent ? ('"' + memoContent + '"') : '"너의 찬란한 날갯짓을 응원해."';
   }
-  if (dateEl) dateEl.innerText = item.date || "2026. 11. 15";
+  if (dateEl) dateEl.innerText = item.date || "2026. 10. 24";
 
   if (modal) modal.classList.remove('hidden');
   if (!container || !window.THREE) return;
