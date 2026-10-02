@@ -253,16 +253,16 @@
 
       if (isDelayedArrival) {
         group.position.set((Math.random() - 0.5) * 5, -8.0, 1.0);
-        initialVelocity = new THREE.Vector3((Math.random() - 0.5) * 0.04, 0.14, -0.04);
+        initialVelocity = new THREE.Vector3((Math.random() - 0.5) * 0.06, 0.16, -0.04);
         group.scale.set(0.01, 0.01, 0.01);
       } else {
-        // 🌟 뒤쪽 먼 거리 레이어(-18 ~ -5)에 깊고 풍성하게 초기 배치
+        // 🌟 수정: 더 뒤쪽 먼 거리 레이어(-28.0 ~ -12.0)에 배치하여 깊이감 증대
         group.position.set(
-          (Math.random() - 0.5) * 26, 
-          (Math.random() - 0.5) * 16, 
-          -5.0 - Math.random() * 14.0
+          (Math.random() - 0.5) * 30, 
+          (Math.random() - 0.5) * 18, 
+          -12.0 - Math.random() * 16.0
         );
-        initialVelocity = new THREE.Vector3((Math.random() - 0.5) * 0.08, (Math.random() - 0.5) * 0.08, (Math.random() - 0.5) * 0.05);
+        initialVelocity = new THREE.Vector3((Math.random() - 0.5) * 0.15, (Math.random() - 0.5) * 0.15, (Math.random() - 0.5) * 0.08);
         group.scale.set(targetScale, targetScale, targetScale);
       }
 
@@ -272,7 +272,8 @@
         id: Math.random().toString(36).substring(7),
         group, innerGroup, leftWing, rightWing,
         velocity: initialVelocity,
-        speed: 13.0 + Math.random() * 7.0, 
+        // 🌟 수정: 날개짓 속도 상향 (기존 13~20 -> 24~36)
+        speed: 24.0 + Math.random() * 12.0, 
         seed: Math.random() * 1000,
         flapAmp: 1.0, 
         state: 'flying',
@@ -339,6 +340,7 @@
 
       let isFollowing = false;
 
+      // 손가락 착석 로직 (유지)
       if (b.isSpecialLanding) {
           isFollowing = true;
 
@@ -427,19 +429,21 @@
 
       if (!isFollowing && !b.isAscendingArrival) {
           b.state = 'flying';
-          const t = time * 0.5 + b.seed;
-          b.velocity.x += Math.sin(t * 1.5) * 0.002;
-          b.velocity.y += Math.cos(t * 1.2) * 0.002;
-          b.velocity.z += Math.sin(t * 1.8) * 0.001;
+          const t = time * 0.8 + b.seed;
+          // 🌟 수정: 일반 비행 방향 가속도 증가로 움직임 빠르고 경쾌하게
+          b.velocity.x += Math.sin(t * 1.8) * 0.004;
+          b.velocity.y += Math.cos(t * 1.5) * 0.004;
+          b.velocity.z += Math.sin(t * 2.0) * 0.002;
 
-          if (Math.random() < 0.008) {
-              b.velocity.x += (Math.random() - 0.5) * 0.08;
-              b.velocity.y += (Math.random() - 0.5) * 0.08;
-              b.velocity.z += (Math.random() - 0.5) * 0.04; 
+          if (Math.random() < 0.015) {
+              b.velocity.x += (Math.random() - 0.5) * 0.14;
+              b.velocity.y += (Math.random() - 0.5) * 0.14;
+              b.velocity.z += (Math.random() - 0.5) * 0.08; 
           }
       }
 
-      let maxSpeed = isFollowing ? 0.45 : 0.12;
+      // 🌟 수정: 평상시 최대 비행 속도 상향 (0.12 -> 0.22)
+      let maxSpeed = isFollowing ? 0.5 : 0.22;
       if (interactionMode === 'scatter') maxSpeed = 0.8;
       if (b.isAscendingArrival) maxSpeed = 0.35;
 
@@ -449,15 +453,14 @@
       
       b.group.position.add(b.velocity);
 
-      // 🌟 나비들을 뒤쪽 먼 레이어로 깊게 유지 (-22.0 ~ -3.5)
-      // (손가락 착석 나비는 예외 처리되어 손끝 좌표까지 자유롭게 날아옴)
+      // 🌟 수정: 일반 나비들을 더 깊숙한 뒤쪽 레이어에 머무르도록 범위 조정 (-28.0 ~ -8.0)
       if (!b.isSpecialLanding || b.specialState !== 'leaving') {
-          if (b.group.position.x > 15) b.velocity.x -= 0.015;
-          if (b.group.position.x < -15) b.velocity.x += 0.015;
-          if (b.group.position.y > 10.5) b.velocity.y -= 0.015;
-          if (b.group.position.y < -10.5) b.velocity.y += 0.015;
-          if (b.group.position.z > -3.5) b.velocity.z -= 0.025; // 앞쪽 한계선: -3.5 뒤쪽으로 유지
-          if (b.group.position.z < -22.0) b.velocity.z += 0.025; // 뒤쪽 한계선: -22.0 안쪽으로 복귀
+          if (b.group.position.x > 18) b.velocity.x -= 0.02;
+          if (b.group.position.x < -18) b.velocity.x += 0.02;
+          if (b.group.position.y > 12) b.velocity.y -= 0.02;
+          if (b.group.position.y < -12) b.velocity.y += 0.02;
+          if (b.group.position.z > -8.0) b.velocity.z -= 0.035; // 앞쪽 한계선: -8.0 뒤로 깊게 유지
+          if (b.group.position.z < -28.0) b.velocity.z += 0.035; // 뒤쪽 한계선: -28.0 안쪽으로 복귀
       }
 
       if (b.velocity.lengthSq() > 0.00001 && b.state === 'flying' && !isFollowing) {
