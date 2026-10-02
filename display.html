@@ -32,42 +32,41 @@
       box-shadow: 0 0 35px rgba(255, 255, 255, 0.9), 0 0 70px rgba(255, 255, 255, 0.4);
       pointer-events: none; z-index: 30; opacity: 0; transition: opacity 0.3s ease;
     }
-    /* 🌟 검지 착석 시 나비 정보(이름, 위로 메모) 시각 표기 카드 */
+
+    /* 🌟 네모 프레임 제거: 2번 사진 동일 흰색 블러 빛 + 나비 옆 생성 */
     #floating-info-card {
       position: absolute;
-      transform: translate(-50%, -125%);
-      background: rgba(14, 14, 18, 0.82);
-      border: 1px solid rgba(255, 255, 255, 0.22);
-      backdrop-filter: blur(12px);
-      -webkit-backdrop-filter: blur(12px);
-      border-radius: 20px;
-      padding: 14px 20px;
-      color: #ffffff;
+      transform: translate(25px, -110%);
+      background: radial-gradient(ellipse at center, rgba(255, 255, 255, 0.96) 0%, rgba(255, 255, 255, 0.78) 38%, rgba(255, 255, 255, 0.32) 65%, rgba(255, 255, 255, 0) 80%);
+      border: none;
+      border-radius: 50%;
+      padding: 38px 46px;
+      color: #000000;
       text-align: center;
-      max-width: 280px;
+      min-width: 240px;
+      max-width: 320px;
       pointer-events: none;
       z-index: 40;
       opacity: 0;
+      filter: drop-shadow(0 0 28px rgba(255, 255, 255, 0.95)) drop-shadow(0 0 55px rgba(255, 255, 255, 0.55));
       transition: opacity 0.4s ease, transform 0.4s cubic-bezier(0.16, 1, 0.3, 1);
-      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.8), 0 0 20px rgba(255, 255, 255, 0.15);
     }
     #floating-info-card.visible {
       opacity: 1;
-      transform: translate(-50%, -135%);
+      transform: translate(25px, -125%);
     }
     #floating-butterfly-name {
       font-size: 15px;
       font-weight: 800;
       letter-spacing: -0.3px;
-      color: #ffffff;
-      text-shadow: 0 0 10px rgba(255, 255, 255, 0.6);
+      color: #0a0a0c;
       margin-bottom: 4px;
     }
     #floating-butterfly-memo {
-      font-size: 11.5px;
-      font-weight: 400;
+      font-size: 12px;
+      font-weight: 600;
       line-height: 1.45;
-      color: #d1d5db;
+      color: #1a1a1f;
       word-break: keep-all;
     }
   </style>
@@ -78,7 +77,7 @@
   <div id="three-canvas-container"></div>
   <div id="hand-pointer"></div>
 
-  <!-- 검지 착석 안내 카드 -->
+  <!-- 검지 착석 안내 카드 (흰색 블러 빛 형태) -->
   <div id="floating-info-card">
     <div id="floating-butterfly-name">‘나비’</div>
     <div id="floating-butterfly-memo">너의 찬란한 날갯짓을 응원해.</div>
@@ -142,8 +141,10 @@
 
     const container = document.getElementById('three-canvas-container');
     const scene = new THREE.Scene();
+    
+    // 🌟 방법 A 적용: 카메라를 앞으로 당겨(18 ➜ 14.5) 공간을 꽉 차게 연출
     const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 1000);
-    camera.position.set(0, 0, 18);
+    camera.position.set(0, 0, 14.5);
 
     const renderer = new THREE.WebGLRenderer({ alpha: true, antialias: true, powerPreference: "high-performance" });
     renderer.setSize(window.innerWidth, window.innerHeight);
@@ -158,9 +159,8 @@
 
     const defaultFlock = [];
     const userFlock = [];
-    const MAX_USER_BUTTERFLIES = 12; // 🌟 20마리 최적화: 유저 나비 최대 12마리
+    const MAX_USER_BUTTERFLIES = 12;
 
-    // 🌟 3D GLB 모델 + 정밀 텍스처(flipY=false) + 10초 뒤 합류 연출 완벽 탑재
     function buildButterfly(data = {}, isUser = false, isDelayedArrival = false) {
       const group = new THREE.Group();
       const innerGroup = new THREE.Group(); 
@@ -228,11 +228,12 @@
       let targetScale = 0.38 + Math.random() * 0.14;
 
       if (isDelayedArrival) {
-        group.position.set((Math.random() - 0.5) * 6, -9.5, 7.5);
+        group.position.set((Math.random() - 0.5) * 5, -8.0, 5.5);
         initialVelocity = new THREE.Vector3((Math.random() - 0.5) * 0.04, 0.14, -0.07);
         group.scale.set(0.01, 0.01, 0.01);
       } else {
-        group.position.set((Math.random() - 0.5) * 30, (Math.random() - 0.5) * 16, (Math.random() - 0.5) * 40);
+        // 🌟 스폰 영역을 화면 시야 안으로 좁혀 밖으로 나가지 않게 집중 배치
+        group.position.set((Math.random() - 0.5) * 22, (Math.random() - 0.5) * 14, (Math.random() - 0.5) * 24);
         initialVelocity = new THREE.Vector3((Math.random() - 0.5) * 0.08, (Math.random() - 0.5) * 0.08, (Math.random() - 0.5) * 0.12);
         group.scale.set(targetScale, targetScale, targetScale);
       }
@@ -259,7 +260,6 @@
       return butterflyRecord;
     }
 
-    // 🌟 20마리 최적화: 기본 나비 8마리 (8 + 최대 12 = 20마리 유지)
     for (let i = 0; i < 8; i++) {
       defaultFlock.push(buildButterfly({}, false, false));
     }
@@ -267,7 +267,7 @@
     const clock = new THREE.Clock();
     const dummyObj = new THREE.Object3D(); 
     let handTarget3D = new THREE.Vector3(999, 999, 0);
-    let targetHandPos3D = new THREE.Vector3(999, 999, 0); // Lerp 보간용 목표치
+    let targetHandPos3D = new THREE.Vector3(999, 999, 0);
     let prevHandTarget3D = new THREE.Vector3(999, 999, 0);
     let isHandDetected = false;
     let interactionMode = 'none';
@@ -294,12 +294,13 @@
         }
       }
 
+      // 🌟 1번 사진 반영: 손가락에 앉을 때 날개가 위로 바짝 접혀있는 우아한 포즈
       if (b.state === 'landing_rest') {
           b.flapAmp *= 0.88; 
-          const flap = Math.sin(time * b.speed + b.seed) * 0.65 * b.flapAmp;
-          const openAngle = -1.5; 
-          b.leftWing.rotation.y = flap + openAngle * (1 - b.flapAmp);
-          b.rightWing.rotation.y = -flap - openAngle * (1 - b.flapAmp);
+          const flap = Math.sin(time * b.speed + b.seed) * 0.12 * b.flapAmp;
+          const restFold = -1.25; // 위로 접힌 각도 (1번 사진)
+          b.leftWing.rotation.y = flap + restFold * (1 - b.flapAmp);
+          b.rightWing.rotation.y = -flap - restFold * (1 - b.flapAmp);
       } else {
           b.flapAmp += (1.0 - b.flapAmp) * 0.1; 
           const flapSpeed = b.isAscendingArrival ? (b.speed * 1.5) : b.speed;
@@ -317,6 +318,7 @@
               const dist = b.group.position.distanceTo(handTarget3D);
               if (dist < 1.5) {
                   b.specialState = 'landed';
+                  // 손끝 착석 시 나비의 이름과 다정한 말 팝업 (나비 옆에 생성)
                   if (floatingInfoCard) {
                     floatingName.innerText = `‘${b.name}’`;
                     floatingMemo.innerText = b.memo;
@@ -344,7 +346,6 @@
               dummyObj.position.copy(b.group.position);
               dummyObj.lookAt(camera.position); 
               dummyObj.rotateY(Math.PI / 2.2); 
-              
               dummyObj.rotateZ(fingerAngle); 
               
               b.group.quaternion.slerp(dummyObj.quaternion, 0.2);
@@ -421,13 +422,14 @@
       
       b.group.position.add(b.velocity);
 
+      // 🌟 화면 안에서만 날아다니도록 엄격한 바운더리 보호 적용
       if (!b.isSpecialLanding || b.specialState !== 'leaving') {
-          if (b.group.position.x > 20) b.velocity.x -= 0.008;
-          if (b.group.position.x < -20) b.velocity.x += 0.008;
-          if (b.group.position.y > 15) b.velocity.y -= 0.008;
-          if (b.group.position.y < -15) b.velocity.y += 0.008;
-          if (b.group.position.z > 16) b.velocity.z -= 0.005; 
-          if (b.group.position.z < -30) b.velocity.z += 0.005;
+          if (b.group.position.x > 13) b.velocity.x -= 0.015;
+          if (b.group.position.x < -13) b.velocity.x += 0.015;
+          if (b.group.position.y > 8.5) b.velocity.y -= 0.015;
+          if (b.group.position.y < -8.5) b.velocity.y += 0.015;
+          if (b.group.position.z > 10) b.velocity.z -= 0.012; 
+          if (b.group.position.z < -18) b.velocity.z += 0.012;
       }
 
       if (b.velocity.lengthSq() > 0.00001 && b.state === 'flying' && !isFollowing) {
@@ -446,7 +448,6 @@
       requestAnimationFrame(animate);
       const time = clock.getElapsedTime();
 
-      // 🌟 화면 좌표 및 3D 손 타깃 좌표 부드러운 보간 (Lerp)
       if (isHandDetected) {
         handTarget3D.lerp(targetHandPos3D, 0.25);
         currentScreenX += (targetScreenX - currentScreenX) * 0.3;
@@ -454,6 +455,7 @@
         if (handPointer) {
           handPointer.style.transform = `translate3d(${currentScreenX}px, ${currentScreenY}px, 0)`;
         }
+        // 🌟 나비 옆에 위치하도록 UI 트랜스폼 연동
         if (floatingInfoCard) {
           floatingInfoCard.style.left = `${currentScreenX}px`;
           floatingInfoCard.style.top = `${currentScreenY}px`;
@@ -470,7 +472,7 @@
               selected.isSpecialLanding = true;
               selected.specialState = 'approaching';
 
-              selected.group.position.set(-25, 20, handTarget3D.z);
+              selected.group.position.set(-18, 14, handTarget3D.z);
               selected.velocity.set(0, 0, 0); 
           }
       } else {
@@ -622,10 +624,9 @@
               interactionMode = 'none';
               fistButterflies = [];
               if (floatingInfoCard) floatingInfoCard.classList.remove('visible');
-          }
+            }
           });
 
-          // 🌟 렉 방지: 55ms 주기(약 18FPS) 추론으로 CPU를 렌더링에 양보
           let isProcessing = false;
           let lastProcessTime = 0;
 
