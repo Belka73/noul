@@ -303,6 +303,7 @@
     let landingButterflyId = null; 
     let fistButterflies = []; 
     let fingerAngle = 1.0; 
+    let handPerspectiveScale = 1.0; // 🌟 캠과의 거리에 따른 손 원근감 배율
 
     const floatingInfoCard = document.getElementById('floating-info-card');
     const floatingName = document.getElementById('floating-butterfly-name');
@@ -313,27 +314,22 @@
     const handPointer = document.getElementById('hand-pointer');
 
     function updateMotion(b, time) {
-      // 🌟 추가: 손가락과의 거리에 따라 크기가 자연스럽게 커지는 로직
-      let effectiveScale = b.targetScale;
-      if (isHandDetected) {
-        const distToHand = b.group.position.distanceTo(handTarget3D);
-        if (distToHand < 10.0) {
-          // 손가락에 가까워질수록 최대 1.7배까지 확대
-          const scaleMult = 1.0 + (1.0 - (distToHand / 10.0)) * 0.7;
-          effectiveScale *= scaleMult;
-        }
+      // 🌟 나비 크기 처리: 착석 나비에만 손 원근법 적용, 그 외 나비는 원래 고유 크기 유지
+      let currentTargetScale = b.targetScale;
+      if (b.isSpecialLanding && b.specialState === 'landed') {
+        currentTargetScale = b.targetScale * handPerspectiveScale;
       }
 
       if (b.isAscendingArrival) {
         b.arrivalTimer += 0.016;
-        b.group.scale.lerp(new THREE.Vector3(effectiveScale, effectiveScale, effectiveScale), 0.06);
+        b.group.scale.lerp(new THREE.Vector3(b.targetScale, b.targetScale, b.targetScale), 0.06);
         b.velocity.y *= 0.99;
 
         if (b.arrivalTimer > 4.5 || b.group.position.y > 0) {
           b.isAscendingArrival = false; 
         }
       } else {
-        b.group.scale.lerp(new THREE.Vector3(effectiveScale, effectiveScale, effectiveScale), 0.08);
+        b.group.scale.lerp(new THREE.Vector3(currentTargetScale, currentTargetScale, currentTargetScale), 0.1);
       }
 
       if (b.state === 'landing_rest') {
@@ -601,6 +597,13 @@
               const mcp = lm[5]; 
               const wrist = lm[0];
 
+              // 🌟 웹캠 기준 손바닥 크기로 원근감(가까움/멀어짐) 측정
+              const palmSpan = Math.hypot(mcp.x - wrist.x, mcp.y - wrist.y);
+              // 일반 거리 palmSpan ≈ 0.28 기준, 가까워지면(0.45 이상) 최대 1.8배, 멀어지면(0.12 이하) 0.55배
+              const rawPerspective = (palmSpan - 0.12) / (0.42 - 0.12);
+              const clampedPerspective = Math.max(0, Math.min(1, rawPerspective));
+              handPerspectiveScale = 0.55 + clampedPerspective * 1.25;
+
               const vx = (1 - tip.x) - (1 - mcp.x);
               const vy = -(tip.y - mcp.y); 
               const rawAngle = Math.atan2(vy, vx);
@@ -661,6 +664,7 @@
               isHandDetected = false;
               interactionMode = 'none';
               fistButterflies = [];
+              handPerspectiveScale = 1.0;
               if (floatingInfoCard) floatingInfoCard.classList.remove('visible');
           }
           });
