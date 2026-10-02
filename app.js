@@ -1759,7 +1759,7 @@ function stopBubblePhysics() {
 }
 
 // --------------------------------------------------------------------------
-// 나비 뷰어 및 저장 로직 (🌟 [수정]: 등이 보이도록 회전값 수정, 단일 비행 애니메이션, 안정된 기모으기)
+// 나비 뷰어 및 저장 로직 (🌟 [수정]: 2초 길게 눌러 기모으기, 스와이프 필수 판정, 즉시 암전 후 2초 대기, 하단 UI 유지 및 문구 동적 전환)
 // --------------------------------------------------------------------------
 var fullScene, fullCamera, fullRenderer, fullGroup;
 var leftWingMesh, rightWingMesh, antennaMesh;
@@ -1769,7 +1769,6 @@ var animFrameId = null;
 var initialRotL = { x: 0, y: 0, z: 0 };
 var initialRotR = { x: 0, y: 0, z: 0 };
 
-// 🌟 [수정]: 나비의 등이 정면을 향하도록 DEFAULT_ROT_Y를 0으로 설정
 var DEFAULT_ROT_X = 0;
 var DEFAULT_ROT_Y = 0;
 
@@ -1929,10 +1928,11 @@ function initFullButterflyViewer(textureURL) {
     fullGroup.rotation.x = butterflyRotX;
     fullGroup.rotation.y = butterflyRotY;
 
-    // 🌟 [수정]: 기모으기 판정 및 차징 제어 (즉각적이고 안정적인 기모으기 작동)
+    // 🌟 [수정]: 2초 동안 움직이지 않고 꾹 누르면 기 모으기 시작
     if (isPressingScreen && !isFlyingAway) {
       var pressDuration = (now - pressStartTime) / 1000;
-      var HOLD_THRESHOLD = 0.25; // 0.25초 이상 누르면 기모으기 시작
+      var HOLD_THRESHOLD = 2.0; // 2초 유지 후 시작
+
       if (pressDuration >= HOLD_THRESHOLD) {
         if (!isChargeTriggered) {
           isChargeTriggered = true;
@@ -1945,18 +1945,16 @@ function initFullButterflyViewer(textureURL) {
       }
     }
 
-    // 🌟 [수정]: 날아와서 서서히 멈추는 자연스러운 단일 동작 시퀀스
+    // 나비 등장 및 날개짓
     if (!isFlyingAway) {
-      var flyDuration = 3.6; // 날아오는 총 시간
+      var flyDuration = 3.6;
       var restFoldAngle = 0.25;
 
       if (elapsedSec < flyDuration) {
         var progress = Math.min(1.0, elapsedSec / flyDuration);
-        // 부드러운 감속 곡선 (Cubic Ease-Out)
         var easeProgress = 1.0 - Math.pow(1.0 - progress, 3);
         fullGroup.position.y = -7.0 + 7.0 * easeProgress;
 
-        // 초반 빠르게 날개짓하다가 점차 부드럽고 잔잔하게 멈추는 감속 곡선
         var flapSpeed = 26.0 * (1.0 - progress * 0.7);
         var flapAmp = 0.65 * Math.pow(1.0 - progress, 1.5);
         var flap = Math.sin(time * flapSpeed) * flapAmp;
@@ -1966,7 +1964,6 @@ function initFullButterflyViewer(textureURL) {
           rightWingMesh.rotation.y = initialRotR.y - restFoldAngle - flap;
         }
       } else {
-        // 도착 후 안정된 상태
         fullGroup.position.y = 0;
         if (leftWingMesh && rightWingMesh) {
           leftWingMesh.rotation.y = initialRotL.y + restFoldAngle;
@@ -1974,7 +1971,7 @@ function initFullButterflyViewer(textureURL) {
         }
       }
     } else {
-      // 날려보내기 동작
+      // 나비가 날아가는 동작
       var flyAngle = Math.sin(time * 26.0) * 0.75;
       if (leftWingMesh && rightWingMesh) {
         leftWingMesh.rotation.y = initialRotL.y + 0.28 + flyAngle;
@@ -1983,6 +1980,7 @@ function initFullButterflyViewer(textureURL) {
       fullGroup.position.y += 0.09;
       fullGroup.position.z -= 0.04;
 
+      // 🌟 [수정]: 나비가 화면에서 완전히 사라지는 즉시 바로 검은 화면으로 전환, 2초 후 다음 페이지 전환
       if (fullGroup.position.y > 9.5 && !isFlyingTransitionTriggered) {
         isFlyingTransitionTriggered = true;
         saveButterflyToSupabase();
@@ -2002,7 +2000,7 @@ function initFullButterflyViewer(textureURL) {
           isFlyingTransitionTriggered = false;
           if (curtain) curtain.classList.remove('fade-active');
           resetChargeState();
-        }, 3000);
+        }, 2000); // 정확히 2초 대기
       }
     }
 
@@ -2057,6 +2055,7 @@ function renderEnergyParticles() {
   }
 }
 
+// 🌟 [수정]: 기모으기 진행 시 상단 UI만 사라지고, 하단 안내 문구와 화살표는 항상 유지하며 텍스트 동적 변경
 function updateChargeUIAndCamera(progress, currentChargeSec) {
   var chargeWidget = document.getElementById('energy-charge-widget');
   var innerFill = document.getElementById('charge-inner-fill');
@@ -2068,13 +2067,20 @@ function updateChargeUIAndCamera(progress, currentChargeSec) {
   if (innerFill) { innerFill.style.width = currentSize + 'px'; innerFill.style.height = currentSize + 'px'; }
   if (fullCamera) fullCamera.position.z = 8.8 - (2.6 * progress);
 
-  var uiOpacity = Math.max(0, 1.0 - Math.min(1.0, currentChargeSec / 2.5));
+  // 상단 UI만 페이드 아웃
+  var uiOpacity = Math.max(0, 1.0 - Math.min(1.0, currentChargeSec / 1.5));
   if (headerUI) headerUI.style.opacity = uiOpacity;
-  if (footerUI) footerUI.style.opacity = uiOpacity;
 
-  if (progress >= 1.0) {
-    var flyLabel = document.getElementById('preview-fly-label');
-    if (flyLabel) flyLabel.innerText = "위로 올려 나비를 날려보내세요!";
+  // 하단 안내문구와 화살표는 절대 사라지지 않게 1.0 고정
+  if (footerUI) footerUI.style.opacity = '1';
+
+  var flyLabel = document.getElementById('preview-fly-label');
+  if (flyLabel) {
+    if (progress >= 1.0) {
+      flyLabel.innerText = "위로 쓸어 올려주세요";
+    } else {
+      flyLabel.innerText = "화면을 길게 눌러주세요.";
+    }
   }
 }
 
@@ -2092,6 +2098,7 @@ function startChargeVibrationLoop() {
   }, 110);
 }
 
+// 🌟 [수정]: 취소 또는 리셋 시 기본 문구 '화면을 길게 눌러주세요.' 복원
 function resetChargeState() {
   isPressingScreen = false; isChargeTriggered = false; chargeProgress = 0;
   if (chargeVibrateInterval) { clearInterval(chargeVibrateInterval); chargeVibrateInterval = null; }
@@ -2108,14 +2115,13 @@ function resetChargeState() {
   if (footerUI) footerUI.style.opacity = 1.0;
 
   var flyLabel = document.getElementById('preview-fly-label');
-  if (flyLabel) flyLabel.innerText = "화면을 길게 누르고 위로 올려주세요";
+  if (flyLabel) flyLabel.innerText = "화면을 길게 눌러주세요.";
 }
 
-// 🌟 [수정]: 기모으기 터치 이벤트 감도 및 안정성 보정
+// 🌟 [수정]: 2초 동안 정지 후 차징, 원이 다 찬 상태에서 '위로 쓸어 올렸을 때만' 비행 동작
 function bindInteractiveEvents(targetEl) {
   var touchStartY = 0;
   var touchStartX = 0;
-  var isSwipingUp = false;
 
   function handlePointerStart(clientX, clientY) {
     if (isFlyingAway) return;
@@ -2124,7 +2130,6 @@ function bindInteractiveEvents(targetEl) {
     lastPointerY = clientY;
     touchStartX = clientX;
     touchStartY = clientY;
-    isSwipingUp = false;
 
     var chargeWidget = document.getElementById('energy-charge-widget');
     if (chargeWidget) {
@@ -2139,14 +2144,13 @@ function bindInteractiveEvents(targetEl) {
     if (!isUserDragging || isFlyingAway) return;
     var deltaX = clientX - lastPointerX;
     var deltaY = clientY - lastPointerY;
-    var diffFromStartY = touchStartY - clientY;
+    var movedDist = Math.hypot(clientX - touchStartX, clientY - touchStartY);
 
-    // 위로 30px 이상 올렸을 때 스와이프 감지
-    if (diffFromStartY > 30) {
-      isSwipingUp = true;
-    }
-
+    // 아직 기 모으기가 발동되지 않았는데 손가락을 15px 이상 움직이면 2초 타이머 리셋
     if (!isChargeTriggered) {
+      if (movedDist > 15) {
+        pressStartTime = performance.now();
+      }
       butterflyRotY += deltaX * 0.013;
       butterflyRotX += deltaY * 0.013;
       butterflyRotX = Math.max(-1.4, Math.min(1.4, butterflyRotX));
@@ -2161,10 +2165,12 @@ function bindInteractiveEvents(targetEl) {
     isUserDragging = false;
     var swipeDeltaY = touchStartY - clientY;
 
-    if (isChargeTriggered && chargeProgress >= 0.85 && (swipeDeltaY > 35 || isSwipingUp) && !isFlyingAway) {
+    // 🌟 [핵심]: 원이 완전히 다 차고(chargeProgress >= 1.0), 위로 50px 이상 쓸어 올렸을 때만 비행!
+    if (isChargeTriggered && chargeProgress >= 1.0 && swipeDeltaY > 50 && !isFlyingAway) {
       isFlyingAway = true;
       triggerDeviceVibrate(180, 1.0);
     } else {
+      // 위로 쓸어 올리지 않고 그냥 뗐거나 기가 다 안 찬 경우는 즉시 리셋
       resetChargeState();
     }
   }
@@ -2184,7 +2190,7 @@ function bindInteractiveEvents(targetEl) {
 }
 
 // --------------------------------------------------------------------------
-// 나비 표본실 갤러리 (🌟 [수정]: 1줄에 2마리씩 균등 배열, 동일한 크기, 위아래 수직 스크롤, 이름표 아래 완벽 배치)
+// 나비 표본실 갤러리
 // --------------------------------------------------------------------------
 var specimenButterfliesData = [
   { id: 1, name: "윤슬", wingId: "crescent", antId: "crescent", q1: ["사색가", "야행성"], core_concern: "완벽주의 강박", memo: "잔잔한 물결 위로 부서지는 햇살처럼 늘 반짝이기를.", date: "2026. 10. 24" },
@@ -2222,7 +2228,6 @@ function initSpecimenGallery() {
     var rawName = item.name || "나비";
     var displayName = rawName.length > 10 ? rawName.slice(0, 10) + '...' : rawName;
 
-    // 🌟 [수정]: flex 구조로 나비 바로 아래 일정한 간격을 두고 이름표가 배치되게 구성 (절대 겹치지 않음)
     card.innerHTML = 
       '<div class="specimen-butterfly-wrap">' +
         '<div class="specimen-pin-head"></div>' +
@@ -2253,7 +2258,6 @@ function initSpecimenGallery() {
     cardElements.push(card);
   });
 
-  // 0.15초 간격으로 순차 등장 애니메이션
   cardElements.forEach(function(cardEl, idx) {
     var timer = setTimeout(function() {
       if (cardEl) {
