@@ -272,7 +272,6 @@
         id: Math.random().toString(36).substring(7),
         group, innerGroup, leftWing, rightWing,
         velocity: initialVelocity,
-        // 🌟 수정: 날개짓 속도만 살짝 느리게 조정 (기존 24~36 -> 18~26)
         speed: 18.0 + Math.random() * 8.0, 
         seed: Math.random() * 1000,
         flapAmp: 1.0, 
@@ -314,14 +313,27 @@
     const handPointer = document.getElementById('hand-pointer');
 
     function updateMotion(b, time) {
+      // 🌟 추가: 손가락과의 거리에 따라 크기가 자연스럽게 커지는 로직
+      let effectiveScale = b.targetScale;
+      if (isHandDetected) {
+        const distToHand = b.group.position.distanceTo(handTarget3D);
+        if (distToHand < 10.0) {
+          // 손가락에 가까워질수록 최대 1.7배까지 확대
+          const scaleMult = 1.0 + (1.0 - (distToHand / 10.0)) * 0.7;
+          effectiveScale *= scaleMult;
+        }
+      }
+
       if (b.isAscendingArrival) {
         b.arrivalTimer += 0.016;
-        b.group.scale.lerp(new THREE.Vector3(b.targetScale, b.targetScale, b.targetScale), 0.06);
+        b.group.scale.lerp(new THREE.Vector3(effectiveScale, effectiveScale, effectiveScale), 0.06);
         b.velocity.y *= 0.99;
 
         if (b.arrivalTimer > 4.5 || b.group.position.y > 0) {
           b.isAscendingArrival = false; 
         }
+      } else {
+        b.group.scale.lerp(new THREE.Vector3(effectiveScale, effectiveScale, effectiveScale), 0.08);
       }
 
       if (b.state === 'landing_rest') {
