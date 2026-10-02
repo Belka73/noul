@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>NOUL : Luminous Space</title>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js" crossorigin="anonymous"></script>
   <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js" crossorigin="anonymous"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -13,6 +14,7 @@
     body, html {
       margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden;
       background-color: #000000; user-select: none; cursor: none;
+      font-family: -apple-system, BlinkMacSystemFont, "Pretendard Variable", Pretendard, sans-serif;
     }
     #webcam-video {
       position: absolute; inset: 0; width: 100%; height: 100%;
@@ -30,6 +32,44 @@
       box-shadow: 0 0 35px rgba(255, 255, 255, 0.9), 0 0 70px rgba(255, 255, 255, 0.4);
       pointer-events: none; z-index: 30; opacity: 0; transition: opacity 0.3s ease;
     }
+    /* 🌟 검지 착석 시 나비 정보(이름, 위로 메모) 시각 표기 카드 */
+    #floating-info-card {
+      position: absolute;
+      transform: translate(-50%, -125%);
+      background: rgba(14, 14, 18, 0.82);
+      border: 1px solid rgba(255, 255, 255, 0.22);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border-radius: 20px;
+      padding: 14px 20px;
+      color: #ffffff;
+      text-align: center;
+      max-width: 280px;
+      pointer-events: none;
+      z-index: 40;
+      opacity: 0;
+      transition: opacity 0.4s ease, transform 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.8), 0 0 20px rgba(255, 255, 255, 0.15);
+    }
+    #floating-info-card.visible {
+      opacity: 1;
+      transform: translate(-50%, -135%);
+    }
+    #floating-butterfly-name {
+      font-size: 15px;
+      font-weight: 800;
+      letter-spacing: -0.3px;
+      color: #ffffff;
+      text-shadow: 0 0 10px rgba(255, 255, 255, 0.6);
+      margin-bottom: 4px;
+    }
+    #floating-butterfly-memo {
+      font-size: 11.5px;
+      font-weight: 400;
+      line-height: 1.45;
+      color: #d1d5db;
+      word-break: keep-all;
+    }
   </style>
 </head>
 <body>
@@ -37,6 +77,12 @@
   <video id="webcam-video" playsinline autoplay muted></video>
   <div id="three-canvas-container"></div>
   <div id="hand-pointer"></div>
+
+  <!-- 검지 착석 안내 카드 -->
+  <div id="floating-info-card">
+    <div id="floating-butterfly-name">‘나비’</div>
+    <div id="floating-butterfly-memo">너의 찬란한 날갯짓을 응원해.</div>
+  </div>
 
   <script>
     /* ========================================================
@@ -122,6 +168,7 @@
     container.appendChild(renderer.domElement);
 
     const textureLoader = new THREE.TextureLoader();
+    const gltfLoader = new THREE.GLTFLoader();
     const leftGeom = createStableWingGeom(false);
     const rightGeom = createStableWingGeom(true);
     const bodyGeom = createBodyGeom();
@@ -130,7 +177,7 @@
     const userFlock = [];
     const MAX_USER_BUTTERFLIES = 35;
 
-    // 🌟 나비 생성 함수: 10초 뒤 합류(is10sDelayedArrival) 연출 완벽 탑재
+    // 🌟 3D GLB 모델 + 정밀 텍스처(flipY=false) + 10초 뒤 합류 연출 완벽 탑재
     function buildButterfly(data = {}, isUser = false, isDelayedArrival = false) {
       const group = new THREE.Group();
       const innerGroup = new THREE.Group(); 
@@ -138,15 +185,18 @@
       let wingMat = new THREE.MeshBasicMaterial({ color: 0xffffff, side: THREE.DoubleSide });
       if (isUser && data.texture_url && data.texture_url.startsWith('data:image')) {
         const userTex = textureLoader.load(data.texture_url);
+        userTex.flipY = false; // 메인 앱 UV 정렬과 일치
         wingMat = new THREE.MeshBasicMaterial({ map: userTex, side: THREE.DoubleSide, transparent: true });
       }
 
       const whiteMat = new THREE.MeshBasicMaterial({ color: 0xffffff });
-      const leftWing = new THREE.Mesh(leftGeom, wingMat);
-      const rightWing = new THREE.Mesh(rightGeom, wingMat);
+      let leftWing = new THREE.Mesh(leftGeom, wingMat);
+      let rightWing = new THREE.Mesh(rightGeom, wingMat);
+      const defaultBody = new THREE.Mesh(bodyGeom, whiteMat);
+      
       innerGroup.add(leftWing);
       innerGroup.add(rightWing);
-      innerGroup.add(new THREE.Mesh(bodyGeom, whiteMat));
+      innerGroup.add(defaultBody);
       
       const aL = createAntenna(false, whiteMat); aL.position.set(-0.05, 0.7, 0.15); innerGroup.add(aL);
       const aR = createAntenna(true, whiteMat); aR.position.set(0.05, 0.7, 0.15); innerGroup.add(aR);
@@ -157,6 +207,45 @@
 
       innerGroup.rotation.x = Math.PI / 2;
       group.add(innerGroup);
+
+      // GLB 파일이 있을 경우 정밀 3D 모델로 교체
+      const shapeId = data.wing_shape || 'crescent';
+      const antId = data.antenna_type || 'ball';
+      const targetAntennaPrefix = 'Antenna_' + antId;
+      const modelPath = '3DButterfly/' + shapeId + '.glb';
+
+      if (isUser && gltfLoader) {
+        gltfLoader.load(modelPath, function(gltf) {
+          const model = gltf.scene;
+          let newWingL = null;
+          let newWingR = null;
+
+          model.traverse(function(child) {
+            if (child.isMesh) {
+              const name = child.name;
+              if (name.startsWith('Wing_L')) { newWingL = child; child.material = wingMat; }
+              else if (name.startsWith('Wing_R')) { newWingR = child; child.material = wingMat; }
+              else if (name.startsWith('Body')) { child.material = whiteMat; }
+              else if (name.startsWith('Antenna_')) { child.material = whiteMat; child.visible = name.startsWith(targetAntennaPrefix); }
+            }
+          });
+
+          if (newWingL && newWingR) {
+            // 기본 베지에 메쉬 제거 후 정밀 GLB 모델 삽입
+            innerGroup.remove(leftWing);
+            innerGroup.remove(rightWing);
+            innerGroup.remove(defaultBody);
+            innerGroup.remove(aL);
+            innerGroup.remove(aR);
+
+            model.scale.set(0.95, 0.95, 0.95);
+            innerGroup.add(model);
+
+            butterflyRecord.leftWing = newWingL;
+            butterflyRecord.rightWing = newWingR;
+          }
+        }, undefined, function() {});
+      }
 
       let initialVelocity;
       let targetScale = 0.38 + Math.random() * 0.14;
@@ -174,7 +263,7 @@
 
       scene.add(group);
 
-      return {
+      const butterflyRecord = {
         id: Math.random().toString(36).substring(7),
         group, innerGroup, leftWing, rightWing, glow,
         velocity: initialVelocity,
@@ -186,8 +275,12 @@
         isAscendingArrival: isDelayedArrival,
         arrivalTimer: 0,
         isSpecialLanding: false,
-        specialState: null
+        specialState: null,
+        name: data.name || (isUser ? "익명의 나비" : "나비"),
+        memo: data.memo || "너의 찬란한 날갯짓을 응원해."
       };
+
+      return butterflyRecord;
     }
 
     for (let i = 0; i < 20; i++) {
@@ -203,9 +296,10 @@
     let landingButterflyId = null; 
     let fistButterflies = []; 
     let fingerAngle = 1.0; 
-    
-    // 손가락 파도 바람 힘 변수
-    let waveForce = new THREE.Vector3(0, 0, 0);
+
+    const floatingInfoCard = document.getElementById('floating-info-card');
+    const floatingName = document.getElementById('floating-butterfly-name');
+    const floatingMemo = document.getElementById('floating-butterfly-memo');
 
     function updateMotion(b, time) {
       // 🌟 신규 나비 10초 후 합류 시 극적인 상승 및 스케일업 효과
@@ -216,7 +310,7 @@
         b.velocity.y *= 0.99;
 
         if (b.arrivalTimer > 4.5 || b.group.position.y > 0) {
-          b.isAscendingArrival = false; // 기본 유영 모드로 자연스럽게 전환
+          b.isAscendingArrival = false; 
         }
       }
 
@@ -246,6 +340,12 @@
               const dist = b.group.position.distanceTo(handTarget3D);
               if (dist < 1.5) {
                   b.specialState = 'landed';
+                  // 손끝 착석 시 이름과 메모 띄우기
+                  if (floatingInfoCard) {
+                    floatingName.innerText = `‘${b.name}’`;
+                    floatingMemo.innerText = b.memo;
+                    floatingInfoCard.classList.add('visible');
+                  }
               } else {
                   b.state = 'flying';
                   const dir = new THREE.Vector3().subVectors(handTarget3D, b.group.position).normalize();
@@ -337,15 +437,9 @@
           }
       }
 
-      // 파도(바람)의 영향을 받아 날아가는 효과 적용
-      if (b.state !== 'landing_rest' && !b.isSpecialLanding) {
-          b.velocity.addScaledVector(waveForce, 0.2); 
-      }
-
       let maxSpeed = isFollowing ? 0.45 : 0.12;
       if (interactionMode === 'scatter') maxSpeed = 0.8;
       if (b.isAscendingArrival) maxSpeed = 0.35;
-      if (waveForce.length() > 0.1) maxSpeed = 0.6;
 
       if (b.velocity.length() > maxSpeed) {
           b.velocity.multiplyScalar(0.95);
@@ -378,16 +472,6 @@
       requestAnimationFrame(animate);
       const time = clock.getElapsedTime();
 
-      if (isHandDetected) {
-          const dist = handTarget3D.distanceTo(prevHandTarget3D);
-          if (dist > 0.8 && dist < 15) {
-              const dir = new THREE.Vector3().subVectors(handTarget3D, prevHandTarget3D).normalize();
-              waveForce.add(dir.multiplyScalar(dist * 0.05)); 
-          }
-      }
-      
-      waveForce.lerp(new THREE.Vector3(0, 0, 0), 0.08);
-
       if (interactionMode === 'land_one' && isHandDetected) {
           if (!landingButterflyId) {
               const allFlock = [...defaultFlock, ...userFlock];
@@ -409,6 +493,7 @@
                   selected.specialState = 'leaving';
               }
               landingButterflyId = null;
+              if (floatingInfoCard) floatingInfoCard.classList.remove('visible');
           }
       }
 
@@ -475,7 +560,12 @@
           const handPointer = document.getElementById('hand-pointer');
 
           const hands = new Hands({ locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}` });
-          hands.setOptions({ maxNumHands: 1, modelComplexity: 1, minDetectionConfidence: 0.5, minTrackingConfidence: 0.5 });
+          hands.setOptions({ 
+            maxNumHands: 1, 
+            modelComplexity: 0, 
+            minDetectionConfidence: 0.5, 
+            minTrackingConfidence: 0.5 
+          });
           
           hands.onResults((results) => {
             if (results.multiHandLandmarks && results.multiHandLandmarks.length > 0) {
@@ -495,6 +585,11 @@
               handPointer.style.transform = `translate3d(${screenX}px, ${screenY}px, 0)`;
               handPointer.style.opacity = '1';
 
+              if (floatingInfoCard) {
+                floatingInfoCard.style.left = `${screenX}px`;
+                floatingInfoCard.style.top = `${screenY}px`;
+              }
+
               const vec = new THREE.Vector3((1 - tip.x) * 2 - 1, -(tip.y * 2) + 1, 0.5);
               vec.unproject(camera);
               vec.sub(camera.position).normalize();
@@ -513,9 +608,10 @@
                   handPointer.style.background = 'radial-gradient(circle, rgba(200, 230, 255, 0.95) 0%, rgba(100, 150, 255, 0.4) 40%, rgba(255, 255, 255, 0) 70%)';
                   const distance = (8 - camera.position.z) / vec.z; 
                   handTarget3D.copy(camera.position).add(vec.multiplyScalar(distance));
+                  if (floatingInfoCard) floatingInfoCard.classList.remove('visible');
 
               } else if (openFingers === 1) {
-                  // ☝️ 검지 모드 (단일 강림 및 파도)
+                  // ☝️ 검지 모드 (단일 강림)
                   interactionMode = 'land_one';
                   handPointer.style.background = 'radial-gradient(circle, rgba(255, 255, 255, 0.95) 0%, rgba(150, 200, 255, 0.4) 40%, rgba(255, 255, 255, 0) 70%)';
                   const distance = (8 - camera.position.z) / vec.z; 
@@ -527,6 +623,7 @@
                   handPointer.style.background = 'radial-gradient(circle, rgba(255, 200, 200, 0.9) 0%, rgba(255, 100, 100, 0.3) 40%, rgba(255, 255, 255, 0) 70%)';
                   const distance = (0 - camera.position.z) / vec.z; 
                   handTarget3D.copy(camera.position).add(vec.multiplyScalar(distance));
+                  if (floatingInfoCard) floatingInfoCard.classList.remove('visible');
 
                   if (prevMode !== 'fist_gather') {
                       const allFlock = [...defaultFlock, ...userFlock];
@@ -537,6 +634,7 @@
                   interactionMode = 'none';
                   handPointer.style.background = 'radial-gradient(circle, rgba(255, 255, 255, 0.4) 0%, rgba(255, 255, 255, 0.1) 40%, rgba(255, 255, 255, 0) 70%)';
                   fistButterflies = [];
+                  if (floatingInfoCard) floatingInfoCard.classList.remove('visible');
               }
               isHandDetected = true;
             } else {
@@ -544,10 +642,30 @@
               isHandDetected = false;
               interactionMode = 'none';
               fistButterflies = [];
+              if (floatingInfoCard) floatingInfoCard.classList.remove('visible');
             }
           });
 
-          new Camera(videoElement, { onFrame: async () => { await hands.send({ image: videoElement }); }, width: 640, height: 480 }).start().catch(()=>{});
+          // 🌟 렉 방지: 병목을 막는 가벼운 해상도 세팅 및 프레임 큐잉 제어
+          let isProcessing = false;
+          let lastProcessTime = 0;
+
+          new Camera(videoElement, { 
+            onFrame: async () => { 
+              const now = performance.now();
+              if (isProcessing || (now - lastProcessTime < 30)) return; 
+              
+              isProcessing = true;
+              try {
+                await hands.send({ image: videoElement });
+                lastProcessTime = now;
+              } catch (e) {} finally {
+                isProcessing = false;
+              }
+            }, 
+            width: 480, 
+            height: 360 
+          }).start().catch(()=>{});
         }
       } catch (err) {}
     }, 2000);
