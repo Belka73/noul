@@ -4,10 +4,8 @@
    너울(Noul) 전역 스타일시트
    - 아이폰 17 규격 최적화 (402×874 pt / 430×932)
    - 표지 화면 시네마틱 애니메이션 복원
-   - [수정 1] 1번 사진: 키워드 및 입력 상자를 정확히 화면 수직/수평 중앙에 배치
-   - [수정 2] 표본실 갤러리 이름표 크기 고정 및 선택형 알약 스타일 반영
-   - [수정 3] 로딩 후 프리뷰 전환 시 화이트 플래시 속도 완화
-   - [수정 4] 꾹 누를 때 원형 기 이펙트 전체 투명화 및 사이즈 축소
+   - [수정 1] 1번 사진: 표본실 나비 한 줄에 2마리 정렬, 동일 크기, 위아래 스크롤 및 이름표 간격 고정
+   - [수정 2] 2번 사진: 등이 보이는 3D 회전값, 유기적인 비행, 안정된 기모으기
    ========================================================================== */
 
 * {
@@ -176,7 +174,7 @@ html, body {
   opacity: 0.92;
 }
 
-/* 🌟 전역 화면 전환용 블랙 페이드 오버레이 */
+/* 전역 화면 전환용 블랙 페이드 오버레이 */
 #cinematic-transition-curtain {
   position: fixed;
   inset: 0;
@@ -196,18 +194,6 @@ html, body {
   width: 240px;
   height: auto;
   filter: drop-shadow(0 0 20px rgba(255, 255, 255, 0.4));
-}
-
-.cover-three-viewport {
-  position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-  z-index: 1;
-  pointer-events: none;
-  overflow: hidden;
-  filter: blur(1.8px) drop-shadow(0 0 22px rgba(255, 255, 255, 0.45));
-  will-change: transform, filter;
 }
 
 /* 메뉴 카드 */
@@ -425,23 +411,6 @@ html, body {
   margin-top: -9px;
 }
 
-#blur-slider::-moz-range-track {
-  width: 100%;
-  height: 4px;
-  background: linear-gradient(to right, #ffffff 0%, #ffffff var(--blur-percent), #333333 var(--blur-percent), #333333 100%);
-  border-radius: 9999px;
-  border: none;
-}
-#blur-slider::-moz-range-thumb {
-  width: 22px;
-  height: 22px;
-  border-radius: 50%;
-  background: #ffffff;
-  cursor: pointer;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.6);
-  border: none;
-}
-
 .minimal-pill-toggle {
   width: 54px;
   height: 30px;
@@ -595,9 +564,7 @@ html, body {
   transform: scale(0.95);
 }
 
-/* ==========================================================================
-   2번 사진 화면: 말풍선 물리 낙하 배경 레이어 및 UI 수직 정렬
-   ========================================================================== */
+/* 말풍선 물리 레이어 */
 #field-step-6 {
   flex: 1;
   width: 100%;
@@ -612,7 +579,6 @@ html, body {
   overflow: hidden;
   transform: translateY(-40px);
 }
-
 #field-step-6.hidden {
   display: none !important;
 }
@@ -660,19 +626,7 @@ html, body {
   text-shadow: none !important;
 }
 
-.memo-input-container {
-  opacity: 0;
-  transform: translateY(20px);
-  transition: opacity 0.55s cubic-bezier(0.16, 1, 0.3, 1), transform 0.55s cubic-bezier(0.16, 1, 0.3, 1);
-}
-.memo-input-container.revealed {
-  opacity: 1;
-  transform: translateY(0);
-}
-
-/* ==========================================================================
-   핵심 고민 화면
-   ========================================================================== */
+/* 핵심 고민 화면 */
 #screen-survey-core-concern {
   display: none;
   width: 100%;
@@ -760,11 +714,9 @@ html, body {
   opacity: 1;
   transform: translateY(0);
 }
-
 .core-concern-scroll-container:active {
   cursor: grabbing;
 }
-
 .core-concern-scroll-container::-webkit-scrollbar {
   display: none;
 }
@@ -803,10 +755,6 @@ html, body {
   transition: color 0.25s ease, transform 0.25s ease, text-shadow 0.25s ease;
 }
 
-.core-concern-text-btn.core-concern-unselected {
-  color: #555555 !important;
-}
-
 .core-concern-text-btn.core-concern-selected {
   color: #ffffff !important;
   font-weight: 800 !important;
@@ -814,14 +762,9 @@ html, body {
   text-shadow: 0 0 16px rgba(255, 255, 255, 0.85), 0 0 32px rgba(255, 255, 255, 0.45);
 }
 
-.core-concern-text-btn:active {
-  transform: scale(0.96);
-}
-
 #survey-custom-input-anchor.custom-anchor-hidden {
   display: none !important;
 }
-
 #survey-custom-input-anchor.custom-anchor-visible {
   display: flex !important;
 }
@@ -840,13 +783,7 @@ html, body {
   justify-content: center;
   padding: 0 16px;
   box-sizing: border-box;
-  transition: border-color 0.2s ease, background 0.2s ease;
   position: relative;
-}
-
-.custom-keyword-single-bar:focus-within {
-  background: rgba(255, 255, 255, 0.12);
-  border-color: rgba(255, 255, 255, 0.35);
 }
 
 .custom-keyword-single-bar input {
@@ -860,11 +797,6 @@ html, body {
   font-weight: 600;
   text-align: center;
   letter-spacing: -0.2px;
-}
-
-.custom-keyword-single-bar input::placeholder {
-  color: rgba(255, 255, 255, 0.7);
-  font-weight: 500;
 }
 
 .custom-bar-clear-btn {
@@ -881,10 +813,6 @@ html, body {
   justify-content: center;
   font-size: 10px;
   cursor: pointer;
-  transition: opacity 0.15s ease, transform 0.15s ease;
-}
-.custom-bar-clear-btn:active {
-  transform: scale(0.9);
 }
 
 .glass-input-card-v2 {
@@ -937,51 +865,6 @@ html, body {
   cursor: not-allowed;
 }
 
-/* ==========================================================================
-   2D 포스터 스타일 & 3D 물리 뷰포트
-   ========================================================================== */
-#stats-header {
-  position: absolute;
-  top: max(1.25rem, env(safe-area-inset-top)) !important;
-  left: 0;
-  width: 100%;
-  padding-top: 0 !important;
-  padding-bottom: 0 !important;
-  min-height: 80px !important;
-  display: flex;
-  align-items: flex-start;
-  justify-content: center;
-  z-index: 30;
-}
-#stats-header h1 {
-  font-size: 1.38rem;
-  font-weight: 700;
-  color: #ffffff;
-  line-height: 1.36;
-  letter-spacing: -0.3px;
-  text-align: center;
-}
-
-.stats-three-container {
-  width: 100%;
-  height: 100%;
-  position: relative;
-  touch-action: none;
-  background-color: #000000;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: grab;
-}
-.stats-three-container:active {
-  cursor: grabbing;
-}
-.stats-three-container canvas {
-  width: 100% !important;
-  height: 100% !important;
-  display: block;
-}
-
 /* 바운스 애니메이션 */
 .bounce-guide {
   animation: bounceUp 1.8s infinite ease-in-out;
@@ -1009,10 +892,9 @@ html, body {
   );
   filter: blur(28px);
   pointer-events: none;
-  z-10;
+  z-index: 1;
 }
 
-/* 상단 위로의 메모 한 줄 제한 및 생략(...) 스타일 */
 .preview-memo-subline {
   white-space: nowrap !important;
   overflow: hidden !important;
@@ -1070,7 +952,7 @@ html, body {
 }
 
 /* ==========================================================================
-   나비 박제 표본실 (🌟 글로우 제거, 자동 간격, 애니메이션)
+   나비 표본실 갤러리 (🌟 [수정]: 1줄에 2마리씩 균등 배열, 세로 전용 스크롤, 일정한 크기)
    ========================================================================== */
 .gallery-header-guide {
   position: absolute;
@@ -1079,65 +961,63 @@ html, body {
   text-align: center;
   z-index: 40;
   text-shadow: 0 2px 10px rgba(0, 0, 0, 0.9);
+  pointer-events: none;
 }
 
 .gallery-viewport-drag {
   width: 100%;
   height: 100%;
   position: relative;
-  overflow: hidden;
-  touch-action: none;
-  cursor: grab;
+  overflow-y: auto;
+  overflow-x: hidden;
+  -webkit-overflow-scrolling: touch;
   background-color: #000000;
+  padding-top: 5.5rem;
+  padding-bottom: 3.5rem;
+  scrollbar-width: none;
 }
-.gallery-viewport-drag:active {
-  cursor: grabbing;
+.gallery-viewport-drag::-webkit-scrollbar {
+  display: none;
 }
 
 .specimen-frame-board {
-  position: absolute;
-  width: 860px;
-  height: 1320px;
-  background-color: #000000;
-  background-image: 
-    radial-gradient(rgba(255, 255, 255, 0.08) 1px, transparent 1px);
+  width: 100%;
+  min-height: 100%;
+  background-color: transparent;
+  background-image: radial-gradient(rgba(255, 255, 255, 0.08) 1px, transparent 1px);
   background-size: 26px 26px;
   border: none;
-  outline: none;
   box-shadow: none;
-  border-radius: 0;
-  transform-origin: 0 0;
-  will-change: transform;
 }
 
-.specimen-frame-corner {
-  display: none !important;
-}
-
+/* 🌟 [수정]: 2열 균등 그리드 배치 */
 .specimen-container-relative {
-  position: relative;
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  row-gap: 2.2rem;
+  column-gap: 1.0rem;
+  padding: 1.2rem 1.0rem;
   width: 100%;
-  height: 100%;
+  box-sizing: border-box;
 }
 
-/* 🌟 [수정]: 표본실 카드 아이템 (초기 투명 -> 0.2초 간격 무작위 등장 애니메이션) */
+/* 🌟 [수정]: 표본실 카드 아이템 (동일한 크기 및 수직 플렉스 배치) */
 .specimen-card-item {
-  position: absolute;
+  position: relative;
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: center;
+  justify-content: flex-start;
   cursor: pointer;
   z-index: 10;
-  transform: translate(-50%, -50%) scale(0.7);
   opacity: 0;
+  transform: translateY(16px);
   transition: opacity 0.45s cubic-bezier(0.16, 1, 0.3, 1), transform 0.45s cubic-bezier(0.16, 1, 0.3, 1);
-  will-change: transform, opacity;
 }
 
 .specimen-card-item.revealed {
   opacity: 1;
-  transform: translate(-50%, -50%) scale(1);
+  transform: translateY(0);
 }
 
 .specimen-butterfly-wrap {
@@ -1145,20 +1025,16 @@ html, body {
   display: flex;
   align-items: center;
   justify-content: center;
-  transform-origin: center center;
+  width: 130px;
+  height: 105px;
 }
 
-/* 🌟 [수정]: 나비 둘러보기 모든 나비의 글로우를 완전 제거 */
 .specimen-shadow-drop {
   filter: none !important;
-  transition: none !important;
-}
-.specimen-card-item:hover .specimen-shadow-drop,
-.specimen-card-item:active .specimen-shadow-drop {
-  filter: none !important;
+  width: 100%;
+  height: 100%;
 }
 
-/* 나비 핀 헤더 글로우 제거 */
 .specimen-pin-head {
   position: absolute;
   top: 50%;
@@ -1173,18 +1049,16 @@ html, body {
   pointer-events: none;
 }
 
-/* 🌟 [수정]: 나비 크기에 맞춰 겹치지 않게 절대 위치화 & 텍스트 길이에 따른 유연한 확장 */
+/* 🌟 [수정]: 나비 바로 아래 일정한 간격(margin-top: 10px)을 두고 절대 겹치지 않게 배치 */
 .specimen-pill-label {
-  position: absolute;
-  left: 50%;
-  transform: translateX(-50%) !important;
+  margin-top: 10px;
   border-radius: 9999px;
   padding: 5px 14px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   white-space: nowrap;
-  max-width: 140px;
+  max-width: 130px;
   z-index: 20;
   pointer-events: none;
   background-color: rgba(255, 255, 255, 0.1);

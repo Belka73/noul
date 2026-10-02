@@ -20,12 +20,12 @@
 <body>
 
   <div id="cinematic-white-flash"></div>
-  <!-- 🌟 화면 전환용 블랙 페이드 오버레이 추가 -->
+  <!-- 화면 전환용 블랙 페이드 오버레이 -->
   <div id="cinematic-transition-curtain"></div>
 
   <main class="app-viewport box-border">
 
-    <!-- 0. 표지 화면 (3D 나비 제거됨) -->
+    <!-- 0. 표지 화면 -->
     <section id="screen-cover" class="screen active cover-viewport flex-col justify-between py-6 text-center z-20">
       <div class="relative z-10 flex flex-col items-center justify-center my-auto px-4 pointer-events-none">
         <div class="cover-anim-logo">
@@ -98,7 +98,7 @@
       <div class="pb-3 text-[11px] text-neutral-500 font-mono"></div>
     </section>
 
-    <!-- 0.55 나비 둘러보기 (박제 액자 화면) -->
+    <!-- 0.55 나비 둘러보기 (🌟 [수정]: 안내 문구 변경 및 위아래 스크롤 뷰포트) -->
     <section id="screen-gallery" class="screen flex-1 relative z-20 w-full h-full bg-[#0a0a0c] overflow-hidden select-none">
       <button id="btn-gallery-back" type="button" class="app-back-btn">
         <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -108,15 +108,11 @@
 
       <div class="gallery-header-guide pointer-events-none">
         <h2 class="text-sm font-bold text-white tracking-wider">나비 표본실</h2>
-        <p class="text-[11px] text-neutral-400 mt-0.5">상하좌우로 둘러보고 나비를 눌러 자세히 감상해보세요</p>
+        <p class="text-[11px] text-neutral-400 mt-0.5">위아래로 스크롤하여 나비를 둘러보세요</p>
       </div>
 
       <div id="gallery-pan-viewport" class="gallery-viewport-drag">
         <div id="gallery-specimen-board" class="specimen-frame-board">
-          <div class="specimen-frame-corner top-left"></div>
-          <div class="specimen-frame-corner top-right"></div>
-          <div class="specimen-frame-corner bottom-left"></div>
-          <div class="specimen-frame-corner bottom-right"></div>
           <div id="specimen-items-container" class="specimen-container-relative"></div>
         </div>
       </div>
@@ -248,7 +244,6 @@
         <div id="organic-chip-container" class="flex flex-col items-center gap-2.5 w-full py-2"></div>
       </div>
 
-      <!-- 키워드와 메모 입력창 래퍼 -->
       <div id="field-step-6" class="hidden flex-1 w-full flex-col justify-center items-center px-4 min-h-0">
         <canvas id="bubble-physics-canvas" class="bubble-physics-bg-layer"></canvas>
 
@@ -430,7 +425,7 @@
       </div>
     </section>
 
-    <!-- 4. 로딩 화면 (나비 위치 화면 중앙 절대 고정 및 키워드 하단 분리 스크롤) -->
+    <!-- 4. 로딩 화면 -->
     <section id="screen-loading" class="screen flex-col flex-1 justify-between items-center py-10 px-5 text-center relative overflow-hidden z-10 w-full">
       <div class="photo-butterfly-bg-wrapper pointer-events-none">
         <div class="photo-bg-layer"></div>
@@ -439,7 +434,6 @@
 
       <div id="cinematic-black-curtain"></div>
 
-      <!-- 상단 안내 문구 -->
       <div class="mt-8 z-10 space-y-1.5 pointer-events-none transition-all duration-700 flex-shrink-0">
         <h2 id="loading-main-title" class="text-2xl font-black text-white tracking-tight leading-snug drop-shadow-[0_2px_12px_rgba(0,0,0,0.8)] pt-2">
           나비를 깨우는 중
@@ -449,7 +443,6 @@
         </p>
       </div>
 
-      <!-- [중앙 완전 고정] 나비 및 카테고리 헤더 -->
       <div class="absolute left-1/2 top-[46%] -translate-x-1/2 -translate-y-1/2 z-10 flex flex-col items-center pointer-events-none">
         <div class="flex items-center justify-center">
           <svg id="loading-butterfly-svg" class="w-36 h-36 text-white drop-shadow-[0_0_35px_rgba(255,255,255,0.95)] animate-pulse transition-all duration-1000" viewBox="0 0 100 100">
@@ -461,14 +454,12 @@
         </span>
       </div>
 
-      <!-- [하단 키워드 쇼케이스] -->
       <div class="relative w-full max-w-[340px] z-20 flex flex-col items-center justify-start pointer-events-auto mt-auto mb-4" style="height: 220px;">
         <div id="showcase-card" class="answer-fade visible-state w-full text-center flex flex-col items-center h-full">
           <div id="showcase-answers" class="flex flex-wrap items-center justify-center gap-2 py-1 w-full px-2 overflow-y-auto vertical-scroll-chips max-h-full"></div>
         </div>
       </div>
 
-      <!-- 하단 프로그레스 바 -->
       <div class="w-[84%] z-10 flex flex-col items-center pb-2 flex-shrink-0">
         <div class="w-full h-1.5 bg-white/20 rounded-full overflow-hidden backdrop-blur-sm">
           <div id="generation-progress-bar" class="h-full bg-white rounded-full transition-all duration-500 ease-out shadow-[0_0_12px_rgba(255,255,255,0.9)]" style="width: 0%;"></div>
@@ -504,7 +495,7 @@
       </footer>
     </section>
 
-    <!-- 6. 완성 화면 (문구 및 하단 버튼) -->
+    <!-- 6. 완성 화면 -->
     <section id="screen-complete" class="screen flex-col flex-1 justify-center items-center text-center p-6 relative z-10 w-full bg-black">
       <div class="w-20 h-20 rounded-full bg-white/10 border border-white/20 flex items-center justify-center mb-6 shadow-[0_0_30px_rgba(255,255,255,0.25)]">
         <svg class="w-10 h-10 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
