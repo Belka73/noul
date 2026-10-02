@@ -1759,7 +1759,7 @@ function stopBubblePhysics() {
 }
 
 // --------------------------------------------------------------------------
-// 나비 뷰어 및 저장 로직 (🌟 [수정]: 2초 홀드 후 차징, 스와이프 시 원 즉시 제거, 사라지는 즉시 완전 암전 및 2초 후 페이드 인 전환)
+// 나비 뷰어 및 저장 로직 (🌟 [수정]: 손 떼면 원 즉시 소멸, 비행 시 즉시 암전 및 2초 후 부드러운 페이드 전환)
 // --------------------------------------------------------------------------
 var fullScene, fullCamera, fullRenderer, fullGroup;
 var leftWingMesh, rightWingMesh, antennaMesh;
@@ -1871,6 +1871,7 @@ function initFullButterflyViewer(textureURL) {
 
   previewStartTime = performance.now();
   isFlyingAway = false;
+  isFlyingTransitionTriggered = false;
   resetChargeState();
 
   var wingMat = new THREE.MeshBasicMaterial({ map: userTexture, side: THREE.DoubleSide });
@@ -1959,7 +1960,6 @@ function initFullButterflyViewer(textureURL) {
         var easeProgress = 1.0 - Math.pow(1.0 - progress, 3);
         fullGroup.position.y = -7.0 + 7.0 * easeProgress;
 
-        // 등장 시 날개짓 속도 36.0으로 역동적 펄럭임
         var flapSpeed = 36.0 * (1.0 - progress * 0.65);
         var flapAmp = 0.85 * Math.pow(1.0 - progress, 1.4);
         var flap = Math.sin(time * flapSpeed) * flapAmp;
@@ -1985,12 +1985,12 @@ function initFullButterflyViewer(textureURL) {
       fullGroup.position.y += 0.09;
       fullGroup.position.z -= 0.04;
 
-      // 🌟 [수정]: 나비가 화면 상단 프레임 밖으로 벗어나는 순간(y > 4.6) 즉시 암전 실행
+      // 🌟 [수정]: 나비가 화면 상단 밖으로 벗어나는 순간 즉시 완전 암전 및 2초 후 스르륵 전환
       if (fullGroup.position.y > 4.6 && !isFlyingTransitionTriggered) {
         isFlyingTransitionTriggered = true;
         saveButterflyToSupabase();
 
-        // 3D 캔버스, 파티클, 배경 발광 등 잔상을 즉시 숨겨 100% 완전 검은 화면 적용
+        // 3D 캔버스, 파티클, 배경 발광 등 잔상을 즉시 숨겨 100% 완전 암전 적용
         if (container) container.style.opacity = '0';
         var glowBgEl = document.querySelector('.preview-ethereal-glow-bg');
         if (glowBgEl) glowBgEl.style.opacity = '0';
@@ -2005,7 +2005,7 @@ function initFullButterflyViewer(textureURL) {
           curtain.style.zIndex = '9999';
         }
 
-        // 검은 화면에서 2초간 유지 후 부드러운 페이드 인으로 완성 화면 전환
+        // 검은 화면에서 2초간 유지 후 부드러운 트랜지션(페이드)으로 완성 화면 전환
         setTimeout(function() {
           var completeDesc = document.getElementById('complete-desc');
           if (completeDesc) {
@@ -2131,13 +2131,16 @@ function resetChargeState() {
   if (innerFill) { innerFill.style.width = '22px'; innerFill.style.height = '22px'; }
   if (fullCamera) fullCamera.position.z = 8.8;
   if (headerUI) headerUI.style.opacity = 1.0;
-  if (footerUI) footerUI.style.opacity = 1.0;
+  if (footerUI) {
+    footerUI.style.opacity = 1.0;
+    footerUI.style.pointerEvents = 'none';
+  }
 
   var flyLabel = document.getElementById('preview-fly-label');
   if (flyLabel) flyLabel.innerText = "화면을 길게 눌러주세요.";
 }
 
-// 🌟 [수정]: 손가락 뗀 순간 동그라미(차징 위젯) 즉시 완전 소멸 & 위로 쓸어 올렸을 때만 비행
+// 🌟 [수정]: 사용자가 손가락을 떼는 순간 기 모으는 동그라미(chargeWidget) 즉시 소멸 & 하단 문구 숨김
 function bindInteractiveEvents(targetEl) {
   var touchStartY = 0;
   var touchStartX = 0;
@@ -2183,18 +2186,22 @@ function bindInteractiveEvents(targetEl) {
     isUserDragging = false;
     var swipeDeltaY = touchStartY - clientY;
 
-    // 🌟 [수정]: 손가락을 뗀 순간 어떤 경우에도 동그라미(차징 위젯)는 즉각 숨김 처리
+    // 🌟 사용자가 손가락을 떼는 순간 동그라미(기 모으기 위젯)는 무조건 즉시 숨김
     var chargeWidget = document.getElementById('energy-charge-widget');
     if (chargeWidget) chargeWidget.classList.add('hidden');
     if (chargeVibrateInterval) { clearInterval(chargeVibrateInterval); chargeVibrateInterval = null; }
 
-    // 기가 다 차고 위로 쓸어 올렸을 때만 비행 시작
+    // 기가 완충되고(chargeProgress >= 1.0) 위로 쓸어 올렸을 때만 비행 시작
     if (isChargeTriggered && chargeProgress >= 1.0 && swipeDeltaY > 50 && !isFlyingAway) {
       isFlyingAway = true;
       triggerDeviceVibrate(180, 1.0);
-      // 비행 시작 시 하단 화살표/문구도 즉시 숨김
+
+      // 🌟 비행이 시작되는 순간 아래 하단 안내 문구와 화살표를 즉시 숨김
       var footerUI = document.getElementById('preview-footer-ui');
-      if (footerUI) footerUI.style.opacity = '0';
+      if (footerUI) {
+        footerUI.style.opacity = '0';
+        footerUI.style.pointerEvents = 'none';
+      }
     } else {
       resetChargeState();
     }
