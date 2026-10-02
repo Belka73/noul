@@ -128,15 +128,17 @@
 
     const defaultFlock = [];
     const userFlock = [];
-    const MAX_USER_BUTTERFLIES = 30;
+    const MAX_USER_BUTTERFLIES = 35;
 
-    function buildButterfly(data = {}, isUser = false, isNew = false) {
+    // 🌟 나비 생성 함수: 10초 뒤 합류(is10sDelayedArrival) 연출 완벽 탑재
+    function buildButterfly(data = {}, isUser = false, isDelayedArrival = false) {
       const group = new THREE.Group();
       const innerGroup = new THREE.Group(); 
       
       let wingMat = new THREE.MeshBasicMaterial({ color: 0xffffff, side: THREE.DoubleSide });
       if (isUser && data.texture_url && data.texture_url.startsWith('data:image')) {
-        wingMat = new THREE.MeshBasicMaterial({ map: textureLoader.load(data.texture_url), side: THREE.DoubleSide, transparent: true });
+        const userTex = textureLoader.load(data.texture_url);
+        wingMat = new THREE.MeshBasicMaterial({ map: userTex, side: THREE.DoubleSide, transparent: true });
       }
 
       const whiteMat = new THREE.MeshBasicMaterial({ color: 0xffffff });
@@ -156,24 +158,33 @@
       innerGroup.rotation.x = Math.PI / 2;
       group.add(innerGroup);
 
-      if (isNew) {
-        group.position.set(0, -8.5, 0);
+      let initialVelocity;
+      let targetScale = 0.38 + Math.random() * 0.14;
+
+      if (isDelayedArrival) {
+        // 🌟 10초 후 합류 시: 화면 하단 앞에서 빛을 내며 유려하게 위로 상승
+        group.position.set((Math.random() - 0.5) * 6, -9.5, 7.5);
+        initialVelocity = new THREE.Vector3((Math.random() - 0.5) * 0.04, 0.14, -0.07);
+        group.scale.set(0.01, 0.01, 0.01);
       } else {
         group.position.set((Math.random() - 0.5) * 30, (Math.random() - 0.5) * 16, (Math.random() - 0.5) * 40);
+        initialVelocity = new THREE.Vector3((Math.random() - 0.5) * 0.08, (Math.random() - 0.5) * 0.08, (Math.random() - 0.5) * 0.12);
+        group.scale.set(targetScale, targetScale, targetScale);
       }
 
-      const scale = 0.35 + Math.random() * 0.15;
-      group.scale.set(scale, scale, scale);
       scene.add(group);
 
       return {
         id: Math.random().toString(36).substring(7),
         group, innerGroup, leftWing, rightWing, glow,
-        velocity: new THREE.Vector3((Math.random() - 0.5) * 0.08, (Math.random() - 0.5) * 0.08, (Math.random() - 0.5) * 0.12),
-        speed: 12.0 + Math.random() * 8.0, 
+        velocity: initialVelocity,
+        speed: 13.0 + Math.random() * 7.0, 
         seed: Math.random() * 1000,
         flapAmp: 1.0, 
         state: 'flying',
+        targetScale: targetScale,
+        isAscendingArrival: isDelayedArrival,
+        arrivalTimer: 0,
         isSpecialLanding: false,
         specialState: null
       };
@@ -193,11 +204,22 @@
     let fistButterflies = []; 
     let fingerAngle = 1.0; 
     
-    // 💡 손가락 파도 바람 힘 변수
+    // 손가락 파도 바람 힘 변수
     let waveForce = new THREE.Vector3(0, 0, 0);
 
     function updateMotion(b, time) {
-      
+      // 🌟 신규 나비 10초 후 합류 시 극적인 상승 및 스케일업 효과
+      if (b.isAscendingArrival) {
+        b.arrivalTimer += 0.016;
+        b.group.scale.lerp(new THREE.Vector3(b.targetScale, b.targetScale, b.targetScale), 0.06);
+        b.glow.material.opacity = Math.min(1.0, b.glow.material.opacity + 0.04);
+        b.velocity.y *= 0.99;
+
+        if (b.arrivalTimer > 4.5 || b.group.position.y > 0) {
+          b.isAscendingArrival = false; // 기본 유영 모드로 자연스럽게 전환
+        }
+      }
+
       if (b.state === 'landing_rest') {
           b.flapAmp *= 0.88; 
           const flap = Math.sin(time * b.speed + b.seed) * 0.65 * b.flapAmp;
@@ -206,7 +228,8 @@
           b.rightWing.rotation.y = -flap - openAngle * (1 - b.flapAmp);
       } else {
           b.flapAmp += (1.0 - b.flapAmp) * 0.1; 
-          const flap = Math.sin(time * b.speed + b.seed) * 0.65 * b.flapAmp;
+          const flapSpeed = b.isAscendingArrival ? (b.speed * 1.5) : b.speed;
+          const flap = Math.sin(time * flapSpeed + b.seed) * 0.65 * b.flapAmp;
           b.leftWing.rotation.y = flap;
           b.rightWing.rotation.y = -flap;
       }
@@ -269,7 +292,7 @@
           }
       } 
       else if (isHandDetected) {
-          // 💡 드라마틱한 모이기 (주먹)
+          // 주먹: 드라마틱한 모이기
           if (interactionMode === 'fist_gather' && fistButterflies.includes(b.id)) {
               isFollowing = true;
               b.state = 'flying';
@@ -277,10 +300,8 @@
               
               if (dist > 1.5) {
                   const dir = new THREE.Vector3().subVectors(handTarget3D, b.group.position).normalize();
-                  // 흡입력 대폭 강화
                   b.velocity.lerp(dir.multiplyScalar(0.4), 0.2); 
               } else {
-                  // 손 주변에서 역동적인 소용돌이
                   b.velocity.add(new THREE.Vector3((Math.random() - 0.5) * 0.15, (Math.random() - 0.5) * 0.15, (Math.random() - 0.5) * 0.15));
               }
               const targetPos = b.group.position.clone().add(b.velocity);
@@ -290,20 +311,19 @@
               dummyObj.rotateZ(rollAngle); 
               b.group.quaternion.slerp(dummyObj.quaternion, 0.25);
           }
-          // 💡 드라마틱한 퍼지기 (손바닥)
+          // 손바닥: 드라마틱한 퍼지기
           else if (interactionMode === 'scatter') {
               const dist = b.group.position.distanceTo(handTarget3D);
               if (dist < 30.0) {
                   isFollowing = true;
                   b.state = 'flying';
                   const dir = new THREE.Vector3().subVectors(b.group.position, handTarget3D).normalize();
-                  // 척력 대폭 강화 (빠르고 멀리 튕겨 나감)
                   b.velocity.addScaledVector(dir, 0.1);
               }
           } 
       }
 
-      if (!isFollowing) {
+      if (!isFollowing && !b.isAscendingArrival) {
           b.state = 'flying';
           const t = time * 0.5 + b.seed;
           b.velocity.x += Math.sin(t * 1.5) * 0.002;
@@ -317,17 +337,14 @@
           }
       }
 
-      // 💡 파도(바람)의 영향을 받아 날아가는 효과 적용 (전체 나비 휩쓸림)
+      // 파도(바람)의 영향을 받아 날아가는 효과 적용
       if (b.state !== 'landing_rest' && !b.isSpecialLanding) {
-          // 바람의 영향을 속도(velocity)에 누적하여 휩쓸리는 관성 추가
           b.velocity.addScaledVector(waveForce, 0.2); 
       }
 
-      // 속도 한계 설정 (퍼지기 모드일 때는 일시적으로 제한 해제)
       let maxSpeed = isFollowing ? 0.45 : 0.12;
       if (interactionMode === 'scatter') maxSpeed = 0.8;
-      
-      // 바람에 휩쓸릴 때 최고 속도 상향
+      if (b.isAscendingArrival) maxSpeed = 0.35;
       if (waveForce.length() > 0.1) maxSpeed = 0.6;
 
       if (b.velocity.length() > maxSpeed) {
@@ -360,23 +377,17 @@
     function animate() {
       requestAnimationFrame(animate);
       const time = clock.getElapsedTime();
-      const delta = clock.getDelta();
 
-      // 💡 손가락 이동에 따른 파도(바람) 생성 계산 완벽 수정
       if (isHandDetected) {
           const dist = handTarget3D.distanceTo(prevHandTarget3D);
-          // 너무 미세한 떨림이나 카메라 인식 초기 점프(15 이상) 무시, 빠르게 휘저을 때만 반응
           if (dist > 0.8 && dist < 15) {
               const dir = new THREE.Vector3().subVectors(handTarget3D, prevHandTarget3D).normalize();
-              // 이동 거리(속도)에 비례하여 강한 바람 힘(waveForce) 생성
               waveForce.add(dir.multiplyScalar(dist * 0.05)); 
           }
       }
       
-      // 마찰력을 적용해 시간이 지나면 파도가 잔잔해지도록 서서히 감속
       waveForce.lerp(new THREE.Vector3(0, 0, 0), 0.08);
 
-      // 손가락 모드 (단일 강림)
       if (interactionMode === 'land_one' && isHandDetected) {
           if (!landingButterflyId) {
               const allFlock = [...defaultFlock, ...userFlock];
@@ -417,7 +428,7 @@
     });
 
     /* ========================================================
-       2. Supabase 비동기 안전 연결
+       2. Supabase 실시간 연동 & 정확한 10초 뒤 합류 로직
        ======================================================== */
     setTimeout(() => {
       try {
@@ -426,20 +437,29 @@
           const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRqbWR6c2Jmc29ic3V0cGhyYWd3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODk4ODQ3NTgsImV4cCI6MjEwNTQ2MDc1OH0.BC7llaSjbq6cYhDlRqrwJaycpQ6gSNcp5LgYBeM6WEM';
           const supabaseInstance = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-          function addUserButterfly(data, isNew = false) {
+          function addUserButterfly(data, isDelayedArrival = false) {
             if (userFlock.length >= MAX_USER_BUTTERFLIES) {
               const oldest = userFlock.shift();
               if (oldest && oldest.group) scene.remove(oldest.group);
             }
-            userFlock.push(buildButterfly(data, true, isNew));
+            userFlock.push(buildButterfly(data, true, isDelayedArrival));
           }
 
+          // 초기 로딩: 데이터베이스에 기존 저장되어 있던 나비 불러오기 (즉시 배치)
           supabaseInstance.from('butterflies').select('*').order('created_at', { ascending: false }).limit(MAX_USER_BUTTERFLIES)
             .then(({ data }) => { if (data) data.reverse().forEach(item => addUserButterfly(item, false)); })
             .catch(e => console.warn("Supabase 데이터 에러 무시"));
 
+          // 🌟 실시간 수신: 사용자가 나비를 전송하면 '정확히 10초' 대기 후 화면 합류!
           supabaseInstance.channel('public:butterflies')
-            .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'butterflies' }, (payload) => { addUserButterfly(payload.new, true); })
+            .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'butterflies' }, (payload) => {
+              console.log("새 나비 전송 감지! 10초 카운트다운 시작:", payload.new.name);
+              
+              setTimeout(() => {
+                console.log("10초 경과: 나비 공간 합류!", payload.new.name);
+                addUserButterfly(payload.new, true);
+              }, 10000); // 10000ms = 10초
+            })
             .subscribe();
         }
       } catch (err) {}
@@ -510,7 +530,6 @@
 
                   if (prevMode !== 'fist_gather') {
                       const allFlock = [...defaultFlock, ...userFlock];
-                      // 나비들을 손 가까운 순서로 정렬해서 15마리 선택
                       allFlock.sort((a, b) => a.group.position.distanceTo(handTarget3D) - b.group.position.distanceTo(handTarget3D));
                       fistButterflies = allFlock.slice(0, 15).map(b => b.id);
                   }
