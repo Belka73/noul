@@ -256,7 +256,6 @@
         initialVelocity = new THREE.Vector3((Math.random() - 0.5) * 0.06, 0.16, -0.04);
         group.scale.set(0.01, 0.01, 0.01);
       } else {
-        // 더 뒤쪽 먼 거리 레이어(-28.0 ~ -12.0)
         group.position.set(
           (Math.random() - 0.5) * 30, 
           (Math.random() - 0.5) * 18, 
@@ -288,7 +287,7 @@
       return butterflyRecord;
     }
 
-    // 🌟 나비 개체 수 확장: 기본 나비 15마리 (15 + 유저 15 = 총 30마리 군집 구성)
+    // 🌟 기본 나비 15마리
     for (let i = 0; i < 15; i++) {
       defaultFlock.push(buildButterfly({}, false, false));
     }
@@ -303,7 +302,7 @@
     let landingButterflyId = null; 
     let fistButterflies = []; 
     let fingerAngle = 1.0; 
-    let handPerspectiveScale = 1.0; // 🌟 캠과의 거리에 따른 손 원근감 배율
+    let handPerspectiveScale = 1.0;
 
     const floatingInfoCard = document.getElementById('floating-info-card');
     const floatingName = document.getElementById('floating-butterfly-name');
@@ -314,7 +313,6 @@
     const handPointer = document.getElementById('hand-pointer');
 
     function updateMotion(b, time) {
-      // 🌟 나비 크기 처리: 착석 나비에만 손 원근법 적용, 그 외 나비는 원래 고유 크기 유지
       let currentTargetScale = b.targetScale;
       if (b.isSpecialLanding && b.specialState === 'landed') {
         currentTargetScale = b.targetScale * handPerspectiveScale;
@@ -348,7 +346,7 @@
 
       let isFollowing = false;
 
-      // 손가락 착석 로직 (유지)
+      // 손가락 착석 로직
       if (b.isSpecialLanding) {
           isFollowing = true;
 
@@ -388,16 +386,17 @@
               b.group.quaternion.slerp(dummyObj.quaternion, 0.2);
           }
 
+          // 🌟 수정사항 1: 손가락에 앉았던 나비가 퇴장할 때 좀 더 느리고 우아하게 나가도록 속도 완화 (0.6 -> 0.22)
           if (b.specialState === 'leaving') {
               b.state = 'flying';
               const leaveTarget = new THREE.Vector3(25, 25, b.group.position.z - 2);
               const dir = new THREE.Vector3().subVectors(leaveTarget, b.group.position).normalize();
-              b.velocity.lerp(dir.multiplyScalar(0.6), 0.15); 
+              b.velocity.lerp(dir.multiplyScalar(0.22), 0.08); 
               
               const targetPos = b.group.position.clone().add(b.velocity);
               dummyObj.position.copy(b.group.position);
               dummyObj.lookAt(targetPos);
-              b.group.quaternion.slerp(dummyObj.quaternion, 0.15);
+              b.group.quaternion.slerp(dummyObj.quaternion, 0.12);
 
               if (b.group.position.x > 20 || b.group.position.y > 20) {
                   b.isSpecialLanding = false;
@@ -406,31 +405,40 @@
           }
       } 
       else if (isHandDetected) {
+          // 🌟 수정사항 3: 주먹으로 모였을 때 주먹 중심이 아닌, 주먹 주변을 자연스럽게 맴돌며 비행
           if (interactionMode === 'fist_gather' && fistButterflies.includes(b.id)) {
               isFollowing = true;
               b.state = 'flying';
-              const dist = b.group.position.distanceTo(handTarget3D);
               
-              if (dist > 1.5) {
-                  const dir = new THREE.Vector3().subVectors(handTarget3D, b.group.position).normalize();
-                  b.velocity.lerp(dir.multiplyScalar(0.4), 0.2); 
-              } else {
-                  b.velocity.add(new THREE.Vector3((Math.random() - 0.5) * 0.15, (Math.random() - 0.5) * 0.15, (Math.random() - 0.5) * 0.15));
-              }
+              const orbitIdx = fistButterflies.indexOf(b.id);
+              const orbitAngle = time * 2.2 + (orbitIdx * ((Math.PI * 2) / fistButterflies.length));
+              const orbitRadius = 1.8 + (orbitIdx % 2) * 0.6;
+              const orbitOffset = new THREE.Vector3(
+                Math.cos(orbitAngle) * orbitRadius,
+                Math.sin(orbitAngle * 1.3) * 0.8,
+                Math.sin(orbitAngle) * orbitRadius
+              );
+              const targetOrbitPos = handTarget3D.clone().add(orbitOffset);
+              
+              const dir = new THREE.Vector3().subVectors(targetOrbitPos, b.group.position).normalize();
+              b.velocity.lerp(dir.multiplyScalar(0.35), 0.18);
+              b.velocity.add(new THREE.Vector3((Math.random() - 0.5) * 0.04, (Math.random() - 0.5) * 0.04, (Math.random() - 0.5) * 0.04));
+
               const targetPos = b.group.position.clone().add(b.velocity);
               dummyObj.position.copy(b.group.position);
               dummyObj.lookAt(targetPos);
-              const rollAngle = (b.velocity.x * -30);
+              const rollAngle = (b.velocity.x * -25);
               dummyObj.rotateZ(rollAngle); 
-              b.group.quaternion.slerp(dummyObj.quaternion, 0.25);
+              b.group.quaternion.slerp(dummyObj.quaternion, 0.22);
           }
+          // 🌟 수정사항 2: 손을 폈을 때 좀 더 팡 하고 강하게 흩어지도록 밀어내는 힘 대폭 강화 (0.1 -> 0.45)
           else if (interactionMode === 'scatter') {
               const dist = b.group.position.distanceTo(handTarget3D);
-              if (dist < 30.0) {
+              if (dist < 32.0) {
                   isFollowing = true;
                   b.state = 'flying';
                   const dir = new THREE.Vector3().subVectors(b.group.position, handTarget3D).normalize();
-                  b.velocity.addScaledVector(dir, 0.1);
+                  b.velocity.addScaledVector(dir, 0.45);
               }
           } 
       }
@@ -449,8 +457,9 @@
           }
       }
 
+      // 🌟 손을 폈을 때 팡 터지는 최대 속도 한계치 확장 (0.8 -> 1.6)
       let maxSpeed = isFollowing ? 0.5 : 0.22;
-      if (interactionMode === 'scatter') maxSpeed = 0.8;
+      if (interactionMode === 'scatter') maxSpeed = 1.6;
       if (b.isAscendingArrival) maxSpeed = 0.35;
 
       if (b.velocity.length() > maxSpeed) {
@@ -459,7 +468,7 @@
       
       b.group.position.add(b.velocity);
 
-      // 일반 나비들을 더 깊숙한 뒤쪽 레이어에 머무르도록 유지 (-28.0 ~ -8.0)
+      // 일반 나비 비행 레이어 영역 유지
       if (!b.isSpecialLanding || b.specialState !== 'leaving') {
           if (b.group.position.x > 18) b.velocity.x -= 0.02;
           if (b.group.position.x < -18) b.velocity.x += 0.02;
@@ -597,9 +606,8 @@
               const mcp = lm[5]; 
               const wrist = lm[0];
 
-              // 🌟 웹캠 기준 손바닥 크기로 원근감(가까움/멀어짐) 측정
+              // 웹캠 기준 손바닥 크기로 원근감 측정
               const palmSpan = Math.hypot(mcp.x - wrist.x, mcp.y - wrist.y);
-              // 일반 거리 palmSpan ≈ 0.28 기준, 가까워지면(0.45 이상) 최대 1.8배, 멀어지면(0.12 이하) 0.55배
               const rawPerspective = (palmSpan - 0.12) / (0.42 - 0.12);
               const clampedPerspective = Math.max(0, Math.min(1, rawPerspective));
               handPerspectiveScale = 0.55 + clampedPerspective * 1.25;
@@ -646,11 +654,11 @@
                   targetHandPos3D.copy(camera.position).add(vec.multiplyScalar(distance));
                   if (floatingInfoCard) floatingInfoCard.classList.remove('visible');
 
+                  // 🌟 수정사항 3: 주먹을 쥐었을 때 딱 5마리만 선별
                   if (prevMode !== 'fist_gather') {
                       const allFlock = [...defaultFlock, ...userFlock];
                       allFlock.sort((a, b) => a.group.position.distanceTo(handTarget3D) - b.group.position.distanceTo(handTarget3D));
-                      // 🌟 30마리 비례: 주먹 쥐었을 때 10마리 집중 모임
-                      fistButterflies = allFlock.slice(0, 10).map(b => b.id);
+                      fistButterflies = allFlock.slice(0, 5).map(b => b.id);
                   }
               } else {
                   interactionMode = 'none';
