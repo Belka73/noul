@@ -174,15 +174,15 @@ html, body {
   opacity: 0.92;
 }
 
-/* 전역 화면 전환용 블랙 페이드 오버레이 */
+/* 전역 화면 전환용 블랙 페이드 오버레이 (🌟 z-index 999999로 screen-preview보다 무조건 위로 배치) */
 #cinematic-transition-curtain {
   position: fixed;
   inset: 0;
   background: #000000;
-  z-index: 99998;
+  z-index: 999999 !important;
   pointer-events: none;
   opacity: 0;
-  transition: opacity 0.35s ease-in-out;
+  transition: opacity 0.5s ease-in-out;
 }
 #cinematic-transition-curtain.active-curtain {
   opacity: 1 !important;
@@ -906,7 +906,7 @@ html, body {
   margin-right: auto !important;
 }
 
-/* 기 모으는 버튼 */
+/* 기 모으는 버튼 (🌟 !important 적용으로 숨김 시 무조건 완전 제거) */
 .energy-charge-widget {
   position: fixed;
   left: 50%;
@@ -923,6 +923,8 @@ html, body {
 
 .energy-charge-widget.hidden {
   display: none !important;
+  opacity: 0 !important;
+  visibility: hidden !important;
 }
 
 .charge-outer-circle {
@@ -952,7 +954,7 @@ html, body {
 }
 
 /* ==========================================================================
-   나비 표본실 갤러리 (🌟 [수정]: 1줄에 2마리씩 균등 배열, 세로 전용 스크롤, 일정한 크기)
+   나비 표본실 갤러리
    ========================================================================== */
 .gallery-header-guide {
   position: absolute;
@@ -990,7 +992,6 @@ html, body {
   box-shadow: none;
 }
 
-/* 🌟 [수정]: 2열 균등 그리드 배치 */
 .specimen-container-relative {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
@@ -1001,7 +1002,6 @@ html, body {
   box-sizing: border-box;
 }
 
-/* 🌟 [수정]: 표본실 카드 아이템 (동일한 크기 및 수직 플렉스 배치) */
 .specimen-card-item {
   position: relative;
   display: flex;
@@ -1049,7 +1049,6 @@ html, body {
   pointer-events: none;
 }
 
-/* 🌟 [수정]: 나비 바로 아래 일정한 간격(margin-top: 10px)을 두고 절대 겹치지 않게 배치 */
 .specimen-pill-label {
   margin-top: 10px;
   border-radius: 9999px;

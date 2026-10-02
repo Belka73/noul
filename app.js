@@ -1759,7 +1759,7 @@ function stopBubblePhysics() {
 }
 
 // --------------------------------------------------------------------------
-// 나비 뷰어 및 저장 로직 (🌟 [수정]: 손 떼면 원 즉시 소멸, 비행 시 즉시 암전 및 2초 후 부드러운 페이드 전환)
+// 나비 뷰어 및 저장 로직
 // --------------------------------------------------------------------------
 var fullScene, fullCamera, fullRenderer, fullGroup;
 var leftWingMesh, rightWingMesh, antennaMesh;
@@ -1933,7 +1933,7 @@ function initFullButterflyViewer(textureURL) {
     fullGroup.rotation.x = butterflyRotX;
     fullGroup.rotation.y = butterflyRotY;
 
-    // 2초 동안 움직이지 않고 꾹 누르면 기 모으기 시작
+    // 2초 동안 누르고 있을 때만 기 모으기 시작
     if (isPressingScreen && !isFlyingAway) {
       var pressDuration = (now - pressStartTime) / 1000;
       var HOLD_THRESHOLD = 2.0;
@@ -1944,7 +1944,7 @@ function initFullButterflyViewer(textureURL) {
           startChargeVibrationLoop();
         }
         var currentChargeSec = Math.max(0, pressDuration - HOLD_THRESHOLD);
-        chargeProgress = Math.min(1.0, currentChargeSec / 2.0); // 2초 만에 완충
+        chargeProgress = Math.min(1.0, currentChargeSec / 2.0); // 2초 완충
         updateChargeUIAndCamera(chargeProgress, currentChargeSec);
         spawnEnergyParticles();
       }
@@ -1976,7 +1976,7 @@ function initFullButterflyViewer(textureURL) {
         }
       }
     } else {
-      // 나비 비행 상승
+      // 🌟 나비 비행 상승
       var flyAngle = Math.sin(time * 26.0) * 0.75;
       if (leftWingMesh && rightWingMesh) {
         leftWingMesh.rotation.y = initialRotL.y + 0.28 + flyAngle;
@@ -1985,41 +1985,45 @@ function initFullButterflyViewer(textureURL) {
       fullGroup.position.y += 0.09;
       fullGroup.position.z -= 0.04;
 
-      // 🌟 [수정]: 나비가 화면 상단 밖으로 벗어나는 순간 즉시 완전 암전 및 2초 후 스르륵 전환
+      // 🌟 나비가 화면 상단 밖으로 벗어나는 순간: 전역 암전 커튼을 덮어 화면 전체를 100% 완전 검은 화면으로 전환
       if (fullGroup.position.y > 4.6 && !isFlyingTransitionTriggered) {
         isFlyingTransitionTriggered = true;
         saveButterflyToSupabase();
 
-        // 3D 캔버스, 파티클, 배경 발광 등 잔상을 즉시 숨겨 100% 완전 암전 적용
+        // 3D 뷰어 및 모든 잔상 숨김
         if (container) container.style.opacity = '0';
         var glowBgEl = document.querySelector('.preview-ethereal-glow-bg');
         if (glowBgEl) glowBgEl.style.opacity = '0';
         var headerUIEl = document.getElementById('preview-header-ui');
         if (headerUIEl) headerUIEl.style.opacity = '0';
         var footerUIEl = document.getElementById('preview-footer-ui');
-        if (footerUIEl) footerUIEl.style.opacity = '0';
-
-        var curtain = document.getElementById('cinematic-black-curtain');
-        if (curtain) {
-          curtain.style.opacity = '1';
-          curtain.style.zIndex = '9999';
+        if (footerUIEl) {
+          footerUIEl.style.setProperty('display', 'none', 'important');
+          footerUIEl.style.opacity = '0';
         }
 
-        // 검은 화면에서 2초간 유지 후 부드러운 트랜지션(페이드)으로 완성 화면 전환
+        // 최상단 전역 암전 커튼 활성화
+        var globalCurtain = document.getElementById('cinematic-transition-curtain');
+        if (globalCurtain) {
+          globalCurtain.classList.add('active-curtain');
+        }
+
+        // 🌟 완전한 검은 화면에서 2초 머문 뒤 자연스럽게 다음 페이지로 전환 (스르륵 Fade-in)
         setTimeout(function() {
           var completeDesc = document.getElementById('complete-desc');
           if (completeDesc) {
             completeDesc.innerHTML = '<strong>‘' + (userSelections.q7_name || "나비") + '’</strong>(이)가 너울 속으로 합류했습니다.';
           }
-          
-          transitionToScreenWithFade('screen-complete');
+
+          showScreen('screen-complete');
+          setTimeout(function() {
+            if (globalCurtain) {
+              globalCurtain.classList.remove('active-curtain');
+            }
+          }, 80);
 
           isFlyingAway = false;
           isFlyingTransitionTriggered = false;
-          if (curtain) {
-            curtain.style.opacity = '';
-            curtain.style.zIndex = '';
-          }
           if (container) container.style.opacity = '1';
           if (glowBgEl) glowBgEl.style.opacity = '1';
           resetChargeState();
@@ -2079,12 +2083,16 @@ function renderEnergyParticles() {
 }
 
 function updateChargeUIAndCamera(progress, currentChargeSec) {
+  if (isFlyingAway) return;
   var chargeWidget = document.getElementById('energy-charge-widget');
   var innerFill = document.getElementById('charge-inner-fill');
   var headerUI = document.getElementById('preview-header-ui');
   var footerUI = document.getElementById('preview-footer-ui');
 
-  if (chargeWidget) chargeWidget.classList.remove('hidden');
+  if (chargeWidget) {
+    chargeWidget.classList.remove('hidden');
+    chargeWidget.style.setProperty('display', 'flex', 'important');
+  }
   var currentSize = 22 + (96 - 22) * progress;
   if (innerFill) { innerFill.style.width = currentSize + 'px'; innerFill.style.height = currentSize + 'px'; }
   if (fullCamera) fullCamera.position.z = 8.8 - (2.6 * progress);
@@ -2092,7 +2100,10 @@ function updateChargeUIAndCamera(progress, currentChargeSec) {
   var uiOpacity = Math.max(0, 1.0 - Math.min(1.0, currentChargeSec / 1.5));
   if (headerUI) headerUI.style.opacity = uiOpacity;
 
-  if (footerUI) footerUI.style.opacity = '1';
+  if (footerUI) {
+    footerUI.style.display = 'flex';
+    footerUI.style.opacity = '1';
+  }
 
   var flyLabel = document.getElementById('preview-fly-label');
   if (flyLabel) {
@@ -2109,7 +2120,7 @@ function startChargeVibrationLoop() {
   triggerDeviceVibrate(45, 0.6);
 
   chargeVibrateInterval = setInterval(function() {
-    if (!isPressingScreen || !isChargeTriggered) {
+    if (!isPressingScreen || !isChargeTriggered || isFlyingAway) {
       clearInterval(chargeVibrateInterval);
       chargeVibrateInterval = null;
       return;
@@ -2127,11 +2138,15 @@ function resetChargeState() {
   var headerUI = document.getElementById('preview-header-ui');
   var footerUI = document.getElementById('preview-footer-ui');
 
-  if (chargeWidget) chargeWidget.classList.add('hidden');
+  if (chargeWidget) {
+    chargeWidget.classList.add('hidden');
+    chargeWidget.style.setProperty('display', 'none', 'important');
+  }
   if (innerFill) { innerFill.style.width = '22px'; innerFill.style.height = '22px'; }
   if (fullCamera) fullCamera.position.z = 8.8;
   if (headerUI) headerUI.style.opacity = 1.0;
-  if (footerUI) {
+  if (footerUI && !isFlyingAway) {
+    footerUI.style.display = 'flex';
     footerUI.style.opacity = 1.0;
     footerUI.style.pointerEvents = 'none';
   }
@@ -2140,7 +2155,7 @@ function resetChargeState() {
   if (flyLabel) flyLabel.innerText = "화면을 길게 눌러주세요.";
 }
 
-// 🌟 [수정]: 사용자가 손가락을 떼는 순간 기 모으는 동그라미(chargeWidget) 즉시 소멸 & 하단 문구 숨김
+// 🌟 [핵심 수정]: 손을 떼는 순간 동그라미 즉시 소멸 & 스와이프 비행 시 하단 문구 완전 숨김
 function bindInteractiveEvents(targetEl) {
   var touchStartY = 0;
   var touchStartX = 0;
@@ -2186,19 +2201,23 @@ function bindInteractiveEvents(targetEl) {
     isUserDragging = false;
     var swipeDeltaY = touchStartY - clientY;
 
-    // 🌟 사용자가 손가락을 떼는 순간 동그라미(기 모으기 위젯)는 무조건 즉시 숨김
+    // 🌟 1. 사용자가 손가락을 떼는 즉시 기 모으는 동그라미는 무조건 즉시 숨김
     var chargeWidget = document.getElementById('energy-charge-widget');
-    if (chargeWidget) chargeWidget.classList.add('hidden');
+    if (chargeWidget) {
+      chargeWidget.classList.add('hidden');
+      chargeWidget.style.setProperty('display', 'none', 'important');
+    }
     if (chargeVibrateInterval) { clearInterval(chargeVibrateInterval); chargeVibrateInterval = null; }
 
-    // 기가 완충되고(chargeProgress >= 1.0) 위로 쓸어 올렸을 때만 비행 시작
-    if (isChargeTriggered && chargeProgress >= 1.0 && swipeDeltaY > 50 && !isFlyingAway) {
+    // 🌟 2. 기 완충 후 위로 스와이프 시 비행 시작
+    if (isChargeTriggered && chargeProgress >= 1.0 && swipeDeltaY > 40 && !isFlyingAway) {
       isFlyingAway = true;
       triggerDeviceVibrate(180, 1.0);
 
-      // 🌟 비행이 시작되는 순간 아래 하단 안내 문구와 화살표를 즉시 숨김
+      // 🌟 비행 시작 즉시 하단 안내 문구와 화살표를 즉시 숨김
       var footerUI = document.getElementById('preview-footer-ui');
       if (footerUI) {
+        footerUI.style.setProperty('display', 'none', 'important');
         footerUI.style.opacity = '0';
         footerUI.style.pointerEvents = 'none';
       }
@@ -2206,6 +2225,9 @@ function bindInteractiveEvents(targetEl) {
       resetChargeState();
     }
   }
+
+  // 모바일 롱프레스 시 기본 브라우저 메뉴가 뜨며 터치가 씹히는 문제 완전 방지
+  targetEl.oncontextmenu = function(e) { e.preventDefault(); return false; };
 
   targetEl.ontouchstart = function(e) { 
     if (e.touches.length === 1) handlePointerStart(e.touches[0].clientX, e.touches[0].clientY); 
@@ -2216,6 +2238,12 @@ function bindInteractiveEvents(targetEl) {
   window.addEventListener('touchend', function(e) { 
     if (e.changedTouches.length > 0) handlePointerEnd(e.changedTouches[0].clientX, e.changedTouches[0].clientY); 
   }, { passive: true });
+  // 모바일 브라우저 제스처 취소 시에도 손 떼면 즉시 숨김 보장
+  window.addEventListener('touchcancel', function(e) {
+    if (e.changedTouches.length > 0) handlePointerEnd(e.changedTouches[0].clientX, e.changedTouches[0].clientY);
+    else resetChargeState();
+  }, { passive: true });
+
   targetEl.onmousedown = function(e) { handlePointerStart(e.clientX, e.clientY); };
   window.addEventListener('mousemove', function(e) { if (isUserDragging) handlePointerMove(e.clientX, e.clientY); });
   window.addEventListener('mouseup', function(e) { handlePointerEnd(e.clientX, e.clientY); });
