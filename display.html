@@ -140,23 +140,6 @@
       return group;
     }
 
-    function createGlowSprite() {
-      const canvas = document.createElement('canvas');
-      canvas.width = 128; canvas.height = 128;
-      const ctx = canvas.getContext('2d');
-      const grad = ctx.createRadialGradient(64, 64, 0, 64, 64, 64);
-      grad.addColorStop(0.0, 'rgba(255, 255, 255, 1.0)');
-      grad.addColorStop(0.25, 'rgba(255, 255, 255, 0.6)');
-      grad.addColorStop(0.6, 'rgba(255, 255, 255, 0.15)');
-      grad.addColorStop(1.0, 'rgba(255, 255, 255, 0)');
-      ctx.fillStyle = grad;
-      ctx.fillRect(0, 0, 128, 128);
-      const mat = new THREE.SpriteMaterial({ map: new THREE.CanvasTexture(canvas), blending: THREE.AdditiveBlending, transparent: true, opacity: 0.7, depthWrite: false });
-      const sprite = new THREE.Sprite(mat);
-      sprite.scale.set(6.5, 6.5, 1);
-      return sprite;
-    }
-
     const container = document.getElementById('three-canvas-container');
     const scene = new THREE.Scene();
     const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 1000);
@@ -200,10 +183,6 @@
       
       const aL = createAntenna(false, whiteMat); aL.position.set(-0.05, 0.7, 0.15); innerGroup.add(aL);
       const aR = createAntenna(true, whiteMat); aR.position.set(0.05, 0.7, 0.15); innerGroup.add(aR);
-
-      const glow = createGlowSprite();
-      glow.position.set(0, 0.1, -0.05);
-      innerGroup.add(glow);
 
       innerGroup.rotation.x = Math.PI / 2;
       group.add(innerGroup);
@@ -262,7 +241,7 @@
 
       const butterflyRecord = {
         id: Math.random().toString(36).substring(7),
-        group, innerGroup, leftWing, rightWing, glow,
+        group, innerGroup, leftWing, rightWing,
         velocity: initialVelocity,
         speed: 13.0 + Math.random() * 7.0, 
         seed: Math.random() * 1000,
@@ -308,7 +287,6 @@
       if (b.isAscendingArrival) {
         b.arrivalTimer += 0.016;
         b.group.scale.lerp(new THREE.Vector3(b.targetScale, b.targetScale, b.targetScale), 0.06);
-        b.glow.material.opacity = Math.min(1.0, b.glow.material.opacity + 0.04);
         b.velocity.y *= 0.99;
 
         if (b.arrivalTimer > 4.5 || b.group.position.y > 0) {
@@ -629,7 +607,7 @@
                   if (prevMode !== 'fist_gather') {
                       const allFlock = [...defaultFlock, ...userFlock];
                       allFlock.sort((a, b) => a.group.position.distanceTo(handTarget3D) - b.group.position.distanceTo(handTarget3D));
-                      fistButterflies = allFlock.slice(0, 7).map(b => b.id); // 🌟 7마리 모이기 최적화
+                      fistButterflies = allFlock.slice(0, 7).map(b => b.id);
                   }
               } else {
                   interactionMode = 'none';
