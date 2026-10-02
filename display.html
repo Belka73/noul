@@ -256,7 +256,7 @@
         initialVelocity = new THREE.Vector3((Math.random() - 0.5) * 0.06, 0.16, -0.04);
         group.scale.set(0.01, 0.01, 0.01);
       } else {
-        // 🌟 수정: 더 뒤쪽 먼 거리 레이어(-28.0 ~ -12.0)에 배치하여 깊이감 증대
+        // 더 뒤쪽 먼 거리 레이어(-28.0 ~ -12.0)
         group.position.set(
           (Math.random() - 0.5) * 30, 
           (Math.random() - 0.5) * 18, 
@@ -272,8 +272,8 @@
         id: Math.random().toString(36).substring(7),
         group, innerGroup, leftWing, rightWing,
         velocity: initialVelocity,
-        // 🌟 수정: 날개짓 속도 상향 (기존 13~20 -> 24~36)
-        speed: 24.0 + Math.random() * 12.0, 
+        // 🌟 수정: 날개짓 속도만 살짝 느리게 조정 (기존 24~36 -> 18~26)
+        speed: 18.0 + Math.random() * 8.0, 
         seed: Math.random() * 1000,
         flapAmp: 1.0, 
         state: 'flying',
@@ -430,7 +430,6 @@
       if (!isFollowing && !b.isAscendingArrival) {
           b.state = 'flying';
           const t = time * 0.8 + b.seed;
-          // 🌟 수정: 일반 비행 방향 가속도 증가로 움직임 빠르고 경쾌하게
           b.velocity.x += Math.sin(t * 1.8) * 0.004;
           b.velocity.y += Math.cos(t * 1.5) * 0.004;
           b.velocity.z += Math.sin(t * 2.0) * 0.002;
@@ -442,7 +441,6 @@
           }
       }
 
-      // 🌟 수정: 평상시 최대 비행 속도 상향 (0.12 -> 0.22)
       let maxSpeed = isFollowing ? 0.5 : 0.22;
       if (interactionMode === 'scatter') maxSpeed = 0.8;
       if (b.isAscendingArrival) maxSpeed = 0.35;
@@ -453,14 +451,14 @@
       
       b.group.position.add(b.velocity);
 
-      // 🌟 수정: 일반 나비들을 더 깊숙한 뒤쪽 레이어에 머무르도록 범위 조정 (-28.0 ~ -8.0)
+      // 일반 나비들을 더 깊숙한 뒤쪽 레이어에 머무르도록 유지 (-28.0 ~ -8.0)
       if (!b.isSpecialLanding || b.specialState !== 'leaving') {
           if (b.group.position.x > 18) b.velocity.x -= 0.02;
           if (b.group.position.x < -18) b.velocity.x += 0.02;
           if (b.group.position.y > 12) b.velocity.y -= 0.02;
           if (b.group.position.y < -12) b.velocity.y += 0.02;
-          if (b.group.position.z > -8.0) b.velocity.z -= 0.035; // 앞쪽 한계선: -8.0 뒤로 깊게 유지
-          if (b.group.position.z < -28.0) b.velocity.z += 0.035; // 뒤쪽 한계선: -28.0 안쪽으로 복귀
+          if (b.group.position.z > -8.0) b.velocity.z -= 0.035;
+          if (b.group.position.z < -28.0) b.velocity.z += 0.035;
       }
 
       if (b.velocity.lengthSq() > 0.00001 && b.state === 'flying' && !isFollowing) {
