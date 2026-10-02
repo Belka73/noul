@@ -1822,6 +1822,9 @@ function initFullButterflyViewer(textureURL) {
   butterflyRotY = DEFAULT_ROT_Y;
   fullGroup.rotation.set(butterflyRotX, butterflyRotY, 0);
 
+  // 🌟 변경: 3D 나비가 화면 아래 안 보이는 곳에서 시작하여 위로 상승
+  fullGroup.position.set(0, -6.0, 0);
+
   previewStartTime = performance.now();
   isFlyingAway = false;
   resetChargeState();
@@ -1900,17 +1903,30 @@ function initFullButterflyViewer(textureURL) {
     }
 
     if (!isFlyingAway) {
-      var settleDuration = 3.6;
-      var tNorm = Math.min(1.0, elapsedSec / settleDuration);
-      var flapFade = Math.pow(1.0 - tNorm, 1.6);
-      var dynamicFlap = Math.sin(time * (10.0 + 16.0 * flapFade)) * (0.90 * flapFade);
-      var gentleFoldAngle = 0.24 * (1 - Math.pow(1 - tNorm, 3));
+      // 🌟 변경: 2.2초 동안 아래(-6.0)에서 화면 중앙(0.0)으로 날갯짓하며 올라온 뒤 정지
+      var introDuration = 2.2;
+      if (elapsedSec < introDuration) {
+        var t = elapsedSec / introDuration;
+        // Ease-out cubic: 시작은 시원하게 날아오르다 중앙에서 부드럽게 감속
+        var easeOut = 1.0 - Math.pow(1.0 - t, 3);
+        fullGroup.position.y = -6.0 + 6.0 * easeOut;
 
-      if (leftWingMesh && rightWingMesh) {
-        leftWingMesh.rotation.y = initialRotL.y - gentleFoldAngle + dynamicFlap;
-        rightWingMesh.rotation.y = initialRotR.y + gentleFoldAngle - dynamicFlap;
+        // 날아오르는 동안의 날갯짓 (도착할수록 속도 감속)
+        var currentFlapSpeed = 22.0 * (1.0 - t * 0.35);
+        var flap = Math.sin(time * currentFlapSpeed) * 0.65 * (1.0 - t * 0.2);
+
+        if (leftWingMesh && rightWingMesh) {
+          leftWingMesh.rotation.y = initialRotL.y + flap;
+          rightWingMesh.rotation.y = initialRotR.y - flap;
+        }
+      } else {
+        // 중앙 도착 완료 후 완전 정지
+        fullGroup.position.y = 0;
+        if (leftWingMesh && rightWingMesh) {
+          leftWingMesh.rotation.y = initialRotL.y;
+          rightWingMesh.rotation.y = initialRotR.y;
+        }
       }
-      fullGroup.position.y = Math.sin(time * 2.2) * (0.12 * flapFade);
     } else {
       var flyAngle = Math.sin(time * 26.0) * 0.78;
       if (leftWingMesh && rightWingMesh) {
