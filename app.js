@@ -30,6 +30,7 @@ function showScreen(screenId) {
   clearTimeout(guideTypeTimer);
   clearTimeout(surveyTitleTypeTimer);
   clearTimeout(coreConcernTypeTimer);
+  clearTimeout(openingDelayTimer);
 
   document.querySelectorAll('.screen').forEach(function(s) {
     s.classList.remove('active');
@@ -194,24 +195,27 @@ function startAnswerShowcaseSequence() {
       clearInterval(showcaseInterval);
       showcaseInterval = null;
 
-      var whiteFlash = document.getElementById('cinematic-white-flash');
-      if (whiteFlash) {
-        whiteFlash.classList.add('flash-active');
-      }
-
+      // 🌟 변경: 로딩이 다 차면 바로 넘어가지 않고 3초간 기다린 뒤 화이트 플래시 발동
       setTimeout(function() {
-        var butterflyName = userSelections.q7_name ? userSelections.q7_name.trim() : "나비";
-        var nameHeader = document.getElementById('preview-butterfly-name');
-        if (nameHeader) nameHeader.innerText = '‘' + butterflyName + '’';
-        initFullButterflyViewer(currentExtractedTexture || createFallbackDummyTexture());
-        showScreen('screen-preview');
+        var whiteFlash = document.getElementById('cinematic-white-flash');
+        if (whiteFlash) {
+          whiteFlash.classList.add('flash-active');
+        }
 
         setTimeout(function() {
-          if (whiteFlash) {
-            whiteFlash.classList.remove('flash-active');
-          }
-        }, 1200);
-      }, 1400);
+          var butterflyName = userSelections.q7_name ? userSelections.q7_name.trim() : "나비";
+          var nameHeader = document.getElementById('preview-butterfly-name');
+          if (nameHeader) nameHeader.innerText = '‘' + butterflyName + '’';
+          initFullButterflyViewer(currentExtractedTexture || createFallbackDummyTexture());
+          showScreen('screen-preview');
+
+          setTimeout(function() {
+            if (whiteFlash) {
+              whiteFlash.classList.remove('flash-active');
+            }
+          }, 1200);
+        }, 1400);
+      }, 3000);
     }
   }, 150);
 }
@@ -234,6 +238,7 @@ document.addEventListener('click', function(e) {
     clearTimeout(guideTypeTimer);
     clearTimeout(surveyTitleTypeTimer);
     clearTimeout(coreConcernTypeTimer);
+    clearTimeout(openingDelayTimer);
     if (showcaseInterval) { clearInterval(showcaseInterval); showcaseInterval = null; }
     if (animFrameId) { cancelAnimationFrame(animFrameId); animFrameId = null; }
 
@@ -316,6 +321,7 @@ document.addEventListener('click', function(e) {
     clearTimeout(guideTypeTimer);
     clearTimeout(surveyTitleTypeTimer);
     clearTimeout(coreConcernTypeTimer);
+    clearTimeout(openingDelayTimer);
     if (showcaseInterval) { clearInterval(showcaseInterval); showcaseInterval = null; }
     if (animFrameId) { cancelAnimationFrame(animFrameId); animFrameId = null; }
 
@@ -365,7 +371,7 @@ function bindAppNavEvents() {
   if (mCreate) mCreate.onclick = function() { showScreen('screen-opening'); };
 
   var bOpenBack = document.getElementById('btn-opening-back');
-  if (bOpenBack) bOpenBack.onclick = function() { clearTimeout(typeTimer); showScreen('screen-menu'); };
+  if (bOpenBack) bOpenBack.onclick = function() { clearTimeout(typeTimer); clearTimeout(openingDelayTimer); showScreen('screen-menu'); };
 
   var mBrowse = document.getElementById('menu-btn-browse');
   if (mBrowse) mBrowse.onclick = function() { showScreen('screen-gallery'); };
@@ -385,7 +391,7 @@ function bindAppNavEvents() {
 bindAppNavEvents();
 
 // --------------------------------------------------------------------------
-// 오프닝 및 타이핑 플로우
+// 오프닝 및 타이핑 플로우 (🌟 나비만들기 진입 시 3초 정적 후 대사 등장)
 // --------------------------------------------------------------------------
 var openingCurrentStep = 1;
 var elOpeningText = document.getElementById('opening-text');
@@ -393,6 +399,7 @@ var elOpeningChoiceGroup = document.getElementById('opening-choice-group');
 var elOpeningNextGroup = document.getElementById('opening-next-group');
 var btnOpeningNext = document.getElementById('btn-opening-next');
 var typeTimer = null;
+var openingDelayTimer = null;
 
 function typeWriterText(targetElement, textWithHtml, onComplete) {
   clearTimeout(typeTimer);
@@ -422,7 +429,9 @@ function typeWriterText(targetElement, textWithHtml, onComplete) {
 
 function resetOpeningFlow() {
   clearTimeout(typeTimer);
+  clearTimeout(openingDelayTimer);
   openingCurrentStep = 1;
+  if (elOpeningText) elOpeningText.innerHTML = "";
   if (elOpeningChoiceGroup) {
     elOpeningChoiceGroup.classList.remove('visible');
     elOpeningChoiceGroup.classList.add('hidden');
@@ -432,13 +441,15 @@ function resetOpeningFlow() {
     elOpeningNextGroup.classList.remove('visible');
   }
 
-  typeWriterText(elOpeningText, "안녕하세요?<br>지금, 걱정 없는 삶을 살아가고 있나요?", function() {
-    if (btnOpeningNext) btnOpeningNext.innerHTML = "다음으로";
-    if (elOpeningNextGroup) {
-      elOpeningNextGroup.classList.remove('hidden');
-      requestAnimationFrame(function() { elOpeningNextGroup.classList.add('visible'); });
-    }
-  });
+  openingDelayTimer = setTimeout(function() {
+    typeWriterText(elOpeningText, "안녕하세요?<br>지금, 걱정 없는 삶을 살아가고 있나요?", function() {
+      if (btnOpeningNext) btnOpeningNext.innerHTML = "다음으로";
+      if (elOpeningNextGroup) {
+        elOpeningNextGroup.classList.remove('hidden');
+        requestAnimationFrame(function() { elOpeningNextGroup.classList.add('visible'); });
+      }
+    });
+  }, 3000);
 }
 
 if (btnOpeningNext) {
@@ -1748,10 +1759,15 @@ var particleCanvas = null;
 var pctx = null;
 var energyParticles = [];
 
+// 🌟 터치 즉시 모바일 진동(Haptic Feedback) 확실하게 지원하도록 강화
 function triggerDeviceVibrate(durationMs, intensity) {
-  if (navigator.vibrate) {
-    try { navigator.vibrate(durationMs); } catch(e) {}
-  }
+  try {
+    if (navigator.vibrate) {
+      navigator.vibrate(durationMs || 40);
+    } else if (window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.haptic) {
+      window.webkit.messageHandlers.haptic.postMessage({ type: 'impactMedium' });
+    }
+  } catch(e) {}
 }
 
 async function saveButterflyToSupabase() {
@@ -1822,8 +1838,8 @@ function initFullButterflyViewer(textureURL) {
   butterflyRotY = DEFAULT_ROT_Y;
   fullGroup.rotation.set(butterflyRotX, butterflyRotY, 0);
 
-  // 🌟 변경: 3D 나비가 화면 아래 안 보이는 곳에서 시작하여 위로 상승
-  fullGroup.position.set(0, -6.0, 0);
+  // 3D 나비 초기 위치를 화면 아래에 숨겨둠
+  fullGroup.position.set(0, -7.0, 0);
 
   previewStartTime = performance.now();
   isFlyingAway = false;
@@ -1861,7 +1877,8 @@ function initFullButterflyViewer(textureURL) {
           }
         });
 
-        model.scale.set(0.9, 0.9, 0.9);
+        // 나비 사이즈 살짝 축소 (기존 0.9 -> 0.76)
+        model.scale.set(0.76, 0.76, 0.76);
         fullGroup.add(model);
       }, undefined, function() {});
     } catch(err) {}
@@ -1890,29 +1907,34 @@ function initFullButterflyViewer(textureURL) {
 
     if (isPressingScreen && !isFlyingAway) {
       var pressDuration = (now - pressStartTime) / 1000;
-      if (pressDuration >= 1.0) {
+      if (pressDuration >= 0.15) {
         if (!isChargeTriggered) {
           isChargeTriggered = true;
           startChargeVibrationLoop();
         }
-        var currentChargeSec = pressDuration - 1.0;
-        chargeProgress = Math.min(1.0, currentChargeSec / 5.0);
+        var currentChargeSec = Math.max(0, pressDuration - 0.15);
+        chargeProgress = Math.min(1.0, currentChargeSec / 4.0);
         updateChargeUIAndCamera(chargeProgress, currentChargeSec);
         spawnEnergyParticles();
       }
     }
 
     if (!isFlyingAway) {
-      // 🌟 변경: 2.2초 동안 아래(-6.0)에서 화면 중앙(0.0)으로 날갯짓하며 올라온 뒤 정지
-      var introDuration = 2.2;
-      if (elapsedSec < introDuration) {
-        var t = elapsedSec / introDuration;
-        // Ease-out cubic: 시작은 시원하게 날아오르다 중앙에서 부드럽게 감속
+      // 화면 전환 후 0.8초간 대기 후, 아래(-7.0)에서 화면 중앙(0.0)으로 2.3초간 날갯짓하며 올라온 뒤 정지
+      var introDelay = 0.8;
+      var flyDuration = 2.3;
+      if (elapsedSec < introDelay) {
+        fullGroup.position.y = -7.0;
+        if (leftWingMesh && rightWingMesh) {
+          leftWingMesh.rotation.y = initialRotL.y;
+          rightWingMesh.rotation.y = initialRotR.y;
+        }
+      } else if (elapsedSec < introDelay + flyDuration) {
+        var t = (elapsedSec - introDelay) / flyDuration;
         var easeOut = 1.0 - Math.pow(1.0 - t, 3);
-        fullGroup.position.y = -6.0 + 6.0 * easeOut;
+        fullGroup.position.y = -7.0 + 7.0 * easeOut;
 
-        // 날아오르는 동안의 날갯짓 (도착할수록 속도 감속)
-        var currentFlapSpeed = 22.0 * (1.0 - t * 0.35);
+        var currentFlapSpeed = 22.0 * (1.0 - t * 0.3);
         var flap = Math.sin(time * currentFlapSpeed) * 0.65 * (1.0 - t * 0.2);
 
         if (leftWingMesh && rightWingMesh) {
@@ -1920,7 +1942,7 @@ function initFullButterflyViewer(textureURL) {
           rightWingMesh.rotation.y = initialRotR.y - flap;
         }
       } else {
-        // 중앙 도착 완료 후 완전 정지
+        // 정중앙 정지 완료
         fullGroup.position.y = 0;
         if (leftWingMesh && rightWingMesh) {
           leftWingMesh.rotation.y = initialRotL.y;
@@ -1936,15 +1958,27 @@ function initFullButterflyViewer(textureURL) {
       fullGroup.position.y += 0.22;
       fullGroup.position.z -= 0.10;
 
-      if (fullGroup.position.y > 9.5) {
+      // 🌟 변경: 나비가 화면 밖으로 날아가고 바로 넘어가지 않고, 3초 동안 검은색 페이드아웃 후 완성 페이지 전환
+      if (fullGroup.position.y > 9.5 && !isFlyingTransitionTriggered) {
+        isFlyingTransitionTriggered = true;
         saveButterflyToSupabase();
-        var completeDesc = document.getElementById('complete-desc');
-        if (completeDesc) {
-          completeDesc.innerHTML = '<strong>‘' + (userSelections.q7_name || "나비") + '’</strong>(이)가 빛의 날개를 펴고 너울 속으로 합류했습니다.';
+
+        var curtain = document.getElementById('cinematic-black-curtain');
+        if (curtain) {
+          curtain.classList.add('fade-active');
         }
-        showScreen('screen-complete');
-        isFlyingAway = false;
-        resetChargeState();
+
+        setTimeout(function() {
+          var completeDesc = document.getElementById('complete-desc');
+          if (completeDesc) {
+            completeDesc.innerHTML = '<strong>‘' + (userSelections.q7_name || "나비") + '’</strong>(이)가 너울 속으로 합류했습니다.';
+          }
+          showScreen('screen-complete');
+          isFlyingAway = false;
+          isFlyingTransitionTriggered = false;
+          if (curtain) curtain.classList.remove('fade-active');
+          resetChargeState();
+        }, 3000);
       }
     }
 
@@ -1954,6 +1988,8 @@ function initFullButterflyViewer(textureURL) {
   animate();
   bindInteractiveEvents(container);
 }
+
+var isFlyingTransitionTriggered = false;
 
 function initEnergyParticleSystem() {
   particleCanvas = document.getElementById('energy-particles-canvas');
@@ -2005,9 +2041,9 @@ function updateChargeUIAndCamera(progress, currentChargeSec) {
   var footerUI = document.getElementById('preview-footer-ui');
 
   if (chargeWidget) chargeWidget.classList.remove('hidden');
-  var currentSize = 28 + (140 - 28) * progress;
+  var currentSize = 22 + (96 - 22) * progress;
   if (innerFill) { innerFill.style.width = currentSize + 'px'; innerFill.style.height = currentSize + 'px'; }
-  if (fullCamera) fullCamera.position.z = 8.8 - (3.0 * progress);
+  if (fullCamera) fullCamera.position.z = 8.8 - (2.6 * progress);
 
   var uiOpacity = Math.max(0, 1.0 - Math.min(1.0, currentChargeSec / 3.0));
   if (headerUI) headerUI.style.opacity = uiOpacity;
@@ -2021,14 +2057,17 @@ function updateChargeUIAndCamera(progress, currentChargeSec) {
 
 function startChargeVibrationLoop() {
   if (chargeVibrateInterval) clearInterval(chargeVibrateInterval);
+  // 누르는 즉시 첫 진동 발생
+  triggerDeviceVibrate(45, 0.6);
+
   chargeVibrateInterval = setInterval(function() {
     if (!isPressingScreen || !isChargeTriggered) {
       clearInterval(chargeVibrateInterval);
       chargeVibrateInterval = null;
       return;
     }
-    triggerDeviceVibrate(Math.round(30 + (chargeProgress * 70)), 0.5 + (chargeProgress * 0.5));
-  }, 130);
+    triggerDeviceVibrate(Math.round(25 + (chargeProgress * 60)), 0.4 + (chargeProgress * 0.6));
+  }, 110);
 }
 
 function resetChargeState() {
@@ -2041,7 +2080,7 @@ function resetChargeState() {
   var footerUI = document.getElementById('preview-footer-ui');
 
   if (chargeWidget) chargeWidget.classList.add('hidden');
-  if (innerFill) { innerFill.style.width = '28px'; innerFill.style.height = '28px'; }
+  if (innerFill) { innerFill.style.width = '22px'; innerFill.style.height = '22px'; }
   if (fullCamera) fullCamera.position.z = 8.8;
   if (headerUI) headerUI.style.opacity = 1.0;
   if (footerUI) footerUI.style.opacity = 1.0;
@@ -2067,6 +2106,9 @@ function bindInteractiveEvents(targetEl) {
     }
     isPressingScreen = true;
     pressStartTime = performance.now();
+
+    // 모바일 터치 제스처 시점에 즉각 진동 권한 트리거
+    triggerDeviceVibrate(30, 0.4);
   }
 
   function handlePointerMove(clientX, clientY) {
@@ -2090,7 +2132,7 @@ function bindInteractiveEvents(targetEl) {
 
     if (isChargeTriggered && chargeProgress >= 0.98 && swipeDeltaY > 40 && !isFlyingAway) {
       isFlyingAway = true;
-      triggerDeviceVibrate(200, 1.0);
+      triggerDeviceVibrate(180, 1.0);
     } else {
       resetChargeState();
     }

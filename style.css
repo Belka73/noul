@@ -7,6 +7,7 @@
    - [수정 1] 1번 사진: 키워드 및 입력 상자를 정확히 화면 수직/수평 중앙에 배치
    - [수정 2] 표본실 갤러리 이름표 크기 고정 및 선택형 알약 스타일 반영
    - [수정 3] 로딩 후 프리뷰 전환 시 화이트 플래시 속도 완화
+   - [수정 4] 꾹 누를 때 원형 기 이펙트 전체 투명화 및 사이즈 축소
    ========================================================================== */
 
 * {
@@ -996,6 +997,7 @@ html, body {
   z-10;
 }
 
+/* 🌟 꾹 누를 때 원형 기 이펙트: 사이즈 축소 및 전체 투명화 */
 .energy-charge-widget {
   position: fixed;
   left: 50%;
@@ -1015,25 +1017,26 @@ html, body {
 }
 
 .charge-outer-circle {
-  width: 140px;
-  height: 140px;
+  width: 96px;
+  height: 96px;
   border-radius: 50%;
-  background: rgba(255, 255, 255, 0.18);
-  border: 1.5px solid rgba(255, 255, 255, 0.38);
-  box-shadow: 0 0 35px rgba(255, 255, 255, 0.25), inset 0 0 20px rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  box-shadow: 0 0 20px rgba(255, 255, 255, 0.15), inset 0 0 10px rgba(255, 255, 255, 0.06);
   display: flex;
   align-items: center;
   justify-content: center;
   position: relative;
-  backdrop-blur: 8px;
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
 }
 
 .charge-inner-fill {
-  width: 28px;
-  height: 28px;
+  width: 22px;
+  height: 22px;
   border-radius: 50%;
-  background: #ffffff;
-  box-shadow: 0 0 25px 6px rgba(255, 255, 255, 0.95);
+  background: rgba(255, 255, 255, 0.95);
+  box-shadow: 0 0 18px 4px rgba(255, 255, 255, 0.75);
   transform: scale(1);
   will-change: width, height, transform, box-shadow;
 }

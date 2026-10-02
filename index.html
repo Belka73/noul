@@ -447,7 +447,7 @@
         </p>
       </div>
 
-      <!-- [중앙 완전 고정] 나비 및 카테고리 헤더 (키워드 양에 절대 영향받지 않음) -->
+      <!-- [중앙 완전 고정] 나비 및 카테고리 헤더 -->
       <div class="absolute left-1/2 top-[46%] -translate-x-1/2 -translate-y-1/2 z-10 flex flex-col items-center pointer-events-none">
         <div class="flex items-center justify-center">
           <svg id="loading-butterfly-svg" class="w-36 h-36 text-white drop-shadow-[0_0_35px_rgba(255,255,255,0.95)] animate-pulse transition-all duration-1000" viewBox="0 0 100 100">
@@ -459,7 +459,7 @@
         </span>
       </div>
 
-      <!-- [하단 키워드 쇼케이스] 나비 아래에 배치되어 키워드가 늘어나면 아래로만 확장되며 넘칠 경우 스크롤 -->
+      <!-- [하단 키워드 쇼케이스] -->
       <div class="relative w-full max-w-[340px] z-20 flex flex-col items-center justify-start pointer-events-auto mt-auto mb-4" style="height: 220px;">
         <div id="showcase-card" class="answer-fade visible-state w-full text-center flex flex-col items-center h-full">
           <div id="showcase-answers" class="flex flex-wrap items-center justify-center gap-2 py-1 w-full px-2 overflow-y-auto vertical-scroll-chips max-h-full"></div>
@@ -502,19 +502,19 @@
       </footer>
     </section>
 
-    <!-- 6. 완성 화면 -->
+    <!-- 6. 완성 화면 (🌟 문구 및 하단 버튼 수정 완료) -->
     <section id="screen-complete" class="screen flex-col flex-1 justify-center items-center text-center p-6 relative z-10 w-full bg-black">
       <div class="w-20 h-20 rounded-full bg-white/10 border border-white/20 flex items-center justify-center mb-6 shadow-[0_0_30px_rgba(255,255,255,0.25)]">
         <svg class="w-10 h-10 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
         </svg>
       </div>
-      <h2 class="text-2xl font-bold text-white mb-2">하늘 위로 눈부시게 날아올랐습니다</h2>
+      <h2 class="text-2xl font-bold text-white mb-2 tracking-tight">하늘로 날아올라 갔습니다.</h2>
       <p id="complete-desc" class="text-sm text-neutral-400 leading-relaxed mb-8">
-        ‘나비’(이)가 빛의 날개를 펴고 너울 속으로 합류했습니다.
+        ‘나비’(이)가 너울 속으로 합류했습니다.
       </p>
       <button onclick="location.reload()" type="button" class="w-[84%] py-3.5 rounded-2xl bg-white text-black text-xs font-bold shadow-lg shadow-white/20 active:scale-95 transition-all">
-        새로운 나비 띄우기
+        처음으로
       </button>
     </section>
 
