@@ -1759,7 +1759,7 @@ function stopBubblePhysics() {
 }
 
 // --------------------------------------------------------------------------
-// 나비 뷰어 및 저장 로직 (🌟 [수정]: 2초 길게 눌러 기모으기, 스와이프 필수 판정, 즉시 암전 후 2초 대기, 하단 UI 유지 및 문구 동적 전환)
+// 나비 뷰어 및 저장 로직 (🌟 [수정]: 등장 시 더 빠른 날개짓, 비행 완료 즉시 암전 후 2초 대기 및 페이드 인 전환)
 // --------------------------------------------------------------------------
 var fullScene, fullCamera, fullRenderer, fullGroup;
 var leftWingMesh, rightWingMesh, antennaMesh;
@@ -1928,10 +1928,10 @@ function initFullButterflyViewer(textureURL) {
     fullGroup.rotation.x = butterflyRotX;
     fullGroup.rotation.y = butterflyRotY;
 
-    // 🌟 [수정]: 2초 동안 움직이지 않고 꾹 누르면 기 모으기 시작
+    // 2초 동안 움직이지 않고 꾹 누르면 기 모으기 시작
     if (isPressingScreen && !isFlyingAway) {
       var pressDuration = (now - pressStartTime) / 1000;
-      var HOLD_THRESHOLD = 2.0; // 2초 유지 후 시작
+      var HOLD_THRESHOLD = 2.0;
 
       if (pressDuration >= HOLD_THRESHOLD) {
         if (!isChargeTriggered) {
@@ -1945,7 +1945,7 @@ function initFullButterflyViewer(textureURL) {
       }
     }
 
-    // 나비 등장 및 날개짓
+    // 🌟 [수정]: 나비 등장 시 날개짓 속도 상향 (초반 빠르게 날개짓하며 감속 안착)
     if (!isFlyingAway) {
       var flyDuration = 3.6;
       var restFoldAngle = 0.25;
@@ -1955,8 +1955,9 @@ function initFullButterflyViewer(textureURL) {
         var easeProgress = 1.0 - Math.pow(1.0 - progress, 3);
         fullGroup.position.y = -7.0 + 7.0 * easeProgress;
 
-        var flapSpeed = 26.0 * (1.0 - progress * 0.7);
-        var flapAmp = 0.65 * Math.pow(1.0 - progress, 1.5);
+        // 초반 날개짓 속도를 36.0으로 대폭 향상하여 훨씬 빠르고 역동적으로 펄럭임
+        var flapSpeed = 36.0 * (1.0 - progress * 0.65);
+        var flapAmp = 0.85 * Math.pow(1.0 - progress, 1.4);
         var flap = Math.sin(time * flapSpeed) * flapAmp;
 
         if (leftWingMesh && rightWingMesh) {
@@ -1980,27 +1981,37 @@ function initFullButterflyViewer(textureURL) {
       fullGroup.position.y += 0.09;
       fullGroup.position.z -= 0.04;
 
-      // 🌟 [수정]: 나비가 화면에서 완전히 사라지는 즉시 바로 검은 화면으로 전환, 2초 후 다음 페이지 전환
-      if (fullGroup.position.y > 9.5 && !isFlyingTransitionTriggered) {
+      // 🌟 [수정]: 나비가 화면에서 사라지는 즉시 바로 완전 검은 화면 전환 -> 2초 후 자연스럽게 페이드 되며 완성 화면 진입
+      if (fullGroup.position.y > 9.0 && !isFlyingTransitionTriggered) {
         isFlyingTransitionTriggered = true;
         saveButterflyToSupabase();
+
+        // 3D 캔버스 및 배경 빛번짐 잔상을 즉시 숨겨 완벽한 암전 연출
+        if (container) container.style.opacity = '0';
+        var glowBg = document.querySelector('.preview-ethereal-glow-bg');
+        if (glowBg) glowBg.style.opacity = '0';
 
         var curtain = document.getElementById('cinematic-black-curtain');
         if (curtain) {
           curtain.classList.add('fade-active');
         }
 
+        // 검은 화면에서 2초간 머무른 후 페이드 인으로 자연스럽게 전환
         setTimeout(function() {
           var completeDesc = document.getElementById('complete-desc');
           if (completeDesc) {
             completeDesc.innerHTML = '<strong>‘' + (userSelections.q7_name || "나비") + '’</strong>(이)가 너울 속으로 합류했습니다.';
           }
-          showScreen('screen-complete');
+          
+          transitionToScreenWithFade('screen-complete');
+
           isFlyingAway = false;
           isFlyingTransitionTriggered = false;
           if (curtain) curtain.classList.remove('fade-active');
+          if (container) container.style.opacity = '1';
+          if (glowBg) glowBg.style.opacity = '1';
           resetChargeState();
-        }, 2000); // 정확히 2초 대기
+        }, 2000);
       }
     }
 
@@ -2055,7 +2066,7 @@ function renderEnergyParticles() {
   }
 }
 
-// 🌟 [수정]: 기모으기 진행 시 상단 UI만 사라지고, 하단 안내 문구와 화살표는 항상 유지하며 텍스트 동적 변경
+// 기모으기 진행 시 상단 UI만 사라지고, 하단 안내 문구와 화살표는 항상 유지하며 텍스트 동적 변경
 function updateChargeUIAndCamera(progress, currentChargeSec) {
   var chargeWidget = document.getElementById('energy-charge-widget');
   var innerFill = document.getElementById('charge-inner-fill');
@@ -2067,11 +2078,9 @@ function updateChargeUIAndCamera(progress, currentChargeSec) {
   if (innerFill) { innerFill.style.width = currentSize + 'px'; innerFill.style.height = currentSize + 'px'; }
   if (fullCamera) fullCamera.position.z = 8.8 - (2.6 * progress);
 
-  // 상단 UI만 페이드 아웃
   var uiOpacity = Math.max(0, 1.0 - Math.min(1.0, currentChargeSec / 1.5));
   if (headerUI) headerUI.style.opacity = uiOpacity;
 
-  // 하단 안내문구와 화살표는 절대 사라지지 않게 1.0 고정
   if (footerUI) footerUI.style.opacity = '1';
 
   var flyLabel = document.getElementById('preview-fly-label');
@@ -2098,7 +2107,6 @@ function startChargeVibrationLoop() {
   }, 110);
 }
 
-// 🌟 [수정]: 취소 또는 리셋 시 기본 문구 '화면을 길게 눌러주세요.' 복원
 function resetChargeState() {
   isPressingScreen = false; isChargeTriggered = false; chargeProgress = 0;
   if (chargeVibrateInterval) { clearInterval(chargeVibrateInterval); chargeVibrateInterval = null; }
@@ -2118,7 +2126,6 @@ function resetChargeState() {
   if (flyLabel) flyLabel.innerText = "화면을 길게 눌러주세요.";
 }
 
-// 🌟 [수정]: 2초 동안 정지 후 차징, 원이 다 찬 상태에서 '위로 쓸어 올렸을 때만' 비행 동작
 function bindInteractiveEvents(targetEl) {
   var touchStartY = 0;
   var touchStartX = 0;
@@ -2146,7 +2153,6 @@ function bindInteractiveEvents(targetEl) {
     var deltaY = clientY - lastPointerY;
     var movedDist = Math.hypot(clientX - touchStartX, clientY - touchStartY);
 
-    // 아직 기 모으기가 발동되지 않았는데 손가락을 15px 이상 움직이면 2초 타이머 리셋
     if (!isChargeTriggered) {
       if (movedDist > 15) {
         pressStartTime = performance.now();
@@ -2165,12 +2171,10 @@ function bindInteractiveEvents(targetEl) {
     isUserDragging = false;
     var swipeDeltaY = touchStartY - clientY;
 
-    // 🌟 [핵심]: 원이 완전히 다 차고(chargeProgress >= 1.0), 위로 50px 이상 쓸어 올렸을 때만 비행!
     if (isChargeTriggered && chargeProgress >= 1.0 && swipeDeltaY > 50 && !isFlyingAway) {
       isFlyingAway = true;
       triggerDeviceVibrate(180, 1.0);
     } else {
-      // 위로 쓸어 올리지 않고 그냥 뗐거나 기가 다 안 찬 경우는 즉시 리셋
       resetChargeState();
     }
   }
