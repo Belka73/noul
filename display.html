@@ -241,12 +241,13 @@
       let targetScale = 0.38 + Math.random() * 0.14;
 
       if (isDelayedArrival) {
-        group.position.set((Math.random() - 0.5) * 5, -8.0, 5.5);
-        initialVelocity = new THREE.Vector3((Math.random() - 0.5) * 0.04, 0.14, -0.07);
+        group.position.set((Math.random() - 0.5) * 5, -8.0, 3.0);
+        initialVelocity = new THREE.Vector3((Math.random() - 0.5) * 0.04, 0.14, -0.04);
         group.scale.set(0.01, 0.01, 0.01);
       } else {
-        group.position.set((Math.random() - 0.5) * 22, (Math.random() - 0.5) * 14, (Math.random() - 0.5) * 24);
-        initialVelocity = new THREE.Vector3((Math.random() - 0.5) * 0.08, (Math.random() - 0.5) * 0.08, (Math.random() - 0.5) * 0.12);
+        // 🌟 Z축 스폰 범위를 -6 ~ 4로 좁혀 너무 멀리 가지 않도록 초기 집중 배치
+        group.position.set((Math.random() - 0.5) * 20, (Math.random() - 0.5) * 12, (Math.random() - 0.5) * 10 - 1);
+        initialVelocity = new THREE.Vector3((Math.random() - 0.5) * 0.08, (Math.random() - 0.5) * 0.08, (Math.random() - 0.5) * 0.05);
         group.scale.set(targetScale, targetScale, targetScale);
       }
 
@@ -354,7 +355,7 @@
               b.velocity.set(0, 0, 0);
               b.group.position.lerp(handTarget3D, 0.3); 
               
-              // 🌟 요청사항 적용: 옆모습으로 보이게 회전 + 머리가 '오른쪽'을 향하도록 설정
+              // 🌟 옆모습으로 보이게 회전 + 머리가 '오른쪽'을 향하도록 설정
               dummyObj.position.copy(b.group.position);
               dummyObj.lookAt(camera.position); 
               dummyObj.rotateY(Math.PI / 2); // 90도 회전하여 관람객 기준 완벽한 옆모습 연출
@@ -365,7 +366,7 @@
 
           if (b.specialState === 'leaving') {
               b.state = 'flying';
-              const leaveTarget = new THREE.Vector3(25, 25, b.group.position.z - 5);
+              const leaveTarget = new THREE.Vector3(25, 25, b.group.position.z - 2);
               const dir = new THREE.Vector3().subVectors(leaveTarget, b.group.position).normalize();
               b.velocity.lerp(dir.multiplyScalar(0.6), 0.15); 
               
@@ -415,12 +416,12 @@
           const t = time * 0.5 + b.seed;
           b.velocity.x += Math.sin(t * 1.5) * 0.002;
           b.velocity.y += Math.cos(t * 1.2) * 0.002;
-          b.velocity.z += Math.sin(t * 1.8) * 0.002;
+          b.velocity.z += Math.sin(t * 1.8) * 0.001;
 
           if (Math.random() < 0.008) {
               b.velocity.x += (Math.random() - 0.5) * 0.08;
               b.velocity.y += (Math.random() - 0.5) * 0.08;
-              b.velocity.z += (Math.random() - 0.5) * 0.1; 
+              b.velocity.z += (Math.random() - 0.5) * 0.04; 
           }
       }
 
@@ -434,14 +435,14 @@
       
       b.group.position.add(b.velocity);
 
-      // 화면 안쪽 유영 유지 바운더리
+      // 🌟 Z축이 너무 멀어지거나 가까워지지 않도록 엄격한 범위(-8 ~ 4) 제한 적용
       if (!b.isSpecialLanding || b.specialState !== 'leaving') {
           if (b.group.position.x > 13) b.velocity.x -= 0.015;
           if (b.group.position.x < -13) b.velocity.x += 0.015;
           if (b.group.position.y > 8.5) b.velocity.y -= 0.015;
           if (b.group.position.y < -8.5) b.velocity.y += 0.015;
-          if (b.group.position.z > 10) b.velocity.z -= 0.012; 
-          if (b.group.position.z < -18) b.velocity.z += 0.012;
+          if (b.group.position.z > 4.0) b.velocity.z -= 0.02; // 너무 앞으로 다가오는 것 방지
+          if (b.group.position.z < -8.0) b.velocity.z += 0.02; // 너무 뒤로 멀리 가는 것 방지
       }
 
       if (b.velocity.lengthSq() > 0.00001 && b.state === 'flying' && !isFollowing) {
