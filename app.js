@@ -332,8 +332,8 @@ document.addEventListener('click', function(e) {
       var guideText = document.getElementById('preview-guide-text');
       if (guideText) {
         guideText.innerText = userSelections.q6_memo && userSelections.q6_memo.trim().length > 0 
-          ? userSelections.q6_memo.trim() 
-          : "너의 찬란한 날갯짓을 응원해.";
+              ? userSelections.q6_memo.trim() 
+              : "너의 찬란한 날갯짓을 응원해.";
       }
 
       initFullButterflyViewer(currentExtractedTexture || createFallbackDummyTexture());
@@ -1759,7 +1759,7 @@ function stopBubblePhysics() {
 }
 
 // --------------------------------------------------------------------------
-// 나비 뷰어 및 저장 로직 (🌟 [수정]: 등장 시 더 빠른 날개짓, 비행 완료 즉시 암전 후 2초 대기 및 페이드 인 전환)
+// 나비 뷰어 및 저장 로직 (🌟 [수정]: 2초 홀드 후 차징, 스와이프 시 원 즉시 제거, 사라지는 즉시 완전 암전 및 2초 후 페이드 인 전환)
 // --------------------------------------------------------------------------
 var fullScene, fullCamera, fullRenderer, fullGroup;
 var leftWingMesh, rightWingMesh, antennaMesh;
@@ -1834,6 +1834,10 @@ function initFullButterflyViewer(textureURL) {
   if (animFrameId) { cancelAnimationFrame(animFrameId); animFrameId = null; }
   if (!container || !window.THREE) return;
   container.innerHTML = '';
+  container.style.opacity = '1';
+
+  var glowBg = document.querySelector('.preview-ethereal-glow-bg');
+  if (glowBg) glowBg.style.opacity = '1';
 
   var width = window.innerWidth;
   var height = window.innerHeight;
@@ -1945,7 +1949,7 @@ function initFullButterflyViewer(textureURL) {
       }
     }
 
-    // 🌟 [수정]: 나비 등장 시 날개짓 속도 상향 (초반 빠르게 날개짓하며 감속 안착)
+    // 나비 등장 및 날개짓
     if (!isFlyingAway) {
       var flyDuration = 3.6;
       var restFoldAngle = 0.25;
@@ -1955,7 +1959,7 @@ function initFullButterflyViewer(textureURL) {
         var easeProgress = 1.0 - Math.pow(1.0 - progress, 3);
         fullGroup.position.y = -7.0 + 7.0 * easeProgress;
 
-        // 초반 날개짓 속도를 36.0으로 대폭 향상하여 훨씬 빠르고 역동적으로 펄럭임
+        // 등장 시 날개짓 속도 36.0으로 역동적 펄럭임
         var flapSpeed = 36.0 * (1.0 - progress * 0.65);
         var flapAmp = 0.85 * Math.pow(1.0 - progress, 1.4);
         var flap = Math.sin(time * flapSpeed) * flapAmp;
@@ -1972,7 +1976,7 @@ function initFullButterflyViewer(textureURL) {
         }
       }
     } else {
-      // 나비가 날아가는 동작
+      // 나비 비행 상승
       var flyAngle = Math.sin(time * 26.0) * 0.75;
       if (leftWingMesh && rightWingMesh) {
         leftWingMesh.rotation.y = initialRotL.y + 0.28 + flyAngle;
@@ -1981,22 +1985,27 @@ function initFullButterflyViewer(textureURL) {
       fullGroup.position.y += 0.09;
       fullGroup.position.z -= 0.04;
 
-      // 🌟 [수정]: 나비가 화면에서 사라지는 즉시 바로 완전 검은 화면 전환 -> 2초 후 자연스럽게 페이드 되며 완성 화면 진입
-      if (fullGroup.position.y > 9.0 && !isFlyingTransitionTriggered) {
+      // 🌟 [수정]: 나비가 화면 상단 프레임 밖으로 벗어나는 순간(y > 4.6) 즉시 암전 실행
+      if (fullGroup.position.y > 4.6 && !isFlyingTransitionTriggered) {
         isFlyingTransitionTriggered = true;
         saveButterflyToSupabase();
 
-        // 3D 캔버스 및 배경 빛번짐 잔상을 즉시 숨겨 완벽한 암전 연출
+        // 3D 캔버스, 파티클, 배경 발광 등 잔상을 즉시 숨겨 100% 완전 검은 화면 적용
         if (container) container.style.opacity = '0';
-        var glowBg = document.querySelector('.preview-ethereal-glow-bg');
-        if (glowBg) glowBg.style.opacity = '0';
+        var glowBgEl = document.querySelector('.preview-ethereal-glow-bg');
+        if (glowBgEl) glowBgEl.style.opacity = '0';
+        var headerUIEl = document.getElementById('preview-header-ui');
+        if (headerUIEl) headerUIEl.style.opacity = '0';
+        var footerUIEl = document.getElementById('preview-footer-ui');
+        if (footerUIEl) footerUIEl.style.opacity = '0';
 
         var curtain = document.getElementById('cinematic-black-curtain');
         if (curtain) {
-          curtain.classList.add('fade-active');
+          curtain.style.opacity = '1';
+          curtain.style.zIndex = '9999';
         }
 
-        // 검은 화면에서 2초간 머무른 후 페이드 인으로 자연스럽게 전환
+        // 검은 화면에서 2초간 유지 후 부드러운 페이드 인으로 완성 화면 전환
         setTimeout(function() {
           var completeDesc = document.getElementById('complete-desc');
           if (completeDesc) {
@@ -2007,9 +2016,12 @@ function initFullButterflyViewer(textureURL) {
 
           isFlyingAway = false;
           isFlyingTransitionTriggered = false;
-          if (curtain) curtain.classList.remove('fade-active');
+          if (curtain) {
+            curtain.style.opacity = '';
+            curtain.style.zIndex = '';
+          }
           if (container) container.style.opacity = '1';
-          if (glowBg) glowBg.style.opacity = '1';
+          if (glowBgEl) glowBgEl.style.opacity = '1';
           resetChargeState();
         }, 2000);
       }
@@ -2066,7 +2078,6 @@ function renderEnergyParticles() {
   }
 }
 
-// 기모으기 진행 시 상단 UI만 사라지고, 하단 안내 문구와 화살표는 항상 유지하며 텍스트 동적 변경
 function updateChargeUIAndCamera(progress, currentChargeSec) {
   var chargeWidget = document.getElementById('energy-charge-widget');
   var innerFill = document.getElementById('charge-inner-fill');
@@ -2126,6 +2137,7 @@ function resetChargeState() {
   if (flyLabel) flyLabel.innerText = "화면을 길게 눌러주세요.";
 }
 
+// 🌟 [수정]: 손가락 뗀 순간 동그라미(차징 위젯) 즉시 완전 소멸 & 위로 쓸어 올렸을 때만 비행
 function bindInteractiveEvents(targetEl) {
   var touchStartY = 0;
   var touchStartX = 0;
@@ -2171,9 +2183,18 @@ function bindInteractiveEvents(targetEl) {
     isUserDragging = false;
     var swipeDeltaY = touchStartY - clientY;
 
+    // 🌟 [수정]: 손가락을 뗀 순간 어떤 경우에도 동그라미(차징 위젯)는 즉각 숨김 처리
+    var chargeWidget = document.getElementById('energy-charge-widget');
+    if (chargeWidget) chargeWidget.classList.add('hidden');
+    if (chargeVibrateInterval) { clearInterval(chargeVibrateInterval); chargeVibrateInterval = null; }
+
+    // 기가 다 차고 위로 쓸어 올렸을 때만 비행 시작
     if (isChargeTriggered && chargeProgress >= 1.0 && swipeDeltaY > 50 && !isFlyingAway) {
       isFlyingAway = true;
       triggerDeviceVibrate(180, 1.0);
+      // 비행 시작 시 하단 화살표/문구도 즉시 숨김
+      var footerUI = document.getElementById('preview-footer-ui');
+      if (footerUI) footerUI.style.opacity = '0';
     } else {
       resetChargeState();
     }
