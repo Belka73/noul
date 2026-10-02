@@ -19,7 +19,7 @@
     #webcam-video {
       position: absolute; inset: 0; width: 100%; height: 100%;
       object-fit: cover; transform: scaleX(-1);
-      filter: brightness(0.2) contrast(1.2) blur(3px);
+      filter: brightness(0.2) contrast(1.2);
       z-index: 0; pointer-events: none;
     }
     #three-canvas-container {
@@ -175,7 +175,7 @@
 
     const defaultFlock = [];
     const userFlock = [];
-    const MAX_USER_BUTTERFLIES = 35;
+    const MAX_USER_BUTTERFLIES = 12; // 🌟 20마리 최적화: 유저 나비 최대 12마리
 
     // 🌟 3D GLB 모델 + 정밀 텍스처(flipY=false) + 10초 뒤 합류 연출 완벽 탑재
     function buildButterfly(data = {}, isUser = false, isDelayedArrival = false) {
@@ -185,7 +185,7 @@
       let wingMat = new THREE.MeshBasicMaterial({ color: 0xffffff, side: THREE.DoubleSide });
       if (isUser && data.texture_url && data.texture_url.startsWith('data:image')) {
         const userTex = textureLoader.load(data.texture_url);
-        userTex.flipY = false; // 메인 앱 UV 정렬과 일치
+        userTex.flipY = false;
         wingMat = new THREE.MeshBasicMaterial({ map: userTex, side: THREE.DoubleSide, transparent: true });
       }
 
@@ -208,7 +208,6 @@
       innerGroup.rotation.x = Math.PI / 2;
       group.add(innerGroup);
 
-      // GLB 파일이 있을 경우 정밀 3D 모델로 교체
       const shapeId = data.wing_shape || 'crescent';
       const antId = data.antenna_type || 'ball';
       const targetAntennaPrefix = 'Antenna_' + antId;
@@ -231,7 +230,6 @@
           });
 
           if (newWingL && newWingR) {
-            // 기본 베지에 메쉬 제거 후 정밀 GLB 모델 삽입
             innerGroup.remove(leftWing);
             innerGroup.remove(rightWing);
             innerGroup.remove(defaultBody);
@@ -251,7 +249,6 @@
       let targetScale = 0.38 + Math.random() * 0.14;
 
       if (isDelayedArrival) {
-        // 🌟 10초 후 합류 시: 화면 하단 앞에서 빛을 내며 유려하게 위로 상승
         group.position.set((Math.random() - 0.5) * 6, -9.5, 7.5);
         initialVelocity = new THREE.Vector3((Math.random() - 0.5) * 0.04, 0.14, -0.07);
         group.scale.set(0.01, 0.01, 0.01);
@@ -283,13 +280,15 @@
       return butterflyRecord;
     }
 
-    for (let i = 0; i < 20; i++) {
+    // 🌟 20마리 최적화: 기본 나비 8마리 (8 + 최대 12 = 20마리 유지)
+    for (let i = 0; i < 8; i++) {
       defaultFlock.push(buildButterfly({}, false, false));
     }
 
     const clock = new THREE.Clock();
     const dummyObj = new THREE.Object3D(); 
     let handTarget3D = new THREE.Vector3(999, 999, 0);
+    let targetHandPos3D = new THREE.Vector3(999, 999, 0); // Lerp 보간용 목표치
     let prevHandTarget3D = new THREE.Vector3(999, 999, 0);
     let isHandDetected = false;
     let interactionMode = 'none';
@@ -301,8 +300,11 @@
     const floatingName = document.getElementById('floating-butterfly-name');
     const floatingMemo = document.getElementById('floating-butterfly-memo');
 
+    let currentScreenX = 0, currentScreenY = 0;
+    let targetScreenX = 0, targetScreenY = 0;
+    const handPointer = document.getElementById('hand-pointer');
+
     function updateMotion(b, time) {
-      // 🌟 신규 나비 10초 후 합류 시 극적인 상승 및 스케일업 효과
       if (b.isAscendingArrival) {
         b.arrivalTimer += 0.016;
         b.group.scale.lerp(new THREE.Vector3(b.targetScale, b.targetScale, b.targetScale), 0.06);
@@ -327,9 +329,6 @@
           b.leftWing.rotation.y = flap;
           b.rightWing.rotation.y = -flap;
       }
-      
-      const pulse = 1 + Math.sin(time * 3.0 + b.seed) * 0.15;
-      b.glow.scale.set(6.5 * pulse, 6.5 * pulse, 1);
 
       let isFollowing = false;
 
@@ -340,7 +339,6 @@
               const dist = b.group.position.distanceTo(handTarget3D);
               if (dist < 1.5) {
                   b.specialState = 'landed';
-                  // 손끝 착석 시 이름과 메모 띄우기
                   if (floatingInfoCard) {
                     floatingName.innerText = `‘${b.name}’`;
                     floatingMemo.innerText = b.memo;
@@ -392,7 +390,6 @@
           }
       } 
       else if (isHandDetected) {
-          // 주먹: 드라마틱한 모이기
           if (interactionMode === 'fist_gather' && fistButterflies.includes(b.id)) {
               isFollowing = true;
               b.state = 'flying';
@@ -411,7 +408,6 @@
               dummyObj.rotateZ(rollAngle); 
               b.group.quaternion.slerp(dummyObj.quaternion, 0.25);
           }
-          // 손바닥: 드라마틱한 퍼지기
           else if (interactionMode === 'scatter') {
               const dist = b.group.position.distanceTo(handTarget3D);
               if (dist < 30.0) {
@@ -472,6 +468,20 @@
       requestAnimationFrame(animate);
       const time = clock.getElapsedTime();
 
+      // 🌟 화면 좌표 및 3D 손 타깃 좌표 부드러운 보간 (Lerp)
+      if (isHandDetected) {
+        handTarget3D.lerp(targetHandPos3D, 0.25);
+        currentScreenX += (targetScreenX - currentScreenX) * 0.3;
+        currentScreenY += (targetScreenY - currentScreenY) * 0.3;
+        if (handPointer) {
+          handPointer.style.transform = `translate3d(${currentScreenX}px, ${currentScreenY}px, 0)`;
+        }
+        if (floatingInfoCard) {
+          floatingInfoCard.style.left = `${currentScreenX}px`;
+          floatingInfoCard.style.top = `${currentScreenY}px`;
+        }
+      }
+
       if (interactionMode === 'land_one' && isHandDetected) {
           if (!landingButterflyId) {
               const allFlock = [...defaultFlock, ...userFlock];
@@ -530,12 +540,10 @@
             userFlock.push(buildButterfly(data, true, isDelayedArrival));
           }
 
-          // 초기 로딩: 데이터베이스에 기존 저장되어 있던 나비 불러오기 (즉시 배치)
           supabaseInstance.from('butterflies').select('*').order('created_at', { ascending: false }).limit(MAX_USER_BUTTERFLIES)
             .then(({ data }) => { if (data) data.reverse().forEach(item => addUserButterfly(item, false)); })
             .catch(e => console.warn("Supabase 데이터 에러 무시"));
 
-          // 🌟 실시간 수신: 사용자가 나비를 전송하면 '정확히 10초' 대기 후 화면 합류!
           supabaseInstance.channel('public:butterflies')
             .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'butterflies' }, (payload) => {
               console.log("새 나비 전송 감지! 10초 카운트다운 시작:", payload.new.name);
@@ -543,7 +551,7 @@
               setTimeout(() => {
                 console.log("10초 경과: 나비 공간 합류!", payload.new.name);
                 addUserButterfly(payload.new, true);
-              }, 10000); // 10000ms = 10초
+              }, 10000);
             })
             .subscribe();
         }
@@ -557,7 +565,6 @@
       try {
         if (typeof Hands !== 'undefined' && typeof Camera !== 'undefined') {
           const videoElement = document.getElementById('webcam-video');
-          const handPointer = document.getElementById('hand-pointer');
 
           const hands = new Hands({ locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}` });
           hands.setOptions({ 
@@ -580,15 +587,9 @@
               
               fingerAngle = rawAngle - (Math.PI / 2) + 1.2;
 
-              const screenX = (1 - tip.x) * window.innerWidth;
-              const screenY = tip.y * window.innerHeight;
-              handPointer.style.transform = `translate3d(${screenX}px, ${screenY}px, 0)`;
+              targetScreenX = (1 - tip.x) * window.innerWidth;
+              targetScreenY = tip.y * window.innerHeight;
               handPointer.style.opacity = '1';
-
-              if (floatingInfoCard) {
-                floatingInfoCard.style.left = `${screenX}px`;
-                floatingInfoCard.style.top = `${screenY}px`;
-              }
 
               const vec = new THREE.Vector3((1 - tip.x) * 2 - 1, -(tip.y * 2) + 1, 0.5);
               vec.unproject(camera);
@@ -607,7 +608,7 @@
                   interactionMode = 'scatter';
                   handPointer.style.background = 'radial-gradient(circle, rgba(200, 230, 255, 0.95) 0%, rgba(100, 150, 255, 0.4) 40%, rgba(255, 255, 255, 0) 70%)';
                   const distance = (8 - camera.position.z) / vec.z; 
-                  handTarget3D.copy(camera.position).add(vec.multiplyScalar(distance));
+                  targetHandPos3D.copy(camera.position).add(vec.multiplyScalar(distance));
                   if (floatingInfoCard) floatingInfoCard.classList.remove('visible');
 
               } else if (openFingers === 1) {
@@ -615,20 +616,20 @@
                   interactionMode = 'land_one';
                   handPointer.style.background = 'radial-gradient(circle, rgba(255, 255, 255, 0.95) 0%, rgba(150, 200, 255, 0.4) 40%, rgba(255, 255, 255, 0) 70%)';
                   const distance = (8 - camera.position.z) / vec.z; 
-                  handTarget3D.copy(camera.position).add(vec.multiplyScalar(distance));
+                  targetHandPos3D.copy(camera.position).add(vec.multiplyScalar(distance));
 
               } else if (openFingers === 0) {
-                  // ✊ 주먹 쥐기 (드라마틱한 15마리 모이기)
+                  // ✊ 주먹 쥐기 (드라마틱한 7마리 모이기)
                   interactionMode = 'fist_gather';
                   handPointer.style.background = 'radial-gradient(circle, rgba(255, 200, 200, 0.9) 0%, rgba(255, 100, 100, 0.3) 40%, rgba(255, 255, 255, 0) 70%)';
                   const distance = (0 - camera.position.z) / vec.z; 
-                  handTarget3D.copy(camera.position).add(vec.multiplyScalar(distance));
+                  targetHandPos3D.copy(camera.position).add(vec.multiplyScalar(distance));
                   if (floatingInfoCard) floatingInfoCard.classList.remove('visible');
 
                   if (prevMode !== 'fist_gather') {
                       const allFlock = [...defaultFlock, ...userFlock];
                       allFlock.sort((a, b) => a.group.position.distanceTo(handTarget3D) - b.group.position.distanceTo(handTarget3D));
-                      fistButterflies = allFlock.slice(0, 15).map(b => b.id);
+                      fistButterflies = allFlock.slice(0, 7).map(b => b.id); // 🌟 7마리 모이기 최적화
                   }
               } else {
                   interactionMode = 'none';
@@ -643,17 +644,17 @@
               interactionMode = 'none';
               fistButterflies = [];
               if (floatingInfoCard) floatingInfoCard.classList.remove('visible');
-            }
+          }
           });
 
-          // 🌟 렉 방지: 병목을 막는 가벼운 해상도 세팅 및 프레임 큐잉 제어
+          // 🌟 렉 방지: 55ms 주기(약 18FPS) 추론으로 CPU를 렌더링에 양보
           let isProcessing = false;
           let lastProcessTime = 0;
 
           new Camera(videoElement, { 
             onFrame: async () => { 
               const now = performance.now();
-              if (isProcessing || (now - lastProcessTime < 30)) return; 
+              if (isProcessing || (now - lastProcessTime < 55)) return; 
               
               isProcessing = true;
               try {
