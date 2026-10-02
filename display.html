@@ -161,7 +161,8 @@
 
     const renderer = new THREE.WebGLRenderer({ alpha: true, antialias: true, powerPreference: "high-performance" });
     renderer.setSize(window.innerWidth, window.innerHeight);
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    // 🌟 3. 모니터 해상도 뻥튀기 끄기 (pixelRatio = 1 고정)
+    renderer.setPixelRatio(1);
     container.appendChild(renderer.domElement);
 
     const textureLoader = new THREE.TextureLoader();
@@ -178,11 +179,22 @@
       const group = new THREE.Group();
       const innerGroup = new THREE.Group(); 
       
-      let wingMat = new THREE.MeshBasicMaterial({ color: 0xffffff, side: THREE.DoubleSide });
+      // 🌟 2. 투명 날개 겹침 계산 끄기 (transparent: false, alphaTest: 0.5 적용)
+      let wingMat = new THREE.MeshBasicMaterial({ 
+        color: 0xffffff, 
+        side: THREE.DoubleSide, 
+        transparent: false, 
+        alphaTest: 0.5 
+      });
       if (isUser && data.texture_url && data.texture_url.startsWith('data:image')) {
         const userTex = textureLoader.load(data.texture_url);
         userTex.flipY = false;
-        wingMat = new THREE.MeshBasicMaterial({ map: userTex, side: THREE.DoubleSide, transparent: true });
+        wingMat = new THREE.MeshBasicMaterial({ 
+          map: userTex, 
+          side: THREE.DoubleSide, 
+          transparent: false, 
+          alphaTest: 0.5 
+        });
       }
 
       const whiteMat = new THREE.MeshBasicMaterial({ color: 0xffffff });
@@ -241,12 +253,11 @@
       let targetScale = 0.38 + Math.random() * 0.14;
 
       if (isDelayedArrival) {
-        group.position.set((Math.random() - 0.5) * 5, -8.0, 3.0);
+        group.position.set((Math.random() - 0.5) * 5, -8.0, 1.0);
         initialVelocity = new THREE.Vector3((Math.random() - 0.5) * 0.04, 0.14, -0.04);
         group.scale.set(0.01, 0.01, 0.01);
       } else {
-        // 🌟 Z축 스폰 범위를 -6 ~ 4로 좁혀 너무 멀리 가지 않도록 초기 집중 배치
-        group.position.set((Math.random() - 0.5) * 20, (Math.random() - 0.5) * 12, (Math.random() - 0.5) * 10 - 1);
+        group.position.set((Math.random() - 0.5) * 20, (Math.random() - 0.5) * 12, (Math.random() - 0.5) * 8 - 4);
         initialVelocity = new THREE.Vector3((Math.random() - 0.5) * 0.08, (Math.random() - 0.5) * 0.08, (Math.random() - 0.5) * 0.05);
         group.scale.set(targetScale, targetScale, targetScale);
       }
@@ -358,8 +369,8 @@
               // 🌟 옆모습으로 보이게 회전 + 머리가 '오른쪽'을 향하도록 설정
               dummyObj.position.copy(b.group.position);
               dummyObj.lookAt(camera.position); 
-              dummyObj.rotateY(Math.PI / 2); // 90도 회전하여 관람객 기준 완벽한 옆모습 연출
-              dummyObj.rotateZ(0.25);        // 머리가 오른쪽 위를 산뜻하게 향하도록 각도 보정
+              dummyObj.rotateY(Math.PI / 2);
+              dummyObj.rotateZ(0.25);
               
               b.group.quaternion.slerp(dummyObj.quaternion, 0.2);
           }
@@ -435,14 +446,14 @@
       
       b.group.position.add(b.velocity);
 
-      // 🌟 Z축이 너무 멀어지거나 가까워지지 않도록 엄격한 범위(-8 ~ 4) 제한 적용
+      // 🌟 1. 보이지 않는 유리벽: 자유 비행 나비가 카메라 코앞(Z > 0.0)으로 오지 못하도록 제한 (손가락 착석 나비는 예외로 유지)
       if (!b.isSpecialLanding || b.specialState !== 'leaving') {
           if (b.group.position.x > 13) b.velocity.x -= 0.015;
           if (b.group.position.x < -13) b.velocity.x += 0.015;
           if (b.group.position.y > 8.5) b.velocity.y -= 0.015;
           if (b.group.position.y < -8.5) b.velocity.y += 0.015;
-          if (b.group.position.z > 4.0) b.velocity.z -= 0.02; // 너무 앞으로 다가오는 것 방지
-          if (b.group.position.z < -8.0) b.velocity.z += 0.02; // 너무 뒤로 멀리 가는 것 방지
+          if (b.group.position.z > 0.0) b.velocity.z -= 0.025; // 👈 앞쪽 한계선: 0.0 이상 앞으로 나오지 못하게 밀어냄
+          if (b.group.position.z < -8.0) b.velocity.z += 0.02; // 뒤쪽 한계선 유지
       }
 
       if (b.velocity.lengthSq() > 0.00001 && b.state === 'flying' && !isFollowing) {
