@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <title>너울 - 당신에게 도착한 나비</title>
+  
+  <!-- 라이브러리 CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      -webkit-tap-highlight-color: transparent;
+      user-select: none;
+    }
+
+    body {
+      width: 100%;
+      min-height: 100vh;
+      min-height: 100dvh;
+      background-color: #000000;
+      color: #ffffff;
+      font-family: -apple-system, BlinkMacSystemFont, "Pretendard Variable", Pretendard, Roboto, "Segoe UI", sans-serif;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      padding: 1.5rem 1rem;
+    }
+
+    .share-card-container {
+      width: 100%;
+      max-width: 380px;
+      background: rgba(20, 20, 20, 0.85);
+      border: 1px solid rgba(255, 255, 255, 0.16);
+      border-radius: 36px;
+      padding: 1.8rem 1.4rem;
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      box-shadow: 0 20px 50px rgba(0, 0, 0, 0.8), 0 0 30px rgba(255, 255, 255, 0.05);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    .canvas-3d-box {
+      width: 100%;
+      height: 220px;
+      position: relative;
+      margin: 0.5rem 0 1rem;
+    }
+
+    .exhibition-info-table {
+      width: 100%;
+      border-top: 1.5px solid rgba(255, 255, 255, 0.2);
+      margin-top: 1rem;
+      padding-top: 0.8rem;
+    }
+
+    .info-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      padding: 0.45rem 0;
+      font-size: 0.82rem;
+      line-height: 1.4;
+    }
+
+    .info-label {
+      color: #8e8e93;
+      font-weight: 500;
+      flex-shrink: 0;
+      width: 75px;
+    }
+
+    .info-value {
+      color: #f2f2f7;
+      font-weight: 600;
+      text-align: right;
+      word-break: keep-all;
+    }
+  </style>
+</head>
+<body>
+
+  <main class="share-card-container">
+    <!-- 상단 인트로 문구 -->
+    <header class="text-center space-y-1">
+      <h1 id="share-title-text" class="text-lg font-black text-white tracking-tight leading-snug">
+        빛의 나비가 도착했습니다
+      </h1>
+    </header>
+
+    <!-- 3D 나비 뷰어 -->
+    <div id="share-three-container" class="canvas-3d-box"></div>
+
+    <!-- 나비 이야기 카드 (사용자가 적은 다정한 말) -->
+    <div class="w-full bg-white/5 border border-white/10 rounded-2xl p-3.5 text-center">
+      <p id="share-memo-text" class="text-xs text-neutral-200 leading-relaxed font-light break-keep">
+        "너의 찬란한 날갯짓을 응원해."
+      </p>
+    </div>
+
+    <!-- 전시 안내 정보 (약도/위치) -->
+    <section class="exhibition-info-table">
+      <h2 class="text-xs font-bold text-neutral-300 tracking-wider mb-1 flex items-center gap-1.5">
+        <span>📍</span> 전시 및 작품 관람 안내
+      </h2>
+
+      <div class="info-row">
+        <span class="info-label">전시명</span>
+        <span class="info-value">너울 (Noul) 졸업전시</span>
+      </div>
+      <div class="info-row">
+        <span class="info-label">전시 기간</span>
+        <span class="info-value">2026. 10. 24 - 10. 28</span>
+      </div>
+      <div class="info-row">
+        <span class="info-label">관람 시간</span>
+        <span class="info-value">10:00 ~ 18:00</span>
+      </div>
+      <div class="info-row">
+        <span class="info-label">전시 장소</span>
+        <span class="info-value">서울특별시 마포구 와우산로 94<br>홍익대학교 현대미술관(HOMA) 2관</span>
+      </div>
+    </section>
+
+    <!-- 지도 및 길찾기 버튼 (전시 방문 유도) -->
+    <footer class="w-full mt-5 space-y-2">
+      <a href="https://map.naver.com" target="_blank" 
+         class="w-full py-3.5 rounded-full bg-white text-black font-bold text-xs flex items-center justify-center gap-2 active:scale-95 transition-all shadow-lg shadow-white/10">
+        <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+          <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/>
+        </svg>
+        전시장 위치 및 길찾기
+      </a>
+      <p class="text-[11px] text-neutral-500 text-center tracking-tight pt-1">
+        공간에 직접 방문하여 날아오르는 수많은 나비의 너울을 마주해보세요.
+      </p>
+    </footer>
+  </main>
+
+  <script>
+    // 1. URL 파라미터에서 나비 데이터 읽기
+    const urlParams = new URLSearchParams(window.location.search);
+    const butterflyName = urlParams.get('name') || "빛의 나비";
+    const memoText = urlParams.get('memo') || "너의 찬란한 날갯짓을 응원해.";
+    const shape = urlParams.get('shape') || "crescent";
+
+    // 제목에 사용자 지정 나비 이름 반영
+    document.getElementById('share-title-text').innerHTML = `'${butterflyName}'(이)<br>도착했습니다`;
+    // 다정한 말 반영
+    document.getElementById('share-memo-text').innerText = `"${memoText}"`;
+
+    // 2. 단독 3D 나비 뷰어 구동
+    const container = document.getElementById('share-three-container');
+    const w = container.clientWidth || 340;
+    const h = container.clientHeight || 220;
+
+    const scene = new THREE.Scene();
+    const camera = new THREE.PerspectiveCamera(40, w / h, 0.1, 100);
+    camera.position.set(0, 0, 7.2);
+
+    const renderer = new THREE.WebGLRenderer({ alpha: true, antialias: true });
+    renderer.setSize(w, h);
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    container.appendChild(renderer.domElement);
+
+    const ambLight = new THREE.AmbientLight(0xffffff, 1.2);
+    scene.add(ambLight);
+    const dirLight = new THREE.DirectionalLight(0xffffff, 0.9);
+    dirLight.position.set(2, 5, 8);
+    scene.add(dirLight);
+
+    const group = new THREE.Group();
+    // 3번째 사진과 동일한 비스듬한 상승 구도로 각도 설정
+    group.rotation.x = 0.75;
+    group.rotation.y = -0.55;
+    group.rotation.z = 0.35;
+
+    let wingL = null, wingR = null;
+
+    // 더미 그라데이션 텍스처 생성
+    const c = document.createElement('canvas');
+    c.width = 512; c.height = 512;
+    const ctx = c.getContext('2d');
+    const grad = ctx.createLinearGradient(0, 0, 512, 512);
+    grad.addColorStop(0, '#ffffff'); grad.addColorStop(1, '#a6c0fe');
+    ctx.fillStyle = grad; ctx.fillRect(0, 0, 512, 512);
+    const tex = new THREE.CanvasTexture(c);
+
+    const wingMat = new THREE.MeshBasicMaterial({ map: tex, side: THREE.DoubleSide });
+    const whiteMat = new THREE.MeshStandardMaterial({ color: 0xffffff, side: THREE.DoubleSide, roughness: 0.3 });
+
+    if (window.THREE && THREE.GLTFLoader) {
+      new THREE.GLTFLoader().load('3DButterfly/' + shape + '.glb', function(gltf) {
+        const model = gltf.scene;
+        model.traverse(function(child) {
+          if (child.isMesh) {
+            if (child.name.startsWith('Wing_L')) { wingL = child; child.material = wingMat; }
+            else if (child.name.startsWith('Wing_R')) { wingR = child; child.material = wingMat; }
+            else if (child.name.startsWith('Body')) { child.material = whiteMat; }
+            else if (child.name.startsWith('Antenna_')) { child.material = whiteMat; }
+          }
+        });
+        model.scale.set(0.95, 0.95, 0.95);
+        model.position.set(0, 0, 0);
+        group.add(model);
+      });
+    }
+
+    scene.add(group);
+    const clock = new THREE.Clock();
+
+    function animate() {
+      requestAnimationFrame(animate);
+      const t = clock.getElapsedTime();
+      const flap = Math.sin(t * 6.5) * 0.45;
+
+      if (wingL && wingR) {
+        wingL.rotation.y = flap;
+        wingR.rotation.y = -flap;
+      }
+
+      // 기본 각도를 유지하면서 미세한 부유감 연출
+      group.position.y = Math.sin(t * 2.0) * 0.08;
+
+      renderer.render(scene, camera);
+    }
+    animate();
+  </script>
+</body>
+</html>
