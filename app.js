@@ -536,7 +536,7 @@ document.addEventListener('click', function(e) {
           elOpeningNextGroup.classList.remove('visible');
           elOpeningNextGroup.classList.add('hidden');
         }
-        typeWriterText(elOpeningText, "저마다의 이유는 다르겠지만,<br>쉽게 털어놓지 못할 고민도 있겠지요.", function() {
+        typeWriterText(elOpeningText, "꺼내어 보이지 못한 채,<br>응어리진 무언가... 쉽게 털어놓지 못할 것도 있겠지요.", function() {
           if (btnOpeningNext) btnOpeningNext.innerHTML = "다음으로";
           if (elOpeningNextGroup) {
             elOpeningNextGroup.classList.remove('hidden');
@@ -551,7 +551,7 @@ document.addEventListener('click', function(e) {
           elOpeningNextGroup.classList.remove('visible');
           elOpeningNextGroup.classList.add('hidden');
         }
-        typeWriterText(elOpeningText, "꺼내어 보이지 못한 채,<br>응어리진 무언가가 자신을 누르고 있지는 않나요?", function() {
+        typeWriterText(elOpeningText, "오늘 이곳에서,<br>당신의 마음 깊은 곳에 묻어둔 이야기를<br>조심스레 꺼내어보려 합니다.", function() {
           if (btnOpeningNext) btnOpeningNext.innerHTML = "다음으로";
           if (elOpeningNextGroup) {
             elOpeningNextGroup.classList.remove('hidden');
@@ -566,7 +566,7 @@ document.addEventListener('click', function(e) {
           elOpeningNextGroup.classList.remove('visible');
           elOpeningNextGroup.classList.add('hidden');
         }
-        typeWriterText(elOpeningText, "먼저 당신에 대해<br>몇 가지 알아가보고자 합니다.", function() {
+        typeWriterText(elOpeningText, "먼저 당신에 대해<br>몇 가지 알려주세요.", function() {
           if (btnOpeningNext) btnOpeningNext.innerHTML = "다음으로";
           if (elOpeningNextGroup) {
             elOpeningNextGroup.classList.remove('hidden');
@@ -692,14 +692,14 @@ document.addEventListener('click', function(e) {
     if (curId === 'screen-opening') {
       if (openingCurrentStep === 4) {
         openingCurrentStep = 3;
-        typeWriterText(elOpeningText, "꺼내어 보이지 못한 채,<br>응어리진 무언가가 자신을 누르고 있지는 않나요?", function() {
+        typeWriterText(elOpeningText, "오늘 이곳에서,<br>당신의 마음 깊은 곳에 묻어둔 이야기를<br>조심스레 꺼내어보려 합니다.", function() {
           if (btnOpeningNext) btnOpeningNext.innerHTML = "다음으로";
         });
         updateDevScreenBadge();
         return;
       } else if (openingCurrentStep === 3) {
         openingCurrentStep = 2;
-        typeWriterText(elOpeningText, "저마다의 이유는 다르겠지만,<br>쉽게 털어놓지 못할 고민도 있겠지요.", function() {
+        typeWriterText(elOpeningText, "꺼내어 보이지 못한 채,<br>응어리진 무언가... 쉽게 털어놓지 못할 것도 있겠지요.", function() {
           if (btnOpeningNext) btnOpeningNext.innerHTML = "다음으로";
         });
         updateDevScreenBadge();
@@ -729,7 +729,7 @@ document.addEventListener('click', function(e) {
         // 설문 첫 번째(이름)에서 이전으로 가면 오프닝 4단계로 이동
         showScreen('screen-opening');
         openingCurrentStep = 4;
-        typeWriterText(elOpeningText, "먼저 당신에 대해<br>몇 가지 알아가보고자 합니다.", function() {
+        typeWriterText(elOpeningText, "먼저 당신에 대해<br>몇 가지 알려주세요.", function() {
           if (btnOpeningNext) btnOpeningNext.innerHTML = "다음으로";
           if (elOpeningNextGroup) {
             elOpeningNextGroup.classList.remove('hidden');
@@ -796,7 +796,7 @@ function bindAppNavEvents() {
 bindAppNavEvents();
 
 // --------------------------------------------------------------------------
-// 오프닝 및 타이핑 플로우 (1번, 2번, 3번 사진 대사 수정 반영)
+// 오프닝 및 타이핑 플로우 (1번, 2번, 3번 대사 수정 반영)
 // --------------------------------------------------------------------------
 var openingCurrentStep = 1;
 var elOpeningText = document.getElementById('opening-text');
@@ -860,13 +860,13 @@ function resetOpeningFlow() {
 if (btnOpeningNext) {
   btnOpeningNext.onclick = function() {
     if (openingCurrentStep === 1) {
-      // 1번 사진: 저마다의 이유는 다르겠지만, / 쉽게 털어놓지 못할 고민도 있겠지요.
+      // 1번 사진: 꺼내어 보이지 못한 채, / 응어리진 무언가... 쉽게 털어놓지 못할 것도 있겠지요.
       openingCurrentStep = 2;
       if (elOpeningNextGroup) {
         elOpeningNextGroup.classList.remove('visible');
         elOpeningNextGroup.classList.add('hidden');
       }
-      typeWriterText(elOpeningText, "저마다의 이유는 다르겠지만,<br>쉽게 털어놓지 못할 고민도 있겠지요.", function() {
+      typeWriterText(elOpeningText, "꺼내어 보이지 못한 채,<br>응어리진 무언가... 쉽게 털어놓지 못할 것도 있겠지요.", function() {
         btnOpeningNext.innerHTML = "다음으로";
         if (elOpeningNextGroup) {
           elOpeningNextGroup.classList.remove('hidden');
@@ -875,13 +875,13 @@ if (btnOpeningNext) {
       });
       updateDevScreenBadge();
     } else if (openingCurrentStep === 2) {
-      // 2번 사진: 꺼내어 보이지 못한 채, / 응어리진 무언가가 자신을 누르고 있지는 않나요?
+      // 2번 사진: 오늘 이곳에서, / 당신의 마음 깊은 곳에 묻어둔 이야기를 / 조심스레 꺼내어보려 합니다.
       openingCurrentStep = 3;
       if (elOpeningNextGroup) {
         elOpeningNextGroup.classList.remove('visible');
         elOpeningNextGroup.classList.add('hidden');
       }
-      typeWriterText(elOpeningText, "꺼내어 보이지 못한 채,<br>응어리진 무언가가 자신을 누르고 있지는 않나요?", function() {
+      typeWriterText(elOpeningText, "오늘 이곳에서,<br>당신의 마음 깊은 곳에 묻어둔 이야기를<br>조심스레 꺼내어보려 합니다.", function() {
         btnOpeningNext.innerHTML = "다음으로";
         if (elOpeningNextGroup) {
           elOpeningNextGroup.classList.remove('hidden');
@@ -890,13 +890,13 @@ if (btnOpeningNext) {
       });
       updateDevScreenBadge();
     } else if (openingCurrentStep === 3) {
-      // 3번 사진: 먼저 당신에 대해 / 몇 가지 알아가보고자 합니다.
+      // 3번 사진: 먼저 당신에 대해 / 몇 가지 알려주세요.
       openingCurrentStep = 4;
       if (elOpeningNextGroup) {
         elOpeningNextGroup.classList.remove('visible');
         elOpeningNextGroup.classList.add('hidden');
       }
-      typeWriterText(elOpeningText, "먼저 당신에 대해<br>몇 가지 알아가보고자 합니다.", function() {
+      typeWriterText(elOpeningText, "먼저 당신에 대해<br>몇 가지 알려주세요.", function() {
         btnOpeningNext.innerHTML = "다음으로";
         if (elOpeningNextGroup) {
           elOpeningNextGroup.classList.remove('hidden');
