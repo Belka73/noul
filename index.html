@@ -310,6 +310,41 @@
       </footer>
     </section>
 
+    <!-- 3.6 핵심 고민 이유 작성 화면 (복원) -->
+    <section id="screen-survey-concern-reason" class="screen flex-col flex-1 justify-between text-center relative z-20 w-full bg-black overflow-hidden select-none">
+      <header class="w-full pt-3 pb-0 flex-shrink-0 flex justify-center">
+        <div class="w-[84%] h-1 bg-white/10 rounded-full overflow-hidden">
+          <div class="h-full bg-white transition-all duration-300 rounded-full shadow-[0_0_10px_rgba(255,255,255,0.8)]" style="width: 82%;"></div>
+        </div>
+      </header>
+
+      <div class="survey-title-box text-center pb-2 flex-shrink-0 px-4" style="padding-top: 20px !important;">
+        <h1 id="concern-reason-title" class="text-[1.38rem] font-bold text-white tracking-tight leading-[1.36] break-keep"></h1>
+        <p id="concern-reason-desc" class="text-xs text-neutral-400 mt-2 font-normal tracking-tight">마음속에 담아둔 솔직한 생각을 편안하게 남겨주세요.</p>
+      </div>
+
+      <div class="flex-1 w-full flex flex-col justify-center items-center px-4 min-h-0">
+        <div class="w-full max-w-[340px] flex flex-col items-center">
+          <div class="glass-input-card-v2" style="height: 180px;">
+            <textarea id="input-concern-reason" maxlength="100" placeholder="어떤 마음으로 인해 이 고민이 가장 무겁게 다가왔나요?"></textarea>
+          </div>
+          <div class="w-full flex justify-end pt-2 pr-1">
+            <span id="concern-reason-counter" class="text-xs text-neutral-400 font-mono tracking-normal">0/100</span>
+          </div>
+        </div>
+      </div>
+
+      <footer class="bottom-dock-unified w-full flex flex-col items-center gap-2 z-20">
+        <button id="btn-concern-reason-next" type="button"
+                class="btn-next-action w-[84%] py-3.5 rounded-2xl font-bold text-sm tracking-wide active:scale-[0.98] transition-all">
+          다음으로
+        </button>
+        <button id="btn-concern-reason-prev" type="button" class="py-1 text-neutral-400 text-[11px] text-center hover:text-white transition-all font-medium">
+          ← 이전 질문으로 돌아가기
+        </button>
+      </footer>
+    </section>
+
     <!-- 브릿지 페이지 -->
     <section id="screen-survey-bridge" class="screen flex-col flex-1 justify-between py-6 px-4 text-center relative z-20 w-full bg-black overflow-hidden select-none">
       <div class="opening-stage">
@@ -425,7 +460,7 @@
       </div>
     </section>
 
-    <!-- 4. 로딩 화면 (1번 사진 레퍼런스: 배경 3D 나비 블러 회전/날개짓 & 기존 답변 쇼케이스 삭제) -->
+    <!-- 4. 로딩 화면 -->
     <section id="screen-loading" class="screen flex-col flex-1 justify-between items-center py-10 px-5 text-center relative overflow-hidden z-10 w-full bg-black">
       <div id="loading-three-container" class="loading-three-canvas-layer pointer-events-none"></div>
       <div class="loading-blur-vignette-overlay pointer-events-none"></div>
@@ -476,21 +511,18 @@
       </footer>
     </section>
 
-    <!-- 6. 완성 화면 (오프닝 3번 사진 동일 타이핑 속도 + 2초 후 자동 이동) -->
+    <!-- 6. 완성 화면 -->
     <section id="screen-complete" class="screen flex-col flex-1 justify-center items-center text-center p-6 relative z-10 w-full bg-black select-none">
       <div class="w-full max-w-[340px] px-2 flex flex-col items-center justify-center">
         <h2 id="complete-typing-title" class="text-base sm:text-[1.08rem] font-medium text-white tracking-tight leading-relaxed break-keep"></h2>
       </div>
     </section>
 
-    <!-- 7. 신규 공유 페이지 (중앙 최종 3D 선명 나비 + 하단 타이핑 문장 + 공유/처음으로 버튼) -->
+    <!-- 7. 신규 공유 페이지 -->
     <section id="screen-share" class="screen flex-col flex-1 justify-between items-center py-6 px-6 text-center relative z-20 w-full bg-black select-none overflow-hidden">
-      <!-- 중앙 3D 나비 컨테이너 (로딩화면 각도/동작 + 선명한 텍스처 결과물) -->
       <div id="share-three-container" class="absolute inset-0 w-full h-full pointer-events-none z-0"></div>
-
       <div class="w-full h-6 flex-shrink-0 z-10"></div>
 
-      <!-- 하단 문장 및 버튼 묶음 -->
       <div class="w-full flex flex-col items-center z-10 mt-auto pb-4 gap-6">
         <div class="w-full max-w-[340px] px-2 flex flex-col items-center justify-center">
           <h2 id="share-typing-title" class="text-base sm:text-[1.08rem] font-medium text-white tracking-tight leading-relaxed break-keep"></h2>

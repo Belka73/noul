@@ -4,6 +4,7 @@
    - [로딩 화면]: 사용자가 선택한 3D 나비 순백색(패턴 미적용) + 살짝 왼쪽 아래 이동 + 30초 로딩
    - [완료 화면]: 3번 사진 동일 타이핑 속도 + 2초 후 자동 이동
    - [공유 화면]: 상단/중앙에 선명한 3D 나비(날개무늬 적용, 축소된 사이즈) + 아래쪽 문장 및 공유 버튼 바
+   - [복원]: 핵심 고민 이유 작성 페이지 연동 및 전환 깜빡임 제거
    ========================================================================== */
 
 var ALL_SCREENS = [
@@ -14,6 +15,7 @@ var ALL_SCREENS = [
   'screen-opening',
   'screen-survey',
   'screen-survey-core-concern',
+  'screen-survey-concern-reason',
   'screen-capture-guide',
   'screen-shape-select',
   'screen-survey-bridge',
@@ -26,17 +28,19 @@ var ALL_SCREENS = [
 // DEV 네비게이션 및 전역 상태 변수
 var showcaseInterval = null;
 var currentStepIdx = 0; // 0: 이름, 1: 성향, 2: 고민다중, 3: 위로메모
-var userSelections = { q1: [], q2: [], q1_custom: "", q2_custom: "", core_concern: "", q6_memo: "", q7_name: "" };
+var userSelections = { q1: [], q2: [], q1_custom: "", q2_custom: "", core_concern: "", concern_reason: "", q6_memo: "", q7_name: "" };
 
 var completeTypeTimer = null;
 var shareTypeTimer = null;
 var autoTransitionTimer = null;
+var reasonTypeTimer = null;
 
 function showScreen(screenId) {
   clearTimeout(typeTimer);
   clearTimeout(guideTypeTimer);
   clearTimeout(surveyTitleTypeTimer);
   clearTimeout(coreConcernTypeTimer);
+  clearTimeout(reasonTypeTimer);
   clearTimeout(openingDelayTimer);
   clearTimeout(completeTypeTimer);
   clearTimeout(shareTypeTimer);
@@ -68,6 +72,11 @@ function showScreen(screenId) {
         stopLoading3DScene();
         stopShare3DScene();
         initCoreConcernScreen();
+      } else if (screenId === 'screen-survey-concern-reason') {
+        stopBubblePhysics();
+        stopLoading3DScene();
+        stopShare3DScene();
+        initConcernReasonScreen();
       } else if (screenId === 'screen-capture-guide') {
         stopBubblePhysics();
         stopLoading3DScene();
@@ -113,7 +122,7 @@ function showScreen(screenId) {
   updateDevScreenBadge();
 }
 
-// 검은색 페이드 인/아웃 전환 헬퍼 함수
+// 검은색 페이드 인/아웃 전환 헬퍼 함수 (깜빡임 없이 매끄럽게 교체)
 function transitionToScreenWithFade(targetScreenId) {
   var curtain = document.getElementById('cinematic-transition-curtain');
   if (!curtain) {
@@ -124,10 +133,12 @@ function transitionToScreenWithFade(targetScreenId) {
   curtain.classList.add('active-curtain');
   setTimeout(function() {
     showScreen(targetScreenId);
-    setTimeout(function() {
-      curtain.classList.remove('active-curtain');
-    }, 80);
-  }, 350);
+    requestAnimationFrame(function() {
+      setTimeout(function() {
+        curtain.classList.remove('active-curtain');
+      }, 50);
+    });
+  }, 320);
 }
 
 function updateDevScreenBadge() {
@@ -142,12 +153,14 @@ function updateDevScreenBadge() {
     else if (currentStepIdx === 3) name += ' (4/4: 위로메모)';
   } else if (name === 'screen-survey-core-concern') {
     name += ' (핵심고민)';
+  } else if (name === 'screen-survey-concern-reason') {
+    name += ' (고민이유)';
   }
   badge.innerText = '화면: ' + name;
 }
 
 // --------------------------------------------------------------------------
-// 🌟 1번 사진 레퍼런스: 로딩 화면용 3D 블러 나비 씬 (무늬 제외, 순백색, 왼쪽 아래 이동)
+// 🌟 로딩 화면용 3D 블러 나비 씬 (무늬 제외, 순백색, 왼쪽 아래 이동)
 // --------------------------------------------------------------------------
 var loadingScene, loadingCamera, loadingRenderer, loadingGroup;
 var loadingWingL, loadingWingR;
@@ -178,7 +191,6 @@ function initLoading3DScene() {
   dir.position.set(3, 6, 8);
   loadingScene.add(dir);
 
-  // 날개 무늬 없이 순백색 적용
   var whiteMat = new THREE.MeshStandardMaterial({ color: 0xffffff, side: THREE.DoubleSide, roughness: 0.35 });
 
   var shapeId = selectedButterflyShape || 'crescent';
@@ -187,8 +199,6 @@ function initLoading3DScene() {
   var targetAntennaPrefix = 'Antenna_' + antId;
 
   loadingGroup = new THREE.Group();
-
-  // 1번 사진 각도 세팅 (비대칭 대각선 측면 포즈) + 살짝 왼쪽, 아래로 이동
   loadingGroup.rotation.set(0.25, -0.8, 0.35);
   loadingGroup.position.set(-0.28, -0.22, 0);
 
@@ -226,7 +236,6 @@ function initLoading3DScene() {
       loadingWingL.rotation.y = flap;
       loadingWingR.rotation.y = -flap;
     }
-    // 사진의 각도를 유지하며 우아하게 호흡하듯 살짝 부유 (베이스 위치 반영)
     loadingGroup.position.y = -0.22 + Math.sin(t * 2.2) * 0.08;
     loadingGroup.rotation.z = 0.35 + Math.sin(t * 1.5) * 0.04;
 
@@ -245,7 +254,7 @@ function stopLoading3DScene() {
 }
 
 // --------------------------------------------------------------------------
-// 🌟 2번 사진 대응: 공유 화면용 선명한 3D 나비 씬 (날개무늬 적용, 블러 없음, 사이즈 축소 적용)
+// 🌟 공유 화면용 선명한 3D 나비 씬
 // --------------------------------------------------------------------------
 var shareScene, shareCamera, shareRenderer, shareGroup;
 var shareWingL, shareWingR;
@@ -276,7 +285,6 @@ function initShare3DScene() {
   dir.position.set(3, 6, 8);
   shareScene.add(dir);
 
-  // 사용자가 만든 최종 텍스처 적용
   var texUrl = currentExtractedTexture || createFallbackDummyTexture('#ffffff', '#cfcfcf');
   var tex = new THREE.TextureLoader().load(texUrl);
   tex.flipY = false;
@@ -290,8 +298,6 @@ function initShare3DScene() {
   var targetAntennaPrefix = 'Antenna_' + antId;
 
   shareGroup = new THREE.Group();
-
-  // 기존 설정된 메인 앱 내부 각도 및 배치 원본 100% 유지
   shareGroup.rotation.set(0.25, -0.8, 0.35);
   shareGroup.position.set(0, 0.45, 0);
 
@@ -311,7 +317,6 @@ function initShare3DScene() {
           }
         });
 
-        // 나비 사이즈 축소 (기존 0.68 유지)
         model.scale.set(0.68, 0.68, 0.68);
         shareGroup.add(model);
       }, undefined, function() {});
@@ -348,7 +353,7 @@ function stopShare3DScene() {
 }
 
 // --------------------------------------------------------------------------
-// 🌟 로딩 진행바 시퀀스 (30초 동안 100%까지 채워지도록 설정)
+// 🌟 로딩 진행바 시퀀스
 // --------------------------------------------------------------------------
 function startAnswerShowcaseSequence() {
   if (showcaseInterval) { clearInterval(showcaseInterval); showcaseInterval = null; }
@@ -400,7 +405,7 @@ function startAnswerShowcaseSequence() {
 }
 
 // --------------------------------------------------------------------------
-// 🌟 3번 오프닝과 타이핑 텍스트 및 속도를 맞춘 완료 화면 시퀀스
+// 🌟 완료 화면 및 공유 화면 시퀀스
 // --------------------------------------------------------------------------
 function playCompleteScreenSequence() {
   clearTimeout(completeTypeTimer);
@@ -420,9 +425,6 @@ function playCompleteScreenSequence() {
   });
 }
 
-// --------------------------------------------------------------------------
-// 🌟 3번 오프닝과 타이핑 텍스트 및 속도를 맞춘 마지막 공유 화면 시퀀스
-// --------------------------------------------------------------------------
 function playShareScreenSequence() {
   clearTimeout(shareTypeTimer);
 
@@ -441,7 +443,6 @@ function playShareScreenSequence() {
   });
 }
 
-// 공유하기 버튼 동작 (독립된 share.html 카드 링크 생성 및 전달)
 var btnActionShare = document.getElementById('btn-action-share');
 if (btnActionShare) {
   btnActionShare.onclick = function() {
@@ -451,7 +452,6 @@ if (btnActionShare) {
       : "너의 찬란한 날갯짓을 응원해.";
     var rawShape = selectedButterflyShape || "crescent";
 
-    // share.html로 연결되는 대상 URL 구성
     var baseUrl = window.location.href.split('?')[0].replace(/index\.html$/, '');
     if (!baseUrl.endsWith('/')) baseUrl += '/';
     var shareCardUrl = baseUrl + 'share.html?name=' + encodeURIComponent(rawName) +
@@ -503,6 +503,7 @@ document.addEventListener('click', function(e) {
     clearTimeout(guideTypeTimer);
     clearTimeout(surveyTitleTypeTimer);
     clearTimeout(coreConcernTypeTimer);
+    clearTimeout(reasonTypeTimer);
     clearTimeout(openingDelayTimer);
     clearTimeout(completeTypeTimer);
     clearTimeout(shareTypeTimer);
@@ -538,6 +539,12 @@ document.addEventListener('click', function(e) {
     } else if (curId === 'screen-survey-core-concern') {
       if (!userSelections.core_concern && userSelections.q2.length > 0) {
         userSelections.core_concern = userSelections.q2[0];
+      }
+      showScreen('screen-survey-concern-reason');
+      return;
+    } else if (curId === 'screen-survey-concern-reason') {
+      if (!userSelections.concern_reason) {
+        userSelections.concern_reason = "항상 잘 해내야 한다는 마음이 앞서서요.";
       }
       showScreen('screen-capture-guide');
       return;
@@ -598,6 +605,7 @@ document.addEventListener('click', function(e) {
     clearTimeout(guideTypeTimer);
     clearTimeout(surveyTitleTypeTimer);
     clearTimeout(coreConcernTypeTimer);
+    clearTimeout(reasonTypeTimer);
     clearTimeout(openingDelayTimer);
     clearTimeout(completeTypeTimer);
     clearTimeout(shareTypeTimer);
@@ -621,6 +629,9 @@ document.addEventListener('click', function(e) {
     } else if (curId === 'screen-survey-core-concern') {
       currentStepIdx = 2;
       showScreen('screen-survey');
+      return;
+    } else if (curId === 'screen-survey-concern-reason') {
+      showScreen('screen-survey-core-concern');
       return;
     }
 
@@ -1951,7 +1962,7 @@ function initCoreConcernScreen() {
 if (btnCoreConcernNext) {
   btnCoreConcernNext.onclick = function() {
     if (!userSelections.core_concern) return;
-    showScreen('screen-capture-guide');
+    showScreen('screen-survey-concern-reason');
   };
 }
 
@@ -1959,6 +1970,68 @@ if (btnCoreConcernPrev) {
   btnCoreConcernPrev.onclick = function() {
     currentStepIdx = 2;
     showScreen('screen-survey');
+  };
+}
+
+// --------------------------------------------------------------------------
+// 🌟 [복원] 핵심 고민 이유 작성 화면 로직
+// --------------------------------------------------------------------------
+var elConcernReasonTitle = document.getElementById('concern-reason-title');
+var inputConcernReason = document.getElementById('input-concern-reason');
+var concernReasonCounter = document.getElementById('concern-reason-counter');
+var btnConcernReasonNext = document.getElementById('btn-concern-reason-next');
+var btnConcernReasonPrev = document.getElementById('btn-concern-reason-prev');
+
+function initConcernReasonScreen() {
+  clearTimeout(reasonTypeTimer);
+  var pickedConcern = userSelections.core_concern || "고민";
+  var titleMsg = "‘" + pickedConcern + "’(이)가<br>가장 꺼내기 힘들었던 이유는 무엇인가요?";
+  if (elConcernReasonTitle) elConcernReasonTitle.innerHTML = "";
+
+  var tokens = titleMsg.match(/(<[^>]+>|[^<])/g) || [];
+  var idx = 0;
+  var cur = "";
+
+  function typeReasonChar() {
+    if (idx < tokens.length) {
+      var char = tokens[idx];
+      cur += char;
+      if (elConcernReasonTitle) elConcernReasonTitle.innerHTML = cur;
+      idx++;
+      var delay = 70;
+      if (char.startsWith('<')) delay = 0;
+      else if (char === '?' || char === '.') delay = 320;
+      reasonTypeTimer = setTimeout(typeReasonChar, delay);
+    }
+  }
+  setTimeout(typeReasonChar, 100);
+
+  if (inputConcernReason) {
+    inputConcernReason.value = userSelections.concern_reason || "";
+    if (concernReasonCounter) {
+      concernReasonCounter.innerText = (userSelections.concern_reason ? userSelections.concern_reason.length : 0) + '/100';
+    }
+  }
+}
+
+if (inputConcernReason) {
+  inputConcernReason.oninput = function(e) {
+    userSelections.concern_reason = e.target.value;
+    if (concernReasonCounter) {
+      concernReasonCounter.innerText = e.target.value.length + '/100';
+    }
+  };
+}
+
+if (btnConcernReasonNext) {
+  btnConcernReasonNext.onclick = function() {
+    showScreen('screen-capture-guide');
+  };
+}
+
+if (btnConcernReasonPrev) {
+  btnConcernReasonPrev.onclick = function() {
+    showScreen('screen-survey-core-concern');
   };
 }
 
