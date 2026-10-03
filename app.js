@@ -6,7 +6,9 @@
    - [공유 화면]: 상단/중앙에 선명한 3D 나비 + 문장 및 공유 버튼 바
    - [대사/흐름 수정]: 1번, 2번, 3번, 4번 이후 신규 화면, 5번 키워드 글로우 단독 표시 반영
    - [수정 완료]: 마음속 진입 브릿지(2번 사진) 이후 '고민 다중 선택 알약 화면' 정상 연동
-   - [신규 추가]: 1번 사진(이유 작성) 직후 '당신에 대해 잘 알게 됐어요...' 브릿지 화면 연동
+   - [수정 완료]: 1번 사진(이유 작성) 직후 '당신에 대해 잘 알게 됐어요...' 브릿지 화면 연동
+   - [버그 해결]: 브릿지 화면("마지막 온기를 채울 차례예요") 직후 "다정한 한마디 적기" 화면 정상 렌더링 복원
+   - [버그 해결]: 브릿지 함수 중복 선언 제거 및 프리뷰 비행 후 완료 화면 전환 안전장치 추가
    ========================================================================== */
 
 var ALL_SCREENS = [
@@ -40,6 +42,7 @@ var autoTransitionTimer = null;
 var reasonTypeTimer = null;
 var postSurveyTypeTimer = null;
 var postConcernTypeTimer = null;
+var flightSafetyTimer = null;
 
 function showScreen(screenId) {
   clearTimeout(typeTimer);
@@ -53,6 +56,7 @@ function showScreen(screenId) {
   clearTimeout(autoTransitionTimer);
   clearTimeout(postSurveyTypeTimer);
   clearTimeout(postConcernTypeTimer);
+  clearTimeout(flightSafetyTimer);
 
   document.querySelectorAll('.screen').forEach(function(s) {
     s.classList.remove('active');
@@ -179,6 +183,8 @@ function updateDevScreenBadge() {
     name += ' (고민이유)';
   } else if (name === 'screen-post-concern-bridge') {
     name += ' (나비전환브릿지)';
+  } else if (name === 'screen-survey-bridge') {
+    name += ' (온기충전브릿지)';
   }
   badge.innerText = '화면: ' + name;
 }
@@ -534,6 +540,7 @@ document.addEventListener('click', function(e) {
     clearTimeout(autoTransitionTimer);
     clearTimeout(postSurveyTypeTimer);
     clearTimeout(postConcernTypeTimer);
+    clearTimeout(flightSafetyTimer);
 
     if (showcaseInterval) { clearInterval(showcaseInterval); showcaseInterval = null; }
     if (animFrameId) { cancelAnimationFrame(animFrameId); animFrameId = null; }
@@ -633,6 +640,17 @@ document.addEventListener('click', function(e) {
     } else if (curId === 'screen-post-concern-bridge') {
       showScreen('screen-capture-guide');
       return;
+    } else if (curId === 'screen-capture-guide') {
+      showScreen('screen-shape-select');
+      return;
+    } else if (curId === 'screen-shape-select') {
+      exportAlignedTexture();
+      showScreen('screen-survey-bridge');
+      return;
+    } else if (curId === 'screen-survey-bridge') {
+      currentStepIdx = 3;
+      showScreen('screen-survey');
+      return;
     }
 
     var curIdx = ALL_SCREENS.indexOf(curId);
@@ -697,6 +715,7 @@ document.addEventListener('click', function(e) {
     clearTimeout(autoTransitionTimer);
     clearTimeout(postSurveyTypeTimer);
     clearTimeout(postConcernTypeTimer);
+    clearTimeout(flightSafetyTimer);
 
     if (showcaseInterval) { clearInterval(showcaseInterval); showcaseInterval = null; }
     if (animFrameId) { cancelAnimationFrame(animFrameId); animFrameId = null; }
@@ -772,6 +791,12 @@ document.addEventListener('click', function(e) {
       return;
     } else if (curId === 'screen-capture-guide') {
       showScreen('screen-post-concern-bridge');
+      return;
+    } else if (curId === 'screen-shape-select') {
+      showScreen('screen-capture-guide');
+      return;
+    } else if (curId === 'screen-survey-bridge') {
+      showScreen('screen-shape-select');
       return;
     }
 
@@ -963,7 +988,7 @@ if (btnPostSurveyNext) {
 }
 
 // --------------------------------------------------------------------------
-// 🌟 [신규 추가] 1번 사진 직후 글만 나오는 브릿지 화면 로직
+// 🌟 1번 사진 직후 글만 나오는 브릿지 화면 로직 (단일화 완료)
 // --------------------------------------------------------------------------
 function initPostConcernBridgeScreen() {
   clearTimeout(postConcernTypeTimer);
@@ -992,7 +1017,7 @@ if (btnPostConcernBridgeNext) {
 }
 
 // --------------------------------------------------------------------------
-// 브릿지 페이지 대사 반영
+// 브릿지 페이지 대사 반영 (온기 충전 브릿지)
 // --------------------------------------------------------------------------
 function playBridgeTypingSequence() {
   var textEl = document.getElementById('bridge-typing-text');
@@ -1009,6 +1034,7 @@ function playBridgeTypingSequence() {
   });
 }
 
+// [버그 해결] 여기서 [다음으로] 클릭 시 확실하게 '다정한 한마디 적기' 화면(currentStepIdx = 3)으로 진입시킴
 var bGotoStats = document.getElementById('btn-goto-stats');
 if (bGotoStats) {
   bGotoStats.onclick = function() { 
@@ -1293,12 +1319,12 @@ function switchTab(tabKey) {
     if (tabWing) tabWing.classList.add('active-tab');
     if (blurSliderBox) blurSliderBox.classList.add('hidden-slider');
     if (carouselStage) carouselStage.style.display = 'flex';
-    renderCarouselItems();
+    requestAnimationFrame(function() { renderCarouselItems(); });
   } else if (tabKey === 'antenna') {
     if (tabAntenna) tabAntenna.classList.add('active-tab');
     if (blurSliderBox) blurSliderBox.classList.add('hidden-slider');
     if (carouselStage) carouselStage.style.display = 'flex';
-    renderCarouselItems();
+    requestAnimationFrame(function() { renderCarouselItems(); });
   } else if (tabKey === 'blur') {
     if (tabBlur) tabBlur.classList.add('active-tab');
     if (blurSliderBox) blurSliderBox.classList.remove('hidden-slider');
@@ -2226,7 +2252,6 @@ if (inputConcernReason) {
   };
 }
 
-// 🌟 1번 사진 [다음으로] 누르면 -> 신규 글 브릿지 화면으로 이동
 if (btnConcernReasonNext) {
   btnConcernReasonNext.onclick = function() {
     showScreen('screen-post-concern-bridge');
@@ -2507,6 +2532,7 @@ function initFullButterflyViewer(textureURL) {
 
       if (fullGroup.position.y > 4.6 && !isFlyingTransitionTriggered) {
         isFlyingTransitionTriggered = true;
+        clearTimeout(flightSafetyTimer);
         saveButterflyToSupabase();
 
         if (container) container.style.opacity = '0';
@@ -2728,6 +2754,17 @@ function bindInteractiveEvents(targetEl) {
         footerUI.style.opacity = '0';
         footerUI.style.pointerEvents = 'none';
       }
+
+      // [버그 방지 안전 타이머] 프레임 드랍으로 y위치가 감지되지 않더라도 3.5초 후 완료 화면 강제 진입
+      clearTimeout(flightSafetyTimer);
+      flightSafetyTimer = setTimeout(function() {
+        if (!isFlyingTransitionTriggered) {
+          isFlyingTransitionTriggered = true;
+          saveButterflyToSupabase();
+          showScreen('screen-complete');
+        }
+      }, 3500);
+
     } else {
       resetChargeState();
     }
@@ -2744,7 +2781,7 @@ function bindInteractiveEvents(targetEl) {
   window.addEventListener('touchend', function(e) { 
     if (e.changedTouches.length > 0) handlePointerEnd(e.changedTouches[0].clientX, e.changedTouches[0].clientY); 
   }, { passive: true });
-  window.addEventListener('touchcancel', function(e) {
+  window.addEventListener('touchcancel', function(e) { 
     if (e.changedTouches.length > 0) handlePointerEnd(e.changedTouches[0].clientX, e.changedTouches[0].clientY); 
     else resetChargeState();
   }, { passive: true });
