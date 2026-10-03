@@ -2,9 +2,9 @@
    🌟 너울(Noul) 메인 애플리케이션 로직 (app.js)
    - [DEV 완벽 복원]: 브라우저 전역 클릭 위임 라우터
    - [로딩 화면]: 사용자가 선택한 3D 나비 순백색(패턴 미적용) + 살짝 왼쪽 아래 이동 + 30초 로딩
-   - [완료 화면]: 3번 사진 동일 타이핑 속도 + 2초 후 자동 이동
-   - [공유 화면]: 상단/중앙에 선명한 3D 나비(날개무늬 적용, 축소된 사이즈) + 아래쪽 문장 및 공유 버튼 바
-   - [복원]: 핵심 고민 이유 작성 페이지 연동 및 전환 깜빡임 제거
+   - [완료 화면]: 타이핑 완료 후 2초 후 자동 이동
+   - [공유 화면]: 상단/중앙에 선명한 3D 나비 + 문장 및 공유 버튼 바
+   - [대사/흐름 수정]: 1번, 2번, 3번, 4번 이후 신규 화면, 5번 키워드 글로우 단독 표시 반영
    ========================================================================== */
 
 var ALL_SCREENS = [
@@ -14,6 +14,7 @@ var ALL_SCREENS = [
   'screen-intro',
   'screen-opening',
   'screen-survey',
+  'screen-post-survey-intro',
   'screen-survey-core-concern',
   'screen-survey-concern-reason',
   'screen-capture-guide',
@@ -34,6 +35,7 @@ var completeTypeTimer = null;
 var shareTypeTimer = null;
 var autoTransitionTimer = null;
 var reasonTypeTimer = null;
+var postSurveyTypeTimer = null;
 
 function showScreen(screenId) {
   clearTimeout(typeTimer);
@@ -45,6 +47,7 @@ function showScreen(screenId) {
   clearTimeout(completeTypeTimer);
   clearTimeout(shareTypeTimer);
   clearTimeout(autoTransitionTimer);
+  clearTimeout(postSurveyTypeTimer);
 
   document.querySelectorAll('.screen').forEach(function(s) {
     s.classList.remove('active');
@@ -67,6 +70,11 @@ function showScreen(screenId) {
         stopLoading3DScene();
         stopShare3DScene();
         renderSurveyStep();
+      } else if (screenId === 'screen-post-survey-intro') {
+        stopBubblePhysics();
+        stopLoading3DScene();
+        stopShare3DScene();
+        initPostSurveyIntroScreen();
       } else if (screenId === 'screen-survey-core-concern') {
         stopBubblePhysics();
         stopLoading3DScene();
@@ -122,7 +130,7 @@ function showScreen(screenId) {
   updateDevScreenBadge();
 }
 
-// 검은색 페이드 인/아웃 전환 헬퍼 함수 (깜빡임 없이 매끄럽게 교체)
+// 검은색 페이드 인/아웃 전환 헬퍼 함수
 function transitionToScreenWithFade(targetScreenId) {
   var curtain = document.getElementById('cinematic-transition-curtain');
   if (!curtain) {
@@ -151,6 +159,8 @@ function updateDevScreenBadge() {
     else if (currentStepIdx === 1) name += ' (2/4: 성향)';
     else if (currentStepIdx === 2) name += ' (3/4: 고민선택)';
     else if (currentStepIdx === 3) name += ' (4/4: 위로메모)';
+  } else if (name === 'screen-post-survey-intro') {
+    name += ' (마음속진입)';
   } else if (name === 'screen-survey-core-concern') {
     name += ' (핵심고민)';
   } else if (name === 'screen-survey-concern-reason') {
@@ -160,7 +170,7 @@ function updateDevScreenBadge() {
 }
 
 // --------------------------------------------------------------------------
-// 🌟 로딩 화면용 3D 블러 나비 씬 (무늬 제외, 순백색, 왼쪽 아래 이동)
+// 🌟 로딩 화면용 3D 블러 나비 씬
 // --------------------------------------------------------------------------
 var loadingScene, loadingCamera, loadingRenderer, loadingGroup;
 var loadingWingL, loadingWingR;
@@ -508,6 +518,7 @@ document.addEventListener('click', function(e) {
     clearTimeout(completeTypeTimer);
     clearTimeout(shareTypeTimer);
     clearTimeout(autoTransitionTimer);
+    clearTimeout(postSurveyTypeTimer);
 
     if (showcaseInterval) { clearInterval(showcaseInterval); showcaseInterval = null; }
     if (animFrameId) { cancelAnimationFrame(animFrameId); animFrameId = null; }
@@ -523,8 +534,7 @@ document.addEventListener('click', function(e) {
         return;
       } else if (currentStepIdx === 1) {
         if (userSelections.q1.length === 0) userSelections.q1 = ["야행성", "사색가"];
-        currentStepIdx = 2;
-        renderSurveyStep();
+        showScreen('screen-post-survey-intro');
         return;
       } else if (currentStepIdx === 2) {
         if (userSelections.q2.length === 0) userSelections.q2 = ["완벽주의 강박", "비교중독", "수면 부족", "거절 공포", "텅 빈 잔고", "미래 막막함"];
@@ -536,6 +546,10 @@ document.addEventListener('click', function(e) {
         startAnswerShowcaseSequence();
         return;
       }
+    } else if (curId === 'screen-post-survey-intro') {
+      if (userSelections.q2.length === 0) userSelections.q2 = ["완벽주의 강박", "비교중독", "수면 부족", "거절 공포", "텅 빈 잔고", "미래 막막함"];
+      showScreen('screen-survey-core-concern');
+      return;
     } else if (curId === 'screen-survey-core-concern') {
       if (!userSelections.core_concern && userSelections.q2.length > 0) {
         userSelections.core_concern = userSelections.q2[0];
@@ -610,6 +624,7 @@ document.addEventListener('click', function(e) {
     clearTimeout(completeTypeTimer);
     clearTimeout(shareTypeTimer);
     clearTimeout(autoTransitionTimer);
+    clearTimeout(postSurveyTypeTimer);
 
     if (showcaseInterval) { clearInterval(showcaseInterval); showcaseInterval = null; }
     if (animFrameId) { cancelAnimationFrame(animFrameId); animFrameId = null; }
@@ -626,9 +641,12 @@ document.addEventListener('click', function(e) {
         renderSurveyStep();
         return;
       }
-    } else if (curId === 'screen-survey-core-concern') {
-      currentStepIdx = 2;
+    } else if (curId === 'screen-post-survey-intro') {
+      currentStepIdx = 1;
       showScreen('screen-survey');
+      return;
+    } else if (curId === 'screen-survey-core-concern') {
+      showScreen('screen-post-survey-intro');
       return;
     } else if (curId === 'screen-survey-concern-reason') {
       showScreen('screen-survey-core-concern');
@@ -662,9 +680,6 @@ function bindAppNavEvents() {
   var mCreate = document.getElementById('menu-btn-create');
   if (mCreate) mCreate.onclick = function() { showScreen('screen-opening'); };
 
-  var bOpenBack = document.getElementById('btn-opening-back');
-  if (bOpenBack) bOpenBack.onclick = function() { clearTimeout(typeTimer); clearTimeout(openingDelayTimer); showScreen('screen-menu'); };
-
   var mBrowse = document.getElementById('menu-btn-browse');
   if (mBrowse) mBrowse.onclick = function() { transitionToScreenWithFade('screen-gallery'); };
 
@@ -683,7 +698,7 @@ function bindAppNavEvents() {
 bindAppNavEvents();
 
 // --------------------------------------------------------------------------
-// 오프닝 및 타이핑 플로우
+// 오프닝 및 타이핑 플로우 (1번, 2번, 3번 사진 대사 수정 반영)
 // --------------------------------------------------------------------------
 var openingCurrentStep = 1;
 var elOpeningText = document.getElementById('opening-text');
@@ -741,12 +756,13 @@ function resetOpeningFlow() {
         requestAnimationFrame(function() { elOpeningNextGroup.classList.add('visible'); });
       }
     });
-  }, 3000);
+  }, 2000);
 }
 
 if (btnOpeningNext) {
   btnOpeningNext.onclick = function() {
     if (openingCurrentStep === 1) {
+      // 1번 사진: 저마다의 이유는 다르겠지만, / 쉽게 털어놓지 못할 고민도 있겠지요.
       openingCurrentStep = 2;
       if (elOpeningNextGroup) {
         elOpeningNextGroup.classList.remove('visible');
@@ -760,12 +776,13 @@ if (btnOpeningNext) {
         }
       });
     } else if (openingCurrentStep === 2) {
+      // 2번 사진: 꺼내어 보이지 못한 채, / 응어리진 무언가가 자신을 누르고 있지는 않나요?
       openingCurrentStep = 3;
       if (elOpeningNextGroup) {
         elOpeningNextGroup.classList.remove('visible');
         elOpeningNextGroup.classList.add('hidden');
       }
-      typeWriterText(elOpeningText, "오늘 이곳에서,<br>당신의 마음 깊은 곳에 묻어둔 이야기를<br>조심스레 꺼내어보려 합니다.", function() {
+      typeWriterText(elOpeningText, "꺼내어 보이지 못한 채,<br>응어리진 무언가가 자신을 누르고 있지는 않나요?", function() {
         btnOpeningNext.innerHTML = "다음으로";
         if (elOpeningNextGroup) {
           elOpeningNextGroup.classList.remove('hidden');
@@ -773,6 +790,7 @@ if (btnOpeningNext) {
         }
       });
     } else if (openingCurrentStep === 3) {
+      // 3번 사진: 먼저 당신에 대해 / 몇 가지 알아가보고자 합니다.
       openingCurrentStep = 4;
       if (elOpeningNextGroup) {
         elOpeningNextGroup.classList.remove('visible');
@@ -789,6 +807,38 @@ if (btnOpeningNext) {
       currentStepIdx = 0;
       showScreen('screen-survey');
     }
+  };
+}
+
+// --------------------------------------------------------------------------
+// 🌟 4번 사진 직후 신규 화면 로직: '좋아요. (줄바꿈) 이제 당신의 마음 깊은 곳에 들어가볼게요.'
+// --------------------------------------------------------------------------
+function initPostSurveyIntroScreen() {
+  clearTimeout(postSurveyTypeTimer);
+  var textEl = document.getElementById('post-survey-intro-text');
+  var nextGroup = document.getElementById('post-survey-intro-next-group');
+  var btnNext = document.getElementById('btn-post-survey-intro-next');
+
+  if (!textEl || !nextGroup) return;
+  textEl.innerHTML = "";
+  nextGroup.classList.add('hidden');
+  nextGroup.classList.remove('visible');
+
+  var msg = "좋아요.<br>이제 당신의 마음 깊은 곳에 들어가볼게요.";
+  typeWriterText(textEl, msg, function() {
+    if (btnNext) btnNext.innerHTML = "다음으로";
+    nextGroup.classList.remove('hidden');
+    requestAnimationFrame(function() { nextGroup.classList.add('visible'); });
+  });
+}
+
+var btnPostSurveyNext = document.getElementById('btn-post-survey-intro-next');
+if (btnPostSurveyNext) {
+  btnPostSurveyNext.onclick = function() {
+    if (!userSelections.q2 || userSelections.q2.length === 0) {
+      userSelections.q2 = ["비교중독", "수면 부족", "완벽주의 강박", "거절 공포", "텅 빈 잔고", "미래 막막함"];
+    }
+    showScreen('screen-survey-core-concern');
   };
 }
 
@@ -1770,8 +1820,8 @@ if (btnSurveyNext) {
         var customText1 = userSelections.q1_custom.trim();
         if (userSelections.q1.indexOf(customText1) === -1) userSelections.q1.unshift(customText1);
       }
-      currentStepIdx = 2;
-      renderSurveyStep();
+      // 4번 사진 질문 완료 후 신규 인트로 화면으로 전환
+      showScreen('screen-post-survey-intro');
     } else if (currentStepIdx === 2) {
       if (userSelections.q2_custom && userSelections.q2_custom.trim()) {
         var customText2 = userSelections.q2_custom.trim();
@@ -1968,24 +2018,31 @@ if (btnCoreConcernNext) {
 
 if (btnCoreConcernPrev) {
   btnCoreConcernPrev.onclick = function() {
-    currentStepIdx = 2;
-    showScreen('screen-survey');
+    showScreen('screen-post-survey-intro');
   };
 }
 
 // --------------------------------------------------------------------------
-// 🌟 [복원] 핵심 고민 이유 작성 화면 로직
+// 🌟 5번 사진: 핵심 고민 이유 작성 화면 로직 (알약틀 없이 글씨만 흰색 글로우)
 // --------------------------------------------------------------------------
 var elConcernReasonTitle = document.getElementById('concern-reason-title');
 var inputConcernReason = document.getElementById('input-concern-reason');
 var concernReasonCounter = document.getElementById('concern-reason-counter');
 var btnConcernReasonNext = document.getElementById('btn-concern-reason-next');
 var btnConcernReasonPrev = document.getElementById('btn-concern-reason-prev');
+var elConcernReasonKeywordDisplay = document.getElementById('concern-reason-picked-keyword-display');
 
 function initConcernReasonScreen() {
   clearTimeout(reasonTypeTimer);
   var pickedConcern = userSelections.core_concern || "고민";
-  var titleMsg = "‘" + pickedConcern + "’(이)가<br>가장 꺼내기 힘들었던 이유는 무엇인가요?";
+
+  // 작성 네모박스 위에 알약틀 없이 글씨만 흰색 글로우로 표시
+  if (elConcernReasonKeywordDisplay) {
+    elConcernReasonKeywordDisplay.innerText = pickedConcern;
+  }
+
+  // 상단 제목: '가장 힘들었던 이유는 무엇인가요?'
+  var titleMsg = "가장 힘들었던 이유는 무엇인가요?";
   if (elConcernReasonTitle) elConcernReasonTitle.innerHTML = "";
 
   var tokens = titleMsg.match(/(<[^>]+>|[^<])/g) || [];

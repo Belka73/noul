@@ -7,6 +7,7 @@
    - [수정 1] 1번 사진: 표본실 나비 한 줄에 2마리 정렬, 동일 크기, 위아래 스크롤 및 이름표 간격 고정
    - [수정 2] 2번 사진: 등이 보이는 3D 회전값, 유기적인 비행, 안정된 기모으기
    - [추가] 로딩 화면 3D 캔버스 블러 및 완성/공유 페이지 스타일
+   - [추가 5번] 작성 박스 중앙 배치 및 키워드 알약틀 제거 & 흰색 글로우 단독 표시
    ========================================================================== */
 
 * {
@@ -651,7 +652,8 @@ html, body {
 
 /* 핵심 고민 화면 */
 #screen-survey-core-concern,
-#screen-survey-concern-reason {
+#screen-survey-concern-reason,
+#screen-post-survey-intro {
   display: none;
   width: 100%;
   height: 100%;
@@ -662,7 +664,8 @@ html, body {
   justify-content: space-between;
 }
 #screen-survey-core-concern.active,
-#screen-survey-concern-reason.active {
+#screen-survey-concern-reason.active,
+#screen-post-survey-intro.active {
   display: flex;
 }
 
@@ -785,6 +788,19 @@ html, body {
   font-weight: 800 !important;
   transform: scale(1.12);
   text-shadow: 0 0 16px rgba(255, 255, 255, 0.85), 0 0 32px rgba(255, 255, 255, 0.45);
+}
+
+/* 5번 사진: 알약틀 없이 글씨만 흰색 글로우로 나오는 키워드 스타일 */
+.concern-reason-highlight-word {
+  color: #ffffff !important;
+  font-size: 1.25rem;
+  font-weight: 800;
+  letter-spacing: -0.3px;
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  text-shadow: 0 0 16px rgba(255, 255, 255, 0.9), 0 0 28px rgba(255, 255, 255, 0.55);
+  display: inline-block;
 }
 
 #survey-custom-input-anchor.custom-anchor-hidden {

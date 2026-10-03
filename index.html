@@ -189,14 +189,8 @@
       </footer>
     </section>
 
-    <!-- 0.8 오프닝 화면 -->
+    <!-- 0.8 오프닝 화면 (좌측 상단 뒤로가기 화살표 삭제) -->
     <section id="screen-opening" class="screen flex-col flex-1 justify-between py-6 px-4 text-center relative z-20 w-full bg-black overflow-hidden">
-      <button id="btn-opening-back" type="button" class="app-back-btn">
-        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
-        </svg>
-      </button>
-
       <div class="opening-stage">
         <div class="opening-text-box">
           <h2 id="opening-text" class="text-base sm:text-[1.08rem] font-medium text-white tracking-tight leading-relaxed"></h2>
@@ -281,6 +275,24 @@
       </footer>
     </section>
 
+    <!-- 3.1 4번 사진 직후 신규 화면 (1번 사진과 동일한 형식) -->
+    <section id="screen-post-survey-intro" class="screen flex-col flex-1 justify-between py-6 px-4 text-center relative z-20 w-full bg-black overflow-hidden select-none">
+      <div class="opening-stage">
+        <div class="opening-text-box">
+          <h2 id="post-survey-intro-text" class="text-base sm:text-[1.08rem] font-medium text-white tracking-tight leading-relaxed"></h2>
+        </div>
+
+        <div class="opening-button-anchor">
+          <div id="post-survey-intro-next-group" class="button-group-fade hidden">
+            <button id="btn-post-survey-intro-next" type="button" class="opening-action-btn">
+              다음으로
+            </button>
+          </div>
+        </div>
+      </div>
+      <div class="pb-3"></div>
+    </section>
+
     <!-- 3.5 핵심 고민 선택 화면 -->
     <section id="screen-survey-core-concern" class="screen flex-col flex-1 justify-between text-center relative z-20 w-full bg-black overflow-hidden select-none">
       <header class="w-full pt-3 pb-0 flex-shrink-0 flex justify-center">
@@ -310,7 +322,7 @@
       </footer>
     </section>
 
-    <!-- 3.6 핵심 고민 이유 작성 화면 (복원) -->
+    <!-- 3.6 핵심 고민 이유 작성 화면 (5번 사진 수정: 중앙 정렬 & 알약틀 제거 후 글씨만 흰색 글로우) -->
     <section id="screen-survey-concern-reason" class="screen flex-col flex-1 justify-between text-center relative z-20 w-full bg-black overflow-hidden select-none">
       <header class="w-full pt-3 pb-0 flex-shrink-0 flex justify-center">
         <div class="w-[84%] h-1 bg-white/10 rounded-full overflow-hidden">
@@ -319,14 +331,19 @@
       </header>
 
       <div class="survey-title-box text-center pb-2 flex-shrink-0 px-4" style="padding-top: 20px !important;">
-        <h1 id="concern-reason-title" class="text-[1.38rem] font-bold text-white tracking-tight leading-[1.36] break-keep"></h1>
-        <p id="concern-reason-desc" class="text-xs text-neutral-400 mt-2 font-normal tracking-tight">마음속에 담아둔 솔직한 생각을 편안하게 남겨주세요.</p>
+        <h1 id="concern-reason-title" class="text-[1.38rem] font-bold text-white tracking-tight leading-[1.36] break-keep">
+          가장 힘들었던 이유는 무엇인가요?
+        </h1>
       </div>
 
-      <div class="flex-1 w-full flex flex-col justify-center items-center px-4 min-h-0">
+      <!-- 작성 박스 무조건 중앙 배치 및 작성 박스 상단에 글씨만 흰색 글로우로 나오는 키워드 -->
+      <div class="flex-1 w-full flex flex-col justify-center items-center px-4 min-h-0 my-auto">
         <div class="w-full max-w-[340px] flex flex-col items-center">
-          <div class="glass-input-card-v2" style="height: 180px;">
-            <textarea id="input-concern-reason" maxlength="100" placeholder="어떤 마음으로 인해 이 고민이 가장 무겁게 다가왔나요?"></textarea>
+          <div id="concern-reason-picked-keyword-display" class="concern-reason-highlight-word mb-4 text-center">
+            완벽주의 강박
+          </div>
+          <div class="glass-input-card-v2 w-full" style="height: 180px;">
+            <textarea id="input-concern-reason" maxlength="100" placeholder="항상 잘 해내야 한다는 마음이 앞서서요."></textarea>
           </div>
           <div class="w-full flex justify-end pt-2 pr-1">
             <span id="concern-reason-counter" class="text-xs text-neutral-400 font-mono tracking-normal">0/100</span>
