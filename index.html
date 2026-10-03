@@ -106,9 +106,19 @@
         </svg>
       </button>
 
-      <div class="gallery-header-guide pointer-events-none">
-        <h2 class="text-sm font-bold text-white tracking-wider">나비 표본실</h2>
-        <p class="text-[11px] text-neutral-400 mt-0.5">위아래로 스크롤하여 나비를 둘러보세요</p>
+      <div class="gallery-header-guide">
+        <h2 class="text-sm font-bold text-white tracking-wider">나비 둘러보기</h2>
+        <p class="text-[11px] text-neutral-400 mt-0.5">위아래로 스크롤</p>
+        
+        <!-- 나비 검색바 -->
+        <div class="gallery-search-container">
+          <div class="gallery-search-box">
+            <svg class="w-4 h-4 text-neutral-400 mr-2 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-4.35-4.35m1.85-5.15a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+            </svg>
+            <input type="text" id="gallery-search-input" placeholder="나비 이름이나 고민을 검색해보세요" autocomplete="off" spellcheck="false">
+          </div>
+        </div>
       </div>
 
       <div id="gallery-pan-viewport" class="gallery-viewport-drag">
@@ -238,11 +248,13 @@
         <div id="organic-chip-container" class="flex flex-col items-center gap-2.5 w-full py-2"></div>
       </div>
 
+      <!-- 3번 사진: 나에게 건넬 한마디 (고정된 텍스트박스 및 공개 문구) -->
       <div id="field-step-6" class="hidden flex-1 w-full flex-col justify-center items-center px-4 min-h-0">
         <canvas id="bubble-physics-canvas" class="bubble-physics-bg-layer"></canvas>
 
         <div class="memo-inner-centered-wrapper">
           <div id="selected-concern-chips" class="selected-concern-chips-wrap"></div>
+          <p class="text-xs text-neutral-400 mb-2 font-normal text-left w-full pl-1 tracking-tight">작성한 내용은 전시에 공개됩니다.</p>
           <div class="glass-input-card-v2" style="height: 195px;">
             <textarea id="input-q6-memo" maxlength="50" placeholder="자유롭게 입력해주세요."></textarea>
           </div>
@@ -252,9 +264,10 @@
         </div>
       </div>
 
+      <!-- 1번 사진: 당신의 이름은 무엇인가요? (전시 공개로 수정) -->
       <div id="field-step-7" class="hidden flex-1 w-full flex-col justify-center items-center px-4 min-h-0">
         <div class="w-full max-w-[340px] flex flex-col">
-          <p class="text-xs text-neutral-400 mb-2 font-normal text-left w-full pl-1 tracking-tight">작성한 이름은 전시장에 공개됩니다.</p>
+          <p class="text-xs text-neutral-400 mb-2 font-normal text-left w-full pl-1 tracking-tight">작성한 이름은 전시에 공개됩니다.</p>
           <div class="glass-input-card-v2" style="height: 76px; justify-center: center; padding: 1.15rem 1.35rem !important;">
             <input id="input-q7-name" type="text" maxlength="10" placeholder="예: 윤슬, 쉼표, 칼퇴, 다정, 시온, 바람..." autocomplete="off" spellcheck="false">
           </div>
@@ -323,7 +336,7 @@
       </footer>
     </section>
 
-    <!-- 3.6 핵심 고민 이유 작성 화면 (1번 사진) -->
+    <!-- 2번 사진: 핵심 고민 이유 작성 화면 (키워드 위로 이동 & 비공개 문구 추가) -->
     <section id="screen-survey-concern-reason" class="screen flex-col flex-1 justify-between text-center relative z-20 w-full bg-black overflow-hidden select-none">
       <header class="w-full pt-3 pb-0 flex-shrink-0 flex justify-center">
         <div class="w-[84%] h-1 bg-white/10 rounded-full overflow-hidden">
@@ -339,9 +352,10 @@
 
       <div class="flex-1 w-full flex flex-col justify-center items-center px-4 min-h-0 my-auto">
         <div class="w-full max-w-[340px] flex flex-col items-center">
-          <div id="concern-reason-picked-keyword-display" class="concern-reason-highlight-word mb-4 text-center">
+          <div id="concern-reason-picked-keyword-display" class="concern-reason-highlight-word text-center">
             완벽주의 강박
           </div>
+          <p class="text-xs text-neutral-400 mb-2 font-normal text-left w-full pl-1 tracking-tight">작성한 내용은 전시에 공개되지 않습니다.</p>
           <div class="glass-input-card-v2 w-full" style="height: 180px;">
             <textarea id="input-concern-reason" maxlength="100" placeholder="항상 잘 해내야 한다는 마음이 앞서서요."></textarea>
           </div>
@@ -362,7 +376,7 @@
       </footer>
     </section>
 
-    <!-- 🌟 [신규 추가] 1번 사진 직후 글만 나오는 브릿지 화면 -->
+    <!-- 1번 사진 직후 글만 나오는 브릿지 화면 -->
     <section id="screen-post-concern-bridge" class="screen flex-col flex-1 justify-between py-6 px-4 text-center relative z-20 w-full bg-black overflow-hidden select-none">
       <div class="opening-stage">
         <div class="opening-text-box">
@@ -380,7 +394,7 @@
       <div class="pb-3"></div>
     </section>
 
-    <!-- 브릿지 페이지 -->
+    <!-- 온기 충전 브릿지 페이지 -->
     <section id="screen-survey-bridge" class="screen flex-col flex-1 justify-between py-6 px-4 text-center relative z-20 w-full bg-black overflow-hidden select-none">
       <div class="opening-stage">
         <div class="opening-text-box">

@@ -9,6 +9,7 @@
    - [수정 완료]: 1번 사진(이유 작성) 직후 '당신에 대해 잘 알게 됐어요...' 브릿지 화면 연동
    - [버그 해결]: 브릿지 화면("마지막 온기를 채울 차례예요") 직후 "다정한 한마디 적기" 화면 정상 렌더링 복원
    - [버그 해결]: 브릿지 함수 중복 선언 제거 및 프리뷰 비행 후 완료 화면 전환 안전장치 추가
+   - [신규 추가]: 4번 사진 나비 표본실 실시간 검색 기능 연동
    ========================================================================== */
 
 var ALL_SCREENS = [
@@ -958,7 +959,7 @@ if (btnOpeningNext) {
 }
 
 // --------------------------------------------------------------------------
-// 🌟 2번 사진 (마음 깊은 곳 진입 브릿지 화면 로직)
+// 🌟 마음 깊은 곳 진입 브릿지 화면 로직
 // --------------------------------------------------------------------------
 function initPostSurveyIntroScreen() {
   clearTimeout(postSurveyTypeTimer);
@@ -988,7 +989,7 @@ if (btnPostSurveyNext) {
 }
 
 // --------------------------------------------------------------------------
-// 🌟 1번 사진 직후 글만 나오는 브릿지 화면 로직 (단일화 완료)
+// 🌟 1번 사진 직후 글만 나오는 브릿지 화면 로직
 // --------------------------------------------------------------------------
 function initPostConcernBridgeScreen() {
   clearTimeout(postConcernTypeTimer);
@@ -1017,7 +1018,7 @@ if (btnPostConcernBridgeNext) {
 }
 
 // --------------------------------------------------------------------------
-// 브릿지 페이지 대사 반영 (온기 충전 브릿지)
+// 온기 충전 브릿지
 // --------------------------------------------------------------------------
 function playBridgeTypingSequence() {
   var textEl = document.getElementById('bridge-typing-text');
@@ -1034,7 +1035,6 @@ function playBridgeTypingSequence() {
   });
 }
 
-// [버그 해결] 여기서 [다음으로] 클릭 시 확실하게 '다정한 한마디 적기' 화면(currentStepIdx = 3)으로 진입시킴
 var bGotoStats = document.getElementById('btn-goto-stats');
 if (bGotoStats) {
   bGotoStats.onclick = function() { 
@@ -2197,7 +2197,7 @@ if (btnCoreConcernPrev) {
 }
 
 // --------------------------------------------------------------------------
-// 핵심 고민 이유 작성 화면 로직 (1번 사진)
+// 핵심 고민 이유 작성 화면 로직 (2번 사진)
 // --------------------------------------------------------------------------
 var elConcernReasonTitle = document.getElementById('concern-reason-title');
 var inputConcernReason = document.getElementById('input-concern-reason');
@@ -2755,7 +2755,6 @@ function bindInteractiveEvents(targetEl) {
         footerUI.style.pointerEvents = 'none';
       }
 
-      // [버그 방지 안전 타이머] 프레임 드랍으로 y위치가 감지되지 않더라도 3.5초 후 완료 화면 강제 진입
       clearTimeout(flightSafetyTimer);
       flightSafetyTimer = setTimeout(function() {
         if (!isFlyingTransitionTriggered) {
@@ -2792,63 +2791,39 @@ function bindInteractiveEvents(targetEl) {
 }
 
 // --------------------------------------------------------------------------
-// 나비 표본실 갤러리
+// 4번 사진: 나비 둘러보기 표본실 갤러리 및 검색 필터 로직
 // --------------------------------------------------------------------------
 var specimenButterfliesData = [];
-
 var specimenContainer = document.getElementById('specimen-items-container');
 var gallerySpawnTimers = [];
 
-async function initSpecimenGallery() {
+function renderFilteredGallery(searchQuery) {
   if (!specimenContainer) return;
   specimenContainer.innerHTML = '';
 
   gallerySpawnTimers.forEach(function(t) { clearTimeout(t); });
   gallerySpawnTimers = [];
 
-  if (supabase) {
-    try {
-      var res = await supabase
-        .from('butterflies')
-        .select('*')
-        .order('id', { ascending: false })
-        .limit(50);
+  var q = (searchQuery || "").trim().toLowerCase();
+  var filteredData = specimenButterfliesData.filter(function(item) {
+    if (!q) return true;
+    var nameMatch = (item.name || "").toLowerCase().indexOf(q) > -1;
+    var concernMatch = (item.core_concern || "").toLowerCase().indexOf(q) > -1;
+    var q1Match = (item.q1 || []).some(function(k) { return k.toLowerCase().indexOf(q) > -1; });
+    return nameMatch || concernMatch || q1Match;
+  });
 
-      if (res.data && res.data.length > 0) {
-        specimenButterfliesData = res.data.map(function(item) {
-          var dateStr = "2026. 10. 24";
-          if (item.created_at) {
-            dateStr = new Date(item.created_at).toISOString().slice(0, 10).replace(/-/g, '. ');
-          }
-          return {
-            id: item.id,
-            name: item.name || "나비",
-            wingId: item.wing_shape || "crescent",
-            antId: item.antenna_type || "ball",
-            q1: Array.isArray(item.q1) ? item.q1 : [],
-            core_concern: item.core_concern || "",
-            memo: item.memo || "",
-            textureUrl: item.texture_url || null,
-            date: dateStr
-          };
-        });
-      }
-    } catch (err) {
-      console.error("Supabase 데이터 조회 오류:", err);
-    }
-  }
-
-  if (specimenButterfliesData.length === 0) {
+  if (filteredData.length === 0) {
     specimenContainer.innerHTML = 
       '<div style="grid-column: 1 / -1; text-align: center; padding: 4rem 1rem; color: #777777; font-size: 13px;">' +
-        '아직 날려보낸 나비가 없습니다.<br>첫 번째 나비를 깨워보세요.' +
+        (q ? '검색된 나비가 없습니다.' : '아직 날려보낸 나비가 없습니다.<br>첫 번째 나비를 깨워보세요.') +
       '</div>';
     return;
   }
 
   var cardElements = [];
 
-  specimenButterfliesData.forEach(function(item) {
+  filteredData.forEach(function(item) {
     var wing = butterflyPathData[item.wingId] || wingDataset[0];
     var ant = antennaDataset.find(function(a) { return a.id === item.antId; }) || antennaDataset[0];
 
@@ -2894,9 +2869,54 @@ async function initSpecimenGallery() {
       if (cardEl) {
         cardEl.classList.add('revealed');
       }
-    }, idx * 100);
+    }, idx * 60);
     gallerySpawnTimers.push(timer);
   });
+}
+
+var gallerySearchInput = document.getElementById('gallery-search-input');
+if (gallerySearchInput) {
+  gallerySearchInput.oninput = function(e) {
+    renderFilteredGallery(e.target.value);
+  };
+}
+
+async function initSpecimenGallery() {
+  if (gallerySearchInput) gallerySearchInput.value = "";
+
+  if (supabase) {
+    try {
+      var res = await supabase
+        .from('butterflies')
+        .select('*')
+        .order('id', { ascending: false })
+        .limit(50);
+
+      if (res.data && res.data.length > 0) {
+        specimenButterfliesData = res.data.map(function(item) {
+          var dateStr = "2026. 10. 24";
+          if (item.created_at) {
+            dateStr = new Date(item.created_at).toISOString().slice(0, 10).replace(/-/g, '. ');
+          }
+          return {
+            id: item.id,
+            name: item.name || "나비",
+            wingId: item.wing_shape || "crescent",
+            antId: item.antenna_type || "ball",
+            q1: Array.isArray(item.q1) ? item.q1 : [],
+            core_concern: item.core_concern || "",
+            memo: item.memo || "",
+            textureUrl: item.texture_url || null,
+            date: dateStr
+          };
+        });
+      }
+    } catch (err) {
+      console.error("Supabase 데이터 조회 오류:", err);
+    }
+  }
+
+  renderFilteredGallery("");
 }
 
 // 3D 모달
