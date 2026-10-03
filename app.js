@@ -154,7 +154,9 @@ function updateDevScreenBadge() {
   if (!badge) return;
   var activeScreen = document.querySelector('.screen.active');
   var name = activeScreen ? activeScreen.id : 'none';
-  if (name === 'screen-survey') {
+  if (name === 'screen-opening') {
+    name += ' (' + openingCurrentStep + '/4: 오프닝대사)';
+  } else if (name === 'screen-survey') {
     if (currentStepIdx === 0) name += ' (1/4: 이름)';
     else if (currentStepIdx === 1) name += ' (2/4: 성향)';
     else if (currentStepIdx === 2) name += ' (3/4: 고민선택)';
@@ -526,6 +528,60 @@ document.addEventListener('click', function(e) {
     var activeScreen = document.querySelector('.screen.active');
     var curId = activeScreen ? activeScreen.id : 'screen-cover';
 
+    // 🌟 오프닝 대사 멘트 한 페이지씩 보기 처리
+    if (curId === 'screen-opening') {
+      if (openingCurrentStep === 1) {
+        openingCurrentStep = 2;
+        if (elOpeningNextGroup) {
+          elOpeningNextGroup.classList.remove('visible');
+          elOpeningNextGroup.classList.add('hidden');
+        }
+        typeWriterText(elOpeningText, "저마다의 이유는 다르겠지만,<br>쉽게 털어놓지 못할 고민도 있겠지요.", function() {
+          if (btnOpeningNext) btnOpeningNext.innerHTML = "다음으로";
+          if (elOpeningNextGroup) {
+            elOpeningNextGroup.classList.remove('hidden');
+            requestAnimationFrame(function() { elOpeningNextGroup.classList.add('visible'); });
+          }
+        });
+        updateDevScreenBadge();
+        return;
+      } else if (openingCurrentStep === 2) {
+        openingCurrentStep = 3;
+        if (elOpeningNextGroup) {
+          elOpeningNextGroup.classList.remove('visible');
+          elOpeningNextGroup.classList.add('hidden');
+        }
+        typeWriterText(elOpeningText, "꺼내어 보이지 못한 채,<br>응어리진 무언가가 자신을 누르고 있지는 않나요?", function() {
+          if (btnOpeningNext) btnOpeningNext.innerHTML = "다음으로";
+          if (elOpeningNextGroup) {
+            elOpeningNextGroup.classList.remove('hidden');
+            requestAnimationFrame(function() { elOpeningNextGroup.classList.add('visible'); });
+          }
+        });
+        updateDevScreenBadge();
+        return;
+      } else if (openingCurrentStep === 3) {
+        openingCurrentStep = 4;
+        if (elOpeningNextGroup) {
+          elOpeningNextGroup.classList.remove('visible');
+          elOpeningNextGroup.classList.add('hidden');
+        }
+        typeWriterText(elOpeningText, "먼저 당신에 대해<br>몇 가지 알아가보고자 합니다.", function() {
+          if (btnOpeningNext) btnOpeningNext.innerHTML = "다음으로";
+          if (elOpeningNextGroup) {
+            elOpeningNextGroup.classList.remove('hidden');
+            requestAnimationFrame(function() { elOpeningNextGroup.classList.add('visible'); });
+          }
+        });
+        updateDevScreenBadge();
+        return;
+      } else if (openingCurrentStep === 4) {
+        currentStepIdx = 0;
+        showScreen('screen-survey');
+        return;
+      }
+    }
+
     if (curId === 'screen-survey') {
       if (currentStepIdx === 0) {
         if (!userSelections.q7_name) userSelections.q7_name = "테스트나비";
@@ -632,6 +688,35 @@ document.addEventListener('click', function(e) {
     var activeScreen = document.querySelector('.screen.active');
     var curId = activeScreen ? activeScreen.id : 'screen-cover';
 
+    // 🌟 오프닝 대사 멘트 이전 단계 보기 처리
+    if (curId === 'screen-opening') {
+      if (openingCurrentStep === 4) {
+        openingCurrentStep = 3;
+        typeWriterText(elOpeningText, "꺼내어 보이지 못한 채,<br>응어리진 무언가가 자신을 누르고 있지는 않나요?", function() {
+          if (btnOpeningNext) btnOpeningNext.innerHTML = "다음으로";
+        });
+        updateDevScreenBadge();
+        return;
+      } else if (openingCurrentStep === 3) {
+        openingCurrentStep = 2;
+        typeWriterText(elOpeningText, "저마다의 이유는 다르겠지만,<br>쉽게 털어놓지 못할 고민도 있겠지요.", function() {
+          if (btnOpeningNext) btnOpeningNext.innerHTML = "다음으로";
+        });
+        updateDevScreenBadge();
+        return;
+      } else if (openingCurrentStep === 2) {
+        openingCurrentStep = 1;
+        typeWriterText(elOpeningText, "안녕하세요?<br>지금, 걱정 없는 삶을 살아가고 있나요?", function() {
+          if (btnOpeningNext) btnOpeningNext.innerHTML = "다음으로";
+        });
+        updateDevScreenBadge();
+        return;
+      } else if (openingCurrentStep === 1) {
+        showScreen('screen-intro');
+        return;
+      }
+    }
+
     if (curId === 'screen-survey') {
       if (currentStepIdx === 3) {
         showScreen('screen-survey-bridge');
@@ -639,6 +724,19 @@ document.addEventListener('click', function(e) {
       } else if (currentStepIdx > 0) {
         currentStepIdx--;
         renderSurveyStep();
+        return;
+      } else if (currentStepIdx === 0) {
+        // 설문 첫 번째(이름)에서 이전으로 가면 오프닝 4단계로 이동
+        showScreen('screen-opening');
+        openingCurrentStep = 4;
+        typeWriterText(elOpeningText, "먼저 당신에 대해<br>몇 가지 알아가보고자 합니다.", function() {
+          if (btnOpeningNext) btnOpeningNext.innerHTML = "다음으로";
+          if (elOpeningNextGroup) {
+            elOpeningNextGroup.classList.remove('hidden');
+            elOpeningNextGroup.classList.add('visible');
+          }
+        });
+        updateDevScreenBadge();
         return;
       }
     } else if (curId === 'screen-post-survey-intro') {
@@ -775,6 +873,7 @@ if (btnOpeningNext) {
           requestAnimationFrame(function() { elOpeningNextGroup.classList.add('visible'); });
         }
       });
+      updateDevScreenBadge();
     } else if (openingCurrentStep === 2) {
       // 2번 사진: 꺼내어 보이지 못한 채, / 응어리진 무언가가 자신을 누르고 있지는 않나요?
       openingCurrentStep = 3;
@@ -789,6 +888,7 @@ if (btnOpeningNext) {
           requestAnimationFrame(function() { elOpeningNextGroup.classList.add('visible'); });
         }
       });
+      updateDevScreenBadge();
     } else if (openingCurrentStep === 3) {
       // 3번 사진: 먼저 당신에 대해 / 몇 가지 알아가보고자 합니다.
       openingCurrentStep = 4;
@@ -803,6 +903,7 @@ if (btnOpeningNext) {
           requestAnimationFrame(function() { elOpeningNextGroup.classList.add('visible'); });
         }
       });
+      updateDevScreenBadge();
     } else if (openingCurrentStep === 4) {
       currentStepIdx = 0;
       showScreen('screen-survey');
