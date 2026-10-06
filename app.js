@@ -10,6 +10,7 @@
    - [버그 해결]: 브릿지 화면("마지막 온기를 채울 차례예요") 직후 "다정한 한마디 적기" 화면 정상 렌더링 복원
    - [버그 해결]: 브릿지 함수 중복 선언 제거 및 프리뷰 비행 후 완료 화면 전환 안전장치 추가
    - [신규 추가]: 4번 사진 나비 표본실 실시간 검색 기능 연동
+   - [비율/더듬이 보정]: 원본 1000px 대지 나비도 화면에서 동일한 시각적 크기 및 더듬이 크기로 렌더링
    ========================================================================== */
 
 var ALL_SCREENS = [
@@ -1111,12 +1112,19 @@ function updateHeroPreview() {
   var currentWing = butterflyPathData[selectedButterflyShape] || wingDataset[0];
   var ant = antennaDataset.find(function(a) { return a.id === selectedAntennaType; }) || antennaDataset[0];
 
-  var scale = 140 / Math.max(currentWing.w, currentWing.h);
+  // 🌟 화면에서만 시각적 크기를 맞추는 지능형 프레임 스케일 (원본 데이터 1000px 유지)
+  var isHighRes1000 = Math.max(currentWing.w, currentWing.h) >= 500;
+  var targetBoundSize = isHighRes1000 ? 195 : 140;
+
+  var scale = targetBoundSize / Math.max(currentWing.w, currentWing.h);
   var offsetX = (160 - currentWing.w * scale) / 2;
   var offsetY = (160 - currentWing.h * scale) / 2;
 
   var headTargetX = offsetX + (currentWing.headX * scale);
   var headTargetY = offsetY + (currentWing.headY * scale) + 0.4;
+
+  // 원본 나비의 단위계에 맞게 더듬이 시각적 크기(두께/크기) 정규화
+  var antennaRenderScale = isHighRes1000 ? (scale * 12.0) : (scale * 1.05);
 
   var wingD = currentWing.wingD || currentWing.d;
   var bodyD = currentWing.bodyD || "";
@@ -1133,7 +1141,7 @@ function updateHeroPreview() {
     '<rect x="-50" y="-50" width="260" height="260" fill="rgba(0, 0, 0, 0.75)" mask="url(#butterfly-outside-mask)"/>' +
     (bodyD ? '<g transform="translate(' + offsetX + ', ' + offsetY + ') scale(' + scale + ')"><path d="' + bodyD + '" fill="#ffffff"/></g>' : '') +
     '<g transform="translate(' + headTargetX + ', ' + headTargetY + ')" filter="url(#antenna-subtle-contrast)" color="#ffffff">' +
-      ant.render(scale * 1.05) +
+      ant.render(antennaRenderScale) +
     '</g>';
 }
 
@@ -1630,7 +1638,10 @@ function exportAlignedTexture() {
   }
 
   var currentWing = butterflyPathData[selectedButterflyShape] || wingDataset[0];
-  var heroScale = 140 / Math.max(currentWing.w, currentWing.h);
+  var isHighRes1000 = Math.max(currentWing.w, currentWing.h) >= 500;
+  var targetBoundSize = isHighRes1000 ? 195 : 140;
+
+  var heroScale = targetBoundSize / Math.max(currentWing.w, currentWing.h);
   var heroOffsetX = (160 - currentWing.w * heroScale) / 2;
   var heroOffsetY = (160 - currentWing.h * heroScale) / 2;
 
