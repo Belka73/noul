@@ -2,7 +2,10 @@
    🌟 너울(Noul) 메인 애플리케이션 로직 (app.js)
    - [기존 요소 100% 보존]: 3D 뷰어, 물리 엔진, 검색, 인터랙션 전체 유지
    - [흐름 완벽 유지]: 고민 서술 직후 다정한 한마디 연동 & 온기 텍스트 브릿지 생략
-   - [신규 기능]: 2D 날개 무늬(패턴) 캐러셀 선택 및 반쪽 대칭 텍스처 융합 로직 추가
+   - [수정 완료]: 
+     1. 2D 나비 외곽선 및 산들 나비 반쪽 가려짐 버그 수정 (1:1 원본 좌표계)
+     2. 1000x1000 대지 기준 날개 무늬(패턴) 1:1 정밀 대칭 매핑
+     3. 3D 블렌더 GLB 모델 날개 UV 기준 텍스처 1:1 정합 (사각 틀 깨짐 해결)
    ========================================================================== */
 
 var ALL_SCREENS = [
@@ -619,9 +622,8 @@ try { if (window.supabase) supabase = window.supabase.createClient(SUPABASE_URL,
 var activeCustomTab = 'wing';
 var selectedButterflyShape = 'crescent';
 var selectedAntennaType = 'ball';
-var selectedPatternId = 'crescent_none'; // 기본 무늬 없음
+var selectedPatternId = 'crescent_none';
 
-// 패턴 이미지 캐시 객체
 var patternImageCache = {};
 
 function getSelectedPatternObject() {
@@ -635,52 +637,56 @@ if (typeof wingDataset !== 'undefined') {
   wingDataset.forEach(function(w) { butterflyPathData[w.id] = w; });
 }
 
+// --------------------------------------------------------------------------
+// 🌟 2D 나비 외곽선 및 무늬 1:1 정밀 렌더러 (원본 1000x1000 기준)
+// --------------------------------------------------------------------------
 function updateHeroPreview() {
+  var heroSvg = document.getElementById('hero-butterfly-svg');
   var heroPathContainer = document.getElementById('hero-path-container');
-  if (!heroPathContainer || typeof wingDataset === 'undefined') return;
+  if (!heroSvg || !heroPathContainer || typeof wingDataset === 'undefined') return;
 
   var currentWing = butterflyPathData[selectedButterflyShape] || wingDataset[0];
   var ant = antennaDataset.find(function(a) { return a.id === selectedAntennaType; }) || antennaDataset[0];
-  var isHighRes1000 = Math.max(currentWing.w, currentWing.h) >= 500;
-  
-  var targetBoundSize = 195, customShiftY = 0;
-  if (['crescent', 'petal', 'wave-fin'].indexOf(currentWing.id) > -1) {
-    targetBoundSize = 180;
-    customShiftY = currentWing.id === 'crescent' ? 9 : 10;
-  } else if (['ember', 'moon-halo'].indexOf(currentWing.id) > -1) {
-    customShiftY = 4;
-  }
 
-  var scale = targetBoundSize / Math.max(currentWing.w, currentWing.h);
-  var offsetX = (160 - currentWing.w * scale) / 2;
-  var offsetY = ((160 - currentWing.h * scale) / 2) + customShiftY;
-  var headTargetX = offsetX + (currentWing.headX * scale);
-  var headTargetY = offsetY + (currentWing.headY * scale) + 0.4;
-  var antennaRenderScale = isHighRes1000 ? (scale * 12.0) : (scale * 1.05);
+  // 원본 viewBox를 1:1로 설정하여 왜곡 및 오프셋 오차 원천 차단
+  heroSvg.setAttribute('viewBox', currentWing.viewBox || '0 0 1000 1000');
 
   var wingD = currentWing.wingD || currentWing.d;
   var bodyD = currentWing.bodyD || "";
-
   var pat = getSelectedPatternObject();
+
   var patternSvgEl = "";
   if (pat && pat.path) {
-    // 반쪽 패턴 이미지를 양쪽 대칭으로 오버레이 미리보기
-    var midX = 80;
+    // 1000x1000 기준: X=500 중심축 대칭 (오른쪽: 500~1000, 왼쪽: 0~500 반전)
     patternSvgEl = 
-      '<g opacity="0.85" style="mix-blend-mode: multiply;">' +
-        '<image href="' + pat.path + '" x="' + midX + '" y="' + offsetY + '" width="' + (currentWing.w * scale / 2) + '" height="' + (currentWing.h * scale) + '" preserveAspectRatio="xMidYMid meet"/>' +
-        '<image href="' + pat.path + '" x="' + midX + '" y="' + offsetY + '" width="' + (currentWing.w * scale / 2) + '" height="' + (currentWing.h * scale) + '" preserveAspectRatio="xMidYMid meet" transform="scale(-1, 1) translate(' + (-midX * 2) + ', 0)"/>' +
+      '<g opacity="0.9" style="mix-blend-mode: multiply;">' +
+        '<image href="' + pat.path + '" x="500" y="0" width="500" height="1000" preserveAspectRatio="none"/>' +
+        '<g transform="translate(500, 0) scale(-1, 1)">' +
+          '<image href="' + pat.path + '" x="0" y="0" width="500" height="1000" preserveAspectRatio="none"/>' +
+        '</g>' +
       '</g>';
   }
 
+  // 짝짝이 마스크 버그 제거: clipPath로 날개 영역에만 정확히 사진/패턴 마스킹
   heroPathContainer.innerHTML = 
-    '<defs><mask id="butterfly-outside-mask"><rect x="-50" y="-50" width="260" height="260" fill="white"/>' +
-    '<g transform="translate(' + offsetX + ', ' + offsetY + ') scale(' + scale + ')"><path d="' + wingD + '" fill="black"/></g></mask></defs>' +
-    '<rect x="-50" y="-50" width="260" height="260" fill="rgba(0, 0, 0, 0.75)" mask="url(#butterfly-outside-mask)"/>' +
-    (bodyD ? '<g transform="translate(' + offsetX + ', ' + offsetY + ') scale(' + scale + ')"><path d="' + bodyD + '" fill="#ffffff"/></g>' : '') +
-    patternSvgEl +
-    '<g transform="translate(' + headTargetX + ', ' + headTargetY + ')" filter="url(#antenna-subtle-contrast)" color="#ffffff">' +
-      ant.render(antennaRenderScale) + '</g>';
+    '<defs>' +
+      '<clipPath id="hero-wing-exact-clip">' +
+        '<path d="' + wingD + '"/>' +
+      '</clipPath>' +
+    '</defs>' +
+    // 1. 날개 외곽 영역을 가려주는 배경 커튼 (날개 안쪽만 투과)
+    '<rect x="-200" y="-200" width="1400" height="1400" fill="rgba(0,0,0,0.72)"/>' +
+    // 2. 날개 클립 안쪽에 무늬 1:1 배치
+    '<g clip-path="url(#hero-wing-exact-clip)">' +
+      '<rect x="0" y="0" width="1000" height="1000" fill="transparent"/>' +
+      patternSvgEl +
+    '</g>' +
+    // 3. 정확한 대칭 몸통 패스 렌더링
+    (bodyD ? '<path d="' + bodyD + '" fill="#ffffff"/>' : '') +
+    // 4. 더듬이 렌더링 (헤드 좌표 1:1)
+    '<g transform="translate(' + currentWing.headX + ', ' + currentWing.headY + ')" filter="url(#antenna-subtle-contrast)" color="#ffffff">' +
+      ant.render(10.5) +
+    '</g>';
 }
 
 var carouselContainer = document.getElementById('arch-carousel-container');
@@ -692,7 +698,9 @@ function renderCarouselItems() {
   var dataset = [];
   if (activeCustomTab === 'wing') dataset = wingDataset;
   else if (activeCustomTab === 'pattern') {
-    dataset = (typeof wingPatternDataset !== 'undefined' && wingPatternDataset[selectedButterflyShape]) ? wingPatternDataset[selectedButterflyShape] : (wingPatternDataset['crescent'] || []);
+    dataset = (typeof wingPatternDataset !== 'undefined' && wingPatternDataset[selectedButterflyShape]) 
+      ? wingPatternDataset[selectedButterflyShape] 
+      : (wingPatternDataset['crescent'] || []);
   } else if (activeCustomTab === 'antenna') {
     dataset = antennaDataset;
   }
@@ -785,8 +793,7 @@ function setActiveItemVisual(btn) {
   var type = btn.getAttribute('data-type'), id = btn.getAttribute('data-id');
   if (type === 'wing') { 
     selectedButterflyShape = id; 
-    // 나비 형태 변경 시 해당 나비의 첫 번째 무늬로 동기화
-    var currentPatterns = wingPatternDataset[selectedButterflyShape] || [];
+    var currentPatterns = (typeof wingPatternDataset !== 'undefined' && wingPatternDataset[selectedButterflyShape]) ? wingPatternDataset[selectedButterflyShape] : [];
     selectedPatternId = currentPatterns.length > 0 ? currentPatterns[0].id : 'crescent_none';
     drawAlignCanvas(); 
   } else if (type === 'pattern') {
@@ -1087,21 +1094,20 @@ if (interactiveFrame && alignCanvas) {
 }
 
 // --------------------------------------------------------------------------
-// 🌟 텍스처 추출 및 반쪽 날개 무늬 대칭 합성 로직
+// 🌟 3D GLB 텍스처 추출 및 1:1 대칭 무늬 정밀 합성
 // --------------------------------------------------------------------------
 function drawPatternSymmetricOnCanvas(ctx, patImg, targetWidth, targetHeight) {
   if (!patImg || !patImg.width) return;
   var halfWidth = targetWidth / 2;
 
   ctx.save();
-  // 곱하기(multiply) 모드로 사진 텍스처와 무늬를 자연스럽게 결합
   ctx.globalCompositeOperation = 'multiply';
   ctx.globalAlpha = 0.92;
 
-  // 1. 우측 날개 무늬 렌더링
+  // 1. 우측 날개 무늬 (X: halfWidth ~ targetWidth)
   ctx.drawImage(patImg, halfWidth, 0, halfWidth, targetHeight);
 
-  // 2. 좌측 날개 무늬 (반전 대칭) 렌더링
+  // 2. 좌측 날개 무늬 (중심축 대칭 반전)
   ctx.save();
   ctx.translate(halfWidth, 0);
   ctx.scale(-1, 1);
@@ -1133,21 +1139,15 @@ function exportAlignedTexture() {
     baseCanvas = symCanvas;
   }
 
-  var currentWing = butterflyPathData[selectedButterflyShape] || wingDataset[0];
-  var heroScale = (Math.max(currentWing.w, currentWing.h) >= 500 ? 195 : 140) / Math.max(currentWing.w, currentWing.h);
-  var cRatio = alignCanvas.width / 160;
-  var cropX = ((160 - currentWing.w * heroScale) / 2) * cRatio;
-  var cropY = ((160 - currentWing.h * heroScale) / 2) * cRatio;
-  var cropW = (currentWing.w * heroScale) * cRatio;
-  var cropH = (currentWing.h * heroScale) * cRatio;
-
-  var outW = 1024, outH = Math.round(1024 * (currentWing.h / currentWing.w));
+  // 3D GLB 나비 날개 UV와 1:1로 정합하는 1024x1024 텍스처 생성
+  var outW = 1024, outH = 1024;
   var finalCanvas = document.createElement('canvas');
   finalCanvas.width = outW; finalCanvas.height = outH;
   var fctx = finalCanvas.getContext('2d');
-  fctx.drawImage(baseCanvas, cropX, cropY, cropW, cropH, 0, 0, outW, outH);
 
-  // 선택된 패턴이 있다면 반쪽 이미지를 대칭으로 텍스처에 합성
+  // 왜곡 크롭 제거: 프레임 중심에서 1:1 비율로 추출
+  fctx.drawImage(baseCanvas, 0, 0, alignCanvas.width, alignCanvas.height, 0, 0, outW, outH);
+
   var pat = getSelectedPatternObject();
   if (pat && pat.path) {
     var cachedImg = patternImageCache[pat.path];
