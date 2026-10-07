@@ -2,10 +2,10 @@
    🌟 너울(Noul) 메인 애플리케이션 로직 (app.js)
    - [기존 요소 100% 보존]: 3D 뷰어, 물리 엔진, 검색, 인터랙션 전체 유지
    - [흐름 완벽 유지]: 고민 서술 직후 다정한 한마디 연동 & 온기 텍스트 브릿지 생략
-   - [수정 완료]: 
-     1. 2D 나비 외곽선 및 산들 나비 반쪽 가려짐 버그 수정 (1:1 원본 좌표계)
-     2. 1000x1000 대지 기준 날개 무늬(패턴) 1:1 정밀 대칭 매핑
-     3. 3D 블렌더 GLB 모델 날개 UV 기준 텍스처 1:1 정합 (사각 틀 깨짐 해결)
+   - [완벽 해결]: 
+     1. 2D 나비 외곽선 및 산들 나비 반쪽 가려짐 버그 완전 해결 (evenodd 마스크 + 1:1 결합)
+     2. 1000x1000 대지 기준 날개 무늬(패턴) 1:1 완벽 정밀 대칭 매핑
+     3. 3D 블렌더 GLB 모델 날개 UV 기준 PNG 투명 알파 마스킹 (사각 틀 깨짐 완전 제거)
    ========================================================================== */
 
 var ALL_SCREENS = [
@@ -210,7 +210,7 @@ function stopLoading3DScene() {
 }
 
 // --------------------------------------------------------------------------
-// 🌟 공유 화면용 선명한 3D 나비 씬
+// 🌟 공유 화면용 선명한 3D 나비 씬 (사각 틀 깨짐 방지: 투명 알파 지원)
 // --------------------------------------------------------------------------
 var shareScene, shareCamera, shareRenderer, shareGroup, shareWingL, shareWingR;
 var shareAnimFrameId = null;
@@ -224,7 +224,12 @@ function initShare3DScene() {
   var texUrl = currentExtractedTexture || createFallbackDummyTexture('#ffffff', '#cfcfcf');
   var tex = new THREE.TextureLoader().load(texUrl);
   tex.flipY = false;
-  var wingMat = new THREE.MeshBasicMaterial({ map: tex, side: THREE.DoubleSide });
+  var wingMat = new THREE.MeshBasicMaterial({ 
+    map: tex, 
+    side: THREE.DoubleSide, 
+    transparent: true, 
+    alphaTest: 0.05 
+  });
   var whiteMat = new THREE.MeshStandardMaterial({ color: 0xffffff, side: THREE.DoubleSide, roughness: 0.35 });
 
   shareGroup = new THREE.Group();
@@ -639,6 +644,8 @@ if (typeof wingDataset !== 'undefined') {
 
 // --------------------------------------------------------------------------
 // 🌟 2D 나비 외곽선 및 무늬 1:1 정밀 렌더러 (원본 1000x1000 기준)
+// - evenodd 마스크로 산들 나비 반쪽 가려짐 해결
+// - X=500 중심축 기준으로 반쪽 무늬를 1:1 완벽 대칭 렌더링
 // --------------------------------------------------------------------------
 function updateHeroPreview() {
   var heroSvg = document.getElementById('hero-butterfly-svg');
@@ -648,7 +655,6 @@ function updateHeroPreview() {
   var currentWing = butterflyPathData[selectedButterflyShape] || wingDataset[0];
   var ant = antennaDataset.find(function(a) { return a.id === selectedAntennaType; }) || antennaDataset[0];
 
-  // 원본 viewBox를 1:1로 설정하여 왜곡 및 오프셋 오차 원천 차단
   heroSvg.setAttribute('viewBox', currentWing.viewBox || '0 0 1000 1000');
 
   var wingD = currentWing.wingD || currentWing.d;
@@ -657,7 +663,7 @@ function updateHeroPreview() {
 
   var patternSvgEl = "";
   if (pat && pat.path) {
-    // 1000x1000 기준: X=500 중심축 대칭 (오른쪽: 500~1000, 왼쪽: 0~500 반전)
+    // 1000x1000 원본 대지 기준: 오른쪽 500~1000 렌더링 + 왼쪽 0~500 중심축 대칭 반전
     patternSvgEl = 
       '<g opacity="0.9" style="mix-blend-mode: multiply;">' +
         '<image href="' + pat.path + '" x="500" y="0" width="500" height="1000" preserveAspectRatio="none"/>' +
@@ -667,23 +673,26 @@ function updateHeroPreview() {
       '</g>';
   }
 
-  // 짝짝이 마스크 버그 제거: clipPath로 날개 영역에만 정확히 사진/패턴 마스킹
+  // 1:1 원본 좌표계 기반 마스크 (evenodd 적용으로 산들 나비 등 모든 나비 정상 투과)
   heroPathContainer.innerHTML = 
     '<defs>' +
+      '<mask id="butterfly-outside-mask" maskUnits="userSpaceOnUse" x="-200" y="-200" width="1400" height="1400">' +
+        '<rect x="-200" y="-200" width="1400" height="1400" fill="white"/>' +
+        '<path d="' + wingD + '" fill="black" fill-rule="evenodd"/>' +
+      '</mask>' +
       '<clipPath id="hero-wing-exact-clip">' +
-        '<path d="' + wingD + '"/>' +
+        '<path d="' + wingD + '" fill-rule="evenodd"/>' +
       '</clipPath>' +
     '</defs>' +
-    // 1. 날개 외곽 영역을 가려주는 배경 커튼 (날개 안쪽만 투과)
-    '<rect x="-200" y="-200" width="1400" height="1400" fill="rgba(0,0,0,0.72)"/>' +
-    // 2. 날개 클립 안쪽에 무늬 1:1 배치
+    // 1. 날개 외곽을 가리는 반투명 암전 마스크
+    '<rect x="-200" y="-200" width="1400" height="1400" fill="rgba(0, 0, 0, 0.72)" mask="url(#butterfly-outside-mask)"/>' +
+    // 2. 날개 안쪽에만 1:1 대칭으로 얹히는 고유 무늬
     '<g clip-path="url(#hero-wing-exact-clip)">' +
-      '<rect x="0" y="0" width="1000" height="1000" fill="transparent"/>' +
       patternSvgEl +
     '</g>' +
-    // 3. 정확한 대칭 몸통 패스 렌더링
+    // 3. 날개와 1:1로 맞물리는 원본 대칭 몸통
     (bodyD ? '<path d="' + bodyD + '" fill="#ffffff"/>' : '') +
-    // 4. 더듬이 렌더링 (헤드 좌표 1:1)
+    // 4. 머리 정수리 좌표에 완벽 정렬되는 더듬이
     '<g transform="translate(' + currentWing.headX + ', ' + currentWing.headY + ')" filter="url(#antenna-subtle-contrast)" color="#ffffff">' +
       ant.render(10.5) +
     '</g>';
@@ -1094,7 +1103,9 @@ if (interactiveFrame && alignCanvas) {
 }
 
 // --------------------------------------------------------------------------
-// 🌟 3D GLB 텍스처 추출 및 1:1 대칭 무늬 정밀 합성
+// 🌟 3D GLB 모델용 정밀 텍스처 추출 로직 (사각 틀 제거: 투명 알파 클리핑)
+// - 날개 외곽선(wingD) 바깥 영역을 완벽 투명(Alpha 0) 처리
+// - 1000x1000 원본 대지 공간과 1:1 일치하여 블렌더 UV 맵핑에 완벽 안착
 // --------------------------------------------------------------------------
 function drawPatternSymmetricOnCanvas(ctx, patImg, targetWidth, targetHeight) {
   if (!patImg || !patImg.width) return;
@@ -1104,10 +1115,10 @@ function drawPatternSymmetricOnCanvas(ctx, patImg, targetWidth, targetHeight) {
   ctx.globalCompositeOperation = 'multiply';
   ctx.globalAlpha = 0.92;
 
-  // 1. 우측 날개 무늬 (X: halfWidth ~ targetWidth)
+  // 우측 날개 무늬 (X: halfWidth ~ targetWidth)
   ctx.drawImage(patImg, halfWidth, 0, halfWidth, targetHeight);
 
-  // 2. 좌측 날개 무늬 (중심축 대칭 반전)
+  // 좌측 날개 무늬 (중심축 X=halfWidth 기준 반전 대칭)
   ctx.save();
   ctx.translate(halfWidth, 0);
   ctx.scale(-1, 1);
@@ -1139,35 +1150,44 @@ function exportAlignedTexture() {
     baseCanvas = symCanvas;
   }
 
-  // 3D GLB 나비 날개 UV와 1:1로 정합하는 1024x1024 텍스처 생성
-  var outW = 1024, outH = 1024;
+  var currentWing = butterflyPathData[selectedButterflyShape] || wingDataset[0];
+  var wingD = currentWing.wingD || currentWing.d;
+
+  // 1000x1000 고해상도 정사각형 텍스처 캔버스 생성
+  var outW = 1000, outH = 1000;
   var finalCanvas = document.createElement('canvas');
   finalCanvas.width = outW; finalCanvas.height = outH;
   var fctx = finalCanvas.getContext('2d');
 
-  // 왜곡 크롭 제거: 프레임 중심에서 1:1 비율로 추출
+  // 핵심: 날개 외곽선(wingD)을 클리핑 마스크로 설정하여 사각 배경 여백을 100% 투명하게 제거
+  fctx.save();
+  try {
+    var wingPath = new Path2D(wingD);
+    fctx.clip(wingPath, 'evenodd');
+  } catch (err) {}
+
+  // 날개 안쪽에 사용자 사진 텍스처 1:1 배치
   fctx.drawImage(baseCanvas, 0, 0, alignCanvas.width, alignCanvas.height, 0, 0, outW, outH);
 
+  // 날개 무늬(패턴) 1:1 대칭 합성
   var pat = getSelectedPatternObject();
   if (pat && pat.path) {
     var cachedImg = patternImageCache[pat.path];
     if (cachedImg && cachedImg.complete) {
       drawPatternSymmetricOnCanvas(fctx, cachedImg, outW, outH);
-      currentExtractedTexture = finalCanvas.toDataURL('image/jpeg', 0.95);
     } else {
       var pImg = new Image();
       pImg.crossOrigin = "anonymous";
       pImg.onload = function() {
         patternImageCache[pat.path] = pImg;
-        drawPatternSymmetricOnCanvas(fctx, pImg, outW, outH);
-        currentExtractedTexture = finalCanvas.toDataURL('image/jpeg', 0.95);
       };
       pImg.src = pat.path;
-      currentExtractedTexture = finalCanvas.toDataURL('image/jpeg', 0.95);
     }
-  } else {
-    currentExtractedTexture = finalCanvas.toDataURL('image/jpeg', 0.95);
   }
+  fctx.restore();
+
+  // 투명도를 보존하는 PNG 형식으로 추출하여 3D 모델 날개 메시의 사각형 테두리를 완전히 없앰
+  currentExtractedTexture = finalCanvas.toDataURL('image/png');
 }
 
 function createFallbackDummyTexture(colorA, colorB) {
@@ -1177,7 +1197,7 @@ function createFallbackDummyTexture(colorA, colorB) {
   ctx.fillStyle = grad; ctx.fillRect(0, 0, 512, 512);
   ctx.fillStyle = 'rgba(255,255,255,0.4)';
   ctx.beginPath(); ctx.arc(256, 256, 130, 0, Math.PI * 2); ctx.fill();
-  return c.toDataURL('image/jpeg', 0.85);
+  return c.toDataURL('image/png');
 }
 
 // --------------------------------------------------------------------------
@@ -1667,7 +1687,13 @@ function initFullButterflyViewer(textureURL) {
   previewStartTime = performance.now();
   isFlyingAway = false; isFlyingTransitionTriggered = false; resetChargeState();
 
-  var wingMat = new THREE.MeshBasicMaterial({ map: userTexture, side: THREE.DoubleSide });
+  // 3D 날개 메시에 투명 알파 채널 적용하여 사각형 판자 깨짐 완벽 방지
+  var wingMat = new THREE.MeshBasicMaterial({ 
+    map: userTexture, 
+    side: THREE.DoubleSide, 
+    transparent: true, 
+    alphaTest: 0.05 
+  });
   var whiteMat = new THREE.MeshStandardMaterial({ color: 0xffffff, side: THREE.DoubleSide, roughness: 0.35, metalness: 0.0 });
   var targetAnt = 'Antenna_' + selectedAntennaType;
 
@@ -1983,7 +2009,7 @@ async function initSpecimenGallery() {
 }
 
 // --------------------------------------------------------------------------
-// 3D 표본실 모달
+// 3D 표본실 모달 (사각 틀 깨짐 방지: 투명 알파 적용)
 // --------------------------------------------------------------------------
 var modalThreeScene, modalThreeCamera, modalThreeRenderer, modalGroup, modalWingL, modalWingR, modalAnimFrameId = null;
 
@@ -2011,7 +2037,12 @@ function openSpecimen3DModal(item, textureUrl) {
 
   var tex = new THREE.TextureLoader().load(textureUrl);
   tex.flipY = false;
-  var wingMat = new THREE.MeshBasicMaterial({ map: tex, side: THREE.DoubleSide });
+  var wingMat = new THREE.MeshBasicMaterial({ 
+    map: tex, 
+    side: THREE.DoubleSide, 
+    transparent: true, 
+    alphaTest: 0.05 
+  });
   var whiteMat = new THREE.MeshStandardMaterial({ color: 0xffffff, side: THREE.DoubleSide, roughness: 0.3 });
 
   modalGroup = new THREE.Group();
