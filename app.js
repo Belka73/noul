@@ -1,8 +1,8 @@
 /* ==========================================================================
    🌟 너울(Noul) 메인 애플리케이션 로직 (app.js)
    - [기존 요소 100% 보존]: 3D 뷰어, 물리 엔진, 검색, 인터랙션 전체 유지
-   - [날개 회전 정상화]: 새 GLB 계층구조(Wing_L_*, Wing_R_*) 완벽 타겟팅 및 독립 날갯짓 복구
-   - [패턴 누락 완벽 해결]: 3DButterfly/ 한쪽 날개 무늬 사전 캐싱 및 1:1 합성 보장
+   - [날개 회전 완벽 정상화]: 회전축 교정(Z/X 로컬 힌지)으로 몸통 고정 & 양 날개만 독립 펄럭임 복구
+   - [3D 단일 날개 패턴 매핑]: 3DButterfly/ 한쪽 날개 무늬 1:1 텍스처 정밀 합성 유지
    ========================================================================== */
 
 var ALL_SCREENS = [
@@ -203,7 +203,10 @@ function initLoading3DScene() {
   (function animateLoading() {
     loadingAnimFrameId = requestAnimationFrame(animateLoading);
     var t = clock.getElapsedTime(), flap = Math.sin(t * 7.5) * 0.42;
-    if (loadingWingL && loadingWingR) { loadingWingL.rotation.y = flap; loadingWingR.rotation.y = -flap; }
+    if (loadingWingL && loadingWingR) { 
+      loadingWingL.rotation.y = flap; 
+      loadingWingR.rotation.y = -flap; 
+    }
     loadingGroup.position.y = -0.22 + Math.sin(t * 2.2) * 0.08;
     loadingGroup.rotation.z = 0.35 + Math.sin(t * 1.5) * 0.04;
     loadingRenderer.render(loadingScene, loadingCamera);
@@ -253,7 +256,10 @@ function initShare3DScene() {
   (function animateShare() {
     shareAnimFrameId = requestAnimationFrame(animateShare);
     var t = clock.getElapsedTime(), flap = Math.sin(t * 7.5) * 0.42;
-    if (shareWingL && shareWingR) { shareWingL.rotation.y = flap; shareWingR.rotation.y = -flap; }
+    if (shareWingL && shareWingR) { 
+      shareWingL.rotation.y = flap; 
+      shareWingR.rotation.y = -flap; 
+    }
     shareGroup.position.y = 0.45 + Math.sin(t * 2.2) * 0.08;
     shareGroup.rotation.z = 0.35 + Math.sin(t * 1.5) * 0.04;
     shareRenderer.render(shareScene, shareCamera);
@@ -842,7 +848,7 @@ function setActiveItemVisual(btn) {
     var curObj = getSelectedPatternObject();
     if (curObj && curObj.path) preloadPatternImage(curObj.path);
     preloadSingleWingPattern(selectedButterflyShape, selectedPatternId);
-    drawAlignCanvas();
+    drawAlignCanvas(); 
   } else if (type === 'antenna') { 
     selectedAntennaType = id; 
   }
@@ -1711,7 +1717,6 @@ function initFullButterflyViewer(textureURL) {
         leftWingMesh = null; rightWingMesh = null; antennaMesh = null;
         gltf.scene.traverse(function(child) {
           var n = child.name || '';
-          // 날개 그룹 노드 또는 메쉬를 회전 피벗(leftWingMesh/rightWingMesh)으로 정확히 등록
           if (n.indexOf('Wing_L') > -1) { 
             if (!leftWingMesh) {
               leftWingMesh = child;
@@ -1767,25 +1772,34 @@ function initFullButterflyViewer(textureURL) {
       }
     }
 
-    // 🌟 양 날개 독립 펄럭임 복구 (나비가 통째로 움직이지 않고 날개만 부드럽게 펄럭임)
+    // 🌟 회전축(Z축) 교정: 날개만 몸통 축 기준으로 접히며 펄럭임
     if (!isFlyingAway) {
       if (elapsedSec < 3.6) {
         var progress = Math.min(1.0, elapsedSec / 3.6);
         fullGroup.position.y = -7.0 + 7.0 * (1.0 - Math.pow(1.0 - progress, 3));
         var flap = Math.sin(time * 36.0 * (1.0 - progress * 0.65)) * (0.85 * Math.pow(1.0 - progress, 1.4));
         if (leftWingMesh && rightWingMesh) {
-          leftWingMesh.rotation.y = initialRotL.y + 0.25 + flap; rightWingMesh.rotation.y = initialRotR.y - 0.25 - flap;
+          leftWingMesh.rotation.z = initialRotL.z + flap; 
+          rightWingMesh.rotation.z = initialRotR.z - flap;
+          leftWingMesh.rotation.y = initialRotL.y;
+          rightWingMesh.rotation.y = initialRotR.y;
         }
       } else {
         fullGroup.position.y = 0;
         if (leftWingMesh && rightWingMesh) {
-          leftWingMesh.rotation.y = initialRotL.y + 0.25; rightWingMesh.rotation.y = initialRotR.y - 0.25;
+          leftWingMesh.rotation.z = initialRotL.z; 
+          rightWingMesh.rotation.z = initialRotR.z;
+          leftWingMesh.rotation.y = initialRotL.y;
+          rightWingMesh.rotation.y = initialRotR.y;
         }
       }
     } else {
       var flyAngle = Math.sin(time * 26.0) * 0.75;
       if (leftWingMesh && rightWingMesh) {
-        leftWingMesh.rotation.y = initialRotL.y + 0.28 + flyAngle; rightWingMesh.rotation.y = initialRotR.y - 0.28 - flyAngle;
+        leftWingMesh.rotation.z = initialRotL.z + flyAngle; 
+        rightWingMesh.rotation.z = initialRotR.z - flyAngle;
+        leftWingMesh.rotation.y = initialRotL.y;
+        rightWingMesh.rotation.y = initialRotR.y;
       }
       fullGroup.position.y += 0.09; fullGroup.position.z -= 0.04;
 
@@ -2084,7 +2098,10 @@ function openSpecimen3DModal(item, textureUrl) {
   (function modalAnimate() {
     modalAnimFrameId = requestAnimationFrame(modalAnimate);
     var t = clock.getElapsedTime(), flap = Math.sin(t * 6.5) * 0.45;
-    if (modalWingL && modalWingR) { modalWingL.rotation.y = flap; modalWingR.rotation.y = -flap; }
+    if (modalWingL && modalWingR) { 
+      modalWingL.rotation.z = flap; 
+      modalWingR.rotation.z = -flap; 
+    }
     modalGroup.rotation.y = Math.sin(t * 0.8) * 0.35;
     modalGroup.position.y = -0.35 + Math.sin(t * 2.0) * 0.08;
     modalThreeRenderer.render(modalThreeScene, modalThreeCamera);
