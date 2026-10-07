@@ -10,7 +10,8 @@
    - [버그 해결]: 브릿지 화면("마지막 온기를 채울 차례예요") 직후 "다정한 한마디 적기" 화면 정상 렌더링 복원
    - [버그 해결]: 브릿지 함수 중복 선언 제거 및 프리뷰 비행 후 완료 화면 전환 안전장치 추가
    - [신규 추가]: 4번 사진 나비 표본실 실시간 검색 기능 연동
-   - [정중앙 정렬]: 3D 왜곡 없이 초승/산들/물결 나비와 더듬이만 네모 박스 정중앙 배치
+   - [비율/더듬이 보정]: 원본 1000px 대지 나비도 화면에서 동일한 시각적 크기 및 더듬이 크기로 렌더링
+   - [정중앙 정렬]: 초승/산들/물결 나비 네모 박스 정중앙 높이 미세 보정 적용
    ========================================================================== */
 
 var ALL_SCREENS = [
@@ -309,6 +310,8 @@ function initShare3DScene() {
   shareRenderer = new THREE.WebGLRenderer({ alpha: true, antialias: true });
   shareRenderer.setSize(w, h);
   shareRenderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+  container.appendChild(loadingRenderer ? loadingRenderer.domElement : document.createElement('canvas'));
+  container.innerHTML = '';
   container.appendChild(shareRenderer.domElement);
 
   var amb = new THREE.AmbientLight(0xffffff, 1.05);
@@ -1115,22 +1118,22 @@ function updateHeroPreview() {
   // 🌟 화면에서만 시각적 크기를 맞추는 지능형 프레임 스케일 (원본 데이터 1000px 유지)
   var isHighRes1000 = Math.max(currentWing.w, currentWing.h) >= 500;
   
-  // 초승, 산들, 물결 나비는 더듬이 포함 정중앙 배치를 위해 바운드 크기 및 Y축 오프셋을 자동 적용
+  // 초승, 산들, 물결 나비의 수직 위치를 살짝 위로 올려 네모 박스 정중앙에 시각적으로 안착
   var targetBoundSize = 195;
   var customShiftY = 0;
   if (currentWing.id === 'crescent') {
     targetBoundSize = 180;
-    customShiftY = 16;
+    customShiftY = 9;
   } else if (currentWing.id === 'petal') {
     targetBoundSize = 180;
-    customShiftY = 18;
+    customShiftY = 10;
   } else if (currentWing.id === 'wave-fin') {
     targetBoundSize = 180;
-    customShiftY = 18;
+    customShiftY = 10;
   } else if (currentWing.id === 'ember') {
-    customShiftY = 6;
+    customShiftY = 4;
   } else if (currentWing.id === 'moon-halo') {
-    customShiftY = 6;
+    customShiftY = 4;
   }
 
   var scale = targetBoundSize / Math.max(currentWing.w, currentWing.h);
