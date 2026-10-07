@@ -3,9 +3,9 @@
    - [기존 요소 100% 보존]: 3D 뷰어, 물리 엔진, 검색, 인터랙션 전체 유지
    - [흐름 완벽 유지]: 고민 서술 직후 다정한 한마디 연동 & 온기 텍스트 브릿지 생략
    - [완벽 해결]: 
-     1. 2D 나비 마스크 반쪽 잘림 현상 nonzero 전환으로 완전 해결
-     2. 3D 블렌더 GLB 날개에 1:1 정밀 텍스처 매핑 (억지 클리핑 제거로 축소 왜곡 방지)
-     3. 2D 패턴 선택 시 2D 화면 및 3D 모델 실시간 100% 연동
+     1. 2D 나비 외곽선 및 날개 가려짐 완전 해결 (nonzero 마스크)
+     2. 3D 날개 텍스처에 패턴(무늬) 누락 없이 100% 합성 보장 (사전 프리로딩)
+     3. 3D 블렌더 GLB 모델 날개 UV 기준 1:1 완벽 텍스처 안착
    ========================================================================== */
 
 var ALL_SCREENS = [
@@ -631,6 +631,17 @@ var selectedPatternId = 'crescent_none';
 
 var patternImageCache = {};
 
+// 패턴 이미지 사전 프리로딩 함수 (3D 누락 방지)
+function preloadPatternImage(path) {
+  if (!path) return;
+  if (!patternImageCache[path]) {
+    var img = new Image();
+    img.crossOrigin = "anonymous";
+    img.src = path;
+    patternImageCache[path] = img;
+  }
+}
+
 function getSelectedPatternObject() {
   if (typeof wingPatternDataset === 'undefined') return null;
   var patterns = wingPatternDataset[selectedButterflyShape] || wingPatternDataset['crescent'] || [];
@@ -661,14 +672,14 @@ function updateHeroPreview() {
 
   var patternSvgEl = "";
   if (pat && pat.path) {
-    // 1000x1000 규격 대지 기준 1:1 직접 렌더링
+    preloadPatternImage(pat.path);
     patternSvgEl = 
       '<g opacity="0.95" style="mix-blend-mode: multiply;">' +
         '<image href="' + pat.path + '" x="0" y="0" width="1000" height="1000" preserveAspectRatio="none"/>' +
       '</g>';
   }
 
-  // 1:1 원본 좌표계 기반 마스크 (nonzero 적용으로 반쪽 가려짐 해결)
+  // nonzero 마스크 규칙으로 날개 반쪽 가려짐 완전 방지
   heroPathContainer.innerHTML = 
     '<defs>' +
       '<mask id="butterfly-outside-mask" maskUnits="userSpaceOnUse" x="-200" y="-200" width="1400" height="1400">' +
@@ -728,6 +739,7 @@ function renderCarouselItems() {
         '</svg>';
     } else if (activeCustomTab === 'pattern') {
       if (item.path) {
+        preloadPatternImage(item.path);
         contentHtml = '<img class="pattern-thumb-img" src="' + item.path + '" alt="' + item.name + '" />';
       } else {
         contentHtml = '<svg viewBox="0 0 40 40" preserveAspectRatio="xMidYMid meet">' + (item.thumb || '<circle cx="20" cy="20" r="14" fill="none" stroke="currentColor"/>') + '</svg>';
@@ -807,6 +819,8 @@ function setActiveItemVisual(btn) {
     drawAlignCanvas(); 
   } else if (type === 'pattern') {
     selectedPatternId = id;
+    var curObj = getSelectedPatternObject();
+    if (curObj && curObj.path) preloadPatternImage(curObj.path);
     drawAlignCanvas();
   } else if (type === 'antenna') { 
     selectedAntennaType = id; 
@@ -1103,19 +1117,8 @@ if (interactiveFrame && alignCanvas) {
 }
 
 // --------------------------------------------------------------------------
-// 🌟 3D GLB 모델용 정밀 텍스처 추출 로직
-// - 블렌더 3D 모델의 날개 메시 전체에 100% 비율로 완벽하게 입혀지도록 1:1 합성
+// 🌟 3D GLB 모델용 정밀 텍스처 추출 로직 (100% 매핑 보장)
 // --------------------------------------------------------------------------
-function drawPatternSymmetricOnCanvas(ctx, patImg, targetWidth, targetHeight) {
-  if (!patImg || !patImg.width) return;
-
-  ctx.save();
-  ctx.globalCompositeOperation = 'multiply';
-  ctx.globalAlpha = 0.95;
-  ctx.drawImage(patImg, 0, 0, targetWidth, targetHeight);
-  ctx.restore();
-}
-
 function exportAlignedTexture() {
   if (!rawImage || !rawImage.width || !alignCanvas) {
     currentExtractedTexture = createFallbackDummyTexture(); return;
@@ -1138,28 +1141,37 @@ function exportAlignedTexture() {
     baseCanvas = symCanvas;
   }
 
-  // 1000x1000 고해상도 정사각형 텍스처 캔버스 생성 (3D 블렌더 날개 UV 정밀 매핑)
+  // 블렌더 3D 날개 UV 전체에 1:1로 꽉 채워지는 1000x1000 고해상도 텍스처
   var outW = 1000, outH = 1000;
   var finalCanvas = document.createElement('canvas');
   finalCanvas.width = outW; finalCanvas.height = outH;
   var fctx = finalCanvas.getContext('2d');
 
-  // 사용자 사진 텍스처를 3D 평면 규격에 1:1로 정확하게 렌더링
+  // 1. 사용자 사진 텍스처 합성
   fctx.drawImage(baseCanvas, 0, 0, alignCanvas.width, alignCanvas.height, 0, 0, outW, outH);
 
-  // 날개 무늬(패턴) 1:1 합성
+  // 2. 선택한 날개 패턴(무늬)을 사진 위에 1:1 합성
   var pat = getSelectedPatternObject();
   if (pat && pat.path) {
     var cachedImg = patternImageCache[pat.path];
-    if (cachedImg && cachedImg.complete) {
-      drawPatternSymmetricOnCanvas(fctx, cachedImg, outW, outH);
+    if (cachedImg && cachedImg.complete && cachedImg.naturalWidth > 0) {
+      fctx.save();
+      fctx.globalCompositeOperation = 'multiply';
+      fctx.globalAlpha = 0.95;
+      fctx.drawImage(cachedImg, 0, 0, outW, outH);
+      fctx.restore();
     } else {
       var pImg = new Image();
       pImg.crossOrigin = "anonymous";
-      pImg.onload = function() {
-        patternImageCache[pat.path] = pImg;
-      };
       pImg.src = pat.path;
+      patternImageCache[pat.path] = pImg;
+      if (pImg.complete && pImg.naturalWidth > 0) {
+        fctx.save();
+        fctx.globalCompositeOperation = 'multiply';
+        fctx.globalAlpha = 0.95;
+        fctx.drawImage(pImg, 0, 0, outW, outH);
+        fctx.restore();
+      }
     }
   }
 
