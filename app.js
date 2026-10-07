@@ -1,8 +1,8 @@
 /* ==========================================================================
    🌟 너울(Noul) 메인 애플리케이션 로직 (app.js)
    - [기존 요소 100% 보존]: 3D 뷰어, 물리 엔진, 검색, 인터랙션 전체 유지
-   - [신규 GLB 메쉬 지원]: Wing_L_*, Wing_R_*, Antenna_*_*, Body_* 완벽 매칭
-   - [3D 단일 날개 패턴 매핑]: 3DButterfly/ 한쪽 날개 무늬 1:1 텍스처 정밀 합성
+   - [날개 회전 정상화]: 새 GLB 계층구조(Wing_L_*, Wing_R_*) 완벽 타겟팅 및 독립 날갯짓 복구
+   - [패턴 누락 완벽 해결]: 3DButterfly/ 한쪽 날개 무늬 사전 캐싱 및 1:1 합성 보장
    ========================================================================== */
 
 var ALL_SCREENS = [
@@ -154,23 +154,21 @@ function loadButterflyModel(group, shapeId, antId, wingMat, whiteMat, scale, onL
     var wL = null, wR = null;
 
     model.traverse(function(child) {
-      if (child.isMesh) {
-        var n = child.name;
-        if (n.indexOf('Wing_L') === 0 || n.startsWith('Wing_L')) { 
-          wL = child; 
-          child.material = wingMat; 
-        }
-        else if (n.indexOf('Wing_R') === 0 || n.startsWith('Wing_R')) { 
-          wR = child; 
-          child.material = wingMat; 
-        }
-        else if (n.indexOf('Body') === 0 || n.startsWith('Body')) { 
-          child.material = whiteMat; 
-        }
-        else if (n.indexOf('Antenna_') === 0 || n.startsWith('Antenna_')) { 
-          child.material = whiteMat; 
-          child.visible = n.startsWith(targetAnt); 
-        }
+      var n = child.name || '';
+      if (n.indexOf('Wing_L') > -1) { 
+        if (!wL) wL = child;
+        if (child.isMesh) child.material = wingMat; 
+      }
+      else if (n.indexOf('Wing_R') > -1) { 
+        if (!wR) wR = child;
+        if (child.isMesh) child.material = wingMat; 
+      }
+      else if (n.indexOf('Body') > -1) { 
+        if (child.isMesh) child.material = whiteMat; 
+      }
+      else if (n.indexOf('Antenna_') > -1) { 
+        if (child.isMesh) child.material = whiteMat; 
+        child.visible = n.indexOf(targetAnt) > -1; 
       }
     });
     model.scale.set(scale, scale, scale);
@@ -362,7 +360,7 @@ function ensureDevDummyData() {
   if (!userSelections.core_concern) userSelections.core_concern = userSelections.q2[0];
   if (!userSelections.concern_reason) userSelections.concern_reason = "항상 잘 해내야 한다는 마음이 앞서서요.";
   if (!userSelections.q6_memo) userSelections.q6_memo = "너의 찬란한 날갯짓을 응원해.";
-  if (!currentExtractedTexture) currentExtractedTexture = createFallbackDummyTexture();
+  if (!currentExtractedTexture) exportAlignedTexture();
 }
 
 document.addEventListener('click', function(e) {
@@ -652,6 +650,20 @@ function preloadPatternImage(path) {
   }
 }
 
+// 3D 한쪽 날개 패턴 이미지 사전 캐싱 함수
+function preloadSingleWingPattern(shape, patternId) {
+  if (!patternId || patternId.indexOf('none') > -1) return;
+  var patNum = patternId.split('_')[1] || "1";
+  if (patNum.length === 1) patNum = "0" + patNum;
+  var path = '3DButterfly/wing_pattern_' + shape + '_' + patNum + '.png';
+  if (!patternImageCache[path]) {
+    var img = new Image();
+    img.crossOrigin = "anonymous";
+    img.src = path;
+    patternImageCache[path] = img;
+  }
+}
+
 function getSelectedPatternObject() {
   if (typeof wingPatternDataset === 'undefined') return null;
   var patterns = wingPatternDataset[selectedButterflyShape] || wingPatternDataset['crescent'] || [];
@@ -683,6 +695,7 @@ function updateHeroPreview() {
   var patternSvgEl = "";
   if (pat && pat.path) {
     preloadPatternImage(pat.path);
+    preloadSingleWingPattern(selectedButterflyShape, selectedPatternId);
     patternSvgEl = 
       '<g opacity="0.95" style="mix-blend-mode: multiply;">' +
         '<image href="' + pat.path + '" x="0" y="0" width="1000" height="1000" preserveAspectRatio="none"/>' +
@@ -745,6 +758,7 @@ function renderCarouselItems() {
     } else if (activeCustomTab === 'pattern') {
       if (item.path) {
         preloadPatternImage(item.path);
+        preloadSingleWingPattern(selectedButterflyShape, item.id);
         contentHtml = '<img class="pattern-thumb-img" src="' + item.path + '" alt="' + item.name + '" />';
       } else {
         contentHtml = '<svg viewBox="0 0 40 40" preserveAspectRatio="xMidYMid meet">' + (item.thumb || '<circle cx="20" cy="20" r="14" fill="none" stroke="currentColor"/>') + '</svg>';
@@ -821,11 +835,13 @@ function setActiveItemVisual(btn) {
     selectedButterflyShape = id; 
     var currentPatterns = (typeof wingPatternDataset !== 'undefined' && wingPatternDataset[selectedButterflyShape]) ? wingPatternDataset[selectedButterflyShape] : [];
     selectedPatternId = currentPatterns.length > 0 ? currentPatterns[0].id : 'crescent_none';
+    preloadSingleWingPattern(selectedButterflyShape, selectedPatternId);
     drawAlignCanvas(); 
   } else if (type === 'pattern') {
     selectedPatternId = id;
     var curObj = getSelectedPatternObject();
     if (curObj && curObj.path) preloadPatternImage(curObj.path);
+    preloadSingleWingPattern(selectedButterflyShape, selectedPatternId);
     drawAlignCanvas();
   } else if (type === 'antenna') { 
     selectedAntennaType = id; 
@@ -1122,7 +1138,7 @@ if (interactiveFrame && alignCanvas) {
 }
 
 // --------------------------------------------------------------------------
-// 🌟 3D GLB 모델용 정밀 텍스처 추출 로직 (3DButterfly 폴더 한쪽 날개 패턴 1:1 합성)
+// 🌟 3D GLB 모델용 정밀 텍스처 추출 로직 (한쪽 날개 패턴 1:1 합성)
 // --------------------------------------------------------------------------
 function exportAlignedTexture() {
   if (!rawImage || !rawImage.width || !alignCanvas) {
@@ -1154,9 +1170,9 @@ function exportAlignedTexture() {
   // 1. 사용자 사진 텍스처 합성
   fctx.drawImage(baseCanvas, 0, 0, alignCanvas.width, alignCanvas.height, 0, 0, outW, outH);
 
-  // 2. 3D 나비 날개에 맞는 한쪽 날개 패턴을 3DButterfly/ 에서 찾아 1:1 합성
+  // 2. 3D 나비 날개에 맞는 한쪽 날개 패턴(3DButterfly/) 1:1 합성
   var singleWingPatternPath = null;
-  if (selectedPatternId && selectedPatternId !== 'crescent_none') {
+  if (selectedPatternId && selectedPatternId.indexOf('none') === -1) {
     var patNum = selectedPatternId.split('_')[1] || "1";
     if (patNum.length === 1) patNum = "0" + patNum;
     singleWingPatternPath = '3DButterfly/wing_pattern_' + selectedButterflyShape + '_' + patNum + '.png';
@@ -1694,26 +1710,29 @@ function initFullButterflyViewer(textureURL) {
       new THREE.GLTFLoader().load('3DButterfly/' + selectedButterflyShape + '.glb', function(gltf) {
         leftWingMesh = null; rightWingMesh = null; antennaMesh = null;
         gltf.scene.traverse(function(child) {
-          if (child.isMesh) {
-            var n = child.name;
-            if (n.indexOf('Wing_L') === 0 || n.startsWith('Wing_L')) { 
-              leftWingMesh = child; 
-              child.material = wingMat; 
-              initialRotL = { x: child.rotation.x, y: child.rotation.y, z: child.rotation.z }; 
+          var n = child.name || '';
+          // 날개 그룹 노드 또는 메쉬를 회전 피벗(leftWingMesh/rightWingMesh)으로 정확히 등록
+          if (n.indexOf('Wing_L') > -1) { 
+            if (!leftWingMesh) {
+              leftWingMesh = child;
+              initialRotL = { x: child.rotation.x, y: child.rotation.y, z: child.rotation.z };
             }
-            else if (n.indexOf('Wing_R') === 0 || n.startsWith('Wing_R')) { 
-              rightWingMesh = child; 
-              child.material = wingMat; 
-              initialRotR = { x: child.rotation.x, y: child.rotation.y, z: child.rotation.z }; 
+            if (child.isMesh) child.material = wingMat; 
+          }
+          else if (n.indexOf('Wing_R') > -1) { 
+            if (!rightWingMesh) {
+              rightWingMesh = child;
+              initialRotR = { x: child.rotation.x, y: child.rotation.y, z: child.rotation.z };
             }
-            else if (n.indexOf('Body') === 0 || n.startsWith('Body')) { 
-              child.material = whiteMat; 
-            }
-            else if (n.indexOf('Antenna_') === 0 || n.startsWith('Antenna_')) { 
-              child.material = whiteMat; 
-              child.visible = n.startsWith(targetAnt); 
-              if (child.visible) antennaMesh = child; 
-            }
+            if (child.isMesh) child.material = wingMat; 
+          }
+          else if (n.indexOf('Body') > -1) { 
+            if (child.isMesh) child.material = whiteMat; 
+          }
+          else if (n.indexOf('Antenna_') > -1) { 
+            if (child.isMesh) child.material = whiteMat; 
+            child.visible = n.indexOf(targetAnt) > -1; 
+            if (child.visible) antennaMesh = child; 
           }
         });
         gltf.scene.scale.set(0.76, 0.76, 0.76);
@@ -1748,6 +1767,7 @@ function initFullButterflyViewer(textureURL) {
       }
     }
 
+    // 🌟 양 날개 독립 펄럭임 복구 (나비가 통째로 움직이지 않고 날개만 부드럽게 펄럭임)
     if (!isFlyingAway) {
       if (elapsedSec < 3.6) {
         var progress = Math.min(1.0, elapsedSec / 3.6);
