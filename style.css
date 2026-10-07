@@ -8,6 +8,7 @@
    - [수정 2] 2번 사진: 등이 보이는 3D 회전값, 유기적인 비행, 안정된 기모으기
    - [추가] 로딩 화면 3D 캔버스 블러 및 완성/공유 페이지 스타일
    - [추가 5번] 작성 박스 중앙 배치 및 키워드 알약틀 제거 & 흰색 글로우 단독 표시
+   - [추가 6번] 날개 무늬(패턴) 캐러셀 썸네일 & 탭 스타일 확장
    ========================================================================== */
 
 * {
@@ -527,12 +528,23 @@ html, body {
   transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
   padding: 12px;
   color: #666666;
+  position: relative;
+  overflow: hidden;
 }
 .shape-thumb-btn svg {
   width: 100%;
   height: 100%;
   fill: currentColor;
   stroke: currentColor;
+  transition: all 0.25s ease;
+}
+
+/* 패턴 썸네일 이미지 스타일 */
+.shape-thumb-btn img.pattern-thumb-img {
+  width: 82%;
+  height: 82%;
+  object-fit: contain;
+  filter: invert(1) brightness(0.7);
   transition: all 0.25s ease;
 }
 
@@ -549,6 +561,9 @@ html, body {
   fill: #000000 !important;
   stroke: #000000 !important;
 }
+.shape-thumb-btn.active img.pattern-thumb-img {
+  filter: invert(0) brightness(0.1) !important;
+}
 
 .arch-pill-nav {
   display: inline-flex;
@@ -557,18 +572,19 @@ html, body {
   border: 1px solid rgba(255, 255, 255, 0.15);
   border-radius: 9999px;
   backdrop-blur: 10px;
-  gap: 4px;
+  gap: 3px;
 }
 .deco-pill-btn {
-  padding: 0.45rem 1.15rem;
+  padding: 0.42rem 0.95rem;
   border-radius: 9999px;
-  font-size: 0.8rem;
+  font-size: 0.76rem;
   font-weight: 500;
   color: #888888;
   background: transparent;
   border: none;
   cursor: pointer;
   transition: all 0.2s ease;
+  white-space: nowrap;
 }
 .deco-pill-btn.active-tab {
   background: #ffffff;

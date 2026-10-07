@@ -2,7 +2,7 @@
    🌟 너울(Noul) 메인 애플리케이션 로직 (app.js)
    - [기존 요소 100% 보존]: 3D 뷰어, 물리 엔진, 검색, 인터랙션 전체 유지
    - [흐름 완벽 유지]: 고민 서술 직후 다정한 한마디 연동 & 온기 텍스트 브릿지 생략
-   - [길이 최적화]: 3D 씬/모델 로딩 중복 구조 내부 공통화로 생성 끊김 방지
+   - [신규 기능]: 2D 날개 무늬(패턴) 캐러셀 선택 및 반쪽 대칭 텍스처 융합 로직 추가
    ========================================================================== */
 
 var ALL_SCREENS = [
@@ -619,6 +619,16 @@ try { if (window.supabase) supabase = window.supabase.createClient(SUPABASE_URL,
 var activeCustomTab = 'wing';
 var selectedButterflyShape = 'crescent';
 var selectedAntennaType = 'ball';
+var selectedPatternId = 'crescent_none'; // 기본 무늬 없음
+
+// 패턴 이미지 캐시 객체
+var patternImageCache = {};
+
+function getSelectedPatternObject() {
+  if (typeof wingPatternDataset === 'undefined') return null;
+  var patterns = wingPatternDataset[selectedButterflyShape] || wingPatternDataset['crescent'] || [];
+  return patterns.find(function(p) { return p.id === selectedPatternId; }) || patterns[0] || null;
+}
 
 var butterflyPathData = {};
 if (typeof wingDataset !== 'undefined') {
@@ -651,11 +661,24 @@ function updateHeroPreview() {
   var wingD = currentWing.wingD || currentWing.d;
   var bodyD = currentWing.bodyD || "";
 
+  var pat = getSelectedPatternObject();
+  var patternSvgEl = "";
+  if (pat && pat.path) {
+    // 반쪽 패턴 이미지를 양쪽 대칭으로 오버레이 미리보기
+    var midX = 80;
+    patternSvgEl = 
+      '<g opacity="0.85" style="mix-blend-mode: multiply;">' +
+        '<image href="' + pat.path + '" x="' + midX + '" y="' + offsetY + '" width="' + (currentWing.w * scale / 2) + '" height="' + (currentWing.h * scale) + '" preserveAspectRatio="xMidYMid meet"/>' +
+        '<image href="' + pat.path + '" x="' + midX + '" y="' + offsetY + '" width="' + (currentWing.w * scale / 2) + '" height="' + (currentWing.h * scale) + '" preserveAspectRatio="xMidYMid meet" transform="scale(-1, 1) translate(' + (-midX * 2) + ', 0)"/>' +
+      '</g>';
+  }
+
   heroPathContainer.innerHTML = 
     '<defs><mask id="butterfly-outside-mask"><rect x="-50" y="-50" width="260" height="260" fill="white"/>' +
     '<g transform="translate(' + offsetX + ', ' + offsetY + ') scale(' + scale + ')"><path d="' + wingD + '" fill="black"/></g></mask></defs>' +
     '<rect x="-50" y="-50" width="260" height="260" fill="rgba(0, 0, 0, 0.75)" mask="url(#butterfly-outside-mask)"/>' +
     (bodyD ? '<g transform="translate(' + offsetX + ', ' + offsetY + ') scale(' + scale + ')"><path d="' + bodyD + '" fill="#ffffff"/></g>' : '') +
+    patternSvgEl +
     '<g transform="translate(' + headTargetX + ', ' + headTargetY + ')" filter="url(#antenna-subtle-contrast)" color="#ffffff">' +
       ant.render(antennaRenderScale) + '</g>';
 }
@@ -665,17 +688,38 @@ var carouselContainer = document.getElementById('arch-carousel-container');
 function renderCarouselItems() {
   if (!carouselContainer || typeof wingDataset === 'undefined') return;
   carouselContainer.innerHTML = '';
-  var dataset = (activeCustomTab === 'wing') ? wingDataset : antennaDataset;
+  
+  var dataset = [];
+  if (activeCustomTab === 'wing') dataset = wingDataset;
+  else if (activeCustomTab === 'pattern') {
+    dataset = (typeof wingPatternDataset !== 'undefined' && wingPatternDataset[selectedButterflyShape]) ? wingPatternDataset[selectedButterflyShape] : (wingPatternDataset['crescent'] || []);
+  } else if (activeCustomTab === 'antenna') {
+    dataset = antennaDataset;
+  }
 
   dataset.forEach(function(item) {
-    var isActive = (activeCustomTab === 'wing') ? (item.id === selectedButterflyShape) : (item.id === selectedAntennaType);
+    var isActive = false;
+    if (activeCustomTab === 'wing') isActive = (item.id === selectedButterflyShape);
+    else if (activeCustomTab === 'pattern') isActive = (item.id === selectedPatternId);
+    else if (activeCustomTab === 'antenna') isActive = (item.id === selectedAntennaType);
+
     var div = document.createElement('div');
     div.className = 'arch-track-item';
-    var svgContent = (activeCustomTab === 'wing') 
-      ? '<svg viewBox="' + item.viewBox + '" preserveAspectRatio="xMidYMid meet"><path d="' + item.d + '"/></svg>'
-      : '<svg viewBox="-26 -30 52 38" preserveAspectRatio="xMidYMid meet"><g>' + item.render(1.1) + '</g></svg>';
+    var contentHtml = '';
 
-    div.innerHTML = '<button type="button" class="shape-thumb-btn ' + (isActive ? 'active' : '') + '" data-type="' + activeCustomTab + '" data-id="' + item.id + '">' + svgContent + '</button><span class="shape-item-label text-[11px] ' + (isActive ? 'font-bold text-white' : 'font-medium text-neutral-500') + ' tracking-tight">' + item.name + '</span>';
+    if (activeCustomTab === 'wing') {
+      contentHtml = '<svg viewBox="' + item.viewBox + '" preserveAspectRatio="xMidYMid meet"><path d="' + item.d + '"/></svg>';
+    } else if (activeCustomTab === 'pattern') {
+      if (item.path) {
+        contentHtml = '<img class="pattern-thumb-img" src="' + item.path + '" alt="' + item.name + '" />';
+      } else {
+        contentHtml = '<svg viewBox="0 0 40 40" preserveAspectRatio="xMidYMid meet">' + (item.thumb || '<circle cx="20" cy="20" r="14" fill="none" stroke="currentColor"/>') + '</svg>';
+      }
+    } else if (activeCustomTab === 'antenna') {
+      contentHtml = '<svg viewBox="-26 -30 52 38" preserveAspectRatio="xMidYMid meet"><g>' + item.render(1.1) + '</g></svg>';
+    }
+
+    div.innerHTML = '<button type="button" class="shape-thumb-btn ' + (isActive ? 'active' : '') + '" data-type="' + activeCustomTab + '" data-id="' + item.id + '">' + contentHtml + '</button><span class="shape-item-label text-[11px] ' + (isActive ? 'font-bold text-white' : 'font-medium text-neutral-500') + ' tracking-tight">' + item.name + '</span>';
     carouselContainer.appendChild(div);
   });
 
@@ -739,8 +783,18 @@ function setActiveItemVisual(btn) {
   if (activeTxt) { activeTxt.classList.add('font-bold', 'text-white'); activeTxt.classList.remove('font-medium', 'text-neutral-500'); }
 
   var type = btn.getAttribute('data-type'), id = btn.getAttribute('data-id');
-  if (type === 'wing') { selectedButterflyShape = id; drawAlignCanvas(); }
-  else if (type === 'antenna') { selectedAntennaType = id; }
+  if (type === 'wing') { 
+    selectedButterflyShape = id; 
+    // 나비 형태 변경 시 해당 나비의 첫 번째 무늬로 동기화
+    var currentPatterns = wingPatternDataset[selectedButterflyShape] || [];
+    selectedPatternId = currentPatterns.length > 0 ? currentPatterns[0].id : 'crescent_none';
+    drawAlignCanvas(); 
+  } else if (type === 'pattern') {
+    selectedPatternId = id;
+    drawAlignCanvas();
+  } else if (type === 'antenna') { 
+    selectedAntennaType = id; 
+  }
   updateHeroPreview();
 }
 
@@ -779,6 +833,7 @@ window.addEventListener('resize', function() {
 });
 
 var tabWing = document.getElementById('tab-wing');
+var tabPattern = document.getElementById('tab-pattern');
 var tabAntenna = document.getElementById('tab-antenna');
 var tabBlur = document.getElementById('tab-blur');
 var shapeTitle = document.getElementById('shape-screen-title');
@@ -788,12 +843,24 @@ var carouselStage = document.getElementById('carousel-stage');
 
 function switchTab(tabKey) {
   activeCustomTab = tabKey;
-  [tabWing, tabAntenna, tabBlur].forEach(function(b) { if (b) b.classList.remove('active-tab'); });
-  if (shapeTitle) shapeTitle.innerText = "날개 형태 고르기";
-  if (shapeDesc) shapeDesc.innerHTML = "<strong class='text-white'>[드래그]</strong> 이동, <strong class='text-white'>[두 손가락 핀치]</strong> 확대/축소";
+  [tabWing, tabPattern, tabAntenna, tabBlur].forEach(function(b) { if (b) b.classList.remove('active-tab'); });
+  
+  if (tabKey === 'wing') {
+    if (shapeTitle) shapeTitle.innerText = "날개 형태 고르기";
+    if (shapeDesc) shapeDesc.innerHTML = "<strong class='text-white'>[드래그]</strong> 이동, <strong class='text-white'>[두 손가락 핀치]</strong> 확대/축소";
+  } else if (tabKey === 'pattern') {
+    if (shapeTitle) shapeTitle.innerText = "날개 무늬 고르기";
+    if (shapeDesc) shapeDesc.innerHTML = "원하는 고유 무늬를 선택해 날개에 새겨보세요";
+  } else if (tabKey === 'antenna') {
+    if (shapeTitle) shapeTitle.innerText = "더듬이 모양 고르기";
+    if (shapeDesc) shapeDesc.innerHTML = "나비의 인상을 결정할 더듬이를 선택해 보세요";
+  } else if (tabKey === 'blur') {
+    if (shapeTitle) shapeTitle.innerText = "질감 및 대칭 조정";
+    if (shapeDesc) shapeDesc.innerHTML = "색상의 부드러움과 좌우 대칭을 조절해 보세요";
+  }
 
-  if (tabKey === 'wing' || tabKey === 'antenna') {
-    var activeTabEl = tabKey === 'wing' ? tabWing : tabAntenna;
+  if (tabKey === 'wing' || tabKey === 'pattern' || tabKey === 'antenna') {
+    var activeTabEl = tabKey === 'wing' ? tabWing : (tabKey === 'pattern' ? tabPattern : tabAntenna);
     if (activeTabEl) activeTabEl.classList.add('active-tab');
     if (blurSliderBox) blurSliderBox.classList.add('hidden-slider');
     if (carouselStage) carouselStage.style.display = 'flex';
@@ -806,6 +873,7 @@ function switchTab(tabKey) {
 }
 
 if (tabWing) tabWing.onclick = function() { switchTab('wing'); };
+if (tabPattern) tabPattern.onclick = function() { switchTab('pattern'); };
 if (tabAntenna) tabAntenna.onclick = function() { switchTab('antenna'); };
 if (tabBlur) tabBlur.onclick = function() { switchTab('blur'); };
 
@@ -1018,6 +1086,31 @@ if (interactiveFrame && alignCanvas) {
   window.addEventListener('touchend', function() { isDragging = false; startPinchDist = 0; });
 }
 
+// --------------------------------------------------------------------------
+// 🌟 텍스처 추출 및 반쪽 날개 무늬 대칭 합성 로직
+// --------------------------------------------------------------------------
+function drawPatternSymmetricOnCanvas(ctx, patImg, targetWidth, targetHeight) {
+  if (!patImg || !patImg.width) return;
+  var halfWidth = targetWidth / 2;
+
+  ctx.save();
+  // 곱하기(multiply) 모드로 사진 텍스처와 무늬를 자연스럽게 결합
+  ctx.globalCompositeOperation = 'multiply';
+  ctx.globalAlpha = 0.92;
+
+  // 1. 우측 날개 무늬 렌더링
+  ctx.drawImage(patImg, halfWidth, 0, halfWidth, targetHeight);
+
+  // 2. 좌측 날개 무늬 (반전 대칭) 렌더링
+  ctx.save();
+  ctx.translate(halfWidth, 0);
+  ctx.scale(-1, 1);
+  ctx.drawImage(patImg, 0, 0, halfWidth, targetHeight);
+  ctx.restore();
+
+  ctx.restore();
+}
+
 function exportAlignedTexture() {
   if (!rawImage || !rawImage.width || !alignCanvas) {
     currentExtractedTexture = createFallbackDummyTexture(); return;
@@ -1051,8 +1144,30 @@ function exportAlignedTexture() {
   var outW = 1024, outH = Math.round(1024 * (currentWing.h / currentWing.w));
   var finalCanvas = document.createElement('canvas');
   finalCanvas.width = outW; finalCanvas.height = outH;
-  finalCanvas.getContext('2d').drawImage(baseCanvas, cropX, cropY, cropW, cropH, 0, 0, outW, outH);
-  currentExtractedTexture = finalCanvas.toDataURL('image/jpeg', 0.95);
+  var fctx = finalCanvas.getContext('2d');
+  fctx.drawImage(baseCanvas, cropX, cropY, cropW, cropH, 0, 0, outW, outH);
+
+  // 선택된 패턴이 있다면 반쪽 이미지를 대칭으로 텍스처에 합성
+  var pat = getSelectedPatternObject();
+  if (pat && pat.path) {
+    var cachedImg = patternImageCache[pat.path];
+    if (cachedImg && cachedImg.complete) {
+      drawPatternSymmetricOnCanvas(fctx, cachedImg, outW, outH);
+      currentExtractedTexture = finalCanvas.toDataURL('image/jpeg', 0.95);
+    } else {
+      var pImg = new Image();
+      pImg.crossOrigin = "anonymous";
+      pImg.onload = function() {
+        patternImageCache[pat.path] = pImg;
+        drawPatternSymmetricOnCanvas(fctx, pImg, outW, outH);
+        currentExtractedTexture = finalCanvas.toDataURL('image/jpeg', 0.95);
+      };
+      pImg.src = pat.path;
+      currentExtractedTexture = finalCanvas.toDataURL('image/jpeg', 0.95);
+    }
+  } else {
+    currentExtractedTexture = finalCanvas.toDataURL('image/jpeg', 0.95);
+  }
 }
 
 function createFallbackDummyTexture(colorA, colorB) {
@@ -1503,7 +1618,7 @@ async function saveButterflyToSupabase() {
   try {
     specimenButterfliesData.unshift({
       id: Date.now(), name: userSelections.q7_name || '나비',
-      wingId: selectedButterflyShape, antId: selectedAntennaType, q1: [],
+      wingId: selectedButterflyShape, antId: selectedAntennaType, patternId: selectedPatternId, q1: [],
       core_concern: userSelections.core_concern || (userSelections.q2 && userSelections.q2[0]) || "",
       memo: userSelections.q6_memo || '', textureUrl: currentExtractedTexture,
       date: new Date().toISOString().slice(0, 10).replace(/-/g, '. ')
