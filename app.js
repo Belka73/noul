@@ -1,42 +1,20 @@
 /* ==========================================================================
    🌟 너울(Noul) 메인 애플리케이션 로직 (app.js)
-   - [DEV 완벽 복원]: 브라우저 전역 클릭 위임 라우터
-   - [로딩 화면]: 사용자가 선택한 3D 나비 순백색(패턴 미적용) + 살짝 왼쪽 아래 이동 + 30초 로딩
-   - [완료 화면]: 타이핑 완료 후 2초 후 자동 이동
-   - [공유 화면]: 상단/중앙에 선명한 3D 나비 + 문장 및 공유 버튼 바
-   - [대사/흐름 수정]: 1번, 2번, 3번, 4번 이후 신규 화면, 5번 키워드 글로우 단독 표시 반영
-   - [수정 완료]: 마음속 진입 브릿지(2번 사진) 이후 '고민 다중 선택 알약 화면' 정상 연동
-   - [수정 완료]: 1번 사진(이유 작성) 직후 '당신에 대해 잘 알게 됐어요...' 브릿지 화면 연동
-   - [버그 해결]: 브릿지 화면("마지막 온기를 채울 차례예요") 직후 "다정한 한마디 적기" 화면 정상 렌더링 복원
-   - [버그 해결]: 브릿지 함수 중복 선언 제거 및 프리뷰 비행 후 완료 화면 전환 안전장치 추가
-   - [신규 추가]: 4번 사진 나비 표본실 실시간 검색 기능 연동
-   - [비율/더듬이 보정]: 원본 1000px 대지 나비도 화면에서 동일한 시각적 크기 및 더듬이 크기로 렌더링
-   - [정중앙 정렬]: 초승/산들/물결 나비 네모 박스 정중앙 높이 미세 보정 적용
-   - [요청 삭제]: 성향 선택 화면, 오프닝 4단계 문구, 마음속 진입 브릿지 삭제
+   - [기존 요소 100% 보존]: 3D 뷰어, 물리 엔진, 검색, 인터랙션 전체 유지
+   - [흐름 완벽 유지]: 고민 서술 직후 다정한 한마디 연동 & 온기 텍스트 브릿지 생략
+   - [길이 최적화]: 3D 씬/모델 로딩 중복 구조 내부 공통화로 생성 끊김 방지
    ========================================================================== */
 
 var ALL_SCREENS = [
-  'screen-cover',
-  'screen-menu',
-  'screen-gallery',
-  'screen-intro',
-  'screen-opening',
-  'screen-survey',
-  'screen-survey-core-concern',
-  'screen-survey-concern-reason',
-  'screen-post-concern-bridge',
-  'screen-capture-guide',
-  'screen-shape-select',
-  'screen-survey-bridge',
-  'screen-loading',
-  'screen-preview',
-  'screen-complete',
-  'screen-share'
+  'screen-cover', 'screen-menu', 'screen-gallery', 'screen-intro',
+  'screen-opening', 'screen-survey', 'screen-survey-core-concern',
+  'screen-survey-concern-reason', 'screen-post-concern-bridge',
+  'screen-capture-guide', 'screen-shape-select', 'screen-survey-bridge',
+  'screen-loading', 'screen-preview', 'screen-complete', 'screen-share'
 ];
 
-// DEV 네비게이션 및 전역 상태 변수
 var showcaseInterval = null;
-var currentStepIdx = 0; // 0: 이름, 1: 고민다중, 2: 위로메모
+var currentStepIdx = 0; // 0: 이름, 1: 고민다중, 2: 다정한한마디
 var userSelections = { q1: [], q2: [], q1_custom: "", q2_custom: "", core_concern: "", concern_reason: "", q6_memo: "", q7_name: "" };
 
 var completeTypeTimer = null;
@@ -45,6 +23,11 @@ var autoTransitionTimer = null;
 var reasonTypeTimer = null;
 var postConcernTypeTimer = null;
 var flightSafetyTimer = null;
+var typeTimer = null;
+var guideTypeTimer = null;
+var surveyTitleTypeTimer = null;
+var coreConcernTypeTimer = null;
+var openingDelayTimer = null;
 
 function clearAllTimers() {
   clearTimeout(typeTimer);
@@ -63,80 +46,41 @@ function clearAllTimers() {
 
 function showScreen(screenId) {
   clearAllTimers();
-
-  document.querySelectorAll('.screen').forEach(function(s) {
-    s.classList.remove('active');
-  });
+  document.querySelectorAll('.screen').forEach(function(s) { s.classList.remove('active'); });
 
   var target = document.getElementById(screenId);
   if (target) {
     target.classList.add('active');
     try {
       if (screenId === 'screen-cover') {
-        stopBubblePhysics();
-        stopLoading3DScene();
-        stopShare3DScene();
+        stopBubblePhysics(); stopLoading3DScene(); stopShare3DScene();
       } else if (screenId === 'screen-opening') {
-        stopBubblePhysics();
-        stopLoading3DScene();
-        stopShare3DScene();
-        resetOpeningFlow();
+        stopBubblePhysics(); stopLoading3DScene(); stopShare3DScene(); resetOpeningFlow();
       } else if (screenId === 'screen-survey') {
-        stopLoading3DScene();
-        stopShare3DScene();
-        renderSurveyStep();
+        stopLoading3DScene(); stopShare3DScene(); renderSurveyStep();
       } else if (screenId === 'screen-survey-core-concern') {
-        stopBubblePhysics();
-        stopLoading3DScene();
-        stopShare3DScene();
-        initCoreConcernScreen();
+        stopBubblePhysics(); stopLoading3DScene(); stopShare3DScene(); initCoreConcernScreen();
       } else if (screenId === 'screen-survey-concern-reason') {
-        stopBubblePhysics();
-        stopLoading3DScene();
-        stopShare3DScene();
-        initConcernReasonScreen();
+        stopBubblePhysics(); stopLoading3DScene(); stopShare3DScene(); initConcernReasonScreen();
       } else if (screenId === 'screen-post-concern-bridge') {
-        stopBubblePhysics();
-        stopLoading3DScene();
-        stopShare3DScene();
-        initPostConcernBridgeScreen();
+        stopBubblePhysics(); stopLoading3DScene(); stopShare3DScene(); initPostConcernBridgeScreen();
       } else if (screenId === 'screen-capture-guide') {
-        stopBubblePhysics();
-        stopLoading3DScene();
-        stopShare3DScene();
-        startCaptureGuideCinematicFlow();
+        stopBubblePhysics(); stopLoading3DScene(); stopShare3DScene(); startCaptureGuideCinematicFlow();
       } else if (screenId === 'screen-shape-select') {
-        stopBubblePhysics();
-        stopLoading3DScene();
-        stopShare3DScene();
-        switchTab('wing');
-        updateHeroPreview();
-        drawAlignCanvas();
+        stopBubblePhysics(); stopLoading3DScene(); stopShare3DScene();
+        switchTab('wing'); updateHeroPreview(); drawAlignCanvas();
       } else if (screenId === 'screen-gallery') {
-        stopBubblePhysics();
-        stopLoading3DScene();
-        stopShare3DScene();
-        initSpecimenGallery();
+        stopBubblePhysics(); stopLoading3DScene(); stopShare3DScene(); initSpecimenGallery();
       } else if (screenId === 'screen-survey-bridge') {
-        stopBubblePhysics();
-        stopLoading3DScene();
-        stopShare3DScene();
-        playBridgeTypingSequence();
+        stopBubblePhysics(); stopLoading3DScene(); stopShare3DScene(); playBridgeTypingSequence();
       } else if (screenId === 'screen-loading') {
-        stopBubblePhysics();
-        stopShare3DScene();
+        stopBubblePhysics(); stopShare3DScene();
       } else if (screenId === 'screen-complete') {
-        stopLoading3DScene();
-        stopShare3DScene();
-        playCompleteScreenSequence();
+        stopLoading3DScene(); stopShare3DScene(); playCompleteScreenSequence();
       } else if (screenId === 'screen-share') {
-        stopLoading3DScene();
-        initShare3DScene();
-        playShareScreenSequence();
+        stopLoading3DScene(); initShare3DScene(); playShareScreenSequence();
       } else {
-        stopBubblePhysics();
-        stopLoading3DScene();
-        stopShare3DScene();
+        stopBubblePhysics(); stopLoading3DScene(); stopShare3DScene();
       }
     } catch(e) {
       console.warn("화면 진입 시각효과 경고:", e);
@@ -145,21 +89,14 @@ function showScreen(screenId) {
   updateDevScreenBadge();
 }
 
-// 검은색 페이드 인/아웃 전환 헬퍼 함수
 function transitionToScreenWithFade(targetScreenId) {
   var curtain = document.getElementById('cinematic-transition-curtain');
-  if (!curtain) {
-    showScreen(targetScreenId);
-    return;
-  }
-
+  if (!curtain) { showScreen(targetScreenId); return; }
   curtain.classList.add('active-curtain');
   setTimeout(function() {
     showScreen(targetScreenId);
     requestAnimationFrame(function() {
-      setTimeout(function() {
-        curtain.classList.remove('active-curtain');
-      }, 50);
+      setTimeout(function() { curtain.classList.remove('active-curtain'); }, 50);
     });
   }, 320);
 }
@@ -169,246 +106,169 @@ function updateDevScreenBadge() {
   if (!badge) return;
   var activeScreen = document.querySelector('.screen.active');
   var name = activeScreen ? activeScreen.id : 'none';
-  if (name === 'screen-opening') {
-    name += ' (' + openingCurrentStep + '/3: 오프닝대사)';
-  } else if (name === 'screen-survey') {
+  if (name === 'screen-opening') name += ' (' + openingCurrentStep + '/3: 오프닝대사)';
+  else if (name === 'screen-survey') {
     if (currentStepIdx === 0) name += ' (1/3: 이름)';
     else if (currentStepIdx === 1) name += ' (2/3: 고민선택)';
-    else if (currentStepIdx === 2) name += ' (3/3: 위로메모)';
-  } else if (name === 'screen-survey-core-concern') {
-    name += ' (핵심고민)';
-  } else if (name === 'screen-survey-concern-reason') {
-    name += ' (고민이유)';
-  } else if (name === 'screen-post-concern-bridge') {
-    name += ' (나비전환브릿지)';
-  } else if (name === 'screen-survey-bridge') {
-    name += ' (온기충전브릿지)';
-  }
+    else if (currentStepIdx === 2) name += ' (3/3: 다정한한마디)';
+  } else if (name === 'screen-survey-core-concern') name += ' (핵심고민)';
+  else if (name === 'screen-survey-concern-reason') name += ' (고민이유)';
+  else if (name === 'screen-post-concern-bridge') name += ' (나비전환브릿지)';
   badge.innerText = '화면: ' + name;
+}
+
+// --------------------------------------------------------------------------
+// 3D 나비 내부 공통 생성 헬퍼 함수
+// --------------------------------------------------------------------------
+function setupCommon3DScene(container, camZ, lookY) {
+  if (!container || !window.THREE) return null;
+  container.innerHTML = '';
+  var w = container.clientWidth || window.innerWidth;
+  var h = container.clientHeight || window.innerHeight;
+  var scene = new THREE.Scene();
+  var camera = new THREE.PerspectiveCamera(40, w / h, 0.1, 100);
+  camera.position.set(0, 0, camZ || 7.5);
+  camera.lookAt(0, lookY || 0, 0);
+
+  var renderer = new THREE.WebGLRenderer({ alpha: true, antialias: true });
+  renderer.setSize(w, h);
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+  container.appendChild(renderer.domElement);
+
+  var amb = new THREE.AmbientLight(0xffffff, 1.0);
+  scene.add(amb);
+  var dir = new THREE.DirectionalLight(0xffffff, 0.9);
+  dir.position.set(3, 6, 8);
+  scene.add(dir);
+
+  return { scene: scene, camera: camera, renderer: renderer };
+}
+
+function loadButterflyModel(group, shapeId, antId, wingMat, whiteMat, scale, onLoaded) {
+  if (!window.THREE || !THREE.GLTFLoader) return;
+  var modelPath = '3DButterfly/' + (shapeId || 'crescent') + '.glb';
+  var targetAnt = 'Antenna_' + (antId || 'ball');
+
+  new THREE.GLTFLoader().load(modelPath, function(gltf) {
+    var model = gltf.scene;
+    var wL = null, wR = null;
+    model.traverse(function(child) {
+      if (child.isMesh) {
+        var n = child.name;
+        if (n.startsWith('Wing_L')) { wL = child; child.material = wingMat; }
+        else if (n.startsWith('Wing_R')) { wR = child; child.material = wingMat; }
+        else if (n.startsWith('Body')) { child.material = whiteMat; }
+        else if (n.startsWith('Antenna_')) { child.material = whiteMat; child.visible = n.startsWith(targetAnt); }
+      }
+    });
+    model.scale.set(scale, scale, scale);
+    group.add(model);
+    if (onLoaded) onLoaded(wL, wR);
+  }, undefined, function() {});
 }
 
 // --------------------------------------------------------------------------
 // 🌟 로딩 화면용 3D 블러 나비 씬
 // --------------------------------------------------------------------------
-var loadingScene, loadingCamera, loadingRenderer, loadingGroup;
-var loadingWingL, loadingWingR;
+var loadingScene, loadingCamera, loadingRenderer, loadingGroup, loadingWingL, loadingWingR;
 var loadingAnimFrameId = null;
 
 function initLoading3DScene() {
   stopLoading3DScene();
-  var container = document.getElementById('loading-three-container');
-  if (!container || !window.THREE) return;
-  container.innerHTML = '';
-
-  var w = window.innerWidth;
-  var h = window.innerHeight;
-
-  loadingScene = new THREE.Scene();
-  loadingCamera = new THREE.PerspectiveCamera(40, w / h, 0.1, 100);
-  loadingCamera.position.set(0, 0, 7.5);
-  loadingCamera.lookAt(0, 0, 0);
-
-  loadingRenderer = new THREE.WebGLRenderer({ alpha: true, antialias: true });
-  loadingRenderer.setSize(w, h);
-  loadingRenderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-  container.appendChild(loadingRenderer.domElement);
-
-  var amb = new THREE.AmbientLight(0xffffff, 1.0);
-  loadingScene.add(amb);
-  var dir = new THREE.DirectionalLight(0xffffff, 0.9);
-  dir.position.set(3, 6, 8);
-  loadingScene.add(dir);
+  var res = setupCommon3DScene(document.getElementById('loading-three-container'), 7.5, 0);
+  if (!res) return;
+  loadingScene = res.scene; loadingCamera = res.camera; loadingRenderer = res.renderer;
 
   var whiteMat = new THREE.MeshStandardMaterial({ color: 0xffffff, side: THREE.DoubleSide, roughness: 0.35 });
-
-  var shapeId = selectedButterflyShape || 'crescent';
-  var antId = selectedAntennaType || 'ball';
-  var modelPath = '3DButterfly/' + shapeId + '.glb';
-  var targetAntennaPrefix = 'Antenna_' + antId;
-
   loadingGroup = new THREE.Group();
   loadingGroup.rotation.set(0.25, -0.8, 0.35);
   loadingGroup.position.set(-0.28, -0.22, 0);
 
-  if (window.THREE && THREE.GLTFLoader) {
-    try {
-      new THREE.GLTFLoader().load(modelPath, function(gltf) {
-        var model = gltf.scene;
-        loadingWingL = null; loadingWingR = null;
-
-        model.traverse(function(child) {
-          if (child.isMesh) {
-            var name = child.name;
-            if (name.startsWith('Wing_L')) { loadingWingL = child; child.material = whiteMat; }
-            else if (name.startsWith('Wing_R')) { loadingWingR = child; child.material = whiteMat; }
-            else if (name.startsWith('Body')) { child.material = whiteMat; }
-            else if (name.startsWith('Antenna_')) { child.material = whiteMat; child.visible = name.startsWith(targetAntennaPrefix); }
-          }
-        });
-
-        model.scale.set(0.95, 0.95, 0.95);
-        loadingGroup.add(model);
-      }, undefined, function() {});
-    } catch(err) {}
-  }
-
+  loadButterflyModel(loadingGroup, selectedButterflyShape, selectedAntennaType, whiteMat, whiteMat, 0.95, function(l, r) {
+    loadingWingL = l; loadingWingR = r;
+  });
   loadingScene.add(loadingGroup);
+
   var clock = new THREE.Clock();
-
-  function animateLoading() {
+  (function animateLoading() {
     loadingAnimFrameId = requestAnimationFrame(animateLoading);
-    var t = clock.getElapsedTime();
-    var flap = Math.sin(t * 7.5) * 0.42;
-
-    if (loadingWingL && loadingWingR) {
-      loadingWingL.rotation.y = flap;
-      loadingWingR.rotation.y = -flap;
-    }
+    var t = clock.getElapsedTime(), flap = Math.sin(t * 7.5) * 0.42;
+    if (loadingWingL && loadingWingR) { loadingWingL.rotation.y = flap; loadingWingR.rotation.y = -flap; }
     loadingGroup.position.y = -0.22 + Math.sin(t * 2.2) * 0.08;
     loadingGroup.rotation.z = 0.35 + Math.sin(t * 1.5) * 0.04;
-
     loadingRenderer.render(loadingScene, loadingCamera);
-  }
-  animateLoading();
+  })();
 }
 
 function stopLoading3DScene() {
-  if (loadingAnimFrameId) {
-    cancelAnimationFrame(loadingAnimFrameId);
-    loadingAnimFrameId = null;
-  }
-  var container = document.getElementById('loading-three-container');
-  if (container) container.innerHTML = '';
+  if (loadingAnimFrameId) { cancelAnimationFrame(loadingAnimFrameId); loadingAnimFrameId = null; }
+  var c = document.getElementById('loading-three-container');
+  if (c) c.innerHTML = '';
 }
 
 // --------------------------------------------------------------------------
 // 🌟 공유 화면용 선명한 3D 나비 씬
 // --------------------------------------------------------------------------
-var shareScene, shareCamera, shareRenderer, shareGroup;
-var shareWingL, shareWingR;
+var shareScene, shareCamera, shareRenderer, shareGroup, shareWingL, shareWingR;
 var shareAnimFrameId = null;
 
 function initShare3DScene() {
   stopShare3DScene();
-  var container = document.getElementById('share-three-container');
-  if (!container || !window.THREE) return;
-  container.innerHTML = '';
-
-  var w = window.innerWidth;
-  var h = window.innerHeight;
-
-  shareScene = new THREE.Scene();
-  shareCamera = new THREE.PerspectiveCamera(40, w / h, 0.1, 100);
-  shareCamera.position.set(0, 0, 7.5);
-  shareCamera.lookAt(0, 0, 0);
-
-  shareRenderer = new THREE.WebGLRenderer({ alpha: true, antialias: true });
-  shareRenderer.setSize(w, h);
-  shareRenderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-  container.appendChild(loadingRenderer ? loadingRenderer.domElement : document.createElement('canvas'));
-  container.innerHTML = '';
-  container.appendChild(shareRenderer.domElement);
-
-  var amb = new THREE.AmbientLight(0xffffff, 1.05);
-  shareScene.add(amb);
-  var dir = new THREE.DirectionalLight(0xffffff, 0.9);
-  dir.position.set(3, 6, 8);
-  shareScene.add(dir);
+  var res = setupCommon3DScene(document.getElementById('share-three-container'), 7.5, 0);
+  if (!res) return;
+  shareScene = res.scene; shareCamera = res.camera; shareRenderer = res.renderer;
 
   var texUrl = currentExtractedTexture || createFallbackDummyTexture('#ffffff', '#cfcfcf');
   var tex = new THREE.TextureLoader().load(texUrl);
   tex.flipY = false;
-
   var wingMat = new THREE.MeshBasicMaterial({ map: tex, side: THREE.DoubleSide });
   var whiteMat = new THREE.MeshStandardMaterial({ color: 0xffffff, side: THREE.DoubleSide, roughness: 0.35 });
-
-  var shapeId = selectedButterflyShape || 'crescent';
-  var antId = selectedAntennaType || 'ball';
-  var modelPath = '3DButterfly/' + shapeId + '.glb';
-  var targetAntennaPrefix = 'Antenna_' + antId;
 
   shareGroup = new THREE.Group();
   shareGroup.rotation.set(0.25, -0.8, 0.35);
   shareGroup.position.set(0, 0.45, 0);
 
-  if (window.THREE && THREE.GLTFLoader) {
-    try {
-      new THREE.GLTFLoader().load(modelPath, function(gltf) {
-        var model = gltf.scene;
-        shareWingL = null; shareWingR = null;
-
-        model.traverse(function(child) {
-          if (child.isMesh) {
-            var name = child.name;
-            if (name.startsWith('Wing_L')) { shareWingL = child; child.material = wingMat; }
-            else if (name.startsWith('Wing_R')) { shareWingR = child; child.material = wingMat; }
-            else if (name.startsWith('Body')) { child.material = whiteMat; }
-            else if (name.startsWith('Antenna_')) { child.material = whiteMat; child.visible = name.startsWith(targetAntennaPrefix); }
-          }
-        });
-
-        model.scale.set(0.68, 0.68, 0.68);
-        shareGroup.add(model);
-      }, undefined, function() {});
-    } catch(err) {}
-  }
-
+  loadButterflyModel(shareGroup, selectedButterflyShape, selectedAntennaType, wingMat, whiteMat, 0.68, function(l, r) {
+    shareWingL = l; shareWingR = r;
+  });
   shareScene.add(shareGroup);
+
   var clock = new THREE.Clock();
-
-  function animateShare() {
+  (function animateShare() {
     shareAnimFrameId = requestAnimationFrame(animateShare);
-    var t = clock.getElapsedTime();
-    var flap = Math.sin(t * 7.5) * 0.42;
-
-    if (shareWingL && shareWingR) {
-      shareWingL.rotation.y = flap;
-      shareWingR.rotation.y = -flap;
-    }
+    var t = clock.getElapsedTime(), flap = Math.sin(t * 7.5) * 0.42;
+    if (shareWingL && shareWingR) { shareWingL.rotation.y = flap; shareWingR.rotation.y = -flap; }
     shareGroup.position.y = 0.45 + Math.sin(t * 2.2) * 0.08;
     shareGroup.rotation.z = 0.35 + Math.sin(t * 1.5) * 0.04;
-
     shareRenderer.render(shareScene, shareCamera);
-  }
-  animateShare();
+  })();
 }
 
 function stopShare3DScene() {
-  if (shareAnimFrameId) {
-    cancelAnimationFrame(shareAnimFrameId);
-    shareAnimFrameId = null;
-  }
-  var container = document.getElementById('share-three-container');
-  if (container) container.innerHTML = '';
+  if (shareAnimFrameId) { cancelAnimationFrame(shareAnimFrameId); shareAnimFrameId = null; }
+  var c = document.getElementById('share-three-container');
+  if (c) c.innerHTML = '';
 }
 
 // --------------------------------------------------------------------------
-// 🌟 로딩 진행바 시퀀스
+// 로딩 진행바 시퀀스
 // --------------------------------------------------------------------------
 function startAnswerShowcaseSequence() {
   if (showcaseInterval) { clearInterval(showcaseInterval); showcaseInterval = null; }
-  
   initLoading3DScene();
 
-  var pBar = document.getElementById('generation-progress-bar');
-  var progress = 0;
+  var pBar = document.getElementById('generation-progress-bar'), progress = 0;
   if (pBar) pBar.style.width = '0%';
-
-  var intervalDelay = 100;
-  var stepIncrease = 100 / (30000 / intervalDelay);
+  var intervalDelay = 100, stepIncrease = 100 / (30000 / intervalDelay);
 
   showcaseInterval = setInterval(function() {
     progress += stepIncrease;
     if (pBar) pBar.style.width = Math.min(100, progress) + '%';
-
     if (progress >= 100) {
-      clearInterval(showcaseInterval);
-      showcaseInterval = null;
-
+      clearInterval(showcaseInterval); showcaseInterval = null;
       setTimeout(function() {
         var whiteFlash = document.getElementById('cinematic-white-flash');
         if (whiteFlash) whiteFlash.classList.add('flash-active');
-
         setTimeout(function() {
           stopLoading3DScene();
           var butterflyName = userSelections.q7_name ? userSelections.q7_name.trim() : "나비";
@@ -418,16 +278,11 @@ function startAnswerShowcaseSequence() {
           var guideText = document.getElementById('preview-guide-text');
           if (guideText) {
             guideText.innerText = userSelections.q6_memo && userSelections.q6_memo.trim().length > 0 
-              ? userSelections.q6_memo.trim() 
-              : "너의 찬란한 날갯짓을 응원해.";
+              ? userSelections.q6_memo.trim() : "너의 찬란한 날갯짓을 응원해.";
           }
-
           initFullButterflyViewer(currentExtractedTexture || createFallbackDummyTexture());
           showScreen('screen-preview');
-
-          setTimeout(function() {
-            if (whiteFlash) whiteFlash.classList.remove('flash-active');
-          }, 1200);
+          setTimeout(function() { if (whiteFlash) whiteFlash.classList.remove('flash-active'); }, 1200);
         }, 1400);
       }, 1000);
     }
@@ -435,41 +290,26 @@ function startAnswerShowcaseSequence() {
 }
 
 // --------------------------------------------------------------------------
-// 🌟 완료 화면 및 공유 화면 시퀀스
+// 완료 및 공유 화면 텍스트 타이핑
 // --------------------------------------------------------------------------
 function playCompleteScreenSequence() {
-  clearTimeout(completeTypeTimer);
-  clearTimeout(autoTransitionTimer);
-
+  clearTimeout(completeTypeTimer); clearTimeout(autoTransitionTimer);
   var titleEl = document.getElementById('complete-typing-title');
   if (!titleEl) return;
-  titleEl.innerHTML = "";
-
   var rawName = userSelections.q7_name ? userSelections.q7_name.trim() : "나비";
-  var targetText = "하늘로 '" + rawName + "'이<br>너울 속으로 날아 올랐습니다.";
-
-  typeWriterText(titleEl, targetText, function() {
-    autoTransitionTimer = setTimeout(function() {
-      transitionToScreenWithFade('screen-share');
-    }, 2000);
+  typeWriterText(titleEl, "하늘로 '" + rawName + "'이<br>너울 속으로 날아 올랐습니다.", function() {
+    autoTransitionTimer = setTimeout(function() { transitionToScreenWithFade('screen-share'); }, 2000);
   });
 }
 
 function playShareScreenSequence() {
   clearTimeout(shareTypeTimer);
-
   var titleEl = document.getElementById('share-typing-title');
   var bottomDock = document.getElementById('share-bottom-dock');
   if (!titleEl) return;
-  titleEl.innerHTML = "";
   if (bottomDock) bottomDock.style.opacity = '0';
-
-  var targetText = "당신의 나비를 더 멀리 날려보세요.";
-
-  typeWriterText(titleEl, targetText, function() {
-    if (bottomDock) {
-      bottomDock.style.opacity = '1';
-    }
+  typeWriterText(titleEl, "당신의 나비를 더 멀리 날려보세요.", function() {
+    if (bottomDock) bottomDock.style.opacity = '1';
   });
 }
 
@@ -477,46 +317,26 @@ var btnActionShare = document.getElementById('btn-action-share');
 if (btnActionShare) {
   btnActionShare.onclick = function() {
     var rawName = userSelections.q7_name ? userSelections.q7_name.trim() : "나비";
-    var rawMemo = userSelections.q6_memo && userSelections.q6_memo.trim().length > 0
-      ? userSelections.q6_memo.trim()
-      : "너의 찬란한 날갯짓을 응원해.";
+    var rawMemo = userSelections.q6_memo && userSelections.q6_memo.trim().length > 0 ? userSelections.q6_memo.trim() : "너의 찬란한 날갯짓을 응원해.";
     var rawShape = selectedButterflyShape || "crescent";
-
     var baseUrl = window.location.href.split('?')[0].replace(/index\.html$/, '');
     if (!baseUrl.endsWith('/')) baseUrl += '/';
-    var shareCardUrl = baseUrl + 'share.html?name=' + encodeURIComponent(rawName) +
-                       '&memo=' + encodeURIComponent(rawMemo) +
-                       '&shape=' + encodeURIComponent(rawShape);
+    var shareCardUrl = baseUrl + 'share.html?name=' + encodeURIComponent(rawName) + '&memo=' + encodeURIComponent(rawMemo) + '&shape=' + encodeURIComponent(rawShape);
 
-    var shareData = {
-      title: '너울(Noul) - ' + rawName,
-      text: "내가 빚은 나비 '" + rawName + "'(이)가 도착했습니다.",
-      url: shareCardUrl
-    };
-
-    if (navigator.share) {
-      navigator.share(shareData).catch(function() {});
-    } else if (navigator.clipboard) {
-      navigator.clipboard.writeText(shareCardUrl).then(function() {
-        alert("나비 초대장 링크가 클립보드에 복사되었습니다!");
-      }).catch(function() {
-        alert("링크 복사에 실패했습니다.");
-      });
-    } else {
-      alert("공유를 지원하지 않는 브라우저입니다.");
-    }
+    var shareData = { title: '너울(Noul) - ' + rawName, text: "내가 빚은 나비 '" + rawName + "'(이)가 도착했습니다.", url: shareCardUrl };
+    if (navigator.share) navigator.share(shareData).catch(function() {});
+    else if (navigator.clipboard) {
+      navigator.clipboard.writeText(shareCardUrl).then(function() { alert("나비 초대장 링크가 클립보드에 복사되었습니다!"); })
+        .catch(function() { alert("링크 복사에 실패했습니다."); });
+    } else alert("공유를 지원하지 않는 브라우저입니다.");
   };
 }
 
 var btnActionHome = document.getElementById('btn-action-home');
-if (btnActionHome) {
-  btnActionHome.onclick = function() {
-    location.reload();
-  };
-}
+if (btnActionHome) btnActionHome.onclick = function() { location.reload(); };
 
 // --------------------------------------------------------------------------
-// DEV 전역 이벤트 위임 바인딩
+// DEV 전역 건너뛰기 이벤트
 // --------------------------------------------------------------------------
 function ensureDevDummyData() {
   if (!userSelections.q7_name) userSelections.q7_name = "테스트나비";
@@ -530,296 +350,143 @@ function ensureDevDummyData() {
 document.addEventListener('click', function(e) {
   var target = e.target;
   if (!target) return;
-
-  var btnNext = target.closest('#dev-btn-skip-next');
-  var btnPrev = target.closest('#dev-btn-skip-prev');
+  var btnNext = target.closest('#dev-btn-skip-next'), btnPrev = target.closest('#dev-btn-skip-prev');
 
   if (btnNext) {
-    e.preventDefault();
-    e.stopPropagation();
+    e.preventDefault(); e.stopPropagation();
     clearAllTimers();
     if (animFrameId) { cancelAnimationFrame(animFrameId); animFrameId = null; }
+    var curId = (document.querySelector('.screen.active') || {}).id || 'screen-cover';
 
-    var activeScreen = document.querySelector('.screen.active');
-    var curId = activeScreen ? activeScreen.id : 'screen-cover';
-
-    if (curId === 'screen-cover') {
-      showScreen('screen-opening');
-      return;
-    }
-
-    if (curId === 'screen-menu') {
-      showScreen('screen-opening');
-      return;
-    }
-
-    if (curId === 'screen-gallery' || curId === 'screen-intro') {
-      showScreen('screen-menu');
-      return;
-    }
-
+    if (curId === 'screen-cover' || curId === 'screen-menu') { showScreen('screen-opening'); return; }
+    if (curId === 'screen-gallery' || curId === 'screen-intro') { showScreen('screen-menu'); return; }
     if (curId === 'screen-opening') {
       if (openingCurrentStep === 1) {
         openingCurrentStep = 2;
-        if (elOpeningNextGroup) {
-          elOpeningNextGroup.classList.remove('visible');
-          elOpeningNextGroup.classList.add('hidden');
-        }
+        if (elOpeningNextGroup) { elOpeningNextGroup.classList.remove('visible'); elOpeningNextGroup.classList.add('hidden'); }
         typeWriterText(elOpeningText, "꺼내어 보이지 못한 채,<br>응어리진 무언가... 쉽게 털어놓지 못할 것도 있겠지요.", function() {
           if (btnOpeningNext) btnOpeningNext.innerHTML = "다음으로";
-          if (elOpeningNextGroup) {
-            elOpeningNextGroup.classList.remove('hidden');
-            requestAnimationFrame(function() { elOpeningNextGroup.classList.add('visible'); });
-          }
+          if (elOpeningNextGroup) { elOpeningNextGroup.classList.remove('hidden'); requestAnimationFrame(function() { elOpeningNextGroup.classList.add('visible'); }); }
         });
-        updateDevScreenBadge();
-        return;
+        updateDevScreenBadge(); return;
       } else if (openingCurrentStep === 2) {
         openingCurrentStep = 3;
-        if (elOpeningNextGroup) {
-          elOpeningNextGroup.classList.remove('visible');
-          elOpeningNextGroup.classList.add('hidden');
-        }
+        if (elOpeningNextGroup) { elOpeningNextGroup.classList.remove('visible'); elOpeningNextGroup.classList.add('hidden'); }
         typeWriterText(elOpeningText, "오늘 이곳에서,<br>당신의 마음 깊은 곳에 묻어둔 이야기를<br>조심스레 꺼내어보려 합니다.", function() {
           if (btnOpeningNext) btnOpeningNext.innerHTML = "다음으로";
-          if (elOpeningNextGroup) {
-            elOpeningNextGroup.classList.remove('hidden');
-            requestAnimationFrame(function() { elOpeningNextGroup.classList.add('visible'); });
-          }
+          if (elOpeningNextGroup) { elOpeningNextGroup.classList.remove('hidden'); requestAnimationFrame(function() { elOpeningNextGroup.classList.add('visible'); }); }
         });
-        updateDevScreenBadge();
-        return;
-      } else if (openingCurrentStep === 3) {
-        currentStepIdx = 0;
-        showScreen('screen-survey');
-        return;
-      }
+        updateDevScreenBadge(); return;
+      } else if (openingCurrentStep === 3) { currentStepIdx = 0; showScreen('screen-survey'); return; }
     }
-
     if (curId === 'screen-survey') {
-      if (currentStepIdx === 0) {
-        if (!userSelections.q7_name) userSelections.q7_name = "테스트나비";
-        currentStepIdx = 1;
-        renderSurveyStep();
-        return;
-      } else if (currentStepIdx === 1) {
-        ensureDevDummyData();
-        showScreen('screen-survey-core-concern');
-        return;
-      } else if (currentStepIdx === 2) {
-        ensureDevDummyData();
-        exportAlignedTexture();
-        showScreen('screen-loading');
-        startAnswerShowcaseSequence();
-        return;
-      }
-    } else if (curId === 'screen-survey-core-concern') {
-      ensureDevDummyData();
-      showScreen('screen-survey-concern-reason');
-      return;
-    } else if (curId === 'screen-survey-concern-reason') {
-      ensureDevDummyData();
-      showScreen('screen-post-concern-bridge');
-      return;
-    } else if (curId === 'screen-post-concern-bridge') {
-      showScreen('screen-capture-guide');
-      return;
-    } else if (curId === 'screen-capture-guide') {
-      showScreen('screen-shape-select');
-      return;
-    } else if (curId === 'screen-shape-select') {
-      ensureDevDummyData();
-      exportAlignedTexture();
-      showScreen('screen-survey-bridge');
-      return;
-    } else if (curId === 'screen-survey-bridge') {
-      currentStepIdx = 2;
-      showScreen('screen-survey');
-      return;
-    } else if (curId === 'screen-loading') {
+      if (currentStepIdx === 0) { if (!userSelections.q7_name) userSelections.q7_name = "테스트나비"; currentStepIdx = 1; renderSurveyStep(); return; }
+      else if (currentStepIdx === 1) { ensureDevDummyData(); showScreen('screen-survey-core-concern'); return; }
+      else if (currentStepIdx === 2) { ensureDevDummyData(); showScreen('screen-post-concern-bridge'); return; }
+    } else if (curId === 'screen-survey-core-concern') { ensureDevDummyData(); showScreen('screen-survey-concern-reason'); return; }
+    else if (curId === 'screen-survey-concern-reason') { ensureDevDummyData(); currentStepIdx = 2; showScreen('screen-survey'); return; }
+    else if (curId === 'screen-post-concern-bridge') { showScreen('screen-capture-guide'); return; }
+    else if (curId === 'screen-capture-guide') { showScreen('screen-shape-select'); return; }
+    else if (curId === 'screen-shape-select') { ensureDevDummyData(); exportAlignedTexture(); showScreen('screen-loading'); startAnswerShowcaseSequence(); return; }
+    else if (curId === 'screen-loading') {
       ensureDevDummyData();
       var butterflyName = userSelections.q7_name ? userSelections.q7_name.trim() : "나비";
       var nameHeader = document.getElementById('preview-butterfly-name');
       if (nameHeader) nameHeader.innerText = '‘' + butterflyName + '’';
-
       var guideText = document.getElementById('preview-guide-text');
-      if (guideText) {
-        guideText.innerText = userSelections.q6_memo && userSelections.q6_memo.trim().length > 0 
-          ? userSelections.q6_memo.trim() 
-          : "너의 찬란한 날갯짓을 응원해.";
-      }
-
+      if (guideText) guideText.innerText = userSelections.q6_memo && userSelections.q6_memo.trim().length > 0 ? userSelections.q6_memo.trim() : "너의 찬란한 날갯짓을 응원해.";
       initFullButterflyViewer(currentExtractedTexture || createFallbackDummyTexture());
-      showScreen('screen-preview');
-      return;
-    } else if (curId === 'screen-preview') {
-      ensureDevDummyData();
-      showScreen('screen-complete');
-      return;
-    } else if (curId === 'screen-complete') {
-      showScreen('screen-share');
-      return;
-    } else if (curId === 'screen-share') {
-      showScreen('screen-cover');
-      return;
-    }
+      showScreen('screen-preview'); return;
+    } else if (curId === 'screen-preview') { ensureDevDummyData(); showScreen('screen-complete'); return; }
+    else if (curId === 'screen-complete') { showScreen('screen-share'); return; }
+    else if (curId === 'screen-share') { showScreen('screen-cover'); return; }
   }
 
   if (btnPrev) {
-    e.preventDefault();
-    e.stopPropagation();
+    e.preventDefault(); e.stopPropagation();
     clearAllTimers();
     if (animFrameId) { cancelAnimationFrame(animFrameId); animFrameId = null; }
+    var curId = (document.querySelector('.screen.active') || {}).id || 'screen-cover';
 
-    var activeScreen = document.querySelector('.screen.active');
-    var curId = activeScreen ? activeScreen.id : 'screen-cover';
-
-    if (curId === 'screen-cover') {
-      showScreen('screen-share');
-      return;
-    }
-
-    if (curId === 'screen-menu') {
-      showScreen('screen-cover');
-      return;
-    }
-
-    if (curId === 'screen-gallery' || curId === 'screen-intro') {
-      showScreen('screen-menu');
-      return;
-    }
-
+    if (curId === 'screen-cover') { showScreen('screen-share'); return; }
+    if (curId === 'screen-menu') { showScreen('screen-cover'); return; }
+    if (curId === 'screen-gallery' || curId === 'screen-intro') { showScreen('screen-menu'); return; }
     if (curId === 'screen-opening') {
       if (openingCurrentStep === 3) {
         openingCurrentStep = 2;
         typeWriterText(elOpeningText, "꺼내어 보이지 못한 채,<br>응어리진 무언가... 쉽게 털어놓지 못할 것도 있겠지요.", function() {
           if (btnOpeningNext) btnOpeningNext.innerHTML = "다음으로";
         });
-        updateDevScreenBadge();
-        return;
+        updateDevScreenBadge(); return;
       } else if (openingCurrentStep === 2) {
         openingCurrentStep = 1;
         typeWriterText(elOpeningText, "안녕하세요?<br>지금, 걱정 없는 삶을 살아가고 있나요?", function() {
           if (btnOpeningNext) btnOpeningNext.innerHTML = "다음으로";
         });
-        updateDevScreenBadge();
-        return;
-      } else if (openingCurrentStep === 1) {
-        showScreen('screen-cover');
-        return;
-      }
+        updateDevScreenBadge(); return;
+      } else if (openingCurrentStep === 1) { showScreen('screen-cover'); return; }
     }
-
     if (curId === 'screen-survey') {
-      if (currentStepIdx === 2) {
-        showScreen('screen-survey-bridge');
-        return;
-      } else if (currentStepIdx === 1) {
-        currentStepIdx = 0;
-        renderSurveyStep();
-        return;
-      } else if (currentStepIdx === 0) {
-        showScreen('screen-opening');
-        openingCurrentStep = 3;
+      if (currentStepIdx === 2) { showScreen('screen-survey-concern-reason'); return; }
+      else if (currentStepIdx === 1) { currentStepIdx = 0; renderSurveyStep(); return; }
+      else if (currentStepIdx === 0) {
+        showScreen('screen-opening'); openingCurrentStep = 3;
         typeWriterText(elOpeningText, "오늘 이곳에서,<br>당신의 마음 깊은 곳에 묻어둔 이야기를<br>조심스레 꺼내어보려 합니다.", function() {
           if (btnOpeningNext) btnOpeningNext.innerHTML = "다음으로";
-          if (elOpeningNextGroup) {
-            elOpeningNextGroup.classList.remove('hidden');
-            requestAnimationFrame(function() { elOpeningNextGroup.classList.add('visible'); });
-          }
+          if (elOpeningNextGroup) { elOpeningNextGroup.classList.remove('hidden'); requestAnimationFrame(function() { elOpeningNextGroup.classList.add('visible'); }); }
         });
-        updateDevScreenBadge();
-        return;
+        updateDevScreenBadge(); return;
       }
-    } else if (curId === 'screen-survey-core-concern') {
-      currentStepIdx = 1;
-      showScreen('screen-survey');
-      return;
-    } else if (curId === 'screen-survey-concern-reason') {
-      showScreen('screen-survey-core-concern');
-      return;
-    } else if (curId === 'screen-post-concern-bridge') {
-      showScreen('screen-survey-concern-reason');
-      return;
-    } else if (curId === 'screen-capture-guide') {
-      showScreen('screen-post-concern-bridge');
-      return;
-    } else if (curId === 'screen-shape-select') {
-      showScreen('screen-capture-guide');
-      return;
-    } else if (curId === 'screen-survey-bridge') {
-      showScreen('screen-shape-select');
-      return;
-    } else if (curId === 'screen-loading') {
-      currentStepIdx = 2;
-      showScreen('screen-survey');
-      return;
-    } else if (curId === 'screen-preview') {
-      showScreen('screen-loading');
-      startAnswerShowcaseSequence();
-      return;
-    } else if (curId === 'screen-complete') {
-      ensureDevDummyData();
-      initFullButterflyViewer(currentExtractedTexture || createFallbackDummyTexture());
-      showScreen('screen-preview');
-      return;
-    } else if (curId === 'screen-share') {
-      showScreen('screen-complete');
-      return;
-    }
+    } else if (curId === 'screen-survey-core-concern') { currentStepIdx = 1; showScreen('screen-survey'); return; }
+    else if (curId === 'screen-survey-concern-reason') { showScreen('screen-survey-core-concern'); return; }
+    else if (curId === 'screen-post-concern-bridge') { currentStepIdx = 2; showScreen('screen-survey'); return; }
+    else if (curId === 'screen-capture-guide') { showScreen('screen-post-concern-bridge'); return; }
+    else if (curId === 'screen-shape-select') { showScreen('screen-capture-guide'); return; }
+    else if (curId === 'screen-loading') { showScreen('screen-shape-select'); return; }
+    else if (curId === 'screen-preview') { showScreen('screen-loading'); startAnswerShowcaseSequence(); return; }
+    else if (curId === 'screen-complete') { ensureDevDummyData(); initFullButterflyViewer(currentExtractedTexture || createFallbackDummyTexture()); showScreen('screen-preview'); return; }
+    else if (curId === 'screen-share') { showScreen('screen-complete'); return; }
   }
 }, true);
 
 // --------------------------------------------------------------------------
-// 기본 버튼 이벤트 바인딩
+// 기본 네비게이션 버튼 바인딩
 // --------------------------------------------------------------------------
 function bindAppNavEvents() {
-  var bStartCover = document.getElementById('btn-start-cover');
-  if (bStartCover) bStartCover.onclick = function() { showScreen('screen-menu'); };
-
-  var bMenuBack = document.getElementById('btn-menu-back');
-  if (bMenuBack) bMenuBack.onclick = function() { showScreen('screen-cover'); };
-
-  var mCreate = document.getElementById('menu-btn-create');
-  if (mCreate) mCreate.onclick = function() { showScreen('screen-opening'); };
-
-  var mBrowse = document.getElementById('menu-btn-browse');
-  if (mBrowse) mBrowse.onclick = function() { transitionToScreenWithFade('screen-gallery'); };
-
-  var bGalBack = document.getElementById('btn-gallery-back');
-  if (bGalBack) bGalBack.onclick = function() { showScreen('screen-menu'); };
-
-  var mIntro = document.getElementById('menu-btn-intro');
-  if (mIntro) mIntro.onclick = function() { transitionToScreenWithFade('screen-intro'); };
-
-  var bIntroBack = document.getElementById('btn-intro-back');
-  if (bIntroBack) bIntroBack.onclick = function() { showScreen('screen-menu'); };
-
-  var bIntroBtmBack = document.getElementById('btn-intro-bottom-back');
-  if (bIntroBtmBack) bIntroBtmBack.onclick = function() { showScreen('screen-menu'); };
+  var binds = [
+    ['btn-start-cover', function() { showScreen('screen-menu'); }],
+    ['btn-menu-back', function() { showScreen('screen-cover'); }],
+    ['menu-btn-create', function() { showScreen('screen-opening'); }],
+    ['menu-btn-browse', function() { transitionToScreenWithFade('screen-gallery'); }],
+    ['btn-gallery-back', function() { showScreen('screen-menu'); }],
+    ['menu-btn-intro', function() { transitionToScreenWithFade('screen-intro'); }],
+    ['btn-intro-back', function() { showScreen('screen-menu'); }],
+    ['btn-intro-bottom-back', function() { showScreen('screen-menu'); }]
+  ];
+  binds.forEach(function(item) {
+    var el = document.getElementById(item[0]);
+    if (el) el.onclick = item[1];
+  });
 }
 bindAppNavEvents();
 
 // --------------------------------------------------------------------------
-// 오프닝 및 타이핑 플로우
+// 타이핑 플로우 유틸리티 및 오프닝
 // --------------------------------------------------------------------------
 var openingCurrentStep = 1;
 var elOpeningText = document.getElementById('opening-text');
 var elOpeningChoiceGroup = document.getElementById('opening-choice-group');
 var elOpeningNextGroup = document.getElementById('opening-next-group');
 var btnOpeningNext = document.getElementById('btn-opening-next');
-var typeTimer = null;
-var openingDelayTimer = null;
 
 function typeWriterText(targetElement, textWithHtml, onComplete) {
   clearTimeout(typeTimer);
   if (!targetElement) return;
   targetElement.innerHTML = "";
   var tokens = textWithHtml.match(/(<[^>]+>|[^<])/g) || [];
-  var idx = 0;
-  var currentContent = "";
+  var idx = 0, currentContent = "";
 
-  function nextChar() {
+  (function nextChar() {
     if (idx < tokens.length) {
       var char = tokens[idx];
       currentContent += char;
@@ -833,31 +500,20 @@ function typeWriterText(targetElement, textWithHtml, onComplete) {
     } else {
       setTimeout(function() { if (onComplete) onComplete(); }, 200);
     }
-  }
-  nextChar();
+  })();
 }
 
 function resetOpeningFlow() {
-  clearTimeout(typeTimer);
-  clearTimeout(openingDelayTimer);
+  clearTimeout(typeTimer); clearTimeout(openingDelayTimer);
   openingCurrentStep = 1;
   if (elOpeningText) elOpeningText.innerHTML = "";
-  if (elOpeningChoiceGroup) {
-    elOpeningChoiceGroup.classList.remove('visible');
-    elOpeningChoiceGroup.classList.add('hidden');
-  }
-  if (elOpeningNextGroup) {
-    elOpeningNextGroup.classList.add('hidden');
-    elOpeningNextGroup.classList.remove('visible');
-  }
+  if (elOpeningChoiceGroup) { elOpeningChoiceGroup.classList.remove('visible'); elOpeningChoiceGroup.classList.add('hidden'); }
+  if (elOpeningNextGroup) { elOpeningNextGroup.classList.add('hidden'); elOpeningNextGroup.classList.remove('visible'); }
 
   openingDelayTimer = setTimeout(function() {
     typeWriterText(elOpeningText, "안녕하세요?<br>지금, 걱정 없는 삶을 살아가고 있나요?", function() {
       if (btnOpeningNext) btnOpeningNext.innerHTML = "다음으로";
-      if (elOpeningNextGroup) {
-        elOpeningNextGroup.classList.remove('hidden');
-        requestAnimationFrame(function() { elOpeningNextGroup.classList.add('visible'); });
-      }
+      if (elOpeningNextGroup) { elOpeningNextGroup.classList.remove('hidden'); requestAnimationFrame(function() { elOpeningNextGroup.classList.add('visible'); }); }
     });
   }, 2000);
 }
@@ -866,30 +522,18 @@ if (btnOpeningNext) {
   btnOpeningNext.onclick = function() {
     if (openingCurrentStep === 1) {
       openingCurrentStep = 2;
-      if (elOpeningNextGroup) {
-        elOpeningNextGroup.classList.remove('visible');
-        elOpeningNextGroup.classList.add('hidden');
-      }
+      if (elOpeningNextGroup) { elOpeningNextGroup.classList.remove('visible'); elOpeningNextGroup.classList.add('hidden'); }
       typeWriterText(elOpeningText, "꺼내어 보이지 못한 채,<br>응어리진 무언가... 쉽게 털어놓지 못할 것도 있겠지요.", function() {
         btnOpeningNext.innerHTML = "다음으로";
-        if (elOpeningNextGroup) {
-          elOpeningNextGroup.classList.remove('hidden');
-          requestAnimationFrame(function() { elOpeningNextGroup.classList.add('visible'); });
-        }
+        if (elOpeningNextGroup) { elOpeningNextGroup.classList.remove('hidden'); requestAnimationFrame(function() { elOpeningNextGroup.classList.add('visible'); }); }
       });
       updateDevScreenBadge();
     } else if (openingCurrentStep === 2) {
       openingCurrentStep = 3;
-      if (elOpeningNextGroup) {
-        elOpeningNextGroup.classList.remove('visible');
-        elOpeningNextGroup.classList.add('hidden');
-      }
+      if (elOpeningNextGroup) { elOpeningNextGroup.classList.remove('visible'); elOpeningNextGroup.classList.add('hidden'); }
       typeWriterText(elOpeningText, "오늘 이곳에서,<br>당신의 마음 깊은 곳에 묻어둔 이야기를<br>조심스레 꺼내어보려 합니다.", function() {
         btnOpeningNext.innerHTML = "다음으로";
-        if (elOpeningNextGroup) {
-          elOpeningNextGroup.classList.remove('hidden');
-          requestAnimationFrame(function() { elOpeningNextGroup.classList.add('visible'); });
-        }
+        if (elOpeningNextGroup) { elOpeningNextGroup.classList.remove('hidden'); requestAnimationFrame(function() { elOpeningNextGroup.classList.add('visible'); }); }
       });
       updateDevScreenBadge();
     } else if (openingCurrentStep === 3) {
@@ -900,7 +544,7 @@ if (btnOpeningNext) {
 }
 
 // --------------------------------------------------------------------------
-// 🌟 1번 사진 직후 글만 나오는 브릿지 화면 로직
+// 나비 전환 브릿지 화면 로직
 // --------------------------------------------------------------------------
 function initPostConcernBridgeScreen() {
   clearTimeout(postConcernTypeTimer);
@@ -913,8 +557,7 @@ function initPostConcernBridgeScreen() {
   nextGroup.classList.add('hidden');
   nextGroup.classList.remove('visible');
 
-  var msg = "당신에 대해 잘 알게 됐어요.<br>그 마음을 너울 속을 유영할 찬란한 날개로 바꿀 차례입니다.";
-  typeWriterText(textEl, msg, function() {
+  typeWriterText(textEl, "마음속 담아두었던 고민들을 모았어요.<br>이제 그 마음을 날려 보낼 나비를 빚어볼 차례입니다.", function() {
     if (btnNext) btnNext.innerHTML = "다음으로";
     nextGroup.classList.remove('hidden');
     requestAnimationFrame(function() { nextGroup.classList.add('visible'); });
@@ -923,46 +566,19 @@ function initPostConcernBridgeScreen() {
 
 var btnPostConcernBridgeNext = document.getElementById('btn-post-concern-bridge-next');
 if (btnPostConcernBridgeNext) {
-  btnPostConcernBridgeNext.onclick = function() {
-    showScreen('screen-capture-guide');
-  };
+  btnPostConcernBridgeNext.onclick = function() { showScreen('screen-capture-guide'); };
 }
 
 // --------------------------------------------------------------------------
-// 온기 충전 브릿지
+// 촬영 가이드 화면 로직
 // --------------------------------------------------------------------------
-function playBridgeTypingSequence() {
-  var textEl = document.getElementById('bridge-typing-text');
-  var nextGroup = document.getElementById('bridge-next-group');
-  if (!textEl || !nextGroup) return;
-
-  nextGroup.classList.add('hidden');
-  nextGroup.classList.remove('visible');
-
-  var msg = "이제 거의 다 왔어요.<br>마지막 온기를 채울 차례예요.";
-  typeWriterText(textEl, msg, function() {
-    nextGroup.classList.remove('hidden');
-    requestAnimationFrame(function() { nextGroup.classList.add('visible'); });
-  });
-}
-
-var bGotoStats = document.getElementById('btn-goto-stats');
-if (bGotoStats) {
-  bGotoStats.onclick = function() { 
-    currentStepIdx = 2; // 마지막 위로메모 단계
-    showScreen('screen-survey');
-  };
-}
-
 var guideTitleWrap = document.querySelector('.guide-title-wrapper');
 var guideAnimatedTitle = document.getElementById('guide-animated-title');
 var guideCenterCard = document.getElementById('guide-center-card');
 var guideBottomDock = document.getElementById('guide-bottom-dock');
-var guideTypeTimer = null;
 
 function startCaptureGuideCinematicFlow() {
   clearTimeout(guideTypeTimer);
-  
   if (guideTitleWrap) guideTitleWrap.classList.remove('moved-to-top');
   if (guideAnimatedTitle) guideAnimatedTitle.innerHTML = "";
   if (guideCenterCard) guideCenterCard.classList.remove('revealed');
@@ -970,18 +586,15 @@ function startCaptureGuideCinematicFlow() {
 
   var introMessage = "고치에서 깨어날 당신의 나비는<br>어떤 모습인가요?";
   var tokens = introMessage.match(/(<[^>]+>|[^<])/g) || [];
-  var idx = 0;
-  var curText = "";
+  var idx = 0, curText = "";
 
-  function typeNext() {
+  (function typeNext() {
     if (idx < tokens.length) {
       var char = tokens[idx];
       curText += char;
       if (guideAnimatedTitle) guideAnimatedTitle.innerHTML = curText;
       idx++;
-      var delay = 80;
-      if (char.startsWith('<')) delay = 0;
-      else if (char === '?' || char === '.') delay = 400;
+      var delay = (char.startsWith('<') ? 0 : (char === '?' || char === '.' ? 400 : 80));
       guideTypeTimer = setTimeout(typeNext, delay);
     } else {
       setTimeout(function() {
@@ -992,8 +605,7 @@ function startCaptureGuideCinematicFlow() {
         }, 450);
       }, 350);
     }
-  }
-  setTimeout(typeNext, 200);
+  })();
 }
 
 // --------------------------------------------------------------------------
@@ -1002,9 +614,7 @@ function startCaptureGuideCinematicFlow() {
 var SUPABASE_URL = 'https://djmdzsbfsobsutphragw.supabase.co';
 var SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRqbWR6c2Jmc29ic3V0cGhyYWd3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODk4ODQ3NTgsImV4cCI6MjEwNTQ2MDc1OH0.BC7llaSjbq6cYhDlRqrwJaycpQ6gSNcp5LgYBeM6WEM';
 var supabase = null;
-try {
-  if (window.supabase) supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-} catch (err) {}
+try { if (window.supabase) supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY); } catch (err) {}
 
 var activeCustomTab = 'wing';
 var selectedButterflyShape = 'crescent';
@@ -1021,54 +631,33 @@ function updateHeroPreview() {
 
   var currentWing = butterflyPathData[selectedButterflyShape] || wingDataset[0];
   var ant = antennaDataset.find(function(a) { return a.id === selectedAntennaType; }) || antennaDataset[0];
-
-  // 🌟 화면에서만 시각적 크기를 맞추는 지능형 프레임 스케일 (원본 데이터 1000px 유지)
   var isHighRes1000 = Math.max(currentWing.w, currentWing.h) >= 500;
   
-  // 초승, 산들, 물결 나비의 수직 위치를 살짝 위로 올려 네모 박스 정중앙에 시각적으로 안착
-  var targetBoundSize = 195;
-  var customShiftY = 0;
-  if (currentWing.id === 'crescent') {
+  var targetBoundSize = 195, customShiftY = 0;
+  if (['crescent', 'petal', 'wave-fin'].indexOf(currentWing.id) > -1) {
     targetBoundSize = 180;
-    customShiftY = 9;
-  } else if (currentWing.id === 'petal') {
-    targetBoundSize = 180;
-    customShiftY = 10;
-  } else if (currentWing.id === 'wave-fin') {
-    targetBoundSize = 180;
-    customShiftY = 10;
-  } else if (currentWing.id === 'ember') {
-    customShiftY = 4;
-  } else if (currentWing.id === 'moon-halo') {
+    customShiftY = currentWing.id === 'crescent' ? 9 : 10;
+  } else if (['ember', 'moon-halo'].indexOf(currentWing.id) > -1) {
     customShiftY = 4;
   }
 
   var scale = targetBoundSize / Math.max(currentWing.w, currentWing.h);
   var offsetX = (160 - currentWing.w * scale) / 2;
   var offsetY = ((160 - currentWing.h * scale) / 2) + customShiftY;
-
   var headTargetX = offsetX + (currentWing.headX * scale);
   var headTargetY = offsetY + (currentWing.headY * scale) + 0.4;
-
   var antennaRenderScale = isHighRes1000 ? (scale * 12.0) : (scale * 1.05);
 
   var wingD = currentWing.wingD || currentWing.d;
   var bodyD = currentWing.bodyD || "";
 
   heroPathContainer.innerHTML = 
-    '<defs>' +
-      '<mask id="butterfly-outside-mask">' +
-        '<rect x="-50" y="-50" width="260" height="260" fill="white"/>' +
-        '<g transform="translate(' + offsetX + ', ' + offsetY + ') scale(' + scale + ')">' +
-          '<path d="' + wingD + '" fill="black"/>' +
-        '</g>' +
-      '</mask>' +
-    '</defs>' +
+    '<defs><mask id="butterfly-outside-mask"><rect x="-50" y="-50" width="260" height="260" fill="white"/>' +
+    '<g transform="translate(' + offsetX + ', ' + offsetY + ') scale(' + scale + ')"><path d="' + wingD + '" fill="black"/></g></mask></defs>' +
     '<rect x="-50" y="-50" width="260" height="260" fill="rgba(0, 0, 0, 0.75)" mask="url(#butterfly-outside-mask)"/>' +
     (bodyD ? '<g transform="translate(' + offsetX + ', ' + offsetY + ') scale(' + scale + ')"><path d="' + bodyD + '" fill="#ffffff"/></g>' : '') +
     '<g transform="translate(' + headTargetX + ', ' + headTargetY + ')" filter="url(#antenna-subtle-contrast)" color="#ffffff">' +
-      ant.render(antennaRenderScale) +
-    '</g>';
+      ant.render(antennaRenderScale) + '</g>';
 }
 
 var carouselContainer = document.getElementById('arch-carousel-container');
@@ -1076,23 +665,19 @@ var carouselContainer = document.getElementById('arch-carousel-container');
 function renderCarouselItems() {
   if (!carouselContainer || typeof wingDataset === 'undefined') return;
   carouselContainer.innerHTML = '';
-  if (activeCustomTab === 'wing') {
-    wingDataset.forEach(function(w) {
-      var isActive = w.id === selectedButterflyShape;
-      var div = document.createElement('div');
-      div.className = 'arch-track-item';
-      div.innerHTML = '<button type="button" class="shape-thumb-btn ' + (isActive ? 'active' : '') + '" data-type="wing" data-id="' + w.id + '"><svg viewBox="' + w.viewBox + '" preserveAspectRatio="xMidYMid meet"><path d="' + w.d + '"/></svg></button><span class="shape-item-label text-[11px] ' + (isActive ? 'font-bold text-white' : 'font-medium text-neutral-500') + ' tracking-tight">' + w.name + '</span>';
-      carouselContainer.appendChild(div);
-    });
-  } else if (activeCustomTab === 'antenna') {
-    antennaDataset.forEach(function(a) {
-      var isActive = a.id === selectedAntennaType;
-      var div = document.createElement('div');
-      div.className = 'arch-track-item';
-      div.innerHTML = '<button type="button" class="shape-thumb-btn ' + (isActive ? 'active' : '') + '" data-type="antenna" data-id="' + a.id + '"><svg viewBox="-26 -30 52 38" preserveAspectRatio="xMidYMid meet"><g>' + a.render(1.1) + '</g></svg></button><span class="shape-item-label text-[11px] ' + (isActive ? 'font-bold text-white' : 'font-medium text-neutral-500') + ' tracking-tight">' + a.name + '</span>';
-      carouselContainer.appendChild(div);
-    });
-  }
+  var dataset = (activeCustomTab === 'wing') ? wingDataset : antennaDataset;
+
+  dataset.forEach(function(item) {
+    var isActive = (activeCustomTab === 'wing') ? (item.id === selectedButterflyShape) : (item.id === selectedAntennaType);
+    var div = document.createElement('div');
+    div.className = 'arch-track-item';
+    var svgContent = (activeCustomTab === 'wing') 
+      ? '<svg viewBox="' + item.viewBox + '" preserveAspectRatio="xMidYMid meet"><path d="' + item.d + '"/></svg>'
+      : '<svg viewBox="-26 -30 52 38" preserveAspectRatio="xMidYMid meet"><g>' + item.render(1.1) + '</g></svg>';
+
+    div.innerHTML = '<button type="button" class="shape-thumb-btn ' + (isActive ? 'active' : '') + '" data-type="' + activeCustomTab + '" data-id="' + item.id + '">' + svgContent + '</button><span class="shape-item-label text-[11px] ' + (isActive ? 'font-bold text-white' : 'font-medium text-neutral-500') + ' tracking-tight">' + item.name + '</span>';
+    carouselContainer.appendChild(div);
+  });
 
   bindItemClickEvents();
   updateCarouselPadding();
@@ -1116,11 +701,9 @@ function bindItemClickEvents() {
 
 function updateCarouselPadding() {
   if (!carouselContainer) return;
-  var cWidth = carouselContainer.clientWidth;
   var firstItem = carouselContainer.querySelector('.arch-track-item');
   if (firstItem) {
-    var itemWidth = firstItem.offsetWidth;
-    var pad = Math.max(0, (cWidth - itemWidth) / 2);
+    var pad = Math.max(0, (carouselContainer.clientWidth - firstItem.offsetWidth) / 2);
     carouselContainer.style.paddingLeft = pad + 'px';
     carouselContainer.style.paddingRight = pad + 'px';
   }
@@ -1128,31 +711,20 @@ function updateCarouselPadding() {
 
 function applyStraightSelection() {
   if (!carouselContainer) return;
-  var cWidth = carouselContainer.clientWidth;
-  var scrollLeft = carouselContainer.scrollLeft;
-  var centerX = scrollLeft + (cWidth / 2);
+  var cWidth = carouselContainer.clientWidth, centerX = carouselContainer.scrollLeft + (cWidth / 2);
   var items = carouselContainer.querySelectorAll('.arch-track-item');
-  var CENTER_THRESHOLD = 36;
-  var centerDetectedItem = null;
-  var minDistance = Infinity;
+  var centerDetectedItem = null, minDistance = Infinity;
 
   items.forEach(function(item) {
-    var itemCenterX = item.offsetLeft + (item.offsetWidth / 2);
-    var dist = Math.abs(centerX - itemCenterX);
-    if (dist < minDistance) {
-      minDistance = dist;
-      centerDetectedItem = item;
-    }
+    var dist = Math.abs(centerX - (item.offsetLeft + item.offsetWidth / 2));
+    if (dist < minDistance) { minDistance = dist; centerDetectedItem = item; }
     item.style.transform = 'none';
-    var opacityRatio = Math.max(0.35, 1 - (dist / (cWidth * 0.42)));
-    item.style.opacity = opacityRatio.toFixed(2);
+    item.style.opacity = Math.max(0.35, 1 - (dist / (cWidth * 0.42))).toFixed(2);
   });
 
-  if (centerDetectedItem && minDistance <= CENTER_THRESHOLD) {
+  if (centerDetectedItem && minDistance <= 36) {
     var btn = centerDetectedItem.querySelector('.shape-thumb-btn');
-    if (btn && !btn.classList.contains('active')) {
-      setActiveItemVisual(btn);
-    }
+    if (btn && !btn.classList.contains('active')) setActiveItemVisual(btn);
   }
 }
 
@@ -1160,57 +732,32 @@ function setActiveItemVisual(btn) {
   carouselContainer.querySelectorAll('.shape-thumb-btn').forEach(function(b) {
     b.classList.remove('active');
     var txt = b.parentElement.querySelector('.shape-item-label');
-    if (txt) {
-      txt.classList.remove('font-bold', 'text-white');
-      txt.classList.add('font-medium', 'text-neutral-500');
-    }
+    if (txt) { txt.classList.remove('font-bold', 'text-white'); txt.classList.add('font-medium', 'text-neutral-500'); }
   });
-
   btn.classList.add('active');
   var activeTxt = btn.parentElement.querySelector('.shape-item-label');
-  if (activeTxt) {
-    activeTxt.classList.add('font-bold', 'text-white');
-    activeTxt.classList.remove('font-medium', 'text-neutral-500');
-  }
+  if (activeTxt) { activeTxt.classList.add('font-bold', 'text-white'); activeTxt.classList.remove('font-medium', 'text-neutral-500'); }
 
-  var type = btn.getAttribute('data-type');
-  var id = btn.getAttribute('data-id');
-  if (type === 'wing') {
-    selectedButterflyShape = id;
-    drawAlignCanvas();
-  } else if (type === 'antenna') {
-    selectedAntennaType = id;
-  }
-
+  var type = btn.getAttribute('data-type'), id = btn.getAttribute('data-id');
+  if (type === 'wing') { selectedButterflyShape = id; drawAlignCanvas(); }
+  else if (type === 'antenna') { selectedAntennaType = id; }
   updateHeroPreview();
 }
 
 function snapItemToExactCenter(itemElement) {
   if (!carouselContainer || !itemElement) return;
-  var cWidth = carouselContainer.clientWidth;
-  var itemWidth = itemElement.offsetWidth;
-  var targetScroll = itemElement.offsetLeft - ((cWidth - itemWidth) / 2);
+  var targetScroll = itemElement.offsetLeft - ((carouselContainer.clientWidth - itemElement.offsetWidth) / 2);
   carouselContainer.scrollTo({ left: targetScroll, behavior: 'smooth' });
 }
 
 function autoSnapToNearestCenter() {
   if (!carouselContainer) return;
-  var cWidth = carouselContainer.clientWidth;
-  var scrollLeft = carouselContainer.scrollLeft;
-  var centerX = scrollLeft + (cWidth / 2);
-  var closestItem = null;
-  var minDistance = Infinity;
-  var items = carouselContainer.querySelectorAll('.arch-track-item');
-
-  items.forEach(function(item) {
-    var itemCenterX = item.offsetLeft + (item.offsetWidth / 2);
-    var dist = Math.abs(centerX - itemCenterX);
-    if (dist < minDistance) {
-      minDistance = dist;
-      closestItem = item;
-    }
+  var centerX = carouselContainer.scrollLeft + (carouselContainer.clientWidth / 2);
+  var closestItem = null, minDistance = Infinity;
+  carouselContainer.querySelectorAll('.arch-track-item').forEach(function(item) {
+    var dist = Math.abs(centerX - (item.offsetLeft + item.offsetWidth / 2));
+    if (dist < minDistance) { minDistance = dist; closestItem = item; }
   });
-
   if (closestItem) {
     var btn = closestItem.querySelector('.shape-thumb-btn');
     if (btn) setActiveItemVisual(btn);
@@ -1223,17 +770,14 @@ if (carouselContainer) {
   carouselContainer.addEventListener('scroll', function() {
     applyStraightSelection();
     clearTimeout(scrollTimer);
-    scrollTimer = setTimeout(function() { autoSnapToNearestCenter(); }, 100);
+    scrollTimer = setTimeout(autoSnapToNearestCenter, 100);
   }, { passive: true });
 }
 
 window.addEventListener('resize', function() {
-  updateCarouselPadding();
-  applyStraightSelection();
-  resizeBubblePhysicsCanvas();
+  updateCarouselPadding(); applyStraightSelection(); resizeBubblePhysicsCanvas();
 });
 
-// 알약 탭 제어
 var tabWing = document.getElementById('tab-wing');
 var tabAntenna = document.getElementById('tab-antenna');
 var tabBlur = document.getElementById('tab-blur');
@@ -1245,20 +789,15 @@ var carouselStage = document.getElementById('carousel-stage');
 function switchTab(tabKey) {
   activeCustomTab = tabKey;
   [tabWing, tabAntenna, tabBlur].forEach(function(b) { if (b) b.classList.remove('active-tab'); });
-
   if (shapeTitle) shapeTitle.innerText = "날개 형태 고르기";
   if (shapeDesc) shapeDesc.innerHTML = "<strong class='text-white'>[드래그]</strong> 이동, <strong class='text-white'>[두 손가락 핀치]</strong> 확대/축소";
 
-  if (tabKey === 'wing') {
-    if (tabWing) tabWing.classList.add('active-tab');
+  if (tabKey === 'wing' || tabKey === 'antenna') {
+    var activeTabEl = tabKey === 'wing' ? tabWing : tabAntenna;
+    if (activeTabEl) activeTabEl.classList.add('active-tab');
     if (blurSliderBox) blurSliderBox.classList.add('hidden-slider');
     if (carouselStage) carouselStage.style.display = 'flex';
-    requestAnimationFrame(function() { renderCarouselItems(); });
-  } else if (tabKey === 'antenna') {
-    if (tabAntenna) tabAntenna.classList.add('active-tab');
-    if (blurSliderBox) blurSliderBox.classList.add('hidden-slider');
-    if (carouselStage) carouselStage.style.display = 'flex';
-    requestAnimationFrame(function() { renderCarouselItems(); });
+    requestAnimationFrame(renderCarouselItems);
   } else if (tabKey === 'blur') {
     if (tabBlur) tabBlur.classList.add('active-tab');
     if (blurSliderBox) blurSliderBox.classList.remove('hidden-slider');
@@ -1283,7 +822,8 @@ var btnConfirmShape = document.getElementById('btn-confirm-shape');
 if (btnConfirmShape) {
   btnConfirmShape.onclick = function() {
     exportAlignedTexture();
-    showScreen('screen-survey-bridge');
+    showScreen('screen-loading');
+    startAnswerShowcaseSequence();
   };
 }
 
@@ -1293,55 +833,41 @@ if (btnConfirmShape) {
 function executeReliableFastBlur(canvas, radius) {
   if (radius <= 0.2) return;
   var ctx = canvas.getContext('2d', { willReadFrequently: true });
-  var w = canvas.width;
-  var h = canvas.height;
+  var w = canvas.width, h = canvas.height;
   var imgData = ctx.getImageData(0, 0, w, h);
   var src = imgData.data;
-
-  var r = Math.max(1, Math.round(radius));
-  var kernelSize = r * 2 + 1;
+  var r = Math.max(1, Math.round(radius)), kernelSize = r * 2 + 1;
   var temp = new Uint8ClampedArray(src.length);
 
   for (var y = 0; y < h; y++) {
-    var rowStart = y * w * 4;
-    var rSum = 0, gSum = 0, bSum = 0, aSum = 0;
-
+    var rowStart = y * w * 4, rSum = 0, gSum = 0, bSum = 0, aSum = 0;
     for (var i = -r; i <= r; i++) {
-      var px = Math.min(w - 1, Math.max(0, i));
-      var pIndex = rowStart + px * 4;
+      var px = Math.min(w - 1, Math.max(0, i)), pIndex = rowStart + px * 4;
       rSum += src[pIndex]; gSum += src[pIndex + 1]; bSum += src[pIndex + 2]; aSum += src[pIndex + 3];
     }
-
     for (var x = 0; x < w; x++) {
       var outIndex = rowStart + x * 4;
       temp[outIndex] = rSum / kernelSize; temp[outIndex + 1] = gSum / kernelSize; temp[outIndex + 2] = bSum / kernelSize; temp[outIndex + 3] = aSum / kernelSize;
-      var removeX = Math.min(w - 1, Math.max(0, x - r));
-      var addX = Math.min(w - 1, Math.max(0, x + r + 1));
-      var remIdx = rowStart + removeX * 4;
-      var addIdx = rowStart + addX * 4;
+      var remIdx = rowStart + Math.min(w - 1, Math.max(0, x - r)) * 4;
+      var addIdx = rowStart + Math.min(w - 1, Math.max(0, x + r + 1)) * 4;
       rSum += src[addIdx] - src[remIdx]; gSum += src[addIdx + 1] - src[remIdx + 1]; bSum += src[addIdx + 2] - src[remIdx + 2]; aSum += src[addIdx + 3] - src[remIdx + 3];
     }
   }
 
   for (var x = 0; x < w; x++) {
-    var rSum = 0, gSum = 0, bSum = 0, aSum = 0;
+    var rSum2 = 0, gSum2 = 0, bSum2 = 0, aSum2 = 0;
     for (var i = -r; i <= r; i++) {
-      var py = Math.min(h - 1, Math.max(0, i));
-      var pIndex = (py * w + x) * 4;
-      rSum += temp[pIndex]; gSum += temp[pIndex + 1]; bSum += temp[pIndex + 2]; aSum += temp[pIndex + 3];
+      var py = Math.min(h - 1, Math.max(0, i)), pIndex2 = (py * w + x) * 4;
+      rSum2 += temp[pIndex2]; gSum2 += temp[pIndex2 + 1]; bSum2 += temp[pIndex2 + 2]; aSum2 += temp[pIndex2 + 3];
     }
-
     for (var y = 0; y < h; y++) {
-      var outIndex = (y * w + x) * 4;
-      src[outIndex] = rSum / kernelSize; src[outIndex + 1] = gSum / kernelSize; src[outIndex + 2] = bSum / kernelSize; src[outIndex + 3] = aSum / kernelSize;
-      var removeY = Math.min(h - 1, Math.max(0, y - r));
-      var addY = Math.min(h - 1, Math.max(0, y + r + 1));
-      var remIdx = (removeY * w + x) * 4;
-      var addIdx = (addY * w + x) * 4;
-      rSum += temp[addIdx] - temp[remIdx]; gSum += temp[addIdx + 1] - temp[remIdx + 1]; bSum += temp[addIdx + 2] - temp[remIdx + 2]; aSum += temp[addIdx + 3] - temp[remIdx + 3];
+      var outIndex2 = (y * w + x) * 4;
+      src[outIndex2] = rSum2 / kernelSize; src[outIndex2 + 1] = gSum2 / kernelSize; src[outIndex2 + 2] = bSum2 / kernelSize; src[outIndex2 + 3] = aSum2 / kernelSize;
+      var remIdx2 = (Math.min(h - 1, Math.max(0, y - r)) * w + x) * 4;
+      var addIdx2 = (Math.min(h - 1, Math.max(0, y + r + 1)) * w + x) * 4;
+      rSum2 += temp[addIdx2] - temp[remIdx2]; gSum2 += temp[addIdx2 + 1] - temp[remIdx2 + 1]; bSum2 += temp[addIdx2 + 2] - temp[remIdx2 + 2]; aSum2 += temp[addIdx2 + 3] - temp[remIdx2 + 3];
     }
   }
-
   ctx.putImageData(imgData, 0, 0);
 }
 
@@ -1349,12 +875,8 @@ var rawImage = new Image();
 var alignCanvas = document.getElementById('align-canvas');
 var actx = alignCanvas ? alignCanvas.getContext('2d', { willReadFrequently: true }) : null;
 var imgX = 0, imgY = 0, imgScale = 1.0;
-var isDragging = false;
-var startX = 0, startY = 0;
-var startPinchDist = 0, pinchStartScale = 1.0;
-var currentExtractedTexture = null;
-var currentBlurPx = 0;
-var isSymmetryEnabled = false;
+var isDragging = false, startX = 0, startY = 0, startPinchDist = 0, pinchStartScale = 1.0;
+var currentExtractedTexture = null, currentBlurPx = 0, isSymmetryEnabled = false;
 
 var blurSlider = document.getElementById('blur-slider');
 var toggleSymmetryBtn = document.getElementById('toggle-symmetry-btn');
@@ -1363,9 +885,7 @@ function updateSliderProgress(val, min, max) {
   if (!blurSlider) return;
   var minVal = parseFloat(min !== undefined ? min : (blurSlider.min || 0));
   var maxVal = parseFloat(max !== undefined ? max : (blurSlider.max || 25));
-  var curVal = parseFloat(val);
-  var percent = ((curVal - minVal) / (maxVal - minVal)) * 100;
-  percent = Math.max(0, Math.min(100, percent));
+  var percent = Math.max(0, Math.min(100, ((parseFloat(val) - minVal) / (maxVal - minVal)) * 100));
   blurSlider.style.setProperty('--blur-percent', percent + '%');
 }
 
@@ -1383,13 +903,8 @@ if (blurSlider) {
 if (toggleSymmetryBtn) {
   toggleSymmetryBtn.onclick = function() {
     isSymmetryEnabled = !isSymmetryEnabled;
-    if (isSymmetryEnabled) {
-      toggleSymmetryBtn.classList.add('toggle-active');
-      toggleSymmetryBtn.setAttribute('aria-pressed', 'true');
-    } else {
-      toggleSymmetryBtn.classList.remove('toggle-active');
-      toggleSymmetryBtn.setAttribute('aria-pressed', 'false');
-    }
+    toggleSymmetryBtn.classList.toggle('toggle-active', isSymmetryEnabled);
+    toggleSymmetryBtn.setAttribute('aria-pressed', isSymmetryEnabled ? 'true' : 'false');
     drawAlignCanvas();
   };
 }
@@ -1401,16 +916,9 @@ function handleFile(file) {
     var img = new Image();
     img.onload = function() {
       rawImage = img;
-      if (blurSlider) {
-        blurSlider.value = 0;
-        currentBlurPx = 0;
-        updateSliderProgress(0);
-      }
+      if (blurSlider) { blurSlider.value = 0; currentBlurPx = 0; updateSliderProgress(0); }
       isSymmetryEnabled = false;
-      if (toggleSymmetryBtn) {
-        toggleSymmetryBtn.classList.remove('toggle-active');
-        toggleSymmetryBtn.setAttribute('aria-pressed', 'false');
-      }
+      if (toggleSymmetryBtn) { toggleSymmetryBtn.classList.remove('toggle-active'); toggleSymmetryBtn.setAttribute('aria-pressed', 'false'); }
       initAlignUI();
       showScreen('screen-shape-select');
     };
@@ -1432,8 +940,7 @@ if (albumInput) {
 
 function initAlignUI() {
   if (!rawImage || !rawImage.width || !alignCanvas) return;
-  var baseScale = alignCanvas.width / Math.min(rawImage.width, rawImage.height);
-  imgScale = baseScale;
+  imgScale = alignCanvas.width / Math.min(rawImage.width, rawImage.height);
   imgX = (alignCanvas.width - rawImage.width * imgScale) / 2;
   imgY = (alignCanvas.height - rawImage.height * imgScale) / 2;
   drawAlignCanvas();
@@ -1446,23 +953,18 @@ function drawAlignCanvas() {
 
   var midX = alignCanvas.width / 2;
   var tempCanvas = document.createElement('canvas');
-  tempCanvas.width = alignCanvas.width;
-  tempCanvas.height = alignCanvas.height;
+  tempCanvas.width = alignCanvas.width; tempCanvas.height = alignCanvas.height;
   var tctx = tempCanvas.getContext('2d', { willReadFrequently: true });
-
   tctx.drawImage(rawImage, imgX, imgY, rawImage.width * imgScale, rawImage.height * imgScale);
 
-  if (currentBlurPx > 0) {
-    executeReliableFastBlur(tempCanvas, currentBlurPx * 0.9);
-  }
+  if (currentBlurPx > 0) executeReliableFastBlur(tempCanvas, currentBlurPx * 0.9);
 
   if (!isSymmetryEnabled) {
     actx.drawImage(tempCanvas, 0, 0);
   } else {
     actx.drawImage(tempCanvas, 0, 0, midX, alignCanvas.height, 0, 0, midX, alignCanvas.height);
     actx.save();
-    actx.translate(alignCanvas.width, 0);
-    actx.scale(-1, 1);
+    actx.translate(alignCanvas.width, 0); actx.scale(-1, 1);
     actx.drawImage(tempCanvas, 0, 0, midX, alignCanvas.height, 0, 0, midX, alignCanvas.height);
     actx.restore();
   }
@@ -1472,37 +974,27 @@ var interactiveFrame = document.getElementById('interactive-align-frame');
 if (interactiveFrame && alignCanvas) {
   interactiveFrame.onmousedown = function(e) {
     isDragging = true;
-    var rect = alignCanvas.getBoundingClientRect();
-    var scaleFactor = alignCanvas.width / rect.width;
-    startX = (e.clientX - rect.left) * scaleFactor - imgX;
-    startY = (e.clientY - rect.top) * scaleFactor - imgY;
+    var rect = alignCanvas.getBoundingClientRect(), sFactor = alignCanvas.width / rect.width;
+    startX = (e.clientX - rect.left) * sFactor - imgX; startY = (e.clientY - rect.top) * sFactor - imgY;
   };
-
   window.addEventListener('mousemove', function(e) {
     if (!isDragging || !alignCanvas) return;
-    var rect = alignCanvas.getBoundingClientRect();
-    var scaleFactor = alignCanvas.width / rect.width;
-    imgX = (e.clientX - rect.left) * scaleFactor - startX;
-    imgY = (e.clientY - rect.top) * scaleFactor - startY;
+    var rect = alignCanvas.getBoundingClientRect(), sFactor = alignCanvas.width / rect.width;
+    imgX = (e.clientX - rect.left) * sFactor - startX; imgY = (e.clientY - rect.top) * sFactor - startY;
     drawAlignCanvas();
   });
-
   window.addEventListener('mouseup', function() { isDragging = false; });
-
   interactiveFrame.addEventListener('wheel', function(e) {
     e.preventDefault();
-    var zoom = e.deltaY < 0 ? 1.06 : 0.94;
-    imgScale *= zoom;
+    imgScale *= (e.deltaY < 0 ? 1.06 : 0.94);
     drawAlignCanvas();
   }, { passive: false });
 
   interactiveFrame.addEventListener('touchstart', function(e) {
-    var rect = alignCanvas.getBoundingClientRect();
-    var scaleFactor = alignCanvas.width / rect.width;
+    var rect = alignCanvas.getBoundingClientRect(), sFactor = alignCanvas.width / rect.width;
     if (e.touches.length === 1) {
       isDragging = true;
-      startX = (e.touches[0].clientX - rect.left) * scaleFactor - imgX;
-      startY = (e.touches[0].clientY - rect.top) * scaleFactor - imgY;
+      startX = (e.touches[0].clientX - rect.left) * sFactor - imgX; startY = (e.touches[0].clientY - rect.top) * sFactor - imgY;
     } else if (e.touches.length === 2) {
       isDragging = false;
       startPinchDist = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY);
@@ -1512,98 +1004,64 @@ if (interactiveFrame && alignCanvas) {
 
   window.addEventListener('touchmove', function(e) {
     if (!document.getElementById('screen-shape-select').classList.contains('active')) return;
-    var rect = alignCanvas.getBoundingClientRect();
-    var scaleFactor = alignCanvas.width / rect.width;
+    var rect = alignCanvas.getBoundingClientRect(), sFactor = alignCanvas.width / rect.width;
     if (e.touches.length === 1 && isDragging) {
       if (e.cancelable) e.preventDefault();
-      imgX = (e.touches[0].clientX - rect.left) * scaleFactor - startX;
-      imgY = (e.touches[0].clientY - rect.top) * scaleFactor - startY;
+      imgX = (e.touches[0].clientX - rect.left) * sFactor - startX; imgY = (e.touches[0].clientY - rect.top) * sFactor - startY;
       drawAlignCanvas();
     } else if (e.touches.length === 2 && startPinchDist > 0) {
       if (e.cancelable) e.preventDefault();
-      var currentDist = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY);
-      var factor = currentDist / startPinchDist;
-      imgScale = pinchStartScale * factor;
+      imgScale = pinchStartScale * (Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY) / startPinchDist);
       drawAlignCanvas();
     }
   }, { passive: false });
-
   window.addEventListener('touchend', function() { isDragging = false; startPinchDist = 0; });
 }
 
 function exportAlignedTexture() {
   if (!rawImage || !rawImage.width || !alignCanvas) {
-    currentExtractedTexture = createFallbackDummyTexture();
-    return;
+    currentExtractedTexture = createFallbackDummyTexture(); return;
   }
-
   var baseCanvas = document.createElement('canvas');
-  baseCanvas.width = alignCanvas.width;
-  baseCanvas.height = alignCanvas.height;
+  baseCanvas.width = alignCanvas.width; baseCanvas.height = alignCanvas.height;
   var bctx = baseCanvas.getContext('2d', { willReadFrequently: true });
-
   bctx.drawImage(rawImage, imgX, imgY, rawImage.width * imgScale, rawImage.height * imgScale);
 
-  if (currentBlurPx > 0) {
-    executeReliableFastBlur(baseCanvas, currentBlurPx * 0.9);
-  }
+  if (currentBlurPx > 0) executeReliableFastBlur(baseCanvas, currentBlurPx * 0.9);
 
   if (isSymmetryEnabled) {
-    var midX = alignCanvas.width / 2;
-    var symCanvas = document.createElement('canvas');
-    symCanvas.width = alignCanvas.width;
-    symCanvas.height = alignCanvas.height;
+    var midX = alignCanvas.width / 2, symCanvas = document.createElement('canvas');
+    symCanvas.width = alignCanvas.width; symCanvas.height = alignCanvas.height;
     var sctx = symCanvas.getContext('2d');
     sctx.drawImage(baseCanvas, 0, 0, midX, alignCanvas.height, 0, 0, midX, alignCanvas.height);
-    sctx.save();
-    sctx.translate(alignCanvas.width, 0);
-    sctx.scale(-1, 1);
+    sctx.save(); sctx.translate(alignCanvas.width, 0); sctx.scale(-1, 1);
     sctx.drawImage(baseCanvas, 0, 0, midX, alignCanvas.height, 0, 0, midX, alignCanvas.height);
     sctx.restore();
     baseCanvas = symCanvas;
   }
 
   var currentWing = butterflyPathData[selectedButterflyShape] || wingDataset[0];
-  var isHighRes1000 = Math.max(currentWing.w, currentWing.h) >= 500;
-  var targetBoundSize = isHighRes1000 ? 195 : 140;
-
-  var heroScale = targetBoundSize / Math.max(currentWing.w, currentWing.h);
-  var heroOffsetX = (160 - currentWing.w * heroScale) / 2;
-  var heroOffsetY = (160 - currentWing.h * heroScale) / 2;
-
+  var heroScale = (Math.max(currentWing.w, currentWing.h) >= 500 ? 195 : 140) / Math.max(currentWing.w, currentWing.h);
   var cRatio = alignCanvas.width / 160;
-  var cropX = heroOffsetX * cRatio;
-  var cropY = heroOffsetY * cRatio;
+  var cropX = ((160 - currentWing.w * heroScale) / 2) * cRatio;
+  var cropY = ((160 - currentWing.h * heroScale) / 2) * cRatio;
   var cropW = (currentWing.w * heroScale) * cRatio;
   var cropH = (currentWing.h * heroScale) * cRatio;
 
-  var outW = 1024;
-  var outH = Math.round(1024 * (currentWing.h / currentWing.w));
+  var outW = 1024, outH = Math.round(1024 * (currentWing.h / currentWing.w));
   var finalCanvas = document.createElement('canvas');
-  finalCanvas.width = outW;
-  finalCanvas.height = outH;
-  var fctx = finalCanvas.getContext('2d');
-
-  fctx.drawImage(baseCanvas, cropX, cropY, cropW, cropH, 0, 0, outW, outH);
-
+  finalCanvas.width = outW; finalCanvas.height = outH;
+  finalCanvas.getContext('2d').drawImage(baseCanvas, cropX, cropY, cropW, cropH, 0, 0, outW, outH);
   currentExtractedTexture = finalCanvas.toDataURL('image/jpeg', 0.95);
 }
 
 function createFallbackDummyTexture(colorA, colorB) {
-  var c = document.createElement('canvas');
-  c.width = 512;
-  c.height = 512;
-  var ctx = c.getContext('2d');
-  var grad = ctx.createLinearGradient(0, 0, 512, 512);
-  grad.addColorStop(0, colorA || '#2a5298');
-  grad.addColorStop(0.5, '#ffffff');
-  grad.addColorStop(1, colorB || '#1e3c72');
-  ctx.fillStyle = grad;
-  ctx.fillRect(0, 0, 512, 512);
+  var c = document.createElement('canvas'); c.width = 512; c.height = 512;
+  var ctx = c.getContext('2d'), grad = ctx.createLinearGradient(0, 0, 512, 512);
+  grad.addColorStop(0, colorA || '#2a5298'); grad.addColorStop(0.5, '#ffffff'); grad.addColorStop(1, colorB || '#1e3c72');
+  ctx.fillStyle = grad; ctx.fillRect(0, 0, 512, 512);
   ctx.fillStyle = 'rgba(255,255,255,0.4)';
-  ctx.beginPath();
-  ctx.arc(256, 256, 130, 0, Math.PI * 2);
-  ctx.fill();
+  ctx.beginPath(); ctx.arc(256, 256, 130, 0, Math.PI * 2); ctx.fill();
   return c.toDataURL('image/jpeg', 0.85);
 }
 
@@ -1628,13 +1086,11 @@ var surveyQuestions = [
 ];
 
 function buildAdaptiveVerticalRows(items) {
-  var rows = [];
-  var i = 0;
+  var rows = [], i = 0;
   while (i < items.length) {
     var targetCount = 3;
     var candidate = items.slice(i, i + targetCount);
-    var totalChars = candidate.reduce(function(sum, word) { return sum + word.length; }, 0);
-    if (totalChars > 12 && candidate.length > 2) targetCount = 2;
+    if (candidate.reduce(function(s, w) { return s + w.length; }, 0) > 12 && candidate.length > 2) targetCount = 2;
     var actualRow = items.slice(i, i + targetCount);
     rows.push(actualRow);
     i += actualRow.length;
@@ -1656,189 +1112,118 @@ var memoCounter = document.getElementById('memo-counter');
 var inputQ7Name = document.getElementById('input-q7-name');
 var charCounter = document.getElementById('char-counter');
 var elSelectedConcernChips = document.getElementById('selected-concern-chips');
-
 var surveyCustomInputAnchor = document.getElementById('survey-custom-input-anchor');
 var inputCustomKeyword = document.getElementById('input-custom-keyword');
 var btnCustomKeywordClear = document.getElementById('btn-custom-keyword-clear');
-var surveyTitleTypeTimer = null;
 
 function typeWriterSurveyTitle(titleHtml, onComplete) {
   clearTimeout(surveyTitleTypeTimer);
   if (!elTitle) return;
   elTitle.innerHTML = "";
   var tokens = titleHtml.match(/(<[^>]+>|[^<])/g) || [];
-  var idx = 0;
-  var currentContent = "";
+  var idx = 0, currentContent = "";
 
-  function nextChar() {
+  (function nextChar() {
     if (idx < tokens.length) {
       var char = tokens[idx];
       currentContent += char;
       elTitle.innerHTML = currentContent;
       idx++;
-      var delay = 80;
-      if (char.startsWith('<')) delay = 0;
-      else if (char === '?' || char === '.') delay = 350;
-      else if (char === ',') delay = 200;
+      var delay = (char.startsWith('<') ? 0 : (char === '?' || char === '.' ? 350 : 80));
       surveyTitleTypeTimer = setTimeout(nextChar, delay);
-    } else {
-      if (onComplete) setTimeout(onComplete, 150);
-    }
-  }
-  nextChar();
+    } else if (onComplete) setTimeout(onComplete, 150);
+  })();
 }
 
 function updateCustomInputBarState() {
   if (!inputCustomKeyword) return;
-  var currentCustom = "";
-  if (currentStepIdx === 1) currentCustom = userSelections.q2_custom || "";
-
+  var currentCustom = (currentStepIdx === 1) ? (userSelections.q2_custom || "") : "";
   inputCustomKeyword.value = currentCustom;
-  if (btnCustomKeywordClear) {
-    if (currentCustom.trim().length > 0) btnCustomKeywordClear.classList.remove('hidden');
-    else btnCustomKeywordClear.classList.add('hidden');
-  }
+  if (btnCustomKeywordClear) btnCustomKeywordClear.classList.toggle('hidden', currentCustom.trim().length === 0);
 }
 
 function renderSurveyStep() {
   var q = surveyQuestions[currentStepIdx];
   if (!q) return;
-  
-  if (elProgressBar) {
-    var pPercent = 33;
-    if (currentStepIdx === 0) pPercent = 33;
-    else if (currentStepIdx === 1) pPercent = 66;
-    else if (currentStepIdx === 2) pPercent = 100;
-    elProgressBar.style.width = pPercent + '%';
-  }
 
-  if (btnSurveyPrev) {
-    btnSurveyPrev.classList.toggle('invisible', currentStepIdx === 0);
-  }
-  
-  if (btnSurveyNext) {
-    if (currentStepIdx === 2) btnSurveyNext.innerText = "완성하기";
-    else btnSurveyNext.innerText = "다음 질문으로";
-  }
+  if (elProgressBar) elProgressBar.style.width = (currentStepIdx === 0 ? 25 : (currentStepIdx === 1 ? 50 : 90)) + '%';
+  if (btnSurveyPrev) btnSurveyPrev.classList.toggle('invisible', currentStepIdx === 0);
+  if (btnSurveyNext) btnSurveyNext.innerText = (currentStepIdx === 2) ? "다음으로" : "다음 질문으로";
 
   var titleBox = document.querySelector('.survey-title-box');
   if (titleBox) titleBox.style.display = 'flex';
 
   if (currentStepIdx === 0) {
-    stopBubblePhysics();
-    typeWriterSurveyTitle(q.title);
+    stopBubblePhysics(); typeWriterSurveyTitle(q.title);
     if (elDesc) elDesc.innerHTML = q.desc;
     if (surveyChipWrapper) surveyChipWrapper.classList.add('hidden');
     if (elField6) { elField6.classList.add('hidden'); elField6.classList.remove('flex'); }
     if (elField7) { elField7.classList.remove('hidden'); elField7.classList.add('flex'); }
-    if (surveyCustomInputAnchor) {
-      surveyCustomInputAnchor.classList.remove('custom-anchor-visible');
-      surveyCustomInputAnchor.classList.add('custom-anchor-hidden');
-    }
+    if (surveyCustomInputAnchor) { surveyCustomInputAnchor.classList.remove('custom-anchor-visible'); surveyCustomInputAnchor.classList.add('custom-anchor-hidden'); }
   } else if (currentStepIdx === 1) {
-    stopBubblePhysics();
-    typeWriterSurveyTitle(q.title);
+    stopBubblePhysics(); typeWriterSurveyTitle(q.title);
     if (elDesc) elDesc.innerHTML = q.desc;
     if (surveyChipWrapper) surveyChipWrapper.classList.remove('hidden');
     if (elField6) { elField6.classList.add('hidden'); elField6.classList.remove('flex'); }
     if (elField7) { elField7.classList.add('hidden'); elField7.classList.remove('flex'); }
-    if (surveyCustomInputAnchor) {
-      surveyCustomInputAnchor.classList.remove('custom-anchor-hidden');
-      surveyCustomInputAnchor.classList.add('custom-anchor-visible');
-    }
-    updateCustomInputBarState();
-    renderVerticalScrollChips();
+    if (surveyCustomInputAnchor) { surveyCustomInputAnchor.classList.remove('custom-anchor-hidden'); surveyCustomInputAnchor.classList.add('custom-anchor-visible'); }
+    updateCustomInputBarState(); renderVerticalScrollChips();
   } else if (currentStepIdx === 2) {
     typeWriterSurveyTitle(q.title);
     if (elDesc) elDesc.innerHTML = q.desc;
     if (surveyChipWrapper) surveyChipWrapper.classList.add('hidden');
     if (elField7) { elField7.classList.add('hidden'); elField7.classList.remove('flex'); }
-    if (surveyCustomInputAnchor) {
-      surveyCustomInputAnchor.classList.remove('custom-anchor-visible');
-      surveyCustomInputAnchor.classList.add('custom-anchor-hidden');
-    }
-
-    if (elField6) {
-      elField6.classList.remove('hidden');
-      elField6.classList.add('flex');
-    }
+    if (surveyCustomInputAnchor) { surveyCustomInputAnchor.classList.remove('custom-anchor-visible'); surveyCustomInputAnchor.classList.add('custom-anchor-hidden'); }
+    if (elField6) { elField6.classList.remove('hidden'); elField6.classList.add('flex'); }
 
     var memoBox = elField6 ? elField6.querySelector('.glass-input-card-v2') : null;
     var memoCounterWrap = memoCounter ? memoCounter.parentElement : null;
-    if (memoBox) {
-      memoBox.style.opacity = '1';
-      memoBox.style.transform = 'translateY(0)';
-    }
-    if (memoCounterWrap) {
-      memoCounterWrap.style.opacity = '1';
-    }
-
-    if (elSelectedConcernChips) {
-      elSelectedConcernChips.innerHTML = '';
-      elSelectedConcernChips.style.display = 'none';
-    }
-
+    if (memoBox) { memoBox.style.opacity = '1'; memoBox.style.transform = 'translateY(0)'; }
+    if (memoCounterWrap) memoCounterWrap.style.opacity = '1';
+    if (elSelectedConcernChips) { elSelectedConcernChips.innerHTML = ''; elSelectedConcernChips.style.display = 'none'; }
     startBubblePhysics();
   }
-
   validateSurveyStep();
   updateDevScreenBadge();
 }
 
 function updateChipStyle(chip, isSelected) {
+  chip.classList.toggle('chip-selected', isSelected);
+  chip.classList.toggle('chip-unselected', !isSelected);
   if (isSelected) {
-    chip.classList.remove('chip-unselected');
-    chip.classList.add('chip-selected');
     chip.style.setProperty('background', '#ffffff', 'important');
     chip.style.setProperty('border', 'none', 'important');
     chip.style.setProperty('color', '#000000', 'important');
     chip.style.setProperty('font-weight', '700', 'important');
     chip.style.setProperty('box-shadow', '0 0 18px 2px rgba(255, 255, 255, 0.5)', 'important');
   } else {
-    chip.classList.remove('chip-selected');
-    chip.classList.add('chip-unselected');
     chip.style.setProperty('background', 'rgba(255, 255, 255, 0.08)', 'important');
     chip.style.setProperty('border', '1px solid rgba(255, 255, 255, 0.14)', 'important');
     chip.style.setProperty('color', '#a3a3a3', 'important');
     chip.style.setProperty('font-weight', '500', 'important');
-    chip.style.removeProperty('box-shadow');
     chip.style.setProperty('box-shadow', 'none', 'important');
   }
 }
 
 function renderVerticalScrollChips() {
   if (!elOrganicContainer || !surveyChipWrapper) return;
-  var q = surveyQuestions[currentStepIdx];
-  var allOptions = q.options || [];
-  var rows = buildAdaptiveVerticalRows(allOptions);
-  var stateKey = 'q2';
-
-  elOrganicContainer.innerHTML = '';
-  surveyChipWrapper.scrollTop = 0;
+  var rows = buildAdaptiveVerticalRows(surveyQuestions[currentStepIdx].options || []);
+  elOrganicContainer.innerHTML = ''; surveyChipWrapper.scrollTop = 0;
 
   rows.forEach(function(rowItems) {
     var rowDiv = document.createElement('div');
     rowDiv.className = 'flex items-center justify-center gap-1.5 w-full';
-
     rowItems.forEach(function(item) {
       var chip = document.createElement('button');
-      chip.type = 'button';
-      chip.className = 'chip-base';
-      chip.innerText = item;
-      var isSelected = userSelections[stateKey].indexOf(item) > -1;
+      chip.type = 'button'; chip.className = 'chip-base'; chip.innerText = item;
+      var isSelected = userSelections.q2.indexOf(item) > -1;
       updateChipStyle(chip, isSelected);
 
       chip.onclick = function() {
-        var idx = userSelections[stateKey].indexOf(item);
-        var nextState = false;
-        if (idx > -1) {
-          userSelections[stateKey].splice(idx, 1);
-          nextState = false;
-        } else {
-          userSelections[stateKey].push(item);
-          nextState = true;
-        }
-        updateChipStyle(chip, nextState);
+        var idx = userSelections.q2.indexOf(item);
+        if (idx > -1) userSelections.q2.splice(idx, 1);
+        else userSelections.q2.push(item);
+        updateChipStyle(chip, userSelections.q2.indexOf(item) > -1);
         validateSurveyStep();
       };
       rowDiv.appendChild(chip);
@@ -1851,11 +1236,7 @@ if (inputCustomKeyword) {
   inputCustomKeyword.oninput = function(e) {
     var val = e.target.value;
     if (currentStepIdx === 1) userSelections.q2_custom = val;
-
-    if (btnCustomKeywordClear) {
-      if (val.trim().length > 0) btnCustomKeywordClear.classList.remove('hidden');
-      else btnCustomKeywordClear.classList.add('hidden');
-    }
+    if (btnCustomKeywordClear) btnCustomKeywordClear.classList.toggle('hidden', val.trim().length === 0);
     validateSurveyStep();
   };
 }
@@ -1863,10 +1244,7 @@ if (inputCustomKeyword) {
 if (btnCustomKeywordClear) {
   btnCustomKeywordClear.onclick = function(e) {
     e.stopPropagation();
-    if (inputCustomKeyword) {
-      inputCustomKeyword.value = "";
-      inputCustomKeyword.focus();
-    }
+    if (inputCustomKeyword) { inputCustomKeyword.value = ""; inputCustomKeyword.focus(); }
     if (currentStepIdx === 1) userSelections.q2_custom = "";
     btnCustomKeywordClear.classList.add('hidden');
     validateSurveyStep();
@@ -1876,14 +1254,9 @@ if (btnCustomKeywordClear) {
 function validateSurveyStep() {
   if (!btnSurveyNext) return;
   var isValid = false;
-  if (currentStepIdx === 0) {
-    isValid = userSelections.q7_name.trim().length > 0;
-  } else if (currentStepIdx === 1) {
-    var hasCustom2 = userSelections.q2_custom && userSelections.q2_custom.trim().length > 0;
-    isValid = userSelections.q2.length > 0 || hasCustom2;
-  } else if (currentStepIdx === 2) {
-    isValid = true;
-  }
+  if (currentStepIdx === 0) isValid = userSelections.q7_name.trim().length > 0;
+  else if (currentStepIdx === 1) isValid = userSelections.q2.length > 0 || (userSelections.q2_custom && userSelections.q2_custom.trim().length > 0);
+  else if (currentStepIdx === 2) isValid = true;
   btnSurveyNext.disabled = !isValid;
 }
 
@@ -1905,40 +1278,32 @@ if (inputQ7Name) {
 
 if (btnSurveyNext) {
   btnSurveyNext.onclick = function() {
-    if (currentStepIdx === 0) {
-      currentStepIdx = 1;
-      renderSurveyStep();
-    } else if (currentStepIdx === 1) {
+    if (currentStepIdx === 0) { currentStepIdx = 1; renderSurveyStep(); }
+    else if (currentStepIdx === 1) {
       if (userSelections.q2_custom && userSelections.q2_custom.trim()) {
-        var customText2 = userSelections.q2_custom.trim();
-        if (userSelections.q2.indexOf(customText2) === -1) userSelections.q2.unshift(customText2);
+        var c = userSelections.q2_custom.trim();
+        if (userSelections.q2.indexOf(c) === -1) userSelections.q2.unshift(c);
       }
       if (!userSelections.q2 || userSelections.q2.length === 0) {
         userSelections.q2 = ["비교중독", "수면 부족", "완벽주의 강박", "거절 공포", "텅 빈 잔고", "미래 막막함"];
       }
       showScreen('screen-survey-core-concern');
     } else if (currentStepIdx === 2) {
-      showScreen('screen-loading');
-      startAnswerShowcaseSequence();
+      showScreen('screen-post-concern-bridge');
     }
   };
 }
 
 if (btnSurveyPrev) {
   btnSurveyPrev.onclick = function() {
-    if (currentStepIdx === 2) {
-      showScreen('screen-survey-bridge');
-    } else if (currentStepIdx === 1) {
-      currentStepIdx = 0;
-      renderSurveyStep();
-    }
+    if (currentStepIdx === 2) showScreen('screen-survey-concern-reason');
+    else if (currentStepIdx === 1) { currentStepIdx = 0; renderSurveyStep(); }
   };
 }
 
 // --------------------------------------------------------------------------
 // 핵심 고민 화면 시네마틱 플로우
 // --------------------------------------------------------------------------
-var coreConcernTypeTimer = null;
 var elCoreConcernTitleWrap = document.getElementById('core-concern-title-wrapper');
 var elCoreConcernTitle = document.getElementById('core-concern-title');
 var elCoreConcernContainer = document.getElementById('core-concern-scroll-container');
@@ -1948,32 +1313,20 @@ var btnCoreConcernPrev = document.getElementById('btn-core-concern-prev');
 
 function calculateRowDistribution(totalCount) {
   if (totalCount <= 0) return [];
-  if (totalCount === 1) return [1];
-  if (totalCount === 2) return [2];
-  if (totalCount === 3) return [3];
+  if (totalCount <= 3) return [totalCount];
   if (totalCount === 4) return [2, 2];
   if (totalCount === 5) return [2, 3];
-
   if (totalCount <= 10) {
-    var base3 = Math.floor(totalCount / 3);
-    var rem3 = totalCount % 3;
-    if (rem3 === 0) return [base3, base3, base3];
-    if (rem3 === 1) return [base3, base3, base3 + 1];
-    return [base3, base3 + 1, base3 + 1];
+    var b3 = Math.floor(totalCount / 3), r3 = totalCount % 3;
+    return r3 === 0 ? [b3, b3, b3] : (r3 === 1 ? [b3, b3, b3 + 1] : [b3, b3 + 1, b3 + 1]);
   }
-
-  var base5 = Math.floor(totalCount / 5);
-  var rem5 = totalCount % 5;
-  var rows5 = [base5, base5, base5, base5, base5];
-  for (var r = 0; r < rem5; r++) {
-    rows5[4 - r]++;
-  }
+  var b5 = Math.floor(totalCount / 5), r5 = totalCount % 5, rows5 = [b5, b5, b5, b5, b5];
+  for (var r = 0; r < r5; r++) rows5[4 - r]++;
   return rows5;
 }
 
 function initCoreConcernScreen() {
   clearTimeout(coreConcernTypeTimer);
-
   if (elCoreConcernTitleWrap) elCoreConcernTitleWrap.classList.remove('moved-to-top');
   if (elCoreConcernTitle) elCoreConcernTitle.innerHTML = "";
   if (elCoreConcernContainer) elCoreConcernContainer.classList.remove('revealed');
@@ -1983,57 +1336,34 @@ function initCoreConcernScreen() {
     var cCustom = userSelections.q2_custom.trim();
     if (selectedItems.indexOf(cCustom) === -1) selectedItems.unshift(cCustom);
   }
-
   if (selectedItems.length === 0) {
     selectedItems = ["완벽주의 강박", "비교중독", "수면 부족", "거절 공포", "텅 빈 잔고", "미래 막막함"];
     userSelections.q2 = [].concat(selectedItems);
   }
-
-  if (!userSelections.core_concern && selectedItems.length > 0) {
-    userSelections.core_concern = selectedItems[0];
-  }
-
+  if (!userSelections.core_concern && selectedItems.length > 0) userSelections.core_concern = selectedItems[0];
   if (btnCoreConcernNext) btnCoreConcernNext.disabled = !userSelections.core_concern;
-  
-  if (elCoreConcernGrid) {
-    elCoreConcernGrid.innerHTML = '';
-  }
+  if (elCoreConcernGrid) elCoreConcernGrid.innerHTML = '';
 
-  var distribution = calculateRowDistribution(selectedItems.length);
-  var itemCursor = 0;
-
+  var distribution = calculateRowDistribution(selectedItems.length), itemCursor = 0;
   distribution.forEach(function(countInRow) {
     var rowDiv = document.createElement('div');
     rowDiv.className = 'core-concern-row';
-
     for (var i = 0; i < countInRow && itemCursor < selectedItems.length; i++) {
       (function() {
         var item = selectedItems[itemCursor];
         var btn = document.createElement('button');
-        btn.type = 'button';
-        btn.className = 'core-concern-text-btn';
-        btn.innerText = item;
-
-        if (userSelections.core_concern === item) {
-          btn.classList.add('core-concern-selected');
-        } else {
-          btn.classList.add('core-concern-unselected');
-        }
+        btn.type = 'button'; btn.className = 'core-concern-text-btn'; btn.innerText = item;
+        btn.classList.add(userSelections.core_concern === item ? 'core-concern-selected' : 'core-concern-unselected');
 
         btn.onclick = function() {
           userSelections.core_concern = item;
-          var allButtons = elCoreConcernGrid.querySelectorAll('.core-concern-text-btn');
-          allButtons.forEach(function(b) {
-            b.classList.remove('core-concern-selected');
-            b.classList.add('core-concern-unselected');
+          elCoreConcernGrid.querySelectorAll('.core-concern-text-btn').forEach(function(b) {
+            b.classList.remove('core-concern-selected'); b.classList.add('core-concern-unselected');
           });
-          btn.classList.remove('core-concern-unselected');
-          btn.classList.add('core-concern-selected');
+          btn.classList.remove('core-concern-unselected'); btn.classList.add('core-concern-selected');
           if (btnCoreConcernNext) btnCoreConcernNext.disabled = false;
         };
-
-        rowDiv.appendChild(btn);
-        itemCursor++;
+        rowDiv.appendChild(btn); itemCursor++;
       })();
     }
     elCoreConcernGrid.appendChild(rowDiv);
@@ -2041,73 +1371,44 @@ function initCoreConcernScreen() {
 
   if (elCoreConcernContainer) {
     setTimeout(function() {
-      var scrollCenter = (elCoreConcernContainer.scrollWidth - elCoreConcernContainer.clientWidth) / 2;
-      elCoreConcernContainer.scrollLeft = Math.max(0, scrollCenter);
+      elCoreConcernContainer.scrollLeft = Math.max(0, (elCoreConcernContainer.scrollWidth - elCoreConcernContainer.clientWidth) / 2);
     }, 50);
 
-    var isDown = false;
-    var startXCoord = 0;
-    var scrollLeftVal = 0;
-
+    var isDown = false, startXCoord = 0, scrollLeftVal = 0;
     elCoreConcernContainer.onmousedown = function(e) {
-      isDown = true;
-      startXCoord = e.pageX - elCoreConcernContainer.offsetLeft;
-      scrollLeftVal = elCoreConcernContainer.scrollLeft;
+      isDown = true; startXCoord = e.pageX - elCoreConcernContainer.offsetLeft; scrollLeftVal = elCoreConcernContainer.scrollLeft;
     };
     elCoreConcernContainer.onmouseleave = function() { isDown = false; };
     elCoreConcernContainer.onmouseup = function() { isDown = false; };
     elCoreConcernContainer.onmousemove = function(e) {
       if (!isDown) return;
       e.preventDefault();
-      var x = e.pageX - elCoreConcernContainer.offsetLeft;
-      var walk = (x - startXCoord) * 1.5;
-      elCoreConcernContainer.scrollLeft = scrollLeftVal - walk;
+      elCoreConcernContainer.scrollLeft = scrollLeftVal - ((e.pageX - elCoreConcernContainer.offsetLeft) - startXCoord) * 1.5;
     };
   }
 
-  var typingMsg = "이 중에서 가장 꺼내기 힘든 것은<br>무엇인가요?";
-  var tokens = typingMsg.match(/(<[^>]+>|[^<])/g) || [];
-  var idx = 0;
-  var curText = "";
-
-  function typeNextCoreChar() {
+  var tokens = "이 중에서 가장 꺼내기 힘든 것은<br>무엇인가요?".match(/(<[^>]+>|[^<])/g) || [];
+  var idx = 0, curText = "";
+  (function typeNextCoreChar() {
     if (idx < tokens.length) {
-      var char = tokens[idx];
-      curText += char;
+      var char = tokens[idx]; curText += char;
       if (elCoreConcernTitle) elCoreConcernTitle.innerHTML = curText;
       idx++;
-      var delay = 75;
-      if (char.startsWith('<')) delay = 0;
-      else if (char === '?' || char === '.') delay = 350;
-      coreConcernTypeTimer = setTimeout(typeNextCoreChar, delay);
+      coreConcernTypeTimer = setTimeout(typeNextCoreChar, char.startsWith('<') ? 0 : (char === '?' || char === '.' ? 350 : 75));
     } else {
       setTimeout(function() {
         if (elCoreConcernTitleWrap) elCoreConcernTitleWrap.classList.add('moved-to-top');
-        setTimeout(function() {
-          if (elCoreConcernContainer) elCoreConcernContainer.classList.add('revealed');
-        }, 450);
+        setTimeout(function() { if (elCoreConcernContainer) elCoreConcernContainer.classList.add('revealed'); }, 450);
       }, 350);
     }
-  }
-  setTimeout(typeNextCoreChar, 180);
+  })();
 }
 
-if (btnCoreConcernNext) {
-  btnCoreConcernNext.onclick = function() {
-    if (!userSelections.core_concern) return;
-    showScreen('screen-survey-concern-reason');
-  };
-}
-
-if (btnCoreConcernPrev) {
-  btnCoreConcernPrev.onclick = function() {
-    currentStepIdx = 1;
-    showScreen('screen-survey');
-  };
-}
+if (btnCoreConcernNext) btnCoreConcernNext.onclick = function() { if (userSelections.core_concern) showScreen('screen-survey-concern-reason'); };
+if (btnCoreConcernPrev) btnCoreConcernPrev.onclick = function() { currentStepIdx = 1; showScreen('screen-survey'); };
 
 // --------------------------------------------------------------------------
-// 핵심 고민 이유 작성 화면 로직 (2번 사진)
+// 핵심 고민 이유 작성 화면 로직 (서술 작성)
 // --------------------------------------------------------------------------
 var elConcernReasonTitle = document.getElementById('concern-reason-title');
 var inputConcernReason = document.getElementById('input-concern-reason');
@@ -2118,78 +1419,50 @@ var elConcernReasonKeywordDisplay = document.getElementById('concern-reason-pick
 
 function initConcernReasonScreen() {
   clearTimeout(reasonTypeTimer);
-  var pickedConcern = userSelections.core_concern || "고민";
-
-  if (elConcernReasonKeywordDisplay) {
-    elConcernReasonKeywordDisplay.innerText = pickedConcern;
-  }
-
-  var titleMsg = "가장 힘들었던 이유는 무엇인가요?";
+  if (elConcernReasonKeywordDisplay) elConcernReasonKeywordDisplay.innerText = userSelections.core_concern || "고민";
   if (elConcernReasonTitle) elConcernReasonTitle.innerHTML = "";
 
-  var tokens = titleMsg.match(/(<[^>]+>|[^<])/g) || [];
-  var idx = 0;
-  var cur = "";
-
-  function typeReasonChar() {
+  var tokens = "가장 힘들었던 이유는 무엇인가요?".match(/(<[^>]+>|[^<])/g) || [];
+  var idx = 0, cur = "";
+  (function typeReasonChar() {
     if (idx < tokens.length) {
-      var char = tokens[idx];
-      cur += char;
+      var char = tokens[idx]; cur += char;
       if (elConcernReasonTitle) elConcernReasonTitle.innerHTML = cur;
       idx++;
-      var delay = 70;
-      if (char.startsWith('<')) delay = 0;
-      else if (char === '?' || char === '.') delay = 320;
-      reasonTypeTimer = setTimeout(typeReasonChar, delay);
+      reasonTypeTimer = setTimeout(typeReasonChar, char.startsWith('<') ? 0 : (char === '?' || char === '.' ? 320 : 70));
     }
-  }
-  setTimeout(typeReasonChar, 100);
+  })();
 
   if (inputConcernReason) {
     inputConcernReason.value = userSelections.concern_reason || "";
-    if (concernReasonCounter) {
-      concernReasonCounter.innerText = (userSelections.concern_reason ? userSelections.concern_reason.length : 0) + '/100';
-    }
+    if (concernReasonCounter) concernReasonCounter.innerText = (userSelections.concern_reason ? userSelections.concern_reason.length : 0) + '/100';
   }
 }
 
 if (inputConcernReason) {
   inputConcernReason.oninput = function(e) {
     userSelections.concern_reason = e.target.value;
-    if (concernReasonCounter) {
-      concernReasonCounter.innerText = e.target.value.length + '/100';
-    }
+    if (concernReasonCounter) concernReasonCounter.innerText = e.target.value.length + '/100';
   };
 }
 
 if (btnConcernReasonNext) {
-  btnConcernReasonNext.onclick = function() {
-    showScreen('screen-post-concern-bridge');
-  };
+  btnConcernReasonNext.onclick = function() { currentStepIdx = 2; showScreen('screen-survey'); };
 }
-
 if (btnConcernReasonPrev) {
-  btnConcernReasonPrev.onclick = function() {
-    showScreen('screen-survey-core-concern');
-  };
+  btnConcernReasonPrev.onclick = function() { showScreen('screen-survey-core-concern'); };
 }
 
 // --------------------------------------------------------------------------
-// 말풍선 물리 낙하 애니메이션
+// 말풍선 물리 레이어
 // --------------------------------------------------------------------------
-var bubbleCanvas = null;
-var bctx = null;
-var bubbleAnimFrameId = null;
-var physicsBubbles = [];
+var bubbleCanvas = null, bctx = null, bubbleAnimFrameId = null;
 
 function resizeBubblePhysicsCanvas() {
   bubbleCanvas = document.getElementById('bubble-physics-canvas');
-  if (!bubbleCanvas) return;
-  var parent = bubbleCanvas.parentElement;
-  if (!parent) return;
-  var rect = parent.getBoundingClientRect();
-  bubbleCanvas.width = rect.width;
-  bubbleCanvas.height = rect.height;
+  if (!bubbleCanvas || !bubbleCanvas.parentElement) return;
+  var rect = bubbleCanvas.parentElement.getBoundingClientRect();
+  bubbleCanvas.width = rect.width; bubbleCanvas.height = rect.height;
 }
 
 function startBubblePhysics() {
@@ -2198,57 +1471,29 @@ function startBubblePhysics() {
   if (!bubbleCanvas) return;
   resizeBubblePhysicsCanvas();
   bctx = bubbleCanvas.getContext('2d');
-  if (bctx) {
-    bctx.clearRect(0, 0, bubbleCanvas.width, bubbleCanvas.height);
-  }
-  physicsBubbles = [];
+  if (bctx) bctx.clearRect(0, 0, bubbleCanvas.width, bubbleCanvas.height);
 }
 
 function stopBubblePhysics() {
-  if (bubbleAnimFrameId) {
-    cancelAnimationFrame(bubbleAnimFrameId);
-    bubbleAnimFrameId = null;
-  }
-  if (bubbleCanvas && bctx) {
-    bctx.clearRect(0, 0, bubbleCanvas.width, bubbleCanvas.height);
-  }
+  if (bubbleAnimFrameId) { cancelAnimationFrame(bubbleAnimFrameId); bubbleAnimFrameId = null; }
+  if (bubbleCanvas && bctx) bctx.clearRect(0, 0, bubbleCanvas.width, bubbleCanvas.height);
 }
 
 // --------------------------------------------------------------------------
-// 나비 뷰어 및 저장 로직
+// 나비 뷰어 및 인터랙션 로직
 // --------------------------------------------------------------------------
-var fullScene, fullCamera, fullRenderer, fullGroup;
-var leftWingMesh, rightWingMesh, antennaMesh;
-var isFlyingAway = false;
-var animFrameId = null;
-
-var initialRotL = { x: 0, y: 0, z: 0 };
-var initialRotR = { x: 0, y: 0, z: 0 };
-
-var DEFAULT_ROT_X = 0;
-var DEFAULT_ROT_Y = 0;
-
-var butterflyRotX = DEFAULT_ROT_X;
-var butterflyRotY = DEFAULT_ROT_Y;
-var isUserDragging = false;
-var lastPointerX = 0, lastPointerY = 0;
-var previewStartTime = 0;
-
-var isPressingScreen = false;
-var pressStartTime = 0;
-var isChargeTriggered = false;
-var chargeProgress = 0;
-var chargeVibrateInterval = null;
-
-var particleCanvas = null;
-var pctx = null;
-var energyParticles = [];
+var fullScene, fullCamera, fullRenderer, fullGroup, leftWingMesh, rightWingMesh, antennaMesh;
+var isFlyingAway = false, animFrameId = null;
+var initialRotL = { x: 0, y: 0, z: 0 }, initialRotR = { x: 0, y: 0, z: 0 };
+var DEFAULT_ROT_X = 0, DEFAULT_ROT_Y = 0, butterflyRotX = DEFAULT_ROT_X, butterflyRotY = DEFAULT_ROT_Y;
+var isUserDragging = false, lastPointerX = 0, lastPointerY = 0, previewStartTime = 0;
+var isPressingScreen = false, pressStartTime = 0, isChargeTriggered = false, chargeProgress = 0, chargeVibrateInterval = null;
+var particleCanvas = null, pctx = null, energyParticles = [], isFlyingTransitionTriggered = false;
 
 function triggerDeviceVibrate(durationMs, intensity) {
   try {
-    if (navigator.vibrate) {
-      navigator.vibrate(durationMs || 40);
-    } else if (window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.haptic) {
+    if (navigator.vibrate) navigator.vibrate(durationMs || 40);
+    else if (window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.haptic) {
       window.webkit.messageHandlers.haptic.postMessage({ type: 'impactMedium' });
     }
   } catch(e) {}
@@ -2256,151 +1501,100 @@ function triggerDeviceVibrate(durationMs, intensity) {
 
 async function saveButterflyToSupabase() {
   try {
-    var newlyCreatedSpecimen = {
-      id: Date.now(),
-      name: userSelections.q7_name || '나비',
-      wingId: selectedButterflyShape,
-      antId: selectedAntennaType,
-      q1: [],
+    specimenButterfliesData.unshift({
+      id: Date.now(), name: userSelections.q7_name || '나비',
+      wingId: selectedButterflyShape, antId: selectedAntennaType, q1: [],
       core_concern: userSelections.core_concern || (userSelections.q2 && userSelections.q2[0]) || "",
-      memo: userSelections.q6_memo || '',
-      textureUrl: currentExtractedTexture,
+      memo: userSelections.q6_memo || '', textureUrl: currentExtractedTexture,
       date: new Date().toISOString().slice(0, 10).replace(/-/g, '. ')
-    };
-    specimenButterfliesData.unshift(newlyCreatedSpecimen);
+    });
 
     if (!supabase) return;
     await supabase.from('butterflies').insert([{
-      name: userSelections.q7_name || '이름없는 나비',
-      wing_shape: selectedButterflyShape,
-      antenna_type: selectedAntennaType,
-      q1: [],
-      q2: userSelections.q2,
-      core_concern: userSelections.core_concern,
-      q3: [], q4: [], q5: [],
-      memo: userSelections.q6_memo || '',
-      revisit_date: null, email: null,
-      texture_url: currentExtractedTexture
+      name: userSelections.q7_name || '이름없는 나비', wing_shape: selectedButterflyShape, antenna_type: selectedAntennaType,
+      q1: [], q2: userSelections.q2, core_concern: userSelections.core_concern, q3: [], q4: [], q5: [],
+      memo: userSelections.q6_memo || '', revisit_date: null, email: null, texture_url: currentExtractedTexture
     }]);
-  } catch (err) {
-    console.error("Supabase 나비 저장 에러:", err);
-  }
+  } catch (err) { console.error("Supabase 나비 저장 에러:", err); }
 }
 
 function initFullButterflyViewer(textureURL) {
   var container = document.getElementById('three-container');
   if (animFrameId) { cancelAnimationFrame(animFrameId); animFrameId = null; }
   if (!container || !window.THREE) return;
-  container.innerHTML = '';
-  container.style.opacity = '1';
+  container.innerHTML = ''; container.style.opacity = '1';
 
   var glowBg = document.querySelector('.preview-ethereal-glow-bg');
   if (glowBg) glowBg.style.opacity = '1';
 
-  var width = window.innerWidth;
-  var height = window.innerHeight;
-
+  var width = window.innerWidth, height = window.innerHeight;
   fullScene = new THREE.Scene();
   fullCamera = new THREE.PerspectiveCamera(38, width / height, 0.1, 1000);
-  fullCamera.position.set(0, 0, 8.8);
-  fullCamera.lookAt(0, 0, 0);
+  fullCamera.position.set(0, 0, 8.8); fullCamera.lookAt(0, 0, 0);
 
   fullRenderer = new THREE.WebGLRenderer({ alpha: true, antialias: true });
   fullRenderer.setSize(width, height);
   fullRenderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
   container.appendChild(fullRenderer.domElement);
 
-  var ambientLight = new THREE.AmbientLight(0xffffff, 0.95);
-  fullScene.add(ambientLight);
+  fullScene.add(new THREE.AmbientLight(0xffffff, 0.95));
   var dirLight = new THREE.DirectionalLight(0xffffff, 0.85);
-  dirLight.position.set(0, 5, 10);
-  fullScene.add(dirLight);
+  dirLight.position.set(0, 5, 10); fullScene.add(dirLight);
 
-  var textureLoader = new THREE.TextureLoader();
-  var userTexture = textureLoader.load(textureURL);
+  var userTexture = new THREE.TextureLoader().load(textureURL);
   userTexture.flipY = false;
 
   fullGroup = new THREE.Group();
-  butterflyRotX = DEFAULT_ROT_X;
-  butterflyRotY = DEFAULT_ROT_Y;
+  butterflyRotX = DEFAULT_ROT_X; butterflyRotY = DEFAULT_ROT_Y;
   fullGroup.rotation.set(butterflyRotX, butterflyRotY, 0);
-
   fullGroup.position.set(0, -7.0, 0);
 
   previewStartTime = performance.now();
-  isFlyingAway = false;
-  isFlyingTransitionTriggered = false;
-  resetChargeState();
+  isFlyingAway = false; isFlyingTransitionTriggered = false; resetChargeState();
 
   var wingMat = new THREE.MeshBasicMaterial({ map: userTexture, side: THREE.DoubleSide });
   var whiteMat = new THREE.MeshStandardMaterial({ color: 0xffffff, side: THREE.DoubleSide, roughness: 0.35, metalness: 0.0 });
-
-  var modelPath = '3DButterfly/' + selectedButterflyShape + '.glb';
-  var targetAntennaPrefix = 'Antenna_' + selectedAntennaType;
+  var targetAnt = 'Antenna_' + selectedAntennaType;
 
   if (window.THREE && THREE.GLTFLoader) {
     try {
-      var gltfLoader = new THREE.GLTFLoader();
-      gltfLoader.load(modelPath, function(gltf) {
-        var model = gltf.scene;
+      new THREE.GLTFLoader().load('3DButterfly/' + selectedButterflyShape + '.glb', function(gltf) {
         leftWingMesh = null; rightWingMesh = null; antennaMesh = null;
-
-        model.traverse(function(child) {
+        gltf.scene.traverse(function(child) {
           if (child.isMesh) {
-            var name = child.name;
-            if (name.startsWith('Wing_L')) {
-              leftWingMesh = child; child.material = wingMat;
-              initialRotL = { x: child.rotation.x, y: child.rotation.y, z: child.rotation.z };
-            } else if (name.startsWith('Wing_R')) {
-              rightWingMesh = child; child.material = wingMat;
-              initialRotR = { x: child.rotation.x, y: child.rotation.y, z: child.rotation.z };
-            } else if (name.startsWith('Body')) {
-              child.material = whiteMat;
-            } else if (name.startsWith('Antenna_')) {
-              child.material = whiteMat;
-              if (name.startsWith(targetAntennaPrefix)) { child.visible = true; antennaMesh = child; }
-              else child.visible = false;
-            }
+            var n = child.name;
+            if (n.startsWith('Wing_L')) { leftWingMesh = child; child.material = wingMat; initialRotL = { x: child.rotation.x, y: child.rotation.y, z: child.rotation.z }; }
+            else if (n.startsWith('Wing_R')) { rightWingMesh = child; child.material = wingMat; initialRotR = { x: child.rotation.x, y: child.rotation.y, z: child.rotation.z }; }
+            else if (n.startsWith('Body')) { child.material = whiteMat; }
+            else if (n.startsWith('Antenna_')) { child.material = whiteMat; child.visible = n.startsWith(targetAnt); if (child.visible) antennaMesh = child; }
           }
         });
-
-        model.scale.set(0.76, 0.76, 0.76);
-        fullGroup.add(model);
-      }, undefined, function() {});
+        gltf.scene.scale.set(0.76, 0.76, 0.76);
+        fullGroup.add(gltf.scene);
+      });
     } catch(err) {}
   }
 
   fullScene.add(fullGroup);
   initEnergyParticleSystem();
-
   var clock = new THREE.Clock();
 
-  function animate() {
+  (function animate() {
     animFrameId = requestAnimationFrame(animate);
-    var time = clock.getElapsedTime();
-    var now = performance.now();
-    var elapsedSec = (now - previewStartTime) / 1000;
+    var time = clock.getElapsedTime(), now = performance.now(), elapsedSec = (now - previewStartTime) / 1000;
 
     if (!isUserDragging) {
       butterflyRotX += (DEFAULT_ROT_X - butterflyRotX) * 0.05;
       var diffY = (DEFAULT_ROT_Y - butterflyRotY);
-      diffY = Math.atan2(Math.sin(diffY), Math.cos(diffY));
-      butterflyRotY += diffY * 0.05;
+      butterflyRotY += Math.atan2(Math.sin(diffY), Math.cos(diffY)) * 0.05;
     }
-
-    fullGroup.rotation.x = butterflyRotX;
-    fullGroup.rotation.y = butterflyRotY;
+    fullGroup.rotation.x = butterflyRotX; fullGroup.rotation.y = butterflyRotY;
 
     if (isPressingScreen && !isFlyingAway) {
       var pressDuration = (now - pressStartTime) / 1000;
-      var HOLD_THRESHOLD = 2.0;
-
-      if (pressDuration >= HOLD_THRESHOLD) {
-        if (!isChargeTriggered) {
-          isChargeTriggered = true;
-          startChargeVibrationLoop();
-        }
-        var currentChargeSec = Math.max(0, pressDuration - HOLD_THRESHOLD);
+      if (pressDuration >= 2.0) {
+        if (!isChargeTriggered) { isChargeTriggered = true; startChargeVibrationLoop(); }
+        var currentChargeSec = Math.max(0, pressDuration - 2.0);
         chargeProgress = Math.min(1.0, currentChargeSec / 2.0);
         updateChargeUIAndCamera(chargeProgress, currentChargeSec);
         spawnEnergyParticles();
@@ -2408,109 +1602,73 @@ function initFullButterflyViewer(textureURL) {
     }
 
     if (!isFlyingAway) {
-      var flyDuration = 3.6;
-      var restFoldAngle = 0.25;
-
-      if (elapsedSec < flyDuration) {
-        var progress = Math.min(1.0, elapsedSec / flyDuration);
-        var easeProgress = 1.0 - Math.pow(1.0 - progress, 3);
-        fullGroup.position.y = -7.0 + 7.0 * easeProgress;
-
-        var flapSpeed = 36.0 * (1.0 - progress * 0.65);
-        var flapAmp = 0.85 * Math.pow(1.0 - progress, 1.4);
-        var flap = Math.sin(time * flapSpeed) * flapAmp;
-
+      if (elapsedSec < 3.6) {
+        var progress = Math.min(1.0, elapsedSec / 3.6);
+        fullGroup.position.y = -7.0 + 7.0 * (1.0 - Math.pow(1.0 - progress, 3));
+        var flap = Math.sin(time * 36.0 * (1.0 - progress * 0.65)) * (0.85 * Math.pow(1.0 - progress, 1.4));
         if (leftWingMesh && rightWingMesh) {
-          leftWingMesh.rotation.y = initialRotL.y + restFoldAngle + flap;
-          rightWingMesh.rotation.y = initialRotR.y - restFoldAngle - flap;
+          leftWingMesh.rotation.y = initialRotL.y + 0.25 + flap; rightWingMesh.rotation.y = initialRotR.y - 0.25 - flap;
         }
       } else {
         fullGroup.position.y = 0;
         if (leftWingMesh && rightWingMesh) {
-          leftWingMesh.rotation.y = initialRotL.y + restFoldAngle;
-          rightWingMesh.rotation.y = initialRotR.y - restFoldAngle;
+          leftWingMesh.rotation.y = initialRotL.y + 0.25; rightWingMesh.rotation.y = initialRotR.y - 0.25;
         }
       }
     } else {
       var flyAngle = Math.sin(time * 26.0) * 0.75;
       if (leftWingMesh && rightWingMesh) {
-        leftWingMesh.rotation.y = initialRotL.y + 0.28 + flyAngle;
-        rightWingMesh.rotation.y = initialRotR.y - 0.28 - flyAngle;
+        leftWingMesh.rotation.y = initialRotL.y + 0.28 + flyAngle; rightWingMesh.rotation.y = initialRotR.y - 0.28 - flyAngle;
       }
-      fullGroup.position.y += 0.09;
-      fullGroup.position.z -= 0.04;
+      fullGroup.position.y += 0.09; fullGroup.position.z -= 0.04;
 
       if (fullGroup.position.y > 4.6 && !isFlyingTransitionTriggered) {
         isFlyingTransitionTriggered = true;
         clearTimeout(flightSafetyTimer);
         saveButterflyToSupabase();
-
         if (container) container.style.opacity = '0';
         var glowBgEl = document.querySelector('.preview-ethereal-glow-bg');
         if (glowBgEl) glowBgEl.style.opacity = '0';
         var headerUIEl = document.getElementById('preview-header-ui');
         if (headerUIEl) headerUIEl.style.opacity = '0';
         var footerUIEl = document.getElementById('preview-footer-ui');
-        if (footerUIEl) {
-          footerUIEl.style.setProperty('display', 'none', 'important');
-          footerUIEl.style.opacity = '0';
-        }
+        if (footerUIEl) { footerUIEl.style.setProperty('display', 'none', 'important'); footerUIEl.style.opacity = '0'; }
 
         var globalCurtain = document.getElementById('cinematic-transition-curtain');
-        if (globalCurtain) {
-          globalCurtain.classList.add('active-curtain');
-        }
+        if (globalCurtain) globalCurtain.classList.add('active-curtain');
 
         setTimeout(function() {
           showScreen('screen-complete');
-          setTimeout(function() {
-            if (globalCurtain) {
-              globalCurtain.classList.remove('active-curtain');
-            }
-          }, 80);
-
-          isFlyingAway = false;
-          isFlyingTransitionTriggered = false;
+          setTimeout(function() { if (globalCurtain) globalCurtain.classList.remove('active-curtain'); }, 80);
+          isFlyingAway = false; isFlyingTransitionTriggered = false;
           if (container) container.style.opacity = '1';
           if (glowBgEl) glowBgEl.style.opacity = '1';
           resetChargeState();
         }, 2000);
       }
     }
-
     renderEnergyParticles();
     fullRenderer.render(fullScene, fullCamera);
-  }
-  animate();
+  })();
   bindInteractiveEvents(container);
 }
-
-var isFlyingTransitionTriggered = false;
 
 function initEnergyParticleSystem() {
   particleCanvas = document.getElementById('energy-particles-canvas');
   if (!particleCanvas) return;
-  particleCanvas.width = window.innerWidth;
-  particleCanvas.height = window.innerHeight;
-  pctx = particleCanvas.getContext('2d');
-  energyParticles = [];
+  particleCanvas.width = window.innerWidth; particleCanvas.height = window.innerHeight;
+  pctx = particleCanvas.getContext('2d'); energyParticles = [];
 }
 
 function spawnEnergyParticles() {
   if (!pctx) return;
-  var cx = window.innerWidth / 2;
-  var cy = window.innerHeight / 2;
+  var cx = window.innerWidth / 2, cy = window.innerHeight / 2;
   for (var i = 0; i < 2; i++) {
-    var angle = Math.random() * Math.PI * 2;
-    var dist = 90 + Math.random() * 80;
+    var angle = Math.random() * Math.PI * 2, dist = 90 + Math.random() * 80;
     energyParticles.push({
-      x: cx + Math.cos(angle) * dist,
-      y: cy + Math.sin(angle) * dist,
-      vx: (Math.random() - 0.5) * 0.8,
-      vy: -Math.random() * 1.5 - 0.5,
-      size: Math.random() * 2.8 + 1.2,
-      alpha: 1.0,
-      decay: Math.random() * 0.015 + 0.01
+      x: cx + Math.cos(angle) * dist, y: cy + Math.sin(angle) * dist,
+      vx: (Math.random() - 0.5) * 0.8, vy: -Math.random() * 1.5 - 0.5,
+      size: Math.random() * 2.8 + 1.2, alpha: 1.0, decay: Math.random() * 0.015 + 0.01
     });
   }
 }
@@ -2536,41 +1694,24 @@ function updateChargeUIAndCamera(progress, currentChargeSec) {
   var headerUI = document.getElementById('preview-header-ui');
   var footerUI = document.getElementById('preview-footer-ui');
 
-  if (chargeWidget) {
-    chargeWidget.classList.remove('hidden');
-    chargeWidget.style.setProperty('display', 'flex', 'important');
-  }
+  if (chargeWidget) { chargeWidget.classList.remove('hidden'); chargeWidget.style.setProperty('display', 'flex', 'important'); }
   var currentSize = 22 + (96 - 22) * progress;
   if (innerFill) { innerFill.style.width = currentSize + 'px'; innerFill.style.height = currentSize + 'px'; }
   if (fullCamera) fullCamera.position.z = 8.8 - (2.6 * progress);
 
-  var uiOpacity = Math.max(0, 1.0 - Math.min(1.0, currentChargeSec / 1.5));
-  if (headerUI) headerUI.style.opacity = uiOpacity;
-
-  if (footerUI) {
-    footerUI.style.display = 'flex';
-    footerUI.style.opacity = '1';
-  }
+  if (headerUI) headerUI.style.opacity = Math.max(0, 1.0 - Math.min(1.0, currentChargeSec / 1.5));
+  if (footerUI) { footerUI.style.display = 'flex'; footerUI.style.opacity = '1'; }
 
   var flyLabel = document.getElementById('preview-fly-label');
-  if (flyLabel) {
-    if (progress >= 1.0) {
-      flyLabel.innerText = "위로 쓸어 올려주세요";
-    } else {
-      flyLabel.innerText = "화면을 길게 눌러주세요.";
-    }
-  }
+  if (flyLabel) flyLabel.innerText = progress >= 1.0 ? "위로 쓸어 올려주세요" : "화면을 길게 눌러주세요.";
 }
 
 function startChargeVibrationLoop() {
   if (chargeVibrateInterval) clearInterval(chargeVibrateInterval);
   triggerDeviceVibrate(45, 0.6);
-
   chargeVibrateInterval = setInterval(function() {
     if (!isPressingScreen || !isChargeTriggered || isFlyingAway) {
-      clearInterval(chargeVibrateInterval);
-      chargeVibrateInterval = null;
-      return;
+      clearInterval(chargeVibrateInterval); chargeVibrateInterval = null; return;
     }
     triggerDeviceVibrate(Math.round(25 + (chargeProgress * 60)), 0.4 + (chargeProgress * 0.6));
   }, 110);
@@ -2585,116 +1726,62 @@ function resetChargeState() {
   var headerUI = document.getElementById('preview-header-ui');
   var footerUI = document.getElementById('preview-footer-ui');
 
-  if (chargeWidget) {
-    chargeWidget.classList.add('hidden');
-    chargeWidget.style.setProperty('display', 'none', 'important');
-  }
+  if (chargeWidget) { chargeWidget.classList.add('hidden'); chargeWidget.style.setProperty('display', 'none', 'important'); }
   if (innerFill) { innerFill.style.width = '22px'; innerFill.style.height = '22px'; }
   if (fullCamera) fullCamera.position.z = 8.8;
   if (headerUI) headerUI.style.opacity = 1.0;
-  if (footerUI && !isFlyingAway) {
-    footerUI.style.display = 'flex';
-    footerUI.style.opacity = 1.0;
-    footerUI.style.pointerEvents = 'none';
-  }
+  if (footerUI && !isFlyingAway) { footerUI.style.display = 'flex'; footerUI.style.opacity = 1.0; footerUI.style.pointerEvents = 'none'; }
 
   var flyLabel = document.getElementById('preview-fly-label');
   if (flyLabel) flyLabel.innerText = "화면을 길게 눌러주세요.";
 }
 
 function bindInteractiveEvents(targetEl) {
-  var touchStartY = 0;
-  var touchStartX = 0;
-
+  var touchStartY = 0, touchStartX = 0;
   function handlePointerStart(clientX, clientY) {
     if (isFlyingAway) return;
-    isUserDragging = true;
-    lastPointerX = clientX;
-    lastPointerY = clientY;
-    touchStartX = clientX;
-    touchStartY = clientY;
-
+    isUserDragging = true; lastPointerX = clientX; lastPointerY = clientY; touchStartX = clientX; touchStartY = clientY;
     var chargeWidget = document.getElementById('energy-charge-widget');
-    if (chargeWidget) {
-      chargeWidget.style.left = clientX + 'px';
-      chargeWidget.style.top = clientY + 'px';
-    }
-    isPressingScreen = true;
-    pressStartTime = performance.now();
+    if (chargeWidget) { chargeWidget.style.left = clientX + 'px'; chargeWidget.style.top = clientY + 'px'; }
+    isPressingScreen = true; pressStartTime = performance.now();
   }
-
   function handlePointerMove(clientX, clientY) {
     if (!isUserDragging || isFlyingAway) return;
-    var deltaX = clientX - lastPointerX;
-    var deltaY = clientY - lastPointerY;
-    var movedDist = Math.hypot(clientX - touchStartX, clientY - touchStartY);
-
+    var deltaX = clientX - lastPointerX, deltaY = clientY - lastPointerY;
     if (!isChargeTriggered) {
-      if (movedDist > 15) {
-        pressStartTime = performance.now();
-      }
+      if (Math.hypot(clientX - touchStartX, clientY - touchStartY) > 15) pressStartTime = performance.now();
       butterflyRotY += deltaX * 0.013;
-      butterflyRotX += deltaY * 0.013;
-      butterflyRotX = Math.max(-1.4, Math.min(1.4, butterflyRotX));
+      butterflyRotX = Math.max(-1.4, Math.min(1.4, butterflyRotX + deltaY * 0.013));
     }
-
-    lastPointerX = clientX;
-    lastPointerY = clientY;
+    lastPointerX = clientX; lastPointerY = clientY;
   }
-
   function handlePointerEnd(clientX, clientY) {
     if (!isUserDragging) return;
     isUserDragging = false;
     var swipeDeltaY = touchStartY - clientY;
-
     var chargeWidget = document.getElementById('energy-charge-widget');
-    if (chargeWidget) {
-      chargeWidget.classList.add('hidden');
-      chargeWidget.style.setProperty('display', 'none', 'important');
-    }
+    if (chargeWidget) { chargeWidget.classList.add('hidden'); chargeWidget.style.setProperty('display', 'none', 'important'); }
     if (chargeVibrateInterval) { clearInterval(chargeVibrateInterval); chargeVibrateInterval = null; }
 
     if (isChargeTriggered && chargeProgress >= 1.0 && swipeDeltaY > 40 && !isFlyingAway) {
       isFlyingAway = true;
       triggerDeviceVibrate(180, 1.0);
-
       var footerUI = document.getElementById('preview-footer-ui');
-      if (footerUI) {
-        footerUI.style.setProperty('display', 'none', 'important');
-        footerUI.style.opacity = '0';
-        footerUI.style.pointerEvents = 'none';
-      }
-
+      if (footerUI) { footerUI.style.setProperty('display', 'none', 'important'); footerUI.style.opacity = '0'; footerUI.style.pointerEvents = 'none'; }
       clearTimeout(flightSafetyTimer);
       flightSafetyTimer = setTimeout(function() {
         if (!isFlyingTransitionTriggered) {
-          isFlyingTransitionTriggered = true;
-          saveButterflyToSupabase();
-          showScreen('screen-complete');
+          isFlyingTransitionTriggered = true; saveButterflyToSupabase(); showScreen('screen-complete');
         }
       }, 3500);
-
-    } else {
-      resetChargeState();
-    }
+    } else resetChargeState();
   }
 
   targetEl.oncontextmenu = function(e) { e.preventDefault(); return false; };
-
-  targetEl.ontouchstart = function(e) { 
-    if (e.touches.length === 1) handlePointerStart(e.touches[0].clientX, e.touches[0].clientY); 
-  };
-  window.addEventListener('touchmove', function(e) { 
-    if (isUserDragging && e.touches.length === 1) handlePointerMove(e.touches[0].clientX, e.touches[0].clientY); 
-  }, { passive: true });
-  window.addEventListener('touchend', function(e) { 
-    if (e.changedTouches.length > 0) handlePointerEnd(e.changedTouches[0].clientX, e.changedTouches[0].clientY); 
-  }, { passive: true });
-  window.addEventListener('touchcancel', function(e) { 
-    if (e.changedTouches.length > 0) handlePointerEnd(e.changedTouches[0].clientX, e.changedTouches[0].clientY); 
-    else resetChargeState();
-  }, { passive: true });
-
+  targetEl.ontouchstart = function(e) { if (e.touches.length === 1) handlePointerStart(e.touches[0].clientX, e.touches[0].clientY); };
+  window.addEventListener('touchmove', function(e) { if (isUserDragging && e.touches.length === 1) handlePointerMove(e.touches[0].clientX, e.touches[0].clientY); }, { passive: true });
+  window.addEventListener('touchend', function(e) { if (e.changedTouches.length > 0) handlePointerEnd(e.changedTouches[0].clientX, e.changedTouches[0].clientY); }, { passive: true });
+  window.addEventListener('touchcancel', function(e) { if (e.changedTouches.length > 0) handlePointerEnd(e.changedTouches[0].clientX, e.changedTouches[0].clientY); else resetChargeState(); }, { passive: true });
   targetEl.onmousedown = function(e) { handlePointerStart(e.clientX, e.clientY); };
   window.addEventListener('mousemove', function(e) { if (isUserDragging) handlePointerMove(e.clientX, e.clientY); });
   window.addEventListener('mouseup', function(e) { handlePointerEnd(e.clientX, e.clientY); });
@@ -2710,63 +1797,42 @@ var gallerySpawnTimers = [];
 function renderFilteredGallery(searchQuery) {
   if (!specimenContainer) return;
   specimenContainer.innerHTML = '';
-
   gallerySpawnTimers.forEach(function(t) { clearTimeout(t); });
   gallerySpawnTimers = [];
 
   var q = (searchQuery || "").trim().toLowerCase();
   var filteredData = specimenButterfliesData.filter(function(item) {
     if (!q) return true;
-    var nameMatch = (item.name || "").toLowerCase().indexOf(q) > -1;
-    var concernMatch = (item.core_concern || "").toLowerCase().indexOf(q) > -1;
-    return nameMatch || concernMatch;
+    return (item.name || "").toLowerCase().indexOf(q) > -1 || (item.core_concern || "").toLowerCase().indexOf(q) > -1;
   });
 
   if (filteredData.length === 0) {
-    specimenContainer.innerHTML = 
-      '<div style="grid-column: 1 / -1; text-align: center; padding: 4rem 1rem; color: #777777; font-size: 13px;">' +
-        (q ? '검색된 나비가 없습니다.' : '아직 날려보낸 나비가 없습니다.<br>첫 번째 나비를 깨워보세요.') +
-      '</div>';
+    specimenContainer.innerHTML = '<div style="grid-column: 1 / -1; text-align: center; padding: 4rem 1rem; color: #777777; font-size: 13px;">' +
+      (q ? '검색된 나비가 없습니다.' : '아직 날려보낸 나비가 없습니다.<br>첫 번째 나비를 깨워보세요.') + '</div>';
     return;
   }
 
   var cardElements = [];
-
   filteredData.forEach(function(item) {
     var wing = butterflyPathData[item.wingId] || wingDataset[0];
     var ant = antennaDataset.find(function(a) { return a.id === item.antId; }) || antennaDataset[0];
-
     var card = document.createElement('div');
     card.className = 'specimen-card-item';
-
-    var scaleRatio = 110 / Math.max(wing.w, wing.h);
     var rawName = item.name || "나비";
     var displayName = rawName.length > 10 ? rawName.slice(0, 10) + '...' : rawName;
 
     card.innerHTML = 
-      '<div class="specimen-butterfly-wrap">' +
-        '<div class="specimen-pin-head"></div>' +
-        '<svg class="specimen-shadow-drop" width="130" height="110" viewBox="0 0 ' + wing.w + ' ' + wing.h + '" style="overflow: visible;">' +
-          '<path d="' + wing.d + '" fill="#ffffff" stroke="none"/>' +
-          '<g transform="translate(' + wing.headX + ',' + wing.headY + ')" color="#ffffff">' +
-            ant.render(scaleRatio * 0.95) +
-          '</g>' +
-        '</svg>' +
-      '</div>' +
+      '<div class="specimen-butterfly-wrap"><div class="specimen-pin-head"></div>' +
+      '<svg class="specimen-shadow-drop" width="130" height="110" viewBox="0 0 ' + wing.w + ' ' + wing.h + '" style="overflow: visible;">' +
+      '<path d="' + wing.d + '" fill="#ffffff" stroke="none"/><g transform="translate(' + wing.headX + ',' + wing.headY + ')" color="#ffffff">' +
+      ant.render((110 / Math.max(wing.w, wing.h)) * 0.95) + '</g></svg></div>' +
       '<div class="specimen-pill-label"><span class="label-text" title="' + rawName + '">' + displayName + '</span></div>';
 
     card.onclick = function(e) {
       e.stopPropagation();
-      if (specimenContainer) {
-        specimenContainer.querySelectorAll('.specimen-pill-label').forEach(function(label) {
-          label.classList.remove('active-touched');
-        });
-      }
-      var currentLabel = card.querySelector('.specimen-pill-label');
-      if (currentLabel) {
-        currentLabel.classList.add('active-touched');
-      }
-
+      if (specimenContainer) specimenContainer.querySelectorAll('.specimen-pill-label').forEach(function(l) { l.classList.remove('active-touched'); });
+      var curLbl = card.querySelector('.specimen-pill-label');
+      if (curLbl) curLbl.classList.add('active-touched');
       openSpecimen3DModal(item, item.textureUrl || createFallbackDummyTexture('#ffffff', '#e0e0e0'));
     };
     specimenContainer.appendChild(card);
@@ -2774,64 +1840,37 @@ function renderFilteredGallery(searchQuery) {
   });
 
   cardElements.forEach(function(cardEl, idx) {
-    var timer = setTimeout(function() {
-      if (cardEl) {
-        cardEl.classList.add('revealed');
-      }
-    }, idx * 60);
+    var timer = setTimeout(function() { if (cardEl) cardEl.classList.add('revealed'); }, idx * 60);
     gallerySpawnTimers.push(timer);
   });
 }
 
 var gallerySearchInput = document.getElementById('gallery-search-input');
-if (gallerySearchInput) {
-  gallerySearchInput.oninput = function(e) {
-    renderFilteredGallery(e.target.value);
-  };
-}
+if (gallerySearchInput) gallerySearchInput.oninput = function(e) { renderFilteredGallery(e.target.value); };
 
 async function initSpecimenGallery() {
   if (gallerySearchInput) gallerySearchInput.value = "";
-
   if (supabase) {
     try {
-      var res = await supabase
-        .from('butterflies')
-        .select('*')
-        .order('id', { ascending: false })
-        .limit(50);
-
+      var res = await supabase.from('butterflies').select('*').order('id', { ascending: false }).limit(50);
       if (res.data && res.data.length > 0) {
         specimenButterfliesData = res.data.map(function(item) {
-          var dateStr = "2026. 10. 24";
-          if (item.created_at) {
-            dateStr = new Date(item.created_at).toISOString().slice(0, 10).replace(/-/g, '. ');
-          }
           return {
-            id: item.id,
-            name: item.name || "나비",
-            wingId: item.wing_shape || "crescent",
-            antId: item.antenna_type || "ball",
-            q1: [],
-            core_concern: item.core_concern || "",
-            memo: item.memo || "",
-            textureUrl: item.texture_url || null,
-            date: dateStr
+            id: item.id, name: item.name || "나비", wingId: item.wing_shape || "crescent", antId: item.antenna_type || "ball",
+            q1: [], core_concern: item.core_concern || "", memo: item.memo || "", textureUrl: item.texture_url || null,
+            date: item.created_at ? new Date(item.created_at).toISOString().slice(0, 10).replace(/-/g, '. ') : "2026. 10. 24"
           };
         });
       }
-    } catch (err) {
-      console.error("Supabase 데이터 조회 오류:", err);
-    }
+    } catch (err) { console.error("Supabase 데이터 조회 오류:", err); }
   }
-
   renderFilteredGallery("");
 }
 
-// 3D 모달
-var modalThreeScene, modalThreeCamera, modalThreeRenderer;
-var modalWingL, modalWingR;
-var modalAnimFrameId = null;
+// --------------------------------------------------------------------------
+// 3D 표본실 모달
+// --------------------------------------------------------------------------
+var modalThreeScene, modalThreeCamera, modalThreeRenderer, modalGroup, modalWingL, modalWingR, modalAnimFrameId = null;
 
 function openSpecimen3DModal(item, textureUrl) {
   var modal = document.getElementById('specimen-detail-modal');
@@ -2842,96 +1881,41 @@ function openSpecimen3DModal(item, textureUrl) {
   var container = document.getElementById('specimen-three-container');
 
   if (nameEl) nameEl.innerText = '‘' + item.name + '’';
-  
   if (tagsEl) {
-    var html = '';
     var coreTag = item.core_concern || (item.tags && item.tags[item.tags.length - 1]);
-    if (coreTag) {
-      html += '<span class="specimen-glass-pill bg-white text-black font-bold border-white" style="box-shadow: 0 0 12px rgba(255, 255, 255, 0.45);">#' + coreTag + '</span>';
-    }
-    tagsEl.innerHTML = html;
+    tagsEl.innerHTML = coreTag ? '<span class="specimen-glass-pill bg-white text-black font-bold border-white" style="box-shadow: 0 0 12px rgba(255, 255, 255, 0.45);">#' + coreTag + '</span>' : '';
   }
-
-  if (memoEl) {
-    var memoContent = item.memo || item.q6_memo;
-    memoEl.innerText = memoContent ? ('"' + memoContent + '"') : '"너의 찬란한 날갯짓을 응원해."';
-  }
+  if (memoEl) memoEl.innerText = (item.memo || item.q6_memo) ? ('"' + (item.memo || item.q6_memo) + '"') : '"너의 찬란한 날갯짓을 응원해."';
   if (dateEl) dateEl.innerText = item.date || "2026. 10. 24";
-
   if (modal) modal.classList.remove('hidden');
-  if (!container || !window.THREE) return;
-  container.innerHTML = '';
+
   if (modalAnimFrameId) { cancelAnimationFrame(modalAnimFrameId); modalAnimFrameId = null; }
-
-  var w = container.clientWidth || 320;
-  var h = container.clientHeight || 210;
-
-  modalThreeScene = new THREE.Scene();
-  modalThreeCamera = new THREE.PerspectiveCamera(40, w / h, 0.1, 100);
-  modalThreeCamera.position.set(0, 0, 7.3);
-  modalThreeCamera.lookAt(0, -0.35, 0);
-
-  modalThreeRenderer = new THREE.WebGLRenderer({ alpha: true, antialias: true });
-  modalThreeRenderer.setSize(w, h);
-  modalThreeRenderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-  container.appendChild(modalThreeRenderer.domElement);
-
-  var amb = new THREE.AmbientLight(0xffffff, 0.95);
-  modalThreeScene.add(amb);
-  var dir = new THREE.DirectionalLight(0xffffff, 0.85);
-  dir.position.set(0, 5, 8);
-  modalThreeScene.add(dir);
+  var res = setupCommon3DScene(container, 7.3, -0.35);
+  if (!res) return;
+  modalThreeScene = res.scene; modalThreeCamera = res.camera; modalThreeRenderer = res.renderer;
 
   var tex = new THREE.TextureLoader().load(textureUrl);
   tex.flipY = false;
-
   var wingMat = new THREE.MeshBasicMaterial({ map: tex, side: THREE.DoubleSide });
   var whiteMat = new THREE.MeshStandardMaterial({ color: 0xffffff, side: THREE.DoubleSide, roughness: 0.3 });
-  var targetAntennaPrefix = 'Antenna_' + item.antId;
-  var modelPath = '3DButterfly/' + (item.wingId || 'crescent') + '.glb';
-  var group = new THREE.Group();
 
-  if (window.THREE && THREE.GLTFLoader) {
-    try {
-      new THREE.GLTFLoader().load(modelPath, function(gltf) {
-        var model = gltf.scene;
-        modalWingL = null; modalWingR = null;
+  modalGroup = new THREE.Group();
+  modalGroup.position.set(0, -0.35, 0);
 
-        model.traverse(function(child) {
-          if (child.isMesh) {
-            var name = child.name;
-            if (name.startsWith('Wing_L')) { modalWingL = child; child.material = wingMat; }
-            else if (name.startsWith('Wing_R')) { modalWingR = child; child.material = wingMat; }
-            else if (child.name.startsWith('Body')) { child.material = whiteMat; }
-            else if (name.startsWith('Antenna_')) { child.material = whiteMat; child.visible = name.startsWith(targetAntennaPrefix); }
-          }
-        });
+  loadButterflyModel(modalGroup, item.wingId, item.antId, wingMat, whiteMat, 0.88, function(l, r) {
+    modalWingL = l; modalWingR = r;
+  });
+  modalThreeScene.add(modalGroup);
 
-        model.scale.set(0.88, 0.88, 0.88);
-        model.position.set(0, -0.35, 0);
-        group.add(model);
-      }, undefined, function() {});
-    } catch(err) {}
-  }
-
-  modalThreeScene.add(group);
   var clock = new THREE.Clock();
-
-  function modalAnimate() {
+  (function modalAnimate() {
     modalAnimFrameId = requestAnimationFrame(modalAnimate);
-    var t = clock.getElapsedTime();
-    var flap = Math.sin(t * 6.5) * 0.45;
-
-    if (modalWingL && modalWingR) {
-      modalWingL.rotation.y = flap;
-      modalWingR.rotation.y = -flap;
-    }
-    group.rotation.y = Math.sin(t * 0.8) * 0.35;
-    group.position.y = -0.35 + Math.sin(t * 2.0) * 0.08;
-
+    var t = clock.getElapsedTime(), flap = Math.sin(t * 6.5) * 0.45;
+    if (modalWingL && modalWingR) { modalWingL.rotation.y = flap; modalWingR.rotation.y = -flap; }
+    modalGroup.rotation.y = Math.sin(t * 0.8) * 0.35;
+    modalGroup.position.y = -0.35 + Math.sin(t * 2.0) * 0.08;
     modalThreeRenderer.render(modalThreeScene, modalThreeCamera);
-  }
-  modalAnimate();
+  })();
 }
 
 var btnCloseSpecimenModal = document.getElementById('btn-close-specimen-modal');
@@ -2943,7 +1927,5 @@ if (btnCloseSpecimenModal) {
   };
 }
 
-// --------------------------------------------------------------------------
-// 앱 시작 실행
-// --------------------------------------------------------------------------
+// 앱 시작
 updateDevScreenBadge();
