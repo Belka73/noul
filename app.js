@@ -3,9 +3,9 @@
    - [기존 요소 100% 보존]: 3D 뷰어, 물리 엔진, 검색, 인터랙션 전체 유지
    - [흐름 완벽 유지]: 고민 서술 직후 다정한 한마디 연동 & 온기 텍스트 브릿지 생략
    - [완벽 해결]: 
-     1. 2D 나비 외곽선 및 산들 나비 반쪽 가려짐 버그 완전 해결 (evenodd 마스크 + 1:1 결합)
-     2. 1000x1000 대지 기준 날개 무늬(패턴) 1:1 완벽 정밀 대칭 매핑
-     3. 3D 블렌더 GLB 모델 날개 UV 기준 PNG 투명 알파 마스킹 (사각 틀 깨짐 완전 제거)
+     1. 2D 나비 외곽선 및 산들 나비 반쪽 가려짐 완전 해결 (evenodd 마스크)
+     2. 1000x1000 대지 기준 날개 무늬(패턴) 1:1 정밀 매핑 (강제 반토막/반전 제거)
+     3. 3D 블렌더 GLB 모델 날개 UV 기준 PNG 투명 알파 마스킹
    ========================================================================== */
 
 var ALL_SCREENS = [
@@ -210,7 +210,7 @@ function stopLoading3DScene() {
 }
 
 // --------------------------------------------------------------------------
-// 🌟 공유 화면용 선명한 3D 나비 씬 (사각 틀 깨짐 방지: 투명 알파 지원)
+// 🌟 공유 화면용 선명한 3D 나비 씬
 // --------------------------------------------------------------------------
 var shareScene, shareCamera, shareRenderer, shareGroup, shareWingL, shareWingR;
 var shareAnimFrameId = null;
@@ -644,8 +644,6 @@ if (typeof wingDataset !== 'undefined') {
 
 // --------------------------------------------------------------------------
 // 🌟 2D 나비 외곽선 및 무늬 1:1 정밀 렌더러 (원본 1000x1000 기준)
-// - evenodd 마스크로 산들 나비 반쪽 가려짐 해결
-// - X=500 중심축 기준으로 반쪽 무늬를 1:1 완벽 대칭 렌더링
 // --------------------------------------------------------------------------
 function updateHeroPreview() {
   var heroSvg = document.getElementById('hero-butterfly-svg');
@@ -663,17 +661,14 @@ function updateHeroPreview() {
 
   var patternSvgEl = "";
   if (pat && pat.path) {
-    // 1000x1000 원본 대지 기준: 오른쪽 500~1000 렌더링 + 왼쪽 0~500 중심축 대칭 반전
+    // 1000x1000 규격 대지 기준 1:1 직접 렌더링
     patternSvgEl = 
       '<g opacity="0.9" style="mix-blend-mode: multiply;">' +
-        '<image href="' + pat.path + '" x="500" y="0" width="500" height="1000" preserveAspectRatio="none"/>' +
-        '<g transform="translate(500, 0) scale(-1, 1)">' +
-          '<image href="' + pat.path + '" x="0" y="0" width="500" height="1000" preserveAspectRatio="none"/>' +
-        '</g>' +
+        '<image href="' + pat.path + '" x="0" y="0" width="1000" height="1000" preserveAspectRatio="none"/>' +
       '</g>';
   }
 
-  // 1:1 원본 좌표계 기반 마스크 (evenodd 적용으로 산들 나비 등 모든 나비 정상 투과)
+  // 1:1 원본 좌표계 기반 마스크 (evenodd 적용)
   heroPathContainer.innerHTML = 
     '<defs>' +
       '<mask id="butterfly-outside-mask" maskUnits="userSpaceOnUse" x="-200" y="-200" width="1400" height="1400">' +
@@ -686,13 +681,13 @@ function updateHeroPreview() {
     '</defs>' +
     // 1. 날개 외곽을 가리는 반투명 암전 마스크
     '<rect x="-200" y="-200" width="1400" height="1400" fill="rgba(0, 0, 0, 0.72)" mask="url(#butterfly-outside-mask)"/>' +
-    // 2. 날개 안쪽에만 1:1 대칭으로 얹히는 고유 무늬
+    // 2. 날개 안쪽에만 1:1로 얹히는 고유 무늬
     '<g clip-path="url(#hero-wing-exact-clip)">' +
       patternSvgEl +
     '</g>' +
     // 3. 날개와 1:1로 맞물리는 원본 대칭 몸통
     (bodyD ? '<path d="' + bodyD + '" fill="#ffffff"/>' : '') +
-    // 4. 머리 정수리 좌표에 완벽 정렬되는 더듬이
+    // 4. 머리 정수리 좌표에 정렬되는 더듬이
     '<g transform="translate(' + currentWing.headX + ', ' + currentWing.headY + ')" filter="url(#antenna-subtle-contrast)" color="#ffffff">' +
       ant.render(10.5) +
     '</g>';
@@ -1104,26 +1099,17 @@ if (interactiveFrame && alignCanvas) {
 
 // --------------------------------------------------------------------------
 // 🌟 3D GLB 모델용 정밀 텍스처 추출 로직 (사각 틀 제거: 투명 알파 클리핑)
-// - 날개 외곽선(wingD) 바깥 영역을 완벽 투명(Alpha 0) 처리
 // - 1000x1000 원본 대지 공간과 1:1 일치하여 블렌더 UV 맵핑에 완벽 안착
 // --------------------------------------------------------------------------
 function drawPatternSymmetricOnCanvas(ctx, patImg, targetWidth, targetHeight) {
   if (!patImg || !patImg.width) return;
-  var halfWidth = targetWidth / 2;
 
   ctx.save();
   ctx.globalCompositeOperation = 'multiply';
   ctx.globalAlpha = 0.92;
 
-  // 우측 날개 무늬 (X: halfWidth ~ targetWidth)
-  ctx.drawImage(patImg, halfWidth, 0, halfWidth, targetHeight);
-
-  // 좌측 날개 무늬 (중심축 X=halfWidth 기준 반전 대칭)
-  ctx.save();
-  ctx.translate(halfWidth, 0);
-  ctx.scale(-1, 1);
-  ctx.drawImage(patImg, 0, 0, halfWidth, targetHeight);
-  ctx.restore();
+  // 이미 1000x1000 대지 기준이므로 쪼개거나 반전하지 않고 1:1 정밀 배치
+  ctx.drawImage(patImg, 0, 0, targetWidth, targetHeight);
 
   ctx.restore();
 }
@@ -1169,7 +1155,7 @@ function exportAlignedTexture() {
   // 날개 안쪽에 사용자 사진 텍스처 1:1 배치
   fctx.drawImage(baseCanvas, 0, 0, alignCanvas.width, alignCanvas.height, 0, 0, outW, outH);
 
-  // 날개 무늬(패턴) 1:1 대칭 합성
+  // 날개 무늬(패턴) 1:1 합성
   var pat = getSelectedPatternObject();
   if (pat && pat.path) {
     var cachedImg = patternImageCache[pat.path];
@@ -1186,7 +1172,7 @@ function exportAlignedTexture() {
   }
   fctx.restore();
 
-  // 투명도를 보존하는 PNG 형식으로 추출하여 3D 모델 날개 메시의 사각형 테두리를 완전히 없앰
+  // 투명도를 보존하는 PNG 형식으로 추출
   currentExtractedTexture = finalCanvas.toDataURL('image/png');
 }
 
@@ -1687,7 +1673,7 @@ function initFullButterflyViewer(textureURL) {
   previewStartTime = performance.now();
   isFlyingAway = false; isFlyingTransitionTriggered = false; resetChargeState();
 
-  // 3D 날개 메시에 투명 알파 채널 적용하여 사각형 판자 깨짐 완벽 방지
+  // 3D 날개 메시에 투명 알파 채널 적용하여 사각형 판자 깨짐 방지
   var wingMat = new THREE.MeshBasicMaterial({ 
     map: userTexture, 
     side: THREE.DoubleSide, 
@@ -1929,7 +1915,7 @@ function bindInteractiveEvents(targetEl) {
 }
 
 // --------------------------------------------------------------------------
-// 4번 사진: 나비 둘러보기 표본실 갤러리 및 검색 필터 로직
+// 나비 둘러보기 표본실 갤러리 및 검색 필터 로직
 // --------------------------------------------------------------------------
 var specimenButterfliesData = [];
 var specimenContainer = document.getElementById('specimen-items-container');
@@ -2009,7 +1995,7 @@ async function initSpecimenGallery() {
 }
 
 // --------------------------------------------------------------------------
-// 3D 표본실 모달 (사각 틀 깨짐 방지: 투명 알파 적용)
+// 3D 표본실 모달
 // --------------------------------------------------------------------------
 var modalThreeScene, modalThreeCamera, modalThreeRenderer, modalGroup, modalWingL, modalWingR, modalAnimFrameId = null;
 
