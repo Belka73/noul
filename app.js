@@ -3,9 +3,9 @@
    - [기존 요소 100% 보존]: 3D 뷰어, 물리 엔진, 검색, 인터랙션 전체 유지
    - [흐름 완벽 유지]: 고민 서술 직후 다정한 한마디 연동 & 온기 텍스트 브릿지 생략
    - [완벽 해결]: 
-     1. 2D 나비 외곽선 및 산들 나비 반쪽 가려짐 완전 해결 (evenodd 마스크)
-     2. 1000x1000 대지 기준 날개 무늬(패턴) 1:1 정밀 매핑 (강제 반토막/반전 제거)
-     3. 3D 블렌더 GLB 모델 날개 UV 기준 PNG 투명 알파 마스킹
+     1. 2D 나비 마스크 반쪽 잘림 현상 nonzero 전환으로 완전 해결
+     2. 3D 블렌더 GLB 날개에 1:1 정밀 텍스처 매핑 (억지 클리핑 제거로 축소 왜곡 방지)
+     3. 2D 패턴 선택 시 2D 화면 및 3D 모델 실시간 100% 연동
    ========================================================================== */
 
 var ALL_SCREENS = [
@@ -663,20 +663,20 @@ function updateHeroPreview() {
   if (pat && pat.path) {
     // 1000x1000 규격 대지 기준 1:1 직접 렌더링
     patternSvgEl = 
-      '<g opacity="0.9" style="mix-blend-mode: multiply;">' +
+      '<g opacity="0.95" style="mix-blend-mode: multiply;">' +
         '<image href="' + pat.path + '" x="0" y="0" width="1000" height="1000" preserveAspectRatio="none"/>' +
       '</g>';
   }
 
-  // 1:1 원본 좌표계 기반 마스크 (evenodd 적용)
+  // 1:1 원본 좌표계 기반 마스크 (nonzero 적용으로 반쪽 가려짐 해결)
   heroPathContainer.innerHTML = 
     '<defs>' +
       '<mask id="butterfly-outside-mask" maskUnits="userSpaceOnUse" x="-200" y="-200" width="1400" height="1400">' +
         '<rect x="-200" y="-200" width="1400" height="1400" fill="white"/>' +
-        '<path d="' + wingD + '" fill="black" fill-rule="evenodd"/>' +
+        '<path d="' + wingD + '" fill="black" fill-rule="nonzero"/>' +
       '</mask>' +
       '<clipPath id="hero-wing-exact-clip">' +
-        '<path d="' + wingD + '" fill-rule="evenodd"/>' +
+        '<path d="' + wingD + '" fill-rule="nonzero"/>' +
       '</clipPath>' +
     '</defs>' +
     // 1. 날개 외곽을 가리는 반투명 암전 마스크
@@ -720,7 +720,12 @@ function renderCarouselItems() {
     var contentHtml = '';
 
     if (activeCustomTab === 'wing') {
-      contentHtml = '<svg viewBox="' + item.viewBox + '" preserveAspectRatio="xMidYMid meet"><path d="' + item.d + '"/></svg>';
+      var wingPath = item.wingD || item.d;
+      var bodyPath = item.bodyD || "";
+      contentHtml = '<svg viewBox="' + item.viewBox + '" preserveAspectRatio="xMidYMid meet">' +
+        '<path d="' + wingPath + '" fill="currentColor" fill-rule="nonzero"/>' +
+        (bodyPath ? '<path d="' + bodyPath + '" fill="currentColor"/>' : '') +
+        '</svg>';
     } else if (activeCustomTab === 'pattern') {
       if (item.path) {
         contentHtml = '<img class="pattern-thumb-img" src="' + item.path + '" alt="' + item.name + '" />';
@@ -1098,19 +1103,16 @@ if (interactiveFrame && alignCanvas) {
 }
 
 // --------------------------------------------------------------------------
-// 🌟 3D GLB 모델용 정밀 텍스처 추출 로직 (사각 틀 제거: 투명 알파 클리핑)
-// - 1000x1000 원본 대지 공간과 1:1 일치하여 블렌더 UV 맵핑에 완벽 안착
+// 🌟 3D GLB 모델용 정밀 텍스처 추출 로직
+// - 블렌더 3D 모델의 날개 메시 전체에 100% 비율로 완벽하게 입혀지도록 1:1 합성
 // --------------------------------------------------------------------------
 function drawPatternSymmetricOnCanvas(ctx, patImg, targetWidth, targetHeight) {
   if (!patImg || !patImg.width) return;
 
   ctx.save();
   ctx.globalCompositeOperation = 'multiply';
-  ctx.globalAlpha = 0.92;
-
-  // 이미 1000x1000 대지 기준이므로 쪼개거나 반전하지 않고 1:1 정밀 배치
+  ctx.globalAlpha = 0.95;
   ctx.drawImage(patImg, 0, 0, targetWidth, targetHeight);
-
   ctx.restore();
 }
 
@@ -1136,23 +1138,13 @@ function exportAlignedTexture() {
     baseCanvas = symCanvas;
   }
 
-  var currentWing = butterflyPathData[selectedButterflyShape] || wingDataset[0];
-  var wingD = currentWing.wingD || currentWing.d;
-
-  // 1000x1000 고해상도 정사각형 텍스처 캔버스 생성
+  // 1000x1000 고해상도 정사각형 텍스처 캔버스 생성 (3D 블렌더 날개 UV 정밀 매핑)
   var outW = 1000, outH = 1000;
   var finalCanvas = document.createElement('canvas');
   finalCanvas.width = outW; finalCanvas.height = outH;
   var fctx = finalCanvas.getContext('2d');
 
-  // 핵심: 날개 외곽선(wingD)을 클리핑 마스크로 설정하여 사각 배경 여백을 100% 투명하게 제거
-  fctx.save();
-  try {
-    var wingPath = new Path2D(wingD);
-    fctx.clip(wingPath, 'evenodd');
-  } catch (err) {}
-
-  // 날개 안쪽에 사용자 사진 텍스처 1:1 배치
+  // 사용자 사진 텍스처를 3D 평면 규격에 1:1로 정확하게 렌더링
   fctx.drawImage(baseCanvas, 0, 0, alignCanvas.width, alignCanvas.height, 0, 0, outW, outH);
 
   // 날개 무늬(패턴) 1:1 합성
@@ -1170,9 +1162,7 @@ function exportAlignedTexture() {
       pImg.src = pat.path;
     }
   }
-  fctx.restore();
 
-  // 투명도를 보존하는 PNG 형식으로 추출
   currentExtractedTexture = finalCanvas.toDataURL('image/png');
 }
 
@@ -1673,7 +1663,7 @@ function initFullButterflyViewer(textureURL) {
   previewStartTime = performance.now();
   isFlyingAway = false; isFlyingTransitionTriggered = false; resetChargeState();
 
-  // 3D 날개 메시에 투명 알파 채널 적용하여 사각형 판자 깨짐 방지
+  // 3D 블렌더 날개 메시에 텍스처를 1:1 완벽 안착
   var wingMat = new THREE.MeshBasicMaterial({ 
     map: userTexture, 
     side: THREE.DoubleSide, 
