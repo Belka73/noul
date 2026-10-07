@@ -1,7 +1,8 @@
 /* ==========================================================================
-   🌟 너울(Noul) 메인 애플리케이션 로직 (app.js) - [1부]
+   🌟 너울(Noul) 메인 애플리케이션 로직 (app.js)
    - [기존 요소 100% 보존]: 3D 뷰어, 물리 엔진, 검색, 인터랙션 전체 유지
-   - [3D 단일 날개 패턴 매핑]: 3DButterfly/ 한쪽 날개 무늬 1:1 텍스처 정밀 합성
+   - [날개 회전 정상화]: 새 GLB 계층구조(Wing_L_*, Wing_R_*) 완벽 타겟팅 및 독립 날갯짓 복구
+   - [패턴 누락 완벽 해결]: 3DButterfly/ 한쪽 날개 무늬 사전 캐싱 및 1:1 합성 보장
    ========================================================================== */
 
 var ALL_SCREENS = [
@@ -116,6 +117,355 @@ function updateDevScreenBadge() {
   badge.innerText = '화면: ' + name;
 }
 
+// --------------------------------------------------------------------------
+// 3D 나비 내부 공통 생성 헬퍼 함수
+// --------------------------------------------------------------------------
+function setupCommon3DScene(container, camZ, lookY) {
+  if (!container || !window.THREE) return null;
+  container.innerHTML = '';
+  var w = container.clientWidth || window.innerWidth;
+  var h = container.clientHeight || window.innerHeight;
+  var scene = new THREE.Scene();
+  var camera = new THREE.PerspectiveCamera(40, w / h, 0.1, 100);
+  camera.position.set(0, 0, camZ || 7.5);
+  camera.lookAt(0, lookY || 0, 0);
+
+  var renderer = new THREE.WebGLRenderer({ alpha: true, antialias: true });
+  renderer.setSize(w, h);
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+  container.appendChild(renderer.domElement);
+
+  var amb = new THREE.AmbientLight(0xffffff, 1.0);
+  scene.add(amb);
+  var dir = new THREE.DirectionalLight(0xffffff, 0.9);
+  dir.position.set(3, 6, 8);
+  scene.add(dir);
+
+  return { scene: scene, camera: camera, renderer: renderer };
+}
+
+function loadButterflyModel(group, shapeId, antId, wingMat, whiteMat, scale, onLoaded) {
+  if (!window.THREE || !THREE.GLTFLoader) return;
+  var modelPath = '3DButterfly/' + (shapeId || 'crescent') + '.glb';
+  var targetAnt = 'Antenna_' + (antId || 'ball');
+
+  new THREE.GLTFLoader().load(modelPath, function(gltf) {
+    var model = gltf.scene;
+    var wL = null, wR = null;
+
+    model.traverse(function(child) {
+      var n = child.name || '';
+      if (n.indexOf('Wing_L') > -1) { 
+        if (!wL) wL = child;
+        if (child.isMesh) child.material = wingMat; 
+      }
+      else if (n.indexOf('Wing_R') > -1) { 
+        if (!wR) wR = child;
+        if (child.isMesh) child.material = wingMat; 
+      }
+      else if (n.indexOf('Body') > -1) { 
+        if (child.isMesh) child.material = whiteMat; 
+      }
+      else if (n.indexOf('Antenna_') > -1) { 
+        if (child.isMesh) child.material = whiteMat; 
+        child.visible = n.indexOf(targetAnt) > -1; 
+      }
+    });
+    model.scale.set(scale, scale, scale);
+    group.add(model);
+    if (onLoaded) onLoaded(wL, wR);
+  }, undefined, function() {});
+}
+
+// --------------------------------------------------------------------------
+// 🌟 로딩 화면용 3D 블러 나비 씬
+// --------------------------------------------------------------------------
+var loadingScene, loadingCamera, loadingRenderer, loadingGroup, loadingWingL, loadingWingR;
+var loadingAnimFrameId = null;
+
+function initLoading3DScene() {
+  stopLoading3DScene();
+  var res = setupCommon3DScene(document.getElementById('loading-three-container'), 7.5, 0);
+  if (!res) return;
+  loadingScene = res.scene; loadingCamera = res.camera; loadingRenderer = res.renderer;
+
+  var whiteMat = new THREE.MeshStandardMaterial({ color: 0xffffff, side: THREE.DoubleSide, roughness: 0.35 });
+  loadingGroup = new THREE.Group();
+  loadingGroup.rotation.set(0.25, -0.8, 0.35);
+  loadingGroup.position.set(-0.28, -0.22, 0);
+
+  loadButterflyModel(loadingGroup, selectedButterflyShape, selectedAntennaType, whiteMat, whiteMat, 0.95, function(l, r) {
+    loadingWingL = l; loadingWingR = r;
+  });
+  loadingScene.add(loadingGroup);
+
+  var clock = new THREE.Clock();
+  (function animateLoading() {
+    loadingAnimFrameId = requestAnimationFrame(animateLoading);
+    var t = clock.getElapsedTime(), flap = Math.sin(t * 7.5) * 0.42;
+    if (loadingWingL && loadingWingR) { loadingWingL.rotation.y = flap; loadingWingR.rotation.y = -flap; }
+    loadingGroup.position.y = -0.22 + Math.sin(t * 2.2) * 0.08;
+    loadingGroup.rotation.z = 0.35 + Math.sin(t * 1.5) * 0.04;
+    loadingRenderer.render(loadingScene, loadingCamera);
+  })();
+}
+
+function stopLoading3DScene() {
+  if (loadingAnimFrameId) { cancelAnimationFrame(loadingAnimFrameId); loadingAnimFrameId = null; }
+  var c = document.getElementById('loading-three-container');
+  if (c) c.innerHTML = '';
+}
+
+// --------------------------------------------------------------------------
+// 🌟 공유 화면용 선명한 3D 나비 씬
+// --------------------------------------------------------------------------
+var shareScene, shareCamera, shareRenderer, shareGroup, shareWingL, shareWingR;
+var shareAnimFrameId = null;
+
+function initShare3DScene() {
+  stopShare3DScene();
+  var res = setupCommon3DScene(document.getElementById('share-three-container'), 7.5, 0);
+  if (!res) return;
+  shareScene = res.scene; shareCamera = res.camera; shareRenderer = res.renderer;
+
+  var texUrl = currentExtractedTexture || createFallbackDummyTexture('#ffffff', '#cfcfcf');
+  var tex = new THREE.TextureLoader().load(texUrl);
+  tex.flipY = false;
+
+  var wingMat = new THREE.MeshBasicMaterial({ 
+    map: tex, 
+    side: THREE.DoubleSide, 
+    transparent: true, 
+    alphaTest: 0.05 
+  });
+  var whiteMat = new THREE.MeshStandardMaterial({ color: 0xffffff, side: THREE.DoubleSide, roughness: 0.35 });
+
+  shareGroup = new THREE.Group();
+  shareGroup.rotation.set(0.25, -0.8, 0.35);
+  shareGroup.position.set(0, 0.45, 0);
+
+  loadButterflyModel(shareGroup, selectedButterflyShape, selectedAntennaType, wingMat, whiteMat, 0.68, function(l, r) {
+    shareWingL = l; shareWingR = r;
+  });
+  shareScene.add(shareGroup);
+
+  var clock = new THREE.Clock();
+  (function animateShare() {
+    shareAnimFrameId = requestAnimationFrame(animateShare);
+    var t = clock.getElapsedTime(), flap = Math.sin(t * 7.5) * 0.42;
+    if (shareWingL && shareWingR) { shareWingL.rotation.y = flap; shareWingR.rotation.y = -flap; }
+    shareGroup.position.y = 0.45 + Math.sin(t * 2.2) * 0.08;
+    shareGroup.rotation.z = 0.35 + Math.sin(t * 1.5) * 0.04;
+    shareRenderer.render(shareScene, shareCamera);
+  })();
+}
+
+function stopShare3DScene() {
+  if (shareAnimFrameId) { cancelAnimationFrame(shareAnimFrameId); shareAnimFrameId = null; }
+  var c = document.getElementById('share-three-container');
+  if (c) c.innerHTML = '';
+}
+
+// --------------------------------------------------------------------------
+// 로딩 진행바 시퀀스
+// --------------------------------------------------------------------------
+function startAnswerShowcaseSequence() {
+  if (showcaseInterval) { clearInterval(showcaseInterval); showcaseInterval = null; }
+  initLoading3DScene();
+
+  var pBar = document.getElementById('generation-progress-bar'), progress = 0;
+  if (pBar) pBar.style.width = '0%';
+  var intervalDelay = 100, stepIncrease = 100 / (30000 / intervalDelay);
+
+  showcaseInterval = setInterval(function() {
+    progress += stepIncrease;
+    if (pBar) pBar.style.width = Math.min(100, progress) + '%';
+    if (progress >= 100) {
+      clearInterval(showcaseInterval); showcaseInterval = null;
+      setTimeout(function() {
+        var whiteFlash = document.getElementById('cinematic-white-flash');
+        if (whiteFlash) whiteFlash.classList.add('flash-active');
+        setTimeout(function() {
+          stopLoading3DScene();
+          var butterflyName = userSelections.q7_name ? userSelections.q7_name.trim() : "나비";
+          var nameHeader = document.getElementById('preview-butterfly-name');
+          if (nameHeader) nameHeader.innerText = '‘' + butterflyName + '’';
+
+          var guideText = document.getElementById('preview-guide-text');
+          if (guideText) {
+            guideText.innerText = userSelections.q6_memo && userSelections.q6_memo.trim().length > 0 
+              ? userSelections.q6_memo.trim() : "너의 찬란한 날갯짓을 응원해.";
+          }
+          initFullButterflyViewer(currentExtractedTexture || createFallbackDummyTexture());
+          showScreen('screen-preview');
+          setTimeout(function() { if (whiteFlash) whiteFlash.classList.remove('flash-active'); }, 1200);
+        }, 1400);
+      }, 1000);
+    }
+  }, intervalDelay);
+}
+
+// --------------------------------------------------------------------------
+// 완료 및 공유 화면 텍스트 타이핑
+// --------------------------------------------------------------------------
+function playCompleteScreenSequence() {
+  clearTimeout(completeTypeTimer); clearTimeout(autoTransitionTimer);
+  var titleEl = document.getElementById('complete-typing-title');
+  if (!titleEl) return;
+  var rawName = userSelections.q7_name ? userSelections.q7_name.trim() : "나비";
+  typeWriterText(titleEl, "하늘로 '" + rawName + "'이<br>너울 속으로 날아 올랐습니다.", function() {
+    autoTransitionTimer = setTimeout(function() { transitionToScreenWithFade('screen-share'); }, 2000);
+  });
+}
+
+function playShareScreenSequence() {
+  clearTimeout(shareTypeTimer);
+  var titleEl = document.getElementById('share-typing-title');
+  var bottomDock = document.getElementById('share-bottom-dock');
+  if (!titleEl) return;
+  if (bottomDock) bottomDock.style.opacity = '0';
+  typeWriterText(titleEl, "당신의 나비를 더 멀리 날려보세요.", function() {
+    if (bottomDock) bottomDock.style.opacity = '1';
+  });
+}
+
+var btnActionShare = document.getElementById('btn-action-share');
+if (btnActionShare) {
+  btnActionShare.onclick = function() {
+    var rawName = userSelections.q7_name ? userSelections.q7_name.trim() : "나비";
+    var rawMemo = userSelections.q6_memo && userSelections.q6_memo.trim().length > 0 ? userSelections.q6_memo.trim() : "너의 찬란한 날갯짓을 응원해.";
+    var rawShape = selectedButterflyShape || "crescent";
+    var baseUrl = window.location.href.split('?')[0].replace(/index\.html$/, '');
+    if (!baseUrl.endsWith('/')) baseUrl += '/';
+    var shareCardUrl = baseUrl + 'share.html?name=' + encodeURIComponent(rawName) + '&memo=' + encodeURIComponent(rawMemo) + '&shape=' + encodeURIComponent(rawShape);
+
+    var shareData = { title: '너울(Noul) - ' + rawName, text: "내가 빚은 나비 '" + rawName + "'(이)가 도착했습니다.", url: shareCardUrl };
+    if (navigator.share) navigator.share(shareData).catch(function() {});
+    else if (navigator.clipboard) {
+      navigator.clipboard.writeText(shareCardUrl).then(function() { alert("나비 초대장 링크가 클립보드에 복사되었습니다!"); })
+        .catch(function() { alert("링크 복사에 실패했습니다."); });
+    } else alert("공유를 지원하지 않는 브라우저입니다.");
+  };
+}
+
+var btnActionHome = document.getElementById('btn-action-home');
+if (btnActionHome) btnActionHome.onclick = function() { location.reload(); };
+
+// --------------------------------------------------------------------------
+// DEV 전역 건너뛰기 이벤트
+// --------------------------------------------------------------------------
+function ensureDevDummyData() {
+  if (!userSelections.q7_name) userSelections.q7_name = "테스트나비";
+  if (!userSelections.q2 || userSelections.q2.length === 0) userSelections.q2 = ["완벽주의 강박", "비교중독", "수면 부족", "거절 공포", "텅 빈 잔고", "미래 막막함"];
+  if (!userSelections.core_concern) userSelections.core_concern = userSelections.q2[0];
+  if (!userSelections.concern_reason) userSelections.concern_reason = "항상 잘 해내야 한다는 마음이 앞서서요.";
+  if (!userSelections.q6_memo) userSelections.q6_memo = "너의 찬란한 날갯짓을 응원해.";
+  if (!currentExtractedTexture) exportAlignedTexture();
+}
+
+document.addEventListener('click', function(e) {
+  var target = e.target;
+  if (!target) return;
+  var btnNext = target.closest('#dev-btn-skip-next'), btnPrev = target.closest('#dev-btn-skip-prev');
+
+  if (btnNext) {
+    e.preventDefault(); e.stopPropagation();
+    clearAllTimers();
+    if (animFrameId) { cancelAnimationFrame(animFrameId); animFrameId = null; }
+    var curId = (document.querySelector('.screen.active') || {}).id || 'screen-cover';
+
+    if (curId === 'screen-cover' || curId === 'screen-menu') { showScreen('screen-opening'); return; }
+    if (curId === 'screen-gallery' || curId === 'screen-intro') { showScreen('screen-menu'); return; }
+    if (curId === 'screen-opening') {
+      if (openingCurrentStep === 1) {
+        openingCurrentStep = 2;
+        if (elOpeningNextGroup) { elOpeningNextGroup.classList.remove('visible'); elOpeningNextGroup.classList.add('hidden'); }
+        typeWriterText(elOpeningText, "꺼내어 보이지 못한 채,<br>응어리진 무언가... 쉽게 털어놓지 못할 것도 있겠지요.", function() {
+          if (btnOpeningNext) btnOpeningNext.innerHTML = "다음으로";
+          if (elOpeningNextGroup) { elOpeningNextGroup.classList.remove('hidden'); requestAnimationFrame(function() { elOpeningNextGroup.classList.add('visible'); }); }
+        });
+        updateDevScreenBadge(); return;
+      } else if (openingCurrentStep === 2) {
+        openingCurrentStep = 3;
+        if (elOpeningNextGroup) { elOpeningNextGroup.classList.remove('visible'); elOpeningNextGroup.classList.add('hidden'); }
+        typeWriterText(elOpeningText, "오늘 이곳에서,<br>당신의 마음 깊은 곳에 묻어둔 이야기를<br>조심스레 꺼내어보려 합니다.", function() {
+          if (btnOpeningNext) btnOpeningNext.innerHTML = "다음으로";
+          if (elOpeningNextGroup) { elOpeningNextGroup.classList.remove('hidden'); requestAnimationFrame(function() { elOpeningNextGroup.classList.add('visible'); }); }
+        });
+        updateDevScreenBadge(); return;
+      } else if (openingCurrentStep === 3) { currentStepIdx = 0; showScreen('screen-survey'); return; }
+    }
+    if (curId === 'screen-survey') {
+      if (currentStepIdx === 0) { if (!userSelections.q7_name) userSelections.q7_name = "테스트나비"; currentStepIdx = 1; renderSurveyStep(); return; }
+      else if (currentStepIdx === 1) { ensureDevDummyData(); showScreen('screen-survey-core-concern'); return; }
+      else if (currentStepIdx === 2) { ensureDevDummyData(); showScreen('screen-post-concern-bridge'); return; }
+    } else if (curId === 'screen-survey-core-concern') { ensureDevDummyData(); showScreen('screen-survey-concern-reason'); return; }
+    else if (curId === 'screen-survey-concern-reason') { ensureDevDummyData(); currentStepIdx = 2; showScreen('screen-survey'); return; }
+    else if (curId === 'screen-post-concern-bridge') { showScreen('screen-capture-guide'); return; }
+    else if (curId === 'screen-capture-guide') { showScreen('screen-shape-select'); return; }
+    else if (curId === 'screen-shape-select') { ensureDevDummyData(); exportAlignedTexture(); showScreen('screen-loading'); startAnswerShowcaseSequence(); return; }
+    else if (curId === 'screen-loading') {
+      ensureDevDummyData();
+      var butterflyName = userSelections.q7_name ? userSelections.q7_name.trim() : "나비";
+      var nameHeader = document.getElementById('preview-butterfly-name');
+      if (nameHeader) nameHeader.innerText = '‘' + butterflyName + '’';
+      var guideText = document.getElementById('preview-guide-text');
+      if (guideText) guideText.innerText = userSelections.q6_memo && userSelections.q6_memo.trim().length > 0 ? userSelections.q6_memo.trim() : "너의 찬란한 날갯짓을 응원해.";
+      initFullButterflyViewer(currentExtractedTexture || createFallbackDummyTexture());
+      showScreen('screen-preview'); return;
+    } else if (curId === 'screen-preview') { ensureDevDummyData(); showScreen('screen-complete'); return; }
+    else if (curId === 'screen-complete') { showScreen('screen-share'); return; }
+    else if (curId === 'screen-share') { showScreen('screen-cover'); return; }
+  }
+
+  if (btnPrev) {
+    e.preventDefault(); e.stopPropagation();
+    clearAllTimers();
+    if (animFrameId) { cancelAnimationFrame(animFrameId); animFrameId = null; }
+    var curId = (document.querySelector('.screen.active') || {}).id || 'screen-cover';
+
+    if (curId === 'screen-cover') { showScreen('screen-share'); return; }
+    if (curId === 'screen-menu') { showScreen('screen-cover'); return; }
+    if (curId === 'screen-gallery' || curId === 'screen-intro') { showScreen('screen-menu'); return; }
+    if (curId === 'screen-opening') {
+      if (openingCurrentStep === 3) {
+        openingCurrentStep = 2;
+        typeWriterText(elOpeningText, "꺼내어 보이지 못한 채,<br>응어리진 무언가... 쉽게 털어놓지 못할 것도 있겠지요.", function() {
+          if (btnOpeningNext) btnOpeningNext.innerHTML = "다음으로";
+        });
+        updateDevScreenBadge(); return;
+      } else if (openingCurrentStep === 2) {
+        openingCurrentStep = 1;
+        typeWriterText(elOpeningText, "안녕하세요?<br>지금, 걱정 없는 삶을 살아가고 있나요?", function() {
+          if (btnOpeningNext) btnOpeningNext.innerHTML = "다음으로";
+        });
+        updateDevScreenBadge(); return;
+      } else if (openingCurrentStep === 1) { showScreen('screen-cover'); return; }
+    }
+    if (curId === 'screen-survey') {
+      if (currentStepIdx === 2) { showScreen('screen-survey-concern-reason'); return; }
+      else if (currentStepIdx === 1) { currentStepIdx = 0; renderSurveyStep(); return; }
+      else if (currentStepIdx === 0) {
+        showScreen('screen-opening'); openingCurrentStep = 3;
+        typeWriterText(elOpeningText, "오늘 이곳에서,<br>당신의 마음 깊은 곳에 묻어둔 이야기를<br>조심스레 꺼내어보려 합니다.", function() {
+          if (btnOpeningNext) btnOpeningNext.innerHTML = "다음으로";
+          if (elOpeningNextGroup) { elOpeningNextGroup.classList.remove('hidden'); requestAnimationFrame(function() { elOpeningNextGroup.classList.add('visible'); }); }
+        });
+        updateDevScreenBadge(); return;
+      }
+    } else if (curId === 'screen-survey-core-concern') { currentStepIdx = 1; showScreen('screen-survey'); return; }
+    else if (curId === 'screen-survey-concern-reason') { showScreen('screen-survey-core-concern'); return; }
+    else if (curId === 'screen-post-concern-bridge') { currentStepIdx = 2; showScreen('screen-survey'); return; }
+    else if (curId === 'screen-capture-guide') { showScreen('screen-post-concern-bridge'); return; }
+    else if (curId === 'screen-shape-select') { showScreen('screen-capture-guide'); return; }
+    else if (curId === 'screen-loading') { showScreen('screen-shape-select'); return; }
+    else if (curId === 'screen-preview') { showScreen('screen-loading'); startAnswerShowcaseSequence(); return; }
+    else if (curId === 'screen-complete') { ensureDevDummyData(); initFullButterflyViewer(currentExtractedTexture || createFallbackDummyTexture()); showScreen('screen-preview'); return; }
+    else if (curId === 'screen-share') { showScreen('screen-complete'); return; }
+  }
+}, true);
+
+// === 여기서부터 2부를 붙여넣으세요 ===
 // --------------------------------------------------------------------------
 // 기본 네비게이션 버튼 바인딩
 // --------------------------------------------------------------------------
@@ -300,6 +650,7 @@ function preloadPatternImage(path) {
   }
 }
 
+// 3D 한쪽 날개 패턴 이미지 사전 캐싱 함수
 function preloadSingleWingPattern(shape, patternId) {
   if (!patternId || patternId.indexOf('none') > -1) return;
   var patNum = patternId.split('_')[1] || "1";
@@ -491,7 +842,7 @@ function setActiveItemVisual(btn) {
     var curObj = getSelectedPatternObject();
     if (curObj && curObj.path) preloadPatternImage(curObj.path);
     preloadSingleWingPattern(selectedButterflyShape, selectedPatternId);
-    drawAlignCanvas(); 
+    drawAlignCanvas();
   } else if (type === 'antenna') { 
     selectedAntennaType = id; 
   }
@@ -857,7 +1208,6 @@ function createFallbackDummyTexture(colorA, colorB) {
   return c.toDataURL('image/png');
 }
 
-// === 여기서부터 2부를 붙여넣으세요 ===
 // --------------------------------------------------------------------------
 // 설문조사
 // --------------------------------------------------------------------------
@@ -1361,6 +1711,7 @@ function initFullButterflyViewer(textureURL) {
         leftWingMesh = null; rightWingMesh = null; antennaMesh = null;
         gltf.scene.traverse(function(child) {
           var n = child.name || '';
+          // 날개 그룹 노드 또는 메쉬를 회전 피벗(leftWingMesh/rightWingMesh)으로 정확히 등록
           if (n.indexOf('Wing_L') > -1) { 
             if (!leftWingMesh) {
               leftWingMesh = child;
@@ -1416,34 +1767,25 @@ function initFullButterflyViewer(textureURL) {
       }
     }
 
-    // 🌟 양 날개만 세로 힌지축(Y축)을 기준으로 문처럼 대칭 펄럭임 (Z축 제자리 회전 제거)
+    // 🌟 양 날개 독립 펄럭임 복구 (나비가 통째로 움직이지 않고 날개만 부드럽게 펄럭임)
     if (!isFlyingAway) {
       if (elapsedSec < 3.6) {
         var progress = Math.min(1.0, elapsedSec / 3.6);
         fullGroup.position.y = -7.0 + 7.0 * (1.0 - Math.pow(1.0 - progress, 3));
-        var flap = Math.sin(time * 36.0 * (1.0 - progress * 0.65)) * (0.75 * Math.pow(1.0 - progress, 1.4));
+        var flap = Math.sin(time * 36.0 * (1.0 - progress * 0.65)) * (0.85 * Math.pow(1.0 - progress, 1.4));
         if (leftWingMesh && rightWingMesh) {
-          leftWingMesh.rotation.y = initialRotL.y + 0.25 + flap; 
-          rightWingMesh.rotation.y = initialRotR.y - 0.25 - flap;
-          leftWingMesh.rotation.x = initialRotL.x; rightWingMesh.rotation.x = initialRotR.x;
-          leftWingMesh.rotation.z = initialRotL.z; rightWingMesh.rotation.z = initialRotR.z;
+          leftWingMesh.rotation.y = initialRotL.y + 0.25 + flap; rightWingMesh.rotation.y = initialRotR.y - 0.25 - flap;
         }
       } else {
         fullGroup.position.y = 0;
         if (leftWingMesh && rightWingMesh) {
-          leftWingMesh.rotation.y = initialRotL.y + 0.25; 
-          rightWingMesh.rotation.y = initialRotR.y - 0.25;
-          leftWingMesh.rotation.x = initialRotL.x; rightWingMesh.rotation.x = initialRotR.x;
-          leftWingMesh.rotation.z = initialRotL.z; rightWingMesh.rotation.z = initialRotR.z;
+          leftWingMesh.rotation.y = initialRotL.y + 0.25; rightWingMesh.rotation.y = initialRotR.y - 0.25;
         }
       }
     } else {
-      var flyAngle = Math.sin(time * 26.0) * 0.70;
+      var flyAngle = Math.sin(time * 26.0) * 0.75;
       if (leftWingMesh && rightWingMesh) {
-        leftWingMesh.rotation.y = initialRotL.y + 0.28 + flyAngle; 
-        rightWingMesh.rotation.y = initialRotR.y - 0.28 - flyAngle;
-        leftWingMesh.rotation.x = initialRotL.x; rightWingMesh.rotation.x = initialRotR.x;
-        leftWingMesh.rotation.z = initialRotL.z; rightWingMesh.rotation.z = initialRotR.z;
+        leftWingMesh.rotation.y = initialRotL.y + 0.28 + flyAngle; rightWingMesh.rotation.y = initialRotR.y - 0.28 - flyAngle;
       }
       fullGroup.position.y += 0.09; fullGroup.position.z -= 0.04;
 
@@ -1742,10 +2084,7 @@ function openSpecimen3DModal(item, textureUrl) {
   (function modalAnimate() {
     modalAnimFrameId = requestAnimationFrame(modalAnimate);
     var t = clock.getElapsedTime(), flap = Math.sin(t * 6.5) * 0.45;
-    if (modalWingL && modalWingR) { 
-      modalWingL.rotation.y = flap; 
-      modalWingR.rotation.y = -flap; 
-    }
+    if (modalWingL && modalWingR) { modalWingL.rotation.y = flap; modalWingR.rotation.y = -flap; }
     modalGroup.rotation.y = Math.sin(t * 0.8) * 0.35;
     modalGroup.position.y = -0.35 + Math.sin(t * 2.0) * 0.08;
     modalThreeRenderer.render(modalThreeScene, modalThreeCamera);
