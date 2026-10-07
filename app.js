@@ -5,7 +5,7 @@
    - [완벽 해결]: 
      1. 2D 나비 외곽선 및 날개 가려짐 완전 해결 (nonzero 마스크)
      2. 3D 날개 텍스처에 패턴(무늬) 누락 없이 100% 합성 보장 (사전 프리로딩)
-     3. 3D 블렌더 GLB 모델 날개 UV 기준 1:1 완벽 텍스처 안착
+     3. 3D 블렌더 GLB 모델 좌/우 분리 날개 메시에 양날개 통짜 텍스처 1:1 완벽 분할 안착 (왜곡 제로)
    ========================================================================== */
 
 var ALL_SCREENS = [
@@ -147,7 +147,36 @@ function setupCommon3DScene(container, camZ, lookY) {
   return { scene: scene, camera: camera, renderer: renderer };
 }
 
-function loadButterflyModel(group, shapeId, antId, wingMat, whiteMat, scale, onLoaded) {
+// 🌟 좌/우 날개에 양날개 전체 이미지를 1:1 완벽 분할 매핑하는 함수
+function createSplitWingMaterials(texture) {
+  var texL = texture.clone();
+  texL.repeat.set(0.5, 1.0);
+  texL.offset.set(0.0, 0.0);
+  texL.needsUpdate = true;
+
+  var texR = texture.clone();
+  texR.repeat.set(0.5, 1.0);
+  texR.offset.set(0.5, 0.0);
+  texR.needsUpdate = true;
+
+  var matL = new THREE.MeshBasicMaterial({
+    map: texL,
+    side: THREE.DoubleSide,
+    transparent: true,
+    alphaTest: 0.05
+  });
+
+  var matR = new THREE.MeshBasicMaterial({
+    map: texR,
+    side: THREE.DoubleSide,
+    transparent: true,
+    alphaTest: 0.05
+  });
+
+  return { matL: matL, matR: matR };
+}
+
+function loadButterflyModel(group, shapeId, antId, wingMatOrTex, whiteMat, scale, onLoaded) {
   if (!window.THREE || !THREE.GLTFLoader) return;
   var modelPath = '3DButterfly/' + (shapeId || 'crescent') + '.glb';
   var targetAnt = 'Antenna_' + (antId || 'ball');
@@ -155,11 +184,20 @@ function loadButterflyModel(group, shapeId, antId, wingMat, whiteMat, scale, onL
   new THREE.GLTFLoader().load(modelPath, function(gltf) {
     var model = gltf.scene;
     var wL = null, wR = null;
+
+    // 만약 wingMatOrTex가 Texture인 경우 좌우 분할 재질 생성, Material인 경우 그대로 사용
+    var matL = wingMatOrTex, matR = wingMatOrTex;
+    if (wingMatOrTex && wingMatOrTex.isTexture) {
+      var splitMats = createSplitWingMaterials(wingMatOrTex);
+      matL = splitMats.matL;
+      matR = splitMats.matR;
+    }
+
     model.traverse(function(child) {
       if (child.isMesh) {
         var n = child.name;
-        if (n.startsWith('Wing_L')) { wL = child; child.material = wingMat; }
-        else if (n.startsWith('Wing_R')) { wR = child; child.material = wingMat; }
+        if (n.startsWith('Wing_L')) { wL = child; child.material = matL; }
+        else if (n.startsWith('Wing_R')) { wR = child; child.material = matR; }
         else if (n.startsWith('Body')) { child.material = whiteMat; }
         else if (n.startsWith('Antenna_')) { child.material = whiteMat; child.visible = n.startsWith(targetAnt); }
       }
@@ -224,19 +262,15 @@ function initShare3DScene() {
   var texUrl = currentExtractedTexture || createFallbackDummyTexture('#ffffff', '#cfcfcf');
   var tex = new THREE.TextureLoader().load(texUrl);
   tex.flipY = false;
-  var wingMat = new THREE.MeshBasicMaterial({ 
-    map: tex, 
-    side: THREE.DoubleSide, 
-    transparent: true, 
-    alphaTest: 0.05 
-  });
+
   var whiteMat = new THREE.MeshStandardMaterial({ color: 0xffffff, side: THREE.DoubleSide, roughness: 0.35 });
 
   shareGroup = new THREE.Group();
   shareGroup.rotation.set(0.25, -0.8, 0.35);
   shareGroup.position.set(0, 0.45, 0);
 
-  loadButterflyModel(shareGroup, selectedButterflyShape, selectedAntennaType, wingMat, whiteMat, 0.68, function(l, r) {
+  // tex를 넘겨 좌/우 분할 매핑 적용
+  loadButterflyModel(shareGroup, selectedButterflyShape, selectedAntennaType, tex, whiteMat, 0.68, function(l, r) {
     shareWingL = l; shareWingR = r;
   });
   shareScene.add(shareGroup);
@@ -1675,13 +1709,8 @@ function initFullButterflyViewer(textureURL) {
   previewStartTime = performance.now();
   isFlyingAway = false; isFlyingTransitionTriggered = false; resetChargeState();
 
-  // 3D 블렌더 날개 메시에 텍스처를 1:1 완벽 안착
-  var wingMat = new THREE.MeshBasicMaterial({ 
-    map: userTexture, 
-    side: THREE.DoubleSide, 
-    transparent: true, 
-    alphaTest: 0.05 
-  });
+  // 🌟 양 날개 전체 이미지를 1:1 완벽 분할 매핑 재질로 분리 생성
+  var splitMats = createSplitWingMaterials(userTexture);
   var whiteMat = new THREE.MeshStandardMaterial({ color: 0xffffff, side: THREE.DoubleSide, roughness: 0.35, metalness: 0.0 });
   var targetAnt = 'Antenna_' + selectedAntennaType;
 
@@ -1692,8 +1721,16 @@ function initFullButterflyViewer(textureURL) {
         gltf.scene.traverse(function(child) {
           if (child.isMesh) {
             var n = child.name;
-            if (n.startsWith('Wing_L')) { leftWingMesh = child; child.material = wingMat; initialRotL = { x: child.rotation.x, y: child.rotation.y, z: child.rotation.z }; }
-            else if (n.startsWith('Wing_R')) { rightWingMesh = child; child.material = wingMat; initialRotR = { x: child.rotation.x, y: child.rotation.y, z: child.rotation.z }; }
+            if (n.startsWith('Wing_L')) { 
+              leftWingMesh = child; 
+              child.material = splitMats.matL; 
+              initialRotL = { x: child.rotation.x, y: child.rotation.y, z: child.rotation.z }; 
+            }
+            else if (n.startsWith('Wing_R')) { 
+              rightWingMesh = child; 
+              child.material = splitMats.matR; 
+              initialRotR = { x: child.rotation.x, y: child.rotation.y, z: child.rotation.z }; 
+            }
             else if (n.startsWith('Body')) { child.material = whiteMat; }
             else if (n.startsWith('Antenna_')) { child.material = whiteMat; child.visible = n.startsWith(targetAnt); if (child.visible) antennaMesh = child; }
           }
@@ -2025,18 +2062,14 @@ function openSpecimen3DModal(item, textureUrl) {
 
   var tex = new THREE.TextureLoader().load(textureUrl);
   tex.flipY = false;
-  var wingMat = new THREE.MeshBasicMaterial({ 
-    map: tex, 
-    side: THREE.DoubleSide, 
-    transparent: true, 
-    alphaTest: 0.05 
-  });
+
   var whiteMat = new THREE.MeshStandardMaterial({ color: 0xffffff, side: THREE.DoubleSide, roughness: 0.3 });
 
   modalGroup = new THREE.Group();
   modalGroup.position.set(0, -0.35, 0);
 
-  loadButterflyModel(modalGroup, item.wingId, item.antId, wingMat, whiteMat, 0.88, function(l, r) {
+  // tex를 넘겨 좌/우 분할 매핑 적용
+  loadButterflyModel(modalGroup, item.wingId, item.antId, tex, whiteMat, 0.88, function(l, r) {
     modalWingL = l; modalWingR = r;
   });
   modalThreeScene.add(modalGroup);
