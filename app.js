@@ -1,6 +1,6 @@
 /* ==========================================================================
    🌟 너울(Noul) 메인 애플리케이션 로직 (app.js)
-   - [DEV 완벽 복원]: 브라우저 전역 클릭 위임 라우터
+   - [DEV 완벽 복원]: 브라우저 전역 클릭 위임 라우터 (앞/뒤 버그 완벽 수정)
    - [로딩 화면]: 사용자가 선택한 3D 나비 순백색(패턴 미적용) + 살짝 왼쪽 아래 이동 + 30초 로딩
    - [완료 화면]: 타이핑 완료 후 2초 후 자동 이동
    - [공유 화면]: 상단/중앙에 선명한 3D 나비 + 문장 및 공유 버튼 바
@@ -47,7 +47,7 @@ var postSurveyTypeTimer = null;
 var postConcernTypeTimer = null;
 var flightSafetyTimer = null;
 
-function showScreen(screenId) {
+function clearAllTimers() {
   clearTimeout(typeTimer);
   clearTimeout(guideTypeTimer);
   clearTimeout(surveyTitleTypeTimer);
@@ -60,6 +60,11 @@ function showScreen(screenId) {
   clearTimeout(postSurveyTypeTimer);
   clearTimeout(postConcernTypeTimer);
   clearTimeout(flightSafetyTimer);
+  if (showcaseInterval) { clearInterval(showcaseInterval); showcaseInterval = null; }
+}
+
+function showScreen(screenId) {
+  clearAllTimers();
 
   document.querySelectorAll('.screen').forEach(function(s) {
     s.classList.remove('active');
@@ -521,8 +526,18 @@ if (btnActionHome) {
 }
 
 // --------------------------------------------------------------------------
-// DEV 전역 이벤트 위임 바인딩
+// DEV 전역 이벤트 위임 바인딩 (버그 없는 순방향/역방향 플로우)
 // --------------------------------------------------------------------------
+function ensureDevDummyData(upToStep) {
+  if (!userSelections.q7_name) userSelections.q7_name = "테스트나비";
+  if (!userSelections.q1 || userSelections.q1.length === 0) userSelections.q1 = ["야행성", "사색가"];
+  if (!userSelections.q2 || userSelections.q2.length === 0) userSelections.q2 = ["완벽주의 강박", "비교중독", "수면 부족", "거절 공포", "텅 빈 잔고", "미래 막막함"];
+  if (!userSelections.core_concern) userSelections.core_concern = userSelections.q2[0];
+  if (!userSelections.concern_reason) userSelections.concern_reason = "항상 잘 해내야 한다는 마음이 앞서서요.";
+  if (!userSelections.q6_memo) userSelections.q6_memo = "너의 찬란한 날갯짓을 응원해.";
+  if (!currentExtractedTexture) currentExtractedTexture = createFallbackDummyTexture();
+}
+
 document.addEventListener('click', function(e) {
   var target = e.target;
   if (!target) return;
@@ -533,25 +548,26 @@ document.addEventListener('click', function(e) {
   if (btnNext) {
     e.preventDefault();
     e.stopPropagation();
-
-    clearTimeout(typeTimer);
-    clearTimeout(guideTypeTimer);
-    clearTimeout(surveyTitleTypeTimer);
-    clearTimeout(coreConcernTypeTimer);
-    clearTimeout(reasonTypeTimer);
-    clearTimeout(openingDelayTimer);
-    clearTimeout(completeTypeTimer);
-    clearTimeout(shareTypeTimer);
-    clearTimeout(autoTransitionTimer);
-    clearTimeout(postSurveyTypeTimer);
-    clearTimeout(postConcernTypeTimer);
-    clearTimeout(flightSafetyTimer);
-
-    if (showcaseInterval) { clearInterval(showcaseInterval); showcaseInterval = null; }
+    clearAllTimers();
     if (animFrameId) { cancelAnimationFrame(animFrameId); animFrameId = null; }
 
     var activeScreen = document.querySelector('.screen.active');
     var curId = activeScreen ? activeScreen.id : 'screen-cover';
+
+    if (curId === 'screen-cover') {
+      showScreen('screen-opening');
+      return;
+    }
+
+    if (curId === 'screen-menu') {
+      showScreen('screen-opening');
+      return;
+    }
+
+    if (curId === 'screen-gallery' || curId === 'screen-intro') {
+      showScreen('screen-menu');
+      return;
+    }
 
     if (curId === 'screen-opening') {
       if (openingCurrentStep === 1) {
@@ -613,14 +629,15 @@ document.addEventListener('click', function(e) {
         renderSurveyStep();
         return;
       } else if (currentStepIdx === 1) {
-        if (userSelections.q1.length === 0) userSelections.q1 = ["야행성", "사색가"];
+        if (!userSelections.q1 || userSelections.q1.length === 0) userSelections.q1 = ["야행성", "사색가"];
         showScreen('screen-post-survey-intro');
         return;
       } else if (currentStepIdx === 2) {
-        if (userSelections.q2.length === 0) userSelections.q2 = ["완벽주의 강박", "비교중독", "수면 부족", "거절 공포", "텅 빈 잔고", "미래 막막함"];
+        ensureDevDummyData();
         showScreen('screen-survey-core-concern');
         return;
       } else if (currentStepIdx === 3) {
+        ensureDevDummyData();
         exportAlignedTexture();
         showScreen('screen-loading');
         startAnswerShowcaseSequence();
@@ -631,15 +648,11 @@ document.addEventListener('click', function(e) {
       showScreen('screen-survey');
       return;
     } else if (curId === 'screen-survey-core-concern') {
-      if (!userSelections.core_concern && userSelections.q2.length > 0) {
-        userSelections.core_concern = userSelections.q2[0];
-      }
+      ensureDevDummyData();
       showScreen('screen-survey-concern-reason');
       return;
     } else if (curId === 'screen-survey-concern-reason') {
-      if (!userSelections.concern_reason) {
-        userSelections.concern_reason = "항상 잘 해내야 한다는 마음이 앞서서요.";
-      }
+      ensureDevDummyData();
       showScreen('screen-post-concern-bridge');
       return;
     } else if (curId === 'screen-post-concern-bridge') {
@@ -649,6 +662,7 @@ document.addEventListener('click', function(e) {
       showScreen('screen-shape-select');
       return;
     } else if (curId === 'screen-shape-select') {
+      ensureDevDummyData();
       exportAlignedTexture();
       showScreen('screen-survey-bridge');
       return;
@@ -656,37 +670,8 @@ document.addEventListener('click', function(e) {
       currentStepIdx = 3;
       showScreen('screen-survey');
       return;
-    }
-
-    var curIdx = ALL_SCREENS.indexOf(curId);
-    if (curIdx === -1) curIdx = 0;
-    var nextIdx = (curIdx + 1) % ALL_SCREENS.length;
-    var targetId = ALL_SCREENS[nextIdx];
-
-    if (targetId === 'screen-survey') {
-      currentStepIdx = 0;
-    } else if (targetId === 'screen-survey-core-concern') {
-      if (userSelections.q2.length === 0) userSelections.q2 = ["완벽주의 강박", "비교중독", "수면 부족", "거절 공포", "텅 빈 잔고", "미래 막막함"];
-    } else if (targetId === 'screen-shape-select') {
-      setTimeout(function() {
-        if (alignCanvas && actx) {
-          actx.fillStyle = "#ffffff";
-          actx.fillRect(0, 0, alignCanvas.width, alignCanvas.height);
-          actx.fillStyle = "#222222";
-          actx.beginPath();
-          actx.arc(300, 300, 140, 0, Math.PI * 2);
-          drawAlignCanvas();
-        }
-      }, 30);
-    } else if (targetId === 'screen-loading') {
-      if (!userSelections.q7_name) userSelections.q7_name = "테스트나비";
-      if (userSelections.q1.length === 0) userSelections.q1 = ["야행성", "사색가"];
-      if (userSelections.q2.length === 0) userSelections.q2 = ["완벽주의 강박", "비교중독"];
-      if (!userSelections.core_concern) userSelections.core_concern = "완벽주의 강박";
-      if (!userSelections.q6_memo) userSelections.q6_memo = "모든 순간이 찬란하기를.";
-      exportAlignedTexture();
-      startAnswerShowcaseSequence();
-    } else if (targetId === 'screen-preview') {
+    } else if (curId === 'screen-loading') {
+      ensureDevDummyData();
       var butterflyName = userSelections.q7_name ? userSelections.q7_name.trim() : "나비";
       var nameHeader = document.getElementById('preview-butterfly-name');
       if (nameHeader) nameHeader.innerText = '‘' + butterflyName + '’';
@@ -694,39 +679,49 @@ document.addEventListener('click', function(e) {
       var guideText = document.getElementById('preview-guide-text');
       if (guideText) {
         guideText.innerText = userSelections.q6_memo && userSelections.q6_memo.trim().length > 0 
-              ? userSelections.q6_memo.trim() 
-              : "너의 찬란한 날갯짓을 응원해.";
+          ? userSelections.q6_memo.trim() 
+          : "너의 찬란한 날갯짓을 응원해.";
       }
 
       initFullButterflyViewer(currentExtractedTexture || createFallbackDummyTexture());
+      showScreen('screen-preview');
+      return;
+    } else if (curId === 'screen-preview') {
+      ensureDevDummyData();
+      showScreen('screen-complete');
+      return;
+    } else if (curId === 'screen-complete') {
+      showScreen('screen-share');
+      return;
+    } else if (curId === 'screen-share') {
+      showScreen('screen-cover');
+      return;
     }
-
-    showScreen(targetId);
-    return;
   }
 
   if (btnPrev) {
     e.preventDefault();
     e.stopPropagation();
-
-    clearTimeout(typeTimer);
-    clearTimeout(guideTypeTimer);
-    clearTimeout(surveyTitleTypeTimer);
-    clearTimeout(coreConcernTypeTimer);
-    clearTimeout(reasonTypeTimer);
-    clearTimeout(openingDelayTimer);
-    clearTimeout(completeTypeTimer);
-    clearTimeout(shareTypeTimer);
-    clearTimeout(autoTransitionTimer);
-    clearTimeout(postSurveyTypeTimer);
-    clearTimeout(postConcernTypeTimer);
-    clearTimeout(flightSafetyTimer);
-
-    if (showcaseInterval) { clearInterval(showcaseInterval); showcaseInterval = null; }
+    clearAllTimers();
     if (animFrameId) { cancelAnimationFrame(animFrameId); animFrameId = null; }
 
     var activeScreen = document.querySelector('.screen.active');
     var curId = activeScreen ? activeScreen.id : 'screen-cover';
+
+    if (curId === 'screen-cover') {
+      showScreen('screen-share');
+      return;
+    }
+
+    if (curId === 'screen-menu') {
+      showScreen('screen-cover');
+      return;
+    }
+
+    if (curId === 'screen-gallery' || curId === 'screen-intro') {
+      showScreen('screen-menu');
+      return;
+    }
 
     if (curId === 'screen-opening') {
       if (openingCurrentStep === 4) {
@@ -751,7 +746,7 @@ document.addEventListener('click', function(e) {
         updateDevScreenBadge();
         return;
       } else if (openingCurrentStep === 1) {
-        showScreen('screen-intro');
+        showScreen('screen-cover');
         return;
       }
     }
@@ -803,19 +798,23 @@ document.addEventListener('click', function(e) {
     } else if (curId === 'screen-survey-bridge') {
       showScreen('screen-shape-select');
       return;
-    }
-
-    var curIdx = ALL_SCREENS.indexOf(curId);
-    if (curIdx === -1) curIdx = 0;
-    var prevIdx = (curIdx - 1 + ALL_SCREENS.length) % ALL_SCREENS.length;
-    var targetId = ALL_SCREENS[prevIdx];
-
-    if (targetId === 'screen-survey') {
+    } else if (curId === 'screen-loading') {
       currentStepIdx = 3;
+      showScreen('screen-survey');
+      return;
+    } else if (curId === 'screen-preview') {
+      showScreen('screen-loading');
+      startAnswerShowcaseSequence();
+      return;
+    } else if (curId === 'screen-complete') {
+      ensureDevDummyData();
+      initFullButterflyViewer(currentExtractedTexture || createFallbackDummyTexture());
+      showScreen('screen-preview');
+      return;
+    } else if (curId === 'screen-share') {
+      showScreen('screen-complete');
+      return;
     }
-
-    showScreen(targetId);
-    return;
   }
 }, true);
 
