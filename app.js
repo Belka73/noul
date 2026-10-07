@@ -2,10 +2,7 @@
    🌟 너울(Noul) 메인 애플리케이션 로직 (app.js)
    - [기존 요소 100% 보존]: 3D 뷰어, 물리 엔진, 검색, 인터랙션 전체 유지
    - [흐름 완벽 유지]: 고민 서술 직후 다정한 한마디 연동 & 온기 텍스트 브릿지 생략
-   - [완벽 해결]: 
-     1. 2D 나비 외곽선 및 날개 가려짐 완전 해결 (nonzero 마스크)
-     2. 3D 날개 텍스처에 패턴(무늬) 누락 없이 100% 합성 보장 (사전 프리로딩)
-     3. 3D 블렌더 GLB 모델 좌/우 분리 날개 메시에 양날개 통짜 텍스처 1:1 완벽 분할 안착 (왜곡 제로)
+   - [날개 증발 완벽 복구]: 비동기 Texture clone 제거 및 안정적인 단일 텍스처 렌더링 보장
    ========================================================================== */
 
 var ALL_SCREENS = [
@@ -147,36 +144,7 @@ function setupCommon3DScene(container, camZ, lookY) {
   return { scene: scene, camera: camera, renderer: renderer };
 }
 
-// 🌟 좌/우 날개에 양날개 전체 이미지를 1:1 완벽 분할 매핑하는 함수
-function createSplitWingMaterials(texture) {
-  var texL = texture.clone();
-  texL.repeat.set(0.5, 1.0);
-  texL.offset.set(0.0, 0.0);
-  texL.needsUpdate = true;
-
-  var texR = texture.clone();
-  texR.repeat.set(0.5, 1.0);
-  texR.offset.set(0.5, 0.0);
-  texR.needsUpdate = true;
-
-  var matL = new THREE.MeshBasicMaterial({
-    map: texL,
-    side: THREE.DoubleSide,
-    transparent: true,
-    alphaTest: 0.05
-  });
-
-  var matR = new THREE.MeshBasicMaterial({
-    map: texR,
-    side: THREE.DoubleSide,
-    transparent: true,
-    alphaTest: 0.05
-  });
-
-  return { matL: matL, matR: matR };
-}
-
-function loadButterflyModel(group, shapeId, antId, wingMatOrTex, whiteMat, scale, onLoaded) {
+function loadButterflyModel(group, shapeId, antId, wingMat, whiteMat, scale, onLoaded) {
   if (!window.THREE || !THREE.GLTFLoader) return;
   var modelPath = '3DButterfly/' + (shapeId || 'crescent') + '.glb';
   var targetAnt = 'Antenna_' + (antId || 'ball');
@@ -185,19 +153,11 @@ function loadButterflyModel(group, shapeId, antId, wingMatOrTex, whiteMat, scale
     var model = gltf.scene;
     var wL = null, wR = null;
 
-    // 만약 wingMatOrTex가 Texture인 경우 좌우 분할 재질 생성, Material인 경우 그대로 사용
-    var matL = wingMatOrTex, matR = wingMatOrTex;
-    if (wingMatOrTex && wingMatOrTex.isTexture) {
-      var splitMats = createSplitWingMaterials(wingMatOrTex);
-      matL = splitMats.matL;
-      matR = splitMats.matR;
-    }
-
     model.traverse(function(child) {
       if (child.isMesh) {
         var n = child.name;
-        if (n.startsWith('Wing_L')) { wL = child; child.material = matL; }
-        else if (n.startsWith('Wing_R')) { wR = child; child.material = matR; }
+        if (n.startsWith('Wing_L')) { wL = child; child.material = wingMat; }
+        else if (n.startsWith('Wing_R')) { wR = child; child.material = wingMat; }
         else if (n.startsWith('Body')) { child.material = whiteMat; }
         else if (n.startsWith('Antenna_')) { child.material = whiteMat; child.visible = n.startsWith(targetAnt); }
       }
@@ -263,14 +223,19 @@ function initShare3DScene() {
   var tex = new THREE.TextureLoader().load(texUrl);
   tex.flipY = false;
 
+  var wingMat = new THREE.MeshBasicMaterial({ 
+    map: tex, 
+    side: THREE.DoubleSide, 
+    transparent: true, 
+    alphaTest: 0.05 
+  });
   var whiteMat = new THREE.MeshStandardMaterial({ color: 0xffffff, side: THREE.DoubleSide, roughness: 0.35 });
 
   shareGroup = new THREE.Group();
   shareGroup.rotation.set(0.25, -0.8, 0.35);
   shareGroup.position.set(0, 0.45, 0);
 
-  // tex를 넘겨 좌/우 분할 매핑 적용
-  loadButterflyModel(shareGroup, selectedButterflyShape, selectedAntennaType, tex, whiteMat, 0.68, function(l, r) {
+  loadButterflyModel(shareGroup, selectedButterflyShape, selectedAntennaType, wingMat, whiteMat, 0.68, function(l, r) {
     shareWingL = l; shareWingR = r;
   });
   shareScene.add(shareGroup);
@@ -665,7 +630,6 @@ var selectedPatternId = 'crescent_none';
 
 var patternImageCache = {};
 
-// 패턴 이미지 사전 프리로딩 함수 (3D 누락 방지)
 function preloadPatternImage(path) {
   if (!path) return;
   if (!patternImageCache[path]) {
@@ -713,7 +677,6 @@ function updateHeroPreview() {
       '</g>';
   }
 
-  // nonzero 마스크 규칙으로 날개 반쪽 가려짐 완전 방지
   heroPathContainer.innerHTML = 
     '<defs>' +
       '<mask id="butterfly-outside-mask" maskUnits="userSpaceOnUse" x="-200" y="-200" width="1400" height="1400">' +
@@ -724,15 +687,11 @@ function updateHeroPreview() {
         '<path d="' + wingD + '" fill-rule="nonzero"/>' +
       '</clipPath>' +
     '</defs>' +
-    // 1. 날개 외곽을 가리는 반투명 암전 마스크
     '<rect x="-200" y="-200" width="1400" height="1400" fill="rgba(0, 0, 0, 0.72)" mask="url(#butterfly-outside-mask)"/>' +
-    // 2. 날개 안쪽에만 1:1로 얹히는 고유 무늬
     '<g clip-path="url(#hero-wing-exact-clip)">' +
       patternSvgEl +
     '</g>' +
-    // 3. 날개와 1:1로 맞물리는 원본 대칭 몸통
     (bodyD ? '<path d="' + bodyD + '" fill="#ffffff"/>' : '') +
-    // 4. 머리 정수리 좌표에 정렬되는 더듬이
     '<g transform="translate(' + currentWing.headX + ', ' + currentWing.headY + ')" filter="url(#antenna-subtle-contrast)" color="#ffffff">' +
       ant.render(10.5) +
     '</g>';
@@ -1151,7 +1110,7 @@ if (interactiveFrame && alignCanvas) {
 }
 
 // --------------------------------------------------------------------------
-// 🌟 3D GLB 모델용 정밀 텍스처 추출 로직 (100% 매핑 보장)
+// 🌟 3D GLB 모델용 정밀 텍스처 추출 로직
 // --------------------------------------------------------------------------
 function exportAlignedTexture() {
   if (!rawImage || !rawImage.width || !alignCanvas) {
@@ -1175,7 +1134,6 @@ function exportAlignedTexture() {
     baseCanvas = symCanvas;
   }
 
-  // 블렌더 3D 날개 UV 전체에 1:1로 꽉 채워지는 1000x1000 고해상도 텍스처
   var outW = 1000, outH = 1000;
   var finalCanvas = document.createElement('canvas');
   finalCanvas.width = outW; finalCanvas.height = outH;
@@ -1184,7 +1142,7 @@ function exportAlignedTexture() {
   // 1. 사용자 사진 텍스처 합성
   fctx.drawImage(baseCanvas, 0, 0, alignCanvas.width, alignCanvas.height, 0, 0, outW, outH);
 
-  // 2. 선택한 날개 패턴(무늬)을 사진 위에 1:1 합성
+  // 2. 선택한 날개 패턴(무늬)을 사진 위에 합성
   var pat = getSelectedPatternObject();
   if (pat && pat.path) {
     var cachedImg = patternImageCache[pat.path];
@@ -1709,8 +1667,13 @@ function initFullButterflyViewer(textureURL) {
   previewStartTime = performance.now();
   isFlyingAway = false; isFlyingTransitionTriggered = false; resetChargeState();
 
-  // 🌟 양 날개 전체 이미지를 1:1 완벽 분할 매핑 재질로 분리 생성
-  var splitMats = createSplitWingMaterials(userTexture);
+  // 🌟 안정적인 단일 텍스처 재질 적용 (날개 누락 완전 방지)
+  var wingMat = new THREE.MeshBasicMaterial({ 
+    map: userTexture, 
+    side: THREE.DoubleSide, 
+    transparent: true, 
+    alphaTest: 0.05 
+  });
   var whiteMat = new THREE.MeshStandardMaterial({ color: 0xffffff, side: THREE.DoubleSide, roughness: 0.35, metalness: 0.0 });
   var targetAnt = 'Antenna_' + selectedAntennaType;
 
@@ -1723,12 +1686,12 @@ function initFullButterflyViewer(textureURL) {
             var n = child.name;
             if (n.startsWith('Wing_L')) { 
               leftWingMesh = child; 
-              child.material = splitMats.matL; 
+              child.material = wingMat; 
               initialRotL = { x: child.rotation.x, y: child.rotation.y, z: child.rotation.z }; 
             }
             else if (n.startsWith('Wing_R')) { 
               rightWingMesh = child; 
-              child.material = splitMats.matR; 
+              child.material = wingMat; 
               initialRotR = { x: child.rotation.x, y: child.rotation.y, z: child.rotation.z }; 
             }
             else if (n.startsWith('Body')) { child.material = whiteMat; }
@@ -2063,13 +2026,18 @@ function openSpecimen3DModal(item, textureUrl) {
   var tex = new THREE.TextureLoader().load(textureUrl);
   tex.flipY = false;
 
+  var wingMat = new THREE.MeshBasicMaterial({ 
+    map: tex, 
+    side: THREE.DoubleSide, 
+    transparent: true, 
+    alphaTest: 0.05 
+  });
   var whiteMat = new THREE.MeshStandardMaterial({ color: 0xffffff, side: THREE.DoubleSide, roughness: 0.3 });
 
   modalGroup = new THREE.Group();
   modalGroup.position.set(0, -0.35, 0);
 
-  // tex를 넘겨 좌/우 분할 매핑 적용
-  loadButterflyModel(modalGroup, item.wingId, item.antId, tex, whiteMat, 0.88, function(l, r) {
+  loadButterflyModel(modalGroup, item.wingId, item.antId, wingMat, whiteMat, 0.88, function(l, r) {
     modalWingL = l; modalWingR = r;
   });
   modalThreeScene.add(modalGroup);
