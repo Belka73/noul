@@ -10,7 +10,7 @@
    - [버그 해결]: 브릿지 화면("마지막 온기를 채울 차례예요") 직후 "다정한 한마디 적기" 화면 정상 렌더링 복원
    - [버그 해결]: 브릿지 함수 중복 선언 제거 및 프리뷰 비행 후 완료 화면 전환 안전장치 추가
    - [신규 추가]: 4번 사진 나비 표본실 실시간 검색 기능 연동
-   - [비율/더듬이 보정]: 원본 1000px 대지 나비도 화면에서 동일한 시각적 크기 및 더듬이 크기로 렌더링
+   - [정중앙 정렬]: 3D 왜곡 없이 초승/산들/물결 나비와 더듬이만 네모 박스 정중앙 배치
    ========================================================================== */
 
 var ALL_SCREENS = [
@@ -1114,16 +1114,32 @@ function updateHeroPreview() {
 
   // 🌟 화면에서만 시각적 크기를 맞추는 지능형 프레임 스케일 (원본 데이터 1000px 유지)
   var isHighRes1000 = Math.max(currentWing.w, currentWing.h) >= 500;
-  var targetBoundSize = isHighRes1000 ? 195 : 140;
+  
+  // 초승, 산들, 물결 나비는 더듬이 포함 정중앙 배치를 위해 바운드 크기 및 Y축 오프셋을 자동 적용
+  var targetBoundSize = 195;
+  var customShiftY = 0;
+  if (currentWing.id === 'crescent') {
+    targetBoundSize = 180;
+    customShiftY = 16;
+  } else if (currentWing.id === 'petal') {
+    targetBoundSize = 180;
+    customShiftY = 18;
+  } else if (currentWing.id === 'wave-fin') {
+    targetBoundSize = 180;
+    customShiftY = 18;
+  } else if (currentWing.id === 'ember') {
+    customShiftY = 6;
+  } else if (currentWing.id === 'moon-halo') {
+    customShiftY = 6;
+  }
 
   var scale = targetBoundSize / Math.max(currentWing.w, currentWing.h);
   var offsetX = (160 - currentWing.w * scale) / 2;
-  var offsetY = (160 - currentWing.h * scale) / 2;
+  var offsetY = ((160 - currentWing.h * scale) / 2) + customShiftY;
 
   var headTargetX = offsetX + (currentWing.headX * scale);
   var headTargetY = offsetY + (currentWing.headY * scale) + 0.4;
 
-  // 원본 나비의 단위계에 맞게 더듬이 시각적 크기(두께/크기) 정규화
   var antennaRenderScale = isHighRes1000 ? (scale * 12.0) : (scale * 1.05);
 
   var wingD = currentWing.wingD || currentWing.d;
