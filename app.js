@@ -12,6 +12,7 @@
    - [신규 추가]: 4번 사진 나비 표본실 실시간 검색 기능 연동
    - [비율/더듬이 보정]: 원본 1000px 대지 나비도 화면에서 동일한 시각적 크기 및 더듬이 크기로 렌더링
    - [정중앙 정렬]: 초승/산들/물결 나비 네모 박스 정중앙 높이 미세 보정 적용
+   - [페이지 삭제 반영]: '당신에 대해 알려주세요', '어떤 사람인가요(성향)', '마음 깊은 곳 브릿지' 화면 완벽 제거 및 동선 직결
    ========================================================================== */
 
 var ALL_SCREENS = [
@@ -21,7 +22,6 @@ var ALL_SCREENS = [
   'screen-intro',
   'screen-opening',
   'screen-survey',
-  'screen-post-survey-intro',
   'screen-survey-core-concern',
   'screen-survey-concern-reason',
   'screen-post-concern-bridge',
@@ -36,14 +36,13 @@ var ALL_SCREENS = [
 
 // DEV 네비게이션 및 전역 상태 변수
 var showcaseInterval = null;
-var currentStepIdx = 0; // 0: 이름, 1: 성향, 2: 고민다중, 3: 위로메모
+var currentStepIdx = 0; // 0: 이름, 1: 고민선택, 2: 위로메모
 var userSelections = { q1: [], q2: [], q1_custom: "", q2_custom: "", core_concern: "", concern_reason: "", q6_memo: "", q7_name: "" };
 
 var completeTypeTimer = null;
 var shareTypeTimer = null;
 var autoTransitionTimer = null;
 var reasonTypeTimer = null;
-var postSurveyTypeTimer = null;
 var postConcernTypeTimer = null;
 var flightSafetyTimer = null;
 
@@ -57,7 +56,6 @@ function clearAllTimers() {
   clearTimeout(completeTypeTimer);
   clearTimeout(shareTypeTimer);
   clearTimeout(autoTransitionTimer);
-  clearTimeout(postSurveyTypeTimer);
   clearTimeout(postConcernTypeTimer);
   clearTimeout(flightSafetyTimer);
   if (showcaseInterval) { clearInterval(showcaseInterval); showcaseInterval = null; }
@@ -87,11 +85,6 @@ function showScreen(screenId) {
         stopLoading3DScene();
         stopShare3DScene();
         renderSurveyStep();
-      } else if (screenId === 'screen-post-survey-intro') {
-        stopBubblePhysics();
-        stopLoading3DScene();
-        stopShare3DScene();
-        initPostSurveyIntroScreen();
       } else if (screenId === 'screen-survey-core-concern') {
         stopBubblePhysics();
         stopLoading3DScene();
@@ -177,14 +170,11 @@ function updateDevScreenBadge() {
   var activeScreen = document.querySelector('.screen.active');
   var name = activeScreen ? activeScreen.id : 'none';
   if (name === 'screen-opening') {
-    name += ' (' + openingCurrentStep + '/4: 오프닝대사)';
+    name += ' (' + openingCurrentStep + '/3: 오프닝대사)';
   } else if (name === 'screen-survey') {
-    if (currentStepIdx === 0) name += ' (1/4: 이름)';
-    else if (currentStepIdx === 1) name += ' (2/4: 성향)';
-    else if (currentStepIdx === 2) name += ' (3/4: 고민선택)';
-    else if (currentStepIdx === 3) name += ' (4/4: 위로메모)';
-  } else if (name === 'screen-post-survey-intro') {
-    name += ' (마음속진입)';
+    if (currentStepIdx === 0) name += ' (1/3: 이름)';
+    else if (currentStepIdx === 1) name += ' (2/3: 고민선택)';
+    else if (currentStepIdx === 2) name += ' (3/3: 위로메모)';
   } else if (name === 'screen-survey-core-concern') {
     name += ' (핵심고민)';
   } else if (name === 'screen-survey-concern-reason') {
@@ -530,7 +520,6 @@ if (btnActionHome) {
 // --------------------------------------------------------------------------
 function ensureDevDummyData(upToStep) {
   if (!userSelections.q7_name) userSelections.q7_name = "테스트나비";
-  if (!userSelections.q1 || userSelections.q1.length === 0) userSelections.q1 = ["야행성", "사색가"];
   if (!userSelections.q2 || userSelections.q2.length === 0) userSelections.q2 = ["완벽주의 강박", "비교중독", "수면 부족", "거절 공포", "텅 빈 잔고", "미래 막막함"];
   if (!userSelections.core_concern) userSelections.core_concern = userSelections.q2[0];
   if (!userSelections.concern_reason) userSelections.concern_reason = "항상 잘 해내야 한다는 마음이 앞서서요.";
@@ -601,21 +590,6 @@ document.addEventListener('click', function(e) {
         updateDevScreenBadge();
         return;
       } else if (openingCurrentStep === 3) {
-        openingCurrentStep = 4;
-        if (elOpeningNextGroup) {
-          elOpeningNextGroup.classList.remove('visible');
-          elOpeningNextGroup.classList.add('hidden');
-        }
-        typeWriterText(elOpeningText, "먼저 당신에 대해<br>몇 가지 알려주세요.", function() {
-          if (btnOpeningNext) btnOpeningNext.innerHTML = "다음으로";
-          if (elOpeningNextGroup) {
-            elOpeningNextGroup.classList.remove('hidden');
-            requestAnimationFrame(function() { elOpeningNextGroup.classList.add('visible'); });
-          }
-        });
-        updateDevScreenBadge();
-        return;
-      } else if (openingCurrentStep === 4) {
         currentStepIdx = 0;
         showScreen('screen-survey');
         return;
@@ -629,24 +603,16 @@ document.addEventListener('click', function(e) {
         renderSurveyStep();
         return;
       } else if (currentStepIdx === 1) {
-        if (!userSelections.q1 || userSelections.q1.length === 0) userSelections.q1 = ["야행성", "사색가"];
-        showScreen('screen-post-survey-intro');
-        return;
-      } else if (currentStepIdx === 2) {
         ensureDevDummyData();
         showScreen('screen-survey-core-concern');
         return;
-      } else if (currentStepIdx === 3) {
+      } else if (currentStepIdx === 2) {
         ensureDevDummyData();
         exportAlignedTexture();
         showScreen('screen-loading');
         startAnswerShowcaseSequence();
         return;
       }
-    } else if (curId === 'screen-post-survey-intro') {
-      currentStepIdx = 2;
-      showScreen('screen-survey');
-      return;
     } else if (curId === 'screen-survey-core-concern') {
       ensureDevDummyData();
       showScreen('screen-survey-concern-reason');
@@ -667,7 +633,7 @@ document.addEventListener('click', function(e) {
       showScreen('screen-survey-bridge');
       return;
     } else if (curId === 'screen-survey-bridge') {
-      currentStepIdx = 3;
+      currentStepIdx = 2;
       showScreen('screen-survey');
       return;
     } else if (curId === 'screen-loading') {
@@ -724,14 +690,7 @@ document.addEventListener('click', function(e) {
     }
 
     if (curId === 'screen-opening') {
-      if (openingCurrentStep === 4) {
-        openingCurrentStep = 3;
-        typeWriterText(elOpeningText, "오늘 이곳에서,<br>당신의 마음 깊은 곳에 묻어둔 이야기를<br>조심스레 꺼내어보려 합니다.", function() {
-          if (btnOpeningNext) btnOpeningNext.innerHTML = "다음으로";
-        });
-        updateDevScreenBadge();
-        return;
-      } else if (openingCurrentStep === 3) {
+      if (openingCurrentStep === 3) {
         openingCurrentStep = 2;
         typeWriterText(elOpeningText, "꺼내어 보이지 못한 채,<br>응어리진 무언가... 쉽게 털어놓지 못할 것도 있겠지요.", function() {
           if (btnOpeningNext) btnOpeningNext.innerHTML = "다음으로";
@@ -752,11 +711,8 @@ document.addEventListener('click', function(e) {
     }
 
     if (curId === 'screen-survey') {
-      if (currentStepIdx === 3) {
+      if (currentStepIdx === 2) {
         showScreen('screen-survey-bridge');
-        return;
-      } else if (currentStepIdx === 2) {
-        showScreen('screen-post-survey-intro');
         return;
       } else if (currentStepIdx === 1) {
         currentStepIdx = 0;
@@ -764,23 +720,19 @@ document.addEventListener('click', function(e) {
         return;
       } else if (currentStepIdx === 0) {
         showScreen('screen-opening');
-        openingCurrentStep = 4;
-        typeWriterText(elOpeningText, "먼저 당신에 대해<br>몇 가지 알려주세요.", function() {
+        openingCurrentStep = 3;
+        typeWriterText(elOpeningText, "오늘 이곳에서,<br>당신의 마음 깊은 곳에 묻어둔 이야기를<br>조심스레 꺼내어보려 합니다.", function() {
           if (btnOpeningNext) btnOpeningNext.innerHTML = "다음으로";
           if (elOpeningNextGroup) {
             elOpeningNextGroup.classList.remove('hidden');
-            elOpeningNextGroup.classList.add('visible');
+            requestAnimationFrame(function() { elOpeningNextGroup.classList.add('visible'); });
           }
         });
         updateDevScreenBadge();
         return;
       }
-    } else if (curId === 'screen-post-survey-intro') {
-      currentStepIdx = 1;
-      showScreen('screen-survey');
-      return;
     } else if (curId === 'screen-survey-core-concern') {
-      currentStepIdx = 2;
+      currentStepIdx = 1;
       showScreen('screen-survey');
       return;
     } else if (curId === 'screen-survey-concern-reason') {
@@ -799,7 +751,7 @@ document.addEventListener('click', function(e) {
       showScreen('screen-shape-select');
       return;
     } else if (curId === 'screen-loading') {
-      currentStepIdx = 3;
+      currentStepIdx = 2;
       showScreen('screen-survey');
       return;
     } else if (curId === 'screen-preview') {
@@ -941,53 +893,9 @@ if (btnOpeningNext) {
       });
       updateDevScreenBadge();
     } else if (openingCurrentStep === 3) {
-      openingCurrentStep = 4;
-      if (elOpeningNextGroup) {
-        elOpeningNextGroup.classList.remove('visible');
-        elOpeningNextGroup.classList.add('hidden');
-      }
-      typeWriterText(elOpeningText, "먼저 당신에 대해<br>몇 가지 알려주세요.", function() {
-        btnOpeningNext.innerHTML = "다음으로";
-        if (elOpeningNextGroup) {
-          elOpeningNextGroup.classList.remove('hidden');
-          requestAnimationFrame(function() { elOpeningNextGroup.classList.add('visible'); });
-        }
-      });
-      updateDevScreenBadge();
-    } else if (openingCurrentStep === 4) {
       currentStepIdx = 0;
       showScreen('screen-survey');
     }
-  };
-}
-
-// --------------------------------------------------------------------------
-// 🌟 마음 깊은 곳 진입 브릿지 화면 로직
-// --------------------------------------------------------------------------
-function initPostSurveyIntroScreen() {
-  clearTimeout(postSurveyTypeTimer);
-  var textEl = document.getElementById('post-survey-intro-text');
-  var nextGroup = document.getElementById('post-survey-intro-next-group');
-  var btnNext = document.getElementById('btn-post-survey-intro-next');
-
-  if (!textEl || !nextGroup) return;
-  textEl.innerHTML = "";
-  nextGroup.classList.add('hidden');
-  nextGroup.classList.remove('visible');
-
-  var msg = "좋아요,<br>이제 당신의 마음 깊은 곳에 들어가 볼게요.";
-  typeWriterText(textEl, msg, function() {
-    if (btnNext) btnNext.innerHTML = "다음으로";
-    nextGroup.classList.remove('hidden');
-    requestAnimationFrame(function() { nextGroup.classList.add('visible'); });
-  });
-}
-
-var btnPostSurveyNext = document.getElementById('btn-post-survey-intro-next');
-if (btnPostSurveyNext) {
-  btnPostSurveyNext.onclick = function() {
-    currentStepIdx = 2; // 고민 다중 선택 알약 페이지
-    showScreen('screen-survey');
   };
 }
 
@@ -1041,7 +949,7 @@ function playBridgeTypingSequence() {
 var bGotoStats = document.getElementById('btn-goto-stats');
 if (bGotoStats) {
   bGotoStats.onclick = function() { 
-    currentStepIdx = 3;
+    currentStepIdx = 2; // 마지막 위로메모 단계
     showScreen('screen-survey');
   };
 }
@@ -1700,22 +1608,10 @@ function createFallbackDummyTexture(colorA, colorB) {
 }
 
 // --------------------------------------------------------------------------
-// 설문조사
+// 설문조사 (성향 질문 제거 반영: 0: 이름, 1: 고민선택, 2: 다정한 한마디)
 // --------------------------------------------------------------------------
 var surveyQuestions = [
   { title: "당신의 이름은 무엇인가요?", desc: "" },
-  {
-    title: "당신은 어떤 사람인가요?",
-    desc: "(다중 선택)",
-    category: "#나의 고유한 모습",
-    options: [
-      "야행성", "아침형", "집돌이·집순이", "외향형", "계획파", "즉흥파", "사색가", "행동파", "마이웨이", "눈치러",
-      "완벽주의", "단순명쾌", "유리멘탈", "무념무상", "일벌레", "게으른 완벽주의", "벼락치기파", "루틴러", "커피수액러", "산책러",
-      "숏폼중독", "미식가", "집콕프로", "바깥바람파", "혼자가 편한", "과묵한 편", "다정다감", "리액션 장인", "경청러", "분위기 메이커",
-      "낯가림러", "관찰자", "칼퇴사수형", "프로공감러", "생각 부자", "담담이", "긍정회로", "쿨내진동", "쿠쿠다스", "말랑멘탈",
-      "호기심 천국", "느긋이", "조급이", "현실주의자", "낭만주의자", "감성파", "멀티태스커", "한우물파", "아이디어 뱅크", "직진러"
-    ]
-  },
   {
     title: "당신을 붙잡고 있는 것은 무엇인가요?",
     desc: "(다중 선택)",
@@ -1795,8 +1691,7 @@ function typeWriterSurveyTitle(titleHtml, onComplete) {
 function updateCustomInputBarState() {
   if (!inputCustomKeyword) return;
   var currentCustom = "";
-  if (currentStepIdx === 1) currentCustom = userSelections.q1_custom || "";
-  else if (currentStepIdx === 2) currentCustom = userSelections.q2_custom || "";
+  if (currentStepIdx === 1) currentCustom = userSelections.q2_custom || "";
 
   inputCustomKeyword.value = currentCustom;
   if (btnCustomKeywordClear) {
@@ -1810,11 +1705,10 @@ function renderSurveyStep() {
   if (!q) return;
   
   if (elProgressBar) {
-    var pPercent = 25;
-    if (currentStepIdx === 0) pPercent = 25;
-    else if (currentStepIdx === 1) pPercent = 50;
-    else if (currentStepIdx === 2) pPercent = 75;
-    else if (currentStepIdx === 3) pPercent = 100;
+    var pPercent = 33;
+    if (currentStepIdx === 0) pPercent = 33;
+    else if (currentStepIdx === 1) pPercent = 66;
+    else if (currentStepIdx === 2) pPercent = 100;
     elProgressBar.style.width = pPercent + '%';
   }
 
@@ -1823,7 +1717,7 @@ function renderSurveyStep() {
   }
   
   if (btnSurveyNext) {
-    if (currentStepIdx === 3) btnSurveyNext.innerText = "완성하기";
+    if (currentStepIdx === 2) btnSurveyNext.innerText = "완성하기";
     else btnSurveyNext.innerText = "다음 질문으로";
   }
 
@@ -1841,7 +1735,7 @@ function renderSurveyStep() {
       surveyCustomInputAnchor.classList.remove('custom-anchor-visible');
       surveyCustomInputAnchor.classList.add('custom-anchor-hidden');
     }
-  } else if (currentStepIdx === 1 || currentStepIdx === 2) {
+  } else if (currentStepIdx === 1) {
     stopBubblePhysics();
     typeWriterSurveyTitle(q.title);
     if (elDesc) elDesc.innerHTML = q.desc;
@@ -1854,7 +1748,7 @@ function renderSurveyStep() {
     }
     updateCustomInputBarState();
     renderVerticalScrollChips();
-  } else if (currentStepIdx === 3) {
+  } else if (currentStepIdx === 2) {
     typeWriterSurveyTitle(q.title);
     if (elDesc) elDesc.innerHTML = q.desc;
     if (surveyChipWrapper) surveyChipWrapper.classList.add('hidden');
@@ -1917,7 +1811,7 @@ function renderVerticalScrollChips() {
   var q = surveyQuestions[currentStepIdx];
   var allOptions = q.options || [];
   var rows = buildAdaptiveVerticalRows(allOptions);
-  var stateKey = currentStepIdx === 1 ? 'q1' : 'q2';
+  var stateKey = 'q2';
 
   elOrganicContainer.innerHTML = '';
   surveyChipWrapper.scrollTop = 0;
@@ -1956,8 +1850,7 @@ function renderVerticalScrollChips() {
 if (inputCustomKeyword) {
   inputCustomKeyword.oninput = function(e) {
     var val = e.target.value;
-    if (currentStepIdx === 1) userSelections.q1_custom = val;
-    else if (currentStepIdx === 2) userSelections.q2_custom = val;
+    if (currentStepIdx === 1) userSelections.q2_custom = val;
 
     if (btnCustomKeywordClear) {
       if (val.trim().length > 0) btnCustomKeywordClear.classList.remove('hidden');
@@ -1974,8 +1867,7 @@ if (btnCustomKeywordClear) {
       inputCustomKeyword.value = "";
       inputCustomKeyword.focus();
     }
-    if (currentStepIdx === 1) userSelections.q1_custom = "";
-    else if (currentStepIdx === 2) userSelections.q2_custom = "";
+    if (currentStepIdx === 1) userSelections.q2_custom = "";
     btnCustomKeywordClear.classList.add('hidden');
     validateSurveyStep();
   };
@@ -1987,12 +1879,9 @@ function validateSurveyStep() {
   if (currentStepIdx === 0) {
     isValid = userSelections.q7_name.trim().length > 0;
   } else if (currentStepIdx === 1) {
-    var hasCustom1 = userSelections.q1_custom && userSelections.q1_custom.trim().length > 0;
-    isValid = userSelections.q1.length > 0 || hasCustom1;
-  } else if (currentStepIdx === 2) {
     var hasCustom2 = userSelections.q2_custom && userSelections.q2_custom.trim().length > 0;
     isValid = userSelections.q2.length > 0 || hasCustom2;
-  } else if (currentStepIdx === 3) {
+  } else if (currentStepIdx === 2) {
     isValid = true;
   }
   btnSurveyNext.disabled = !isValid;
@@ -2020,12 +1909,6 @@ if (btnSurveyNext) {
       currentStepIdx = 1;
       renderSurveyStep();
     } else if (currentStepIdx === 1) {
-      if (userSelections.q1_custom && userSelections.q1_custom.trim()) {
-        var customText1 = userSelections.q1_custom.trim();
-        if (userSelections.q1.indexOf(customText1) === -1) userSelections.q1.unshift(customText1);
-      }
-      showScreen('screen-post-survey-intro');
-    } else if (currentStepIdx === 2) {
       if (userSelections.q2_custom && userSelections.q2_custom.trim()) {
         var customText2 = userSelections.q2_custom.trim();
         if (userSelections.q2.indexOf(customText2) === -1) userSelections.q2.unshift(customText2);
@@ -2034,7 +1917,7 @@ if (btnSurveyNext) {
         userSelections.q2 = ["비교중독", "수면 부족", "완벽주의 강박", "거절 공포", "텅 빈 잔고", "미래 막막함"];
       }
       showScreen('screen-survey-core-concern');
-    } else if (currentStepIdx === 3) {
+    } else if (currentStepIdx === 2) {
       showScreen('screen-loading');
       startAnswerShowcaseSequence();
     }
@@ -2043,10 +1926,8 @@ if (btnSurveyNext) {
 
 if (btnSurveyPrev) {
   btnSurveyPrev.onclick = function() {
-    if (currentStepIdx === 3) {
+    if (currentStepIdx === 2) {
       showScreen('screen-survey-bridge');
-    } else if (currentStepIdx === 2) {
-      showScreen('screen-post-survey-intro');
     } else if (currentStepIdx === 1) {
       currentStepIdx = 0;
       renderSurveyStep();
@@ -2220,7 +2101,7 @@ if (btnCoreConcernNext) {
 
 if (btnCoreConcernPrev) {
   btnCoreConcernPrev.onclick = function() {
-    currentStepIdx = 2;
+    currentStepIdx = 1;
     showScreen('screen-survey');
   };
 }
@@ -2380,7 +2261,7 @@ async function saveButterflyToSupabase() {
       name: userSelections.q7_name || '나비',
       wingId: selectedButterflyShape,
       antId: selectedAntennaType,
-      q1: [].concat(userSelections.q1 || []),
+      q1: [],
       core_concern: userSelections.core_concern || (userSelections.q2 && userSelections.q2[0]) || "",
       memo: userSelections.q6_memo || '',
       textureUrl: currentExtractedTexture,
@@ -2393,7 +2274,7 @@ async function saveButterflyToSupabase() {
       name: userSelections.q7_name || '이름없는 나비',
       wing_shape: selectedButterflyShape,
       antenna_type: selectedAntennaType,
-      q1: userSelections.q1,
+      q1: [],
       q2: userSelections.q2,
       core_concern: userSelections.core_concern,
       q3: [], q4: [], q5: [],
@@ -2838,8 +2719,7 @@ function renderFilteredGallery(searchQuery) {
     if (!q) return true;
     var nameMatch = (item.name || "").toLowerCase().indexOf(q) > -1;
     var concernMatch = (item.core_concern || "").toLowerCase().indexOf(q) > -1;
-    var q1Match = (item.q1 || []).some(function(k) { return k.toLowerCase().indexOf(q) > -1; });
-    return nameMatch || concernMatch || q1Match;
+    return nameMatch || concernMatch;
   });
 
   if (filteredData.length === 0) {
@@ -2932,7 +2812,7 @@ async function initSpecimenGallery() {
             name: item.name || "나비",
             wingId: item.wing_shape || "crescent",
             antId: item.antenna_type || "ball",
-            q1: Array.isArray(item.q1) ? item.q1 : [],
+            q1: [],
             core_concern: item.core_concern || "",
             memo: item.memo || "",
             textureUrl: item.texture_url || null,
@@ -2964,22 +2844,11 @@ function openSpecimen3DModal(item, textureUrl) {
   if (nameEl) nameEl.innerText = '‘' + item.name + '’';
   
   if (tagsEl) {
-    var personalityTags = [];
-    if (item.q1 && item.q1.length > 0) {
-      personalityTags = [].concat(item.q1);
-    } else if (item.tags && item.tags.length > 0) {
-      personalityTags = [].concat(item.tags.filter(function(t) { return t !== item.core_concern; }));
-    }
-
-    var html = personalityTags.map(function(t) {
-      return '<span class="specimen-glass-pill">#' + t + '</span>';
-    }).join('');
-
+    var html = '';
     var coreTag = item.core_concern || (item.tags && item.tags[item.tags.length - 1]);
     if (coreTag) {
       html += '<span class="specimen-glass-pill bg-white text-black font-bold border-white" style="box-shadow: 0 0 12px rgba(255, 255, 255, 0.45);">#' + coreTag + '</span>';
     }
-
     tagsEl.innerHTML = html;
   }
 
