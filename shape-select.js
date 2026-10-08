@@ -8,7 +8,7 @@
      * 대칭 On/Off는 사용자가 촬영/업로드한 사진 배경에만 적용
      * 3D 고유 패턴 png는 항상 온전한 대칭 완성형 규격 그대로 얹어짐
    - [비동기 1:1 텍스처 보장]: 3D 패턴 png 로딩 완료 후 3D 씬으로 전달
-   - [수정 완료]: 오른쪽 날개(완벽 정렬 기준)를 좌측으로 정밀 대칭 복제하여 양쪽 날개 크기와 위치를 1:1 완전 일치화
+   - [수정 완료]: 클리핑 마스크 기반 1:1 무손실 대칭 드로잉으로 패턴 확대 현상 제거 및 완벽한 대칭 안착
    - [기능 보존 100%]: 핀치 줌, 드래그 이동, 블러 조절, 하단 캐러셀 전체 유지
    ========================================================================== */
 
@@ -592,7 +592,7 @@ if (interactiveFrame && alignCanvas) {
 // --------------------------------------------------------------------------
 // 🌟 [핵심 수정]: 3D 나비용 텍스처를 1:1로 합성하여 추출 (Promise 기반 보장)
 // - 사용자 배경 사진: isSymmetryEnabled(대칭 여부)에 따라 적용
-// - 3D 패턴 png: 완벽하게 맞는 오른쪽 날개(500~1000)를 좌측(0~500)으로 1:1 완전 정밀 미러링
+// - 3D 패턴 png: 확대 왜곡 없이 1000x1000 원본 비율 그대로 우측 렌더링 + 좌측 1:1 정밀 반전 클리핑
 // --------------------------------------------------------------------------
 function exportAlignedTexture() {
   return new Promise(function(resolve) {
@@ -643,15 +643,25 @@ function exportAlignedTexture() {
         if (img && (img.naturalWidth > 0 || img.width > 0)) {
           var halfW = outW / 2; // 500
 
-          // 1) 오른쪽 날개: 3D 메쉬와 완벽하게 일치하는 우측 원본(500~1000) 그대로 배치
-          fctx.drawImage(img, halfW, 0, halfW, outH, halfW, 0, halfW, outH);
-
-          // 2) 왼쪽 날개: 우측 패턴을 중심선(500) 기준으로 수평 반전하여 좌측(0~500)에 1:1 동일 크기 안착
+          // [1] 오른쪽 날개 (500 ~ 1000 영역)
+          // 우측 절반에만 클리핑 마스크를 씌운 뒤, 원본 1000x1000 크기 그대로 1:1 드로잉 (확대 왜곡 방지)
           fctx.save();
+          fctx.beginPath();
+          fctx.rect(halfW, 0, halfW, outH);
+          fctx.clip();
+          fctx.drawImage(img, 0, 0, outW, outH);
+          fctx.restore();
+
+          // [2] 왼쪽 날개 (0 ~ 500 영역)
+          // 좌측 절반에 클리핑 마스크를 씌우고, 중심축(500) 기준으로 수평 반전하여 1:1 원래 크기 그대로 투영
+          fctx.save();
+          fctx.beginPath();
+          fctx.rect(0, 0, halfW, outH);
+          fctx.clip();
           fctx.translate(halfW, 0);
           fctx.scale(-1, 1);
-          // 뒤집힌 좌표계에서 원본의 우측(halfW~outW) 영역을 (0~halfW)에 그리면 정확히 0~500 영역에 1:1 대칭 안착됨
-          fctx.drawImage(img, halfW, 0, halfW, outH, 0, 0, halfW, outH);
+          fctx.translate(-halfW, 0);
+          fctx.drawImage(img, 0, 0, outW, outH);
           fctx.restore();
         }
         currentExtractedTexture = finalCanvas.toDataURL('image/png');
