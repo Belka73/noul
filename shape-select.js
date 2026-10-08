@@ -4,7 +4,10 @@
      1) 1번 화면(날개 형태/무늬 고르기): 2DButterfly_pattern/ 의 2D png 사용
      2) 2번 화면(3D 나비 프리뷰/비행): 3DButterfly_pattern/ 의 3D png 1:1 매칭 구움
    - [404/503 에러 방어]: 사전 로드 트래픽 분산 및 3D 패턴 파일명 정밀 매칭
-   - [대칭 분기 철저]: 대칭 버튼 미선택 시 원본 사진 100% 그대로 텍스처 추출
+   - [대칭 분기 철저]: 
+     * 대칭 On/Off는 사용자가 촬영/업로드한 사진 배경에만 적용
+     * 3D 고유 패턴 png는 항상 온전한 대칭 완성형 규격 그대로 얹어짐
+   - [비동기 1:1 텍스처 보장]: 3D 패턴 png 로딩 완료 후 3D 씬으로 전달
    - [기능 보존 100%]: 핀치 줌, 드래그 이동, 블러 조절, 하단 캐러셀 전체 유지
    ========================================================================== */
 
@@ -379,10 +382,17 @@ if (btnRephoto) {
 
 var btnConfirmShape = document.getElementById('btn-confirm-shape');
 if (btnConfirmShape) {
-  btnConfirmShape.onclick = function() {
-    exportAlignedTexture();
-    showScreen('screen-loading');
-    startAnswerShowcaseSequence();
+  btnConfirmShape.onclick = async function() {
+    btnConfirmShape.disabled = true;
+    try {
+      await exportAlignedTexture();
+    } catch(err) {
+      console.warn("텍스처 추출 중 예외 발생, 기본 진행:", err);
+    } finally {
+      btnConfirmShape.disabled = false;
+      showScreen('screen-loading');
+      startAnswerShowcaseSequence();
+    }
   };
 }
 
@@ -518,7 +528,7 @@ function drawAlignCanvas() {
 
   if (currentBlurPx > 0) executeReliableFastBlur(tempCanvas, currentBlurPx * 0.9);
 
-  // 🌟 [대칭 토글 엄격 분기]
+  // 🌟 [대칭 토글 엄격 분기: 사용자 사진에만 적용]
   if (!isSymmetryEnabled) {
     actx.drawImage(tempCanvas, 0, 0);
   } else {
@@ -579,81 +589,92 @@ if (interactiveFrame && alignCanvas) {
 }
 
 // --------------------------------------------------------------------------
-// 🌟 [핵심 수정]: 2번 화면 3D 나비를 위해 3D 전용 무늬(3DButterfly_pattern/)를 1:1로 합성하여 추출
+// 🌟 [핵심 수정]: 3D 나비용 텍스처를 1:1로 합성하여 추출 (Promise 기반 보장)
+// - 사용자 배경 사진: isSymmetryEnabled(대칭 여부)에 따라 적용
+// - 3D 패턴 png: 대칭 여부와 무관하게 항상 온전한 대칭 완성형 규격으로 1000x1000에 얹어짐
 // --------------------------------------------------------------------------
 function exportAlignedTexture() {
-  if (!rawImage || !rawImage.width || !alignCanvas) {
-    currentExtractedTexture = createFallbackDummyTexture(); 
-    return;
-  }
-  var baseCanvas = document.createElement('canvas');
-  baseCanvas.width = alignCanvas.width; 
-  baseCanvas.height = alignCanvas.height;
-  var bctx = baseCanvas.getContext('2d', { willReadFrequently: true });
-  bctx.drawImage(rawImage, imgX, imgY, rawImage.width * imgScale, rawImage.height * imgScale);
-
-  if (currentBlurPx > 0) executeReliableFastBlur(baseCanvas, currentBlurPx * 0.9);
-
-  // 🌟 사용자가 대칭을 켰을 때만 대칭 적용. 안 켰으면 원본 그대로 보존
-  if (isSymmetryEnabled) {
-    var midX = alignCanvas.width / 2;
-    var symCanvas = document.createElement('canvas');
-    symCanvas.width = alignCanvas.width; 
-    symCanvas.height = alignCanvas.height;
-    var sctx = symCanvas.getContext('2d');
-    sctx.drawImage(baseCanvas, 0, 0, midX, alignCanvas.height, 0, 0, midX, alignCanvas.height);
-    sctx.save(); 
-    sctx.translate(alignCanvas.width, 0); 
-    sctx.scale(-1, 1);
-    sctx.drawImage(baseCanvas, 0, 0, midX, alignCanvas.height, 0, 0, midX, alignCanvas.height);
-    sctx.restore();
-    baseCanvas = symCanvas;
-  }
-
-  // 🌟 3D UV 공간(1000x1000)으로 원본 사진 1:1 확대 복사
-  var outW = 1000, outH = 1000;
-  var finalCanvas = document.createElement('canvas');
-  finalCanvas.width = outW; 
-  finalCanvas.height = outH;
-  var fctx = finalCanvas.getContext('2d');
-
-  fctx.drawImage(baseCanvas, 0, 0, alignCanvas.width, alignCanvas.height, 0, 0, outW, outH);
-
-  // 🌟 [중요]: 3D 나비용 텍스처를 만들 때는 반드시 3DButterfly_pattern 폴더의 3D 패턴 png를 사용
-  var singleWingPatternPath3D = get3DPatternPath(selectedButterflyShape, selectedPatternId);
-  if (singleWingPatternPath3D) {
-    var pImg = patternImageCache[singleWingPatternPath3D];
-    
-    function drawPatternAndFinalize(img) {
-      if (img && img.naturalWidth > 0) {
-        fctx.save();
-        fctx.drawImage(img, 0, 0, outW, outH);
-        fctx.restore();
-      }
-      currentExtractedTexture = finalCanvas.toDataURL('image/png');
+  return new Promise(function(resolve) {
+    if (!rawImage || !rawImage.width || !alignCanvas) {
+      currentExtractedTexture = createFallbackDummyTexture(); 
+      resolve(currentExtractedTexture);
+      return;
     }
 
-    if (pImg && pImg.complete && pImg.naturalWidth > 0) {
-      drawPatternAndFinalize(pImg);
-      return;
-    } else {
-      // 캐시가 비어있거나 진행 중일 때 직접 동기화 로드 시도
-      var tempImg = new Image();
-      tempImg.crossOrigin = "anonymous";
-      tempImg.onload = function() {
-        patternImageCache[singleWingPatternPath3D] = tempImg;
-        drawPatternAndFinalize(tempImg);
-      };
-      tempImg.onerror = function() {
-        // 혹시 3D 패턴 파일이 누락되었을 경우 기본 텍스처 추출 보장
+    // 1단계: 사용자 사진 레이어 렌더링
+    var baseCanvas = document.createElement('canvas');
+    baseCanvas.width = alignCanvas.width; 
+    baseCanvas.height = alignCanvas.height;
+    var bctx = baseCanvas.getContext('2d', { willReadFrequently: true });
+    bctx.drawImage(rawImage, imgX, imgY, rawImage.width * imgScale, rawImage.height * imgScale);
+
+    if (currentBlurPx > 0) executeReliableFastBlur(baseCanvas, currentBlurPx * 0.9);
+
+    // 🌟 사용자가 대칭을 켰을 때만 '사진'에 대칭 적용 (안 켰으면 원본 사진 그대로 유지)
+    if (isSymmetryEnabled) {
+      var midX = alignCanvas.width / 2;
+      var symCanvas = document.createElement('canvas');
+      symCanvas.width = alignCanvas.width; 
+      symCanvas.height = alignCanvas.height;
+      var sctx = symCanvas.getContext('2d');
+      sctx.drawImage(baseCanvas, 0, 0, midX, alignCanvas.height, 0, 0, midX, alignCanvas.height);
+      sctx.save(); 
+      sctx.translate(alignCanvas.width, 0); 
+      sctx.scale(-1, 1);
+      sctx.drawImage(baseCanvas, 0, 0, midX, alignCanvas.height, 0, 0, midX, alignCanvas.height);
+      sctx.restore();
+      baseCanvas = symCanvas;
+    }
+
+    // 2단계: 3D UV 표준 해상도(1000x1000) 캔버스에 사용자 사진 배경 배치
+    var outW = 1000, outH = 1000;
+    var finalCanvas = document.createElement('canvas');
+    finalCanvas.width = outW; 
+    finalCanvas.height = outH;
+    var fctx = finalCanvas.getContext('2d');
+
+    fctx.drawImage(baseCanvas, 0, 0, alignCanvas.width, alignCanvas.height, 0, 0, outW, outH);
+
+    // 3단계: 시스템 3D 패턴 png(3DButterfly_pattern/)를 온전한 완성본 형태로 위에 얹음
+    var singleWingPatternPath3D = get3DPatternPath(selectedButterflyShape, selectedPatternId);
+    if (singleWingPatternPath3D) {
+      function drawPatternAndFinish(img) {
+        if (img && (img.naturalWidth > 0 || img.width > 0)) {
+          fctx.save();
+          // 3D 패턴은 이미 좌우 대칭 및 3D 날개 메쉬에 맞춘 완제품이므로 1000x1000에 1:1 정위치 합성
+          fctx.drawImage(img, 0, 0, outW, outH);
+          fctx.restore();
+        }
         currentExtractedTexture = finalCanvas.toDataURL('image/png');
-      };
-      tempImg.src = singleWingPatternPath3D;
-      return;
-    }
-  }
+        resolve(currentExtractedTexture);
+      }
 
-  currentExtractedTexture = finalCanvas.toDataURL('image/png');
+      var cachedImg = patternImageCache[singleWingPatternPath3D];
+      if (cachedImg && cachedImg.complete && (cachedImg.naturalWidth > 0 || cachedImg.width > 0)) {
+        drawPatternAndFinish(cachedImg);
+        return;
+      } else {
+        // 캐시가 준비되지 않았을 경우 비동기 로딩을 기다려 확실히 합성
+        var tempImg = new Image();
+        tempImg.crossOrigin = "anonymous";
+        tempImg.onload = function() {
+          patternImageCache[singleWingPatternPath3D] = tempImg;
+          drawPatternAndFinish(tempImg);
+        };
+        tempImg.onerror = function() {
+          console.warn("3D 패턴 파일 로드 실패:", singleWingPatternPath3D);
+          currentExtractedTexture = finalCanvas.toDataURL('image/png');
+          resolve(currentExtractedTexture);
+        };
+        tempImg.src = singleWingPatternPath3D;
+        return;
+      }
+    }
+
+    // 무늬 없음 선택 시
+    currentExtractedTexture = finalCanvas.toDataURL('image/png');
+    resolve(currentExtractedTexture);
+  });
 }
 
 // 🌟 앱 시작 시 안전한 분산 프리로드 실행
