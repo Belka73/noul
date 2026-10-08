@@ -3,7 +3,7 @@
    - Three.js 공통 씬/조명/카메라 설정
    - GLB 3D 나비 모델 로딩 및 텍스처 매핑 (1000x1000 완제품 텍스처 1:1 정위치 투영)
    - 로딩 화면 3D, 공유 화면 3D, 완성 뷰어(비행/기모으기/파티클), 표본실 3D 모달
-   - [수정 완료]: 인위적인 repeat/offset 왜곡을 완전히 제거하여 양쪽 날개 크기와 패턴을 1:1 완전 대칭으로 일치화
+   - [적용 완료]: 날개 메쉬(Wing_L, Wing_R)에 1:1 텍스처 매핑 및 양면 렌더링(DoubleSide), alphaTest 완벽 적용
    ========================================================================== */
 
 // --------------------------------------------------------------------------
@@ -22,6 +22,9 @@ function setupCommon3DScene(container, camZ, lookY) {
   var renderer = new THREE.WebGLRenderer({ alpha: true, antialias: true });
   renderer.setSize(w, h);
   renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+  if (THREE.sRGBEncoding) {
+    renderer.outputEncoding = THREE.sRGBEncoding;
+  }
   container.appendChild(renderer.domElement);
 
   var amb = new THREE.AmbientLight(0xffffff, 1.0);
@@ -50,14 +53,22 @@ function loadButterflyModel(group, shapeId, antId, wingMatL, wingMatR, whiteMat,
           wL = child;
           wL.userData.baseRotY = child.rotation.y;
         }
-        if (child.isMesh) child.material = wingMatL;
+        if (child.isMesh) {
+          child.material = wingMatL;
+          child.castShadow = true;
+          child.receiveShadow = true;
+        }
       }
       else if (n.indexOf('Wing_R') > -1) {
         if (!wR) {
           wR = child;
           wR.userData.baseRotY = child.rotation.y;
         }
-        if (child.isMesh) child.material = wingMatR || wingMatL;
+        if (child.isMesh) {
+          child.material = wingMatR || wingMatL;
+          child.castShadow = true;
+          child.receiveShadow = true;
+        }
       }
       else if (n.indexOf('Body') > -1 && child.isMesh) { 
         child.material = whiteMat; 
@@ -70,7 +81,9 @@ function loadButterflyModel(group, shapeId, antId, wingMatL, wingMatR, whiteMat,
     model.scale.set(scale, scale, scale);
     group.add(model);
     if (onLoaded) onLoaded(wL, wR);
-  }, undefined, function() {});
+  }, undefined, function(err) {
+    console.error("모델 로드 오류:", err);
+  });
 }
 
 // --------------------------------------------------------------------------
@@ -114,22 +127,26 @@ function stopLoading3DScene() {
 }
 
 // --------------------------------------------------------------------------
-// 🌟 [핵심 수정]: 날개 머티리얼 크기 및 위치 1:1 완벽 정위치 통일
-// - 인위적인 repeat.set / offset.set을 완전히 제거
-// - 1000x1000 텍스처 규격을 왼쪽과 오른쪽 날개 메쉬 모두 1:1 원래 크기로 대칭 매핑
+// 🌟 [핵심 수정]: 날개 머티리얼 생성 (Three.js 텍스처 및 양면 머티리얼 적용)
 // --------------------------------------------------------------------------
 function createWingMaterials(textureURL) {
-  var tex = new THREE.TextureLoader().load(textureURL);
+  var textureLoader = new THREE.TextureLoader();
+  var tex = textureLoader.load(textureURL);
   tex.flipY = false;
   tex.wrapS = THREE.ClampToEdgeWrapping;
   tex.wrapT = THREE.ClampToEdgeWrapping;
+  if (THREE.sRGBEncoding) {
+    tex.encoding = THREE.sRGBEncoding;
+  }
   tex.needsUpdate = true;
 
-  var wingMat = new THREE.MeshBasicMaterial({ 
+  var wingMat = new THREE.MeshStandardMaterial({ 
     map: tex, 
     side: THREE.DoubleSide, 
     transparent: true, 
-    alphaTest: 0.05 
+    alphaTest: 0.05,
+    roughness: 0.6,
+    metalness: 0.1
   });
 
   return { left: wingMat, right: wingMat };
@@ -215,6 +232,9 @@ function initFullButterflyViewer(textureURL) {
   fullRenderer = new THREE.WebGLRenderer({ alpha: true, antialias: true });
   fullRenderer.setSize(width, height);
   fullRenderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+  if (THREE.sRGBEncoding) {
+    fullRenderer.outputEncoding = THREE.sRGBEncoding;
+  }
   container.appendChild(fullRenderer.domElement);
 
   fullScene.add(new THREE.AmbientLight(0xffffff, 0.95));
@@ -245,14 +265,22 @@ function initFullButterflyViewer(textureURL) {
               leftWingMesh = child;
               initialRotL = { x: child.rotation.x, y: child.rotation.y, z: child.rotation.z };
             }
-            if (child.isMesh) child.material = wingMats.left; 
+            if (child.isMesh) {
+              child.material = wingMats.left; 
+              child.castShadow = true;
+              child.receiveShadow = true;
+            }
           }
           else if (n.indexOf('Wing_R') > -1) { 
             if (!rightWingMesh) {
               rightWingMesh = child;
               initialRotR = { x: child.rotation.x, y: child.rotation.y, z: child.rotation.z };
             }
-            if (child.isMesh) child.material = wingMats.right; 
+            if (child.isMesh) {
+              child.material = wingMats.right; 
+              child.castShadow = true;
+              child.receiveShadow = true;
+            }
           }
           else if (n.indexOf('Body') > -1 && child.isMesh) { 
             child.material = whiteMat; 
@@ -266,7 +294,9 @@ function initFullButterflyViewer(textureURL) {
         gltf.scene.scale.set(0.76, 0.76, 0.76);
         fullGroup.add(gltf.scene);
       });
-    } catch(err) {}
+    } catch(err) {
+      console.error("3D 프리뷰 모델 로딩 실패:", err);
+    }
   }
 
   fullScene.add(fullGroup);
