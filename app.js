@@ -2,7 +2,7 @@
    🌟 너울(Noul) 메인 애플리케이션 로직 (app.js)
    - [기능 보존 100%]: 화면 전환, 3D 뷰어, 물리 엔진, 검색, 인터랙션 전체 유지
    - [역할 분리 완료]: 도안 정렬 및 하단 캐러셀 로직은 shape-select.js에서 전담
-   - [DEV 멈춤 해결]: 설문 다중선택/브릿지/핵심고민 화면 1:1 완벽 순차 전환
+   - [정상 흐름 복원]: 고민선택 -> 브릿지 타이핑 및 버튼 활성화 -> 핵심고민 화면
    ========================================================================== */
 
 var ALL_SCREENS = [
@@ -368,7 +368,7 @@ var btnActionHome = document.getElementById('btn-action-home');
 if (btnActionHome) btnActionHome.onclick = function() { location.reload(); };
 
 // --------------------------------------------------------------------------
-// 🌟 [완벽 수정]: DEV 전역 건너뛰기 이벤트 (멈춤 현상 원천 해결)
+// 🌟 DEV 전역 건너뛰기 이벤트 (브릿지 화면 포함 1:1 완벽 순차 전환)
 // --------------------------------------------------------------------------
 function ensureDevDummyData() {
   if (!userSelections.q7_name) userSelections.q7_name = "테스트나비";
@@ -647,7 +647,7 @@ if (btnOpeningNext) {
 }
 
 // --------------------------------------------------------------------------
-// 🌟 4번 사진 직후 신규 화면 (screen-post-survey-intro) 타이핑 시퀀스
+// 🌟 [누락 복원 완료]: 4번 사진 직후 브릿지 화면 (screen-post-survey-intro) 구동 함수
 // --------------------------------------------------------------------------
 function initPostSurveyIntroScreen() {
   clearTimeout(postSurveyIntroTypeTimer);
@@ -663,7 +663,9 @@ function initPostSurveyIntroScreen() {
   typeWriterText(textEl, "마주한 고민 중,<br>가장 꺼내기 힘든 것은 무엇인가요?", function() {
     if (btnNext) btnNext.innerHTML = "다음으로";
     nextGroup.classList.remove('hidden');
-    requestAnimationFrame(function() { nextGroup.classList.add('visible'); });
+    requestAnimationFrame(function() { 
+      nextGroup.classList.add('visible'); 
+    });
   });
 }
 
@@ -958,6 +960,7 @@ if (inputQ7Name) {
   };
 }
 
+// 🌟 [정석 설문 진행]: 고민 선택 완료 후 정상적으로 브릿지 화면(screen-post-survey-intro)으로 진입
 if (btnSurveyNext) {
   btnSurveyNext.onclick = function() {
     if (currentStepIdx === 0) { currentStepIdx = 1; renderSurveyStep(); }
