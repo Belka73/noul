@@ -8,7 +8,7 @@
      * 대칭 On/Off는 사용자가 촬영/업로드한 사진 배경에만 적용
      * 3D 고유 패턴 png는 항상 온전한 대칭 완성형 규격 그대로 얹어짐
    - [비동기 1:1 텍스처 보장]: 3D 패턴 png 로딩 완료 후 3D 씬으로 전달
-   - [수정 완료]: 3D 패턴을 1000x1000 캔버스 정위치에 1:1 무손실 합성하여 양쪽 날개 완벽 안착
+   - [수정 완료]: 오른쪽 날개(완벽 정렬 기준)를 좌측으로 정밀 대칭 복제하여 양쪽 날개 크기와 위치를 1:1 완전 일치화
    - [기능 보존 100%]: 핀치 줌, 드래그 이동, 블러 조절, 하단 캐러셀 전체 유지
    ========================================================================== */
 
@@ -592,7 +592,7 @@ if (interactiveFrame && alignCanvas) {
 // --------------------------------------------------------------------------
 // 🌟 [핵심 수정]: 3D 나비용 텍스처를 1:1로 합성하여 추출 (Promise 기반 보장)
 // - 사용자 배경 사진: isSymmetryEnabled(대칭 여부)에 따라 적용
-// - 3D 패턴 png: 1000x1000 전용 도안을 캔버스 전체에 1:1 원본 규격 그대로 무손실 정위치 합성
+// - 3D 패턴 png: 완벽하게 맞는 오른쪽 날개(500~1000)를 좌측(0~500)으로 1:1 완전 정밀 미러링
 // --------------------------------------------------------------------------
 function exportAlignedTexture() {
   return new Promise(function(resolve) {
@@ -636,13 +636,23 @@ function exportAlignedTexture() {
 
     fctx.drawImage(baseCanvas, 0, 0, alignCanvas.width, alignCanvas.height, 0, 0, outW, outH);
 
-    // 3단계: 시스템 3D 패턴 png(3DButterfly_pattern/)를 1000x1000에 1:1 무손실 원본 정위치 합성
+    // 3단계: 시스템 3D 패턴 png(3DButterfly_pattern/) 합성
     var singleWingPatternPath3D = get3DPatternPath(selectedButterflyShape, selectedPatternId);
     if (singleWingPatternPath3D) {
       function drawPatternAndFinish(img) {
         if (img && (img.naturalWidth > 0 || img.width > 0)) {
-          // 3D 패턴 이미지는 3D 나비 모델 UV에 맞추어 이미 완성형으로 제작되어 있으므로 1:1 그대로 드로잉
-          fctx.drawImage(img, 0, 0, outW, outH);
+          var halfW = outW / 2; // 500
+
+          // 1) 오른쪽 날개: 3D 메쉬와 완벽하게 일치하는 우측 원본(500~1000) 그대로 배치
+          fctx.drawImage(img, halfW, 0, halfW, outH, halfW, 0, halfW, outH);
+
+          // 2) 왼쪽 날개: 우측 패턴을 중심선(500) 기준으로 수평 반전하여 좌측(0~500)에 1:1 동일 크기 안착
+          fctx.save();
+          fctx.translate(halfW, 0);
+          fctx.scale(-1, 1);
+          // 뒤집힌 좌표계에서 원본의 우측(halfW~outW) 영역을 (0~halfW)에 그리면 정확히 0~500 영역에 1:1 대칭 안착됨
+          fctx.drawImage(img, halfW, 0, halfW, outH, 0, 0, halfW, outH);
+          fctx.restore();
         }
         currentExtractedTexture = finalCanvas.toDataURL('image/png');
         resolve(currentExtractedTexture);
