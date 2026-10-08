@@ -2,7 +2,22 @@
    🌟 너울(Noul) - 도안 맞추기 및 나비 커스텀 로직 (shape-select.js)
    - [버그 해결]: 하단 무늬 썸네일 엑스박스 및 alt 텍스트 노출 완벽 차단
    - [동기화 해결]: 나비 형태 변경 시 무늬 ID 불일치 및 404 에러 방지
+   - [에러 해결]: createFallbackDummyTexture 함수 선언 복구 (Uncaught ReferenceError 방지)
    ========================================================================== */
+
+// 🌟 [누락 복원]: 촬영 이미지나 도안이 없을 때 안전하게 기본 텍스처를 그려주는 함수
+function createFallbackDummyTexture(color1, color2) {
+  var c = document.createElement('canvas');
+  c.width = 1000;
+  c.height = 1000;
+  var ctx = c.getContext('2d');
+  var grad = ctx.createLinearGradient(0, 0, 1000, 1000);
+  grad.addColorStop(0, color1 || '#ffffff');
+  grad.addColorStop(1, color2 || '#e5e7eb');
+  ctx.fillStyle = grad;
+  ctx.fillRect(0, 0, 1000, 1000);
+  return c.toDataURL('image/png');
+}
 
 var activeCustomTab = 'wing';
 var selectedButterflyShape = 'crescent';

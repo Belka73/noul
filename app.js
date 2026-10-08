@@ -2,8 +2,24 @@
    🌟 너울(Noul) 메인 애플리케이션 로직 (app.js)
    - [기능 보존 100%]: 화면 전환, 3D 뷰어, 물리 엔진, 검색, 인터랙션 전체 유지
    - [역할 분리 완료]: 도안 정렬 및 하단 캐러셀 로직은 shape-select.js에서 전담
-   - [버튼 락 & 화면 전환 완벽 해결]: disabled 해제 보장 및 브릿지 화면 버튼 즉시 노출
+   - [오류 완전 방어]: createFallbackDummyTexture 자체 탑재 및 안전 호출 보장
    ========================================================================== */
+
+// 🌟 [안전장치]: shape-select.js 로드 순서와 무관하게 app.js 자체에서도 에러가 안 나도록 보장
+if (typeof createFallbackDummyTexture === 'undefined') {
+  window.createFallbackDummyTexture = function(color1, color2) {
+    var c = document.createElement('canvas');
+    c.width = 1000;
+    c.height = 1000;
+    var ctx = c.getContext('2d');
+    var grad = ctx.createLinearGradient(0, 0, 1000, 1000);
+    grad.addColorStop(0, color1 || '#ffffff');
+    grad.addColorStop(1, color2 || '#e5e7eb');
+    ctx.fillStyle = grad;
+    ctx.fillRect(0, 0, 1000, 1000);
+    return c.toDataURL('image/png');
+  };
+}
 
 var ALL_SCREENS = [
   'screen-cover', 'screen-menu', 'screen-gallery', 'screen-intro',
@@ -372,7 +388,7 @@ var btnActionHome = document.getElementById('btn-action-home');
 if (btnActionHome) btnActionHome.onclick = function() { location.reload(); };
 
 // --------------------------------------------------------------------------
-// 🌟 DEV 전역 건너뛰기 이벤트 (고민 ➔ 브릿지 ➔ 핵심고민 정석 순차 이동)
+// 🌟 DEV 전역 건너뛰기 이벤트 (에러 없는 안전한 1:1 순차 전환)
 // --------------------------------------------------------------------------
 function ensureDevDummyData() {
   if (!userSelections.q7_name) userSelections.q7_name = "테스트나비";
@@ -382,7 +398,16 @@ function ensureDevDummyData() {
   if (!userSelections.core_concern) userSelections.core_concern = userSelections.q2[0];
   if (!userSelections.concern_reason) userSelections.concern_reason = "항상 잘 해내야 한다는 마음이 앞서서요.";
   if (!userSelections.q6_memo) userSelections.q6_memo = "너의 찬란한 날갯짓을 응원해.";
-  if (!currentExtractedTexture && typeof exportAlignedTexture === 'function') exportAlignedTexture();
+  
+  // 🌟 안전 호출: 함수가 있고 캔버스가 유효할 때만 실행
+  if (!currentExtractedTexture) {
+    try {
+      if (typeof exportAlignedTexture === 'function') exportAlignedTexture();
+      else currentExtractedTexture = createFallbackDummyTexture();
+    } catch(err) {
+      currentExtractedTexture = createFallbackDummyTexture();
+    }
+  }
 }
 
 document.addEventListener('click', function(e) {
@@ -651,7 +676,7 @@ if (btnOpeningNext) {
 }
 
 // --------------------------------------------------------------------------
-// 🌟 [완벽 복원]: 4번 사진 직후 브릿지 화면 (screen-post-survey-intro) 구동 함수
+// 🌟 4번 사진 직후 신규 브릿지 화면 (screen-post-survey-intro) 구동 함수
 // --------------------------------------------------------------------------
 function initPostSurveyIntroScreen() {
   clearTimeout(postSurveyIntroTypeTimer);
@@ -942,7 +967,6 @@ if (btnCustomKeywordClear) {
   };
 }
 
-// 🌟 [유효성 검사 확실한 잠금 해제]: 고민 선택 시 disabled가 즉각 풀리도록 보장
 function validateSurveyStep() {
   if (!btnSurveyNext) return;
   var isValid = false;
@@ -969,7 +993,7 @@ if (inputQ7Name) {
   };
 }
 
-// 🌟 [정석 설문 진행]: 2단계 완료 시 건너뛰지 않고 브릿지 화면(screen-post-survey-intro)으로 진입
+// 🌟 [정석 진행]: 고민 선택 완료 시 브릿지 화면(screen-post-survey-intro)으로 정상 진입
 if (btnSurveyNext) {
   btnSurveyNext.onclick = function() {
     if (currentStepIdx === 0) { currentStepIdx = 1; renderSurveyStep(); }
