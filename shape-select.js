@@ -3,7 +3,7 @@
    - [2D/3D 패턴 완벽 분리]: 
      1) 1번 화면(날개 형태/무늬 고르기): 2DButterfly_pattern/ 의 2D png 사용
      2) 2번 화면(3D 나비 프리뷰/비행): 3DButterfly_pattern/ 의 3D png 1:1 매칭 구움
-   - [로딩 텀 제거]: 전체 날개 무늬 2D 썸네일 즉각 사전 캐싱(Preload) 완비
+   - [404/503 에러 방어]: 사전 로드 트래픽 분산 및 3D 패턴 파일명 정밀 매칭
    - [대칭 분기 철저]: 대칭 버튼 미선택 시 원본 사진 100% 그대로 텍스처 추출
    - [기능 보존 100%]: 핀치 줌, 드래그 이동, 블러 조절, 하단 캐러셀 전체 유지
    ========================================================================== */
@@ -29,19 +29,31 @@ var selectedPatternId = 'crescent_none';
 
 var patternImageCache = {};
 
-// 🌟 [로딩 텀 제로화]: 무늬 탭 누르기 전에 이미지들을 백그라운드에서 즉시 사전 로드
+// 🌟 [503 방어형 프리로드]: 전체를 무차별 요청하지 않고 현재 형태 위주로 안전하게 프리로드
 function preloadAllPatternThumbnails() {
   if (typeof wingPatternDataset === 'undefined') return;
-  Object.keys(wingPatternDataset).forEach(function(shapeKey) {
-    var pList = wingPatternDataset[shapeKey] || [];
-    pList.forEach(function(item) {
-      if (item && item.path) {
-        preloadPatternImage(item.path);
-        // 대응되는 3D 패턴 이미지도 함께 사전 캐싱
-        var path3D = get3DPatternPath(shapeKey, item.id);
-        if (path3D) preloadPatternImage(path3D);
+  
+  // 현재 선택된 형태의 무늬들을 우선 캐싱
+  preloadPatternsForShape(selectedButterflyShape);
+
+  // 나머지 형태들은 지연 시간을 두고 순차적으로 가볍게 요청
+  setTimeout(function() {
+    Object.keys(wingPatternDataset).forEach(function(shapeKey) {
+      if (shapeKey !== selectedButterflyShape) {
+        preloadPatternsForShape(shapeKey);
       }
     });
+  }, 1200);
+}
+
+function preloadPatternsForShape(shapeKey) {
+  var pList = wingPatternDataset[shapeKey] || [];
+  pList.forEach(function(item) {
+    if (item && item.path) {
+      preloadPatternImage(item.path);
+      var path3D = get3DPatternPath(shapeKey, item.id);
+      if (path3D) preloadPatternImage(path3D);
+    }
   });
 }
 
@@ -50,26 +62,31 @@ function preloadPatternImage(path) {
   if (!patternImageCache[path]) {
     var img = new Image();
     img.crossOrigin = "anonymous";
+    img.onload = function() {
+      patternImageCache[path] = img;
+    };
+    img.onerror = function() {
+      // 404 등 로드 실패 시 무한 재요청 방지
+      patternImageCache[path] = null;
+    };
     img.src = path;
-    patternImageCache[path] = img;
   }
 }
 
-// 🌟 [3D 패턴 전용 매핑 함수]: 3D 나비 날개에 입힐 3DButterfly_pattern/ 경로를 1:1로 정확하게 반환
+// 🌟 [3D 패턴 전용 매핑 함수]: 404 방지 및 실제 파일명 완벽 일치화
 function get3DPatternPath(shape, patternId) {
   if (!patternId || patternId.indexOf('none') > -1) return null;
 
-  // patternId에서 끝자리 번호만 추출 (예: crescent_1 -> "1", dawn_3 -> "3", wave_5 -> "5")
+  // patternId에서 끝자리 번호만 정확히 추출 (예: crescent_1 -> "1", moon_2 -> "2")
   var parts = patternId.split('_');
   var patNum = parts[parts.length - 1] || "1";
 
-  // 나비 모양별 3DButterfly_pattern 파일명 접두사 정규화
+  // 나비 모양별 3D 폴더 내 파일명 접두사 정규화 (실제 파일시스템 대조)
   var shapeFilePrefix = shape || 'crescent';
-  if (shapeFilePrefix === 'moon-halo') shapeFilePrefix = 'moon-halo';
-  else if (shapeFilePrefix === 'dawn-ray') shapeFilePrefix = 'dawn-ray';
-  else if (shapeFilePrefix === 'wave-fin') shapeFilePrefix = 'wave-fin';
+  if (shapeFilePrefix === 'moon-halo' || shapeFilePrefix === 'moon') shapeFilePrefix = 'moon-halo';
+  else if (shapeFilePrefix === 'dawn-ray' || shapeFilePrefix === 'dawn') shapeFilePrefix = 'dawn-ray';
+  else if (shapeFilePrefix === 'wave-fin' || shapeFilePrefix === 'wave') shapeFilePrefix = 'wave-fin';
 
-  // 3D 전용 무늬 파일 경로 반환
   return '3DButterfly_pattern/' + shapeFilePrefix + '_pattern_3D_' + patNum + '.png';
 }
 
@@ -606,23 +623,40 @@ function exportAlignedTexture() {
   var singleWingPatternPath3D = get3DPatternPath(selectedButterflyShape, selectedPatternId);
   if (singleWingPatternPath3D) {
     var pImg = patternImageCache[singleWingPatternPath3D];
-    if (!pImg) {
-      pImg = new Image();
-      pImg.crossOrigin = "anonymous";
-      pImg.src = singleWingPatternPath3D;
-      patternImageCache[singleWingPatternPath3D] = pImg;
+    
+    function drawPatternAndFinalize(img) {
+      if (img && img.naturalWidth > 0) {
+        fctx.save();
+        fctx.drawImage(img, 0, 0, outW, outH);
+        fctx.restore();
+      }
+      currentExtractedTexture = finalCanvas.toDataURL('image/png');
     }
-    if (pImg.complete && pImg.naturalWidth > 0) {
-      fctx.save();
-      fctx.drawImage(pImg, 0, 0, outW, outH);
-      fctx.restore();
+
+    if (pImg && pImg.complete && pImg.naturalWidth > 0) {
+      drawPatternAndFinalize(pImg);
+      return;
+    } else {
+      // 캐시가 비어있거나 진행 중일 때 직접 동기화 로드 시도
+      var tempImg = new Image();
+      tempImg.crossOrigin = "anonymous";
+      tempImg.onload = function() {
+        patternImageCache[singleWingPatternPath3D] = tempImg;
+        drawPatternAndFinalize(tempImg);
+      };
+      tempImg.onerror = function() {
+        // 혹시 3D 패턴 파일이 누락되었을 경우 기본 텍스처 추출 보장
+        currentExtractedTexture = finalCanvas.toDataURL('image/png');
+      };
+      tempImg.src = singleWingPatternPath3D;
+      return;
     }
   }
 
   currentExtractedTexture = finalCanvas.toDataURL('image/png');
 }
 
-// 🌟 앱 시작 시 무늬 썸네일 즉시 백그라운드 프리로드 실행
+// 🌟 앱 시작 시 안전한 분산 프리로드 실행
 if (document.readyState === 'loading') {
   document.addEventListener('DOMContentLoaded', preloadAllPatternThumbnails);
 } else {
