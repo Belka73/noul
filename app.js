@@ -2,13 +2,15 @@
    🌟 너울(Noul) 메인 애플리케이션 로직 (app.js)
    - [기능 보존 100%]: 화면 전환, 3D 뷰어, 물리 엔진, 검색, 인터랙션 전체 유지
    - [역할 분리 완료]: 도안 정렬 및 하단 캐러셀 로직은 shape-select.js에서 전담
+   - [DEV 멈춤 해결]: 설문 다중선택/브릿지/핵심고민 화면 1:1 완벽 순차 전환
    ========================================================================== */
 
 var ALL_SCREENS = [
   'screen-cover', 'screen-menu', 'screen-gallery', 'screen-intro',
-  'screen-opening', 'screen-survey', 'screen-survey-core-concern',
-  'screen-survey-concern-reason', 'screen-post-concern-bridge',
-  'screen-capture-guide', 'screen-shape-select', 'screen-survey-bridge',
+  'screen-opening', 'screen-survey', 'screen-post-survey-intro', 
+  'screen-survey-core-concern', 'screen-survey-concern-reason', 
+  'screen-post-concern-bridge', 'screen-capture-guide', 
+  'screen-shape-select', 'screen-survey-bridge',
   'screen-loading', 'screen-preview', 'screen-complete', 'screen-share'
 ];
 
@@ -21,6 +23,7 @@ var shareTypeTimer = null;
 var autoTransitionTimer = null;
 var reasonTypeTimer = null;
 var postConcernTypeTimer = null;
+var postSurveyIntroTypeTimer = null;
 var flightSafetyTimer = null;
 var typeTimer = null;
 var guideTypeTimer = null;
@@ -39,6 +42,7 @@ function clearAllTimers() {
   clearTimeout(shareTypeTimer);
   clearTimeout(autoTransitionTimer);
   clearTimeout(postConcernTypeTimer);
+  clearTimeout(postSurveyIntroTypeTimer);
   clearTimeout(flightSafetyTimer);
   if (showcaseInterval) { clearInterval(showcaseInterval); showcaseInterval = null; }
 }
@@ -57,6 +61,8 @@ function showScreen(screenId) {
         stopBubblePhysics(); stopLoading3DScene(); stopShare3DScene(); resetOpeningFlow();
       } else if (screenId === 'screen-survey') {
         stopLoading3DScene(); stopShare3DScene(); renderSurveyStep();
+      } else if (screenId === 'screen-post-survey-intro') {
+        stopBubblePhysics(); stopLoading3DScene(); stopShare3DScene(); initPostSurveyIntroScreen();
       } else if (screenId === 'screen-survey-core-concern') {
         stopBubblePhysics(); stopLoading3DScene(); stopShare3DScene(); initCoreConcernScreen();
       } else if (screenId === 'screen-survey-concern-reason') {
@@ -112,7 +118,8 @@ function updateDevScreenBadge() {
     if (currentStepIdx === 0) name += ' (1/3: 이름)';
     else if (currentStepIdx === 1) name += ' (2/3: 고민선택)';
     else if (currentStepIdx === 2) name += ' (3/3: 다정한한마디)';
-  } else if (name === 'screen-survey-core-concern') name += ' (핵심고민)';
+  } else if (name === 'screen-post-survey-intro') name += ' (고민직후브릿지)';
+  else if (name === 'screen-survey-core-concern') name += ' (핵심고민)';
   else if (name === 'screen-survey-concern-reason') name += ' (고민이유)';
   else if (name === 'screen-post-concern-bridge') name += ' (나비전환브릿지)';
   badge.innerText = '화면: ' + name;
@@ -361,11 +368,13 @@ var btnActionHome = document.getElementById('btn-action-home');
 if (btnActionHome) btnActionHome.onclick = function() { location.reload(); };
 
 // --------------------------------------------------------------------------
-// DEV 전역 건너뛰기 이벤트
+// 🌟 [완벽 수정]: DEV 전역 건너뛰기 이벤트 (멈춤 현상 원천 해결)
 // --------------------------------------------------------------------------
 function ensureDevDummyData() {
   if (!userSelections.q7_name) userSelections.q7_name = "테스트나비";
-  if (!userSelections.q2 || userSelections.q2.length === 0) userSelections.q2 = ["완벽주의 강박", "비교중독", "수면 부족", "거절 공포", "텅 빈 잔고", "미래 막막함"];
+  if (!userSelections.q2 || userSelections.q2.length === 0) {
+    userSelections.q2 = ["완벽주의 강박", "비교중독", "수면 부족", "거절 공포", "텅 빈 잔고", "미래 막막함"];
+  }
   if (!userSelections.core_concern) userSelections.core_concern = userSelections.q2[0];
   if (!userSelections.concern_reason) userSelections.concern_reason = "항상 잘 해내야 한다는 마음이 앞서서요.";
   if (!userSelections.q6_memo) userSelections.q6_memo = "너의 찬란한 날갯짓을 응원해.";
@@ -405,21 +414,48 @@ document.addEventListener('click', function(e) {
       } else if (openingCurrentStep === 3) { currentStepIdx = 0; showScreen('screen-survey'); return; }
     }
     if (curId === 'screen-survey') {
-      if (currentStepIdx === 0) { if (!userSelections.q7_name) userSelections.q7_name = "테스트나비"; currentStepIdx = 1; renderSurveyStep(); return; }
-      else if (currentStepIdx === 1) { ensureDevDummyData(); showScreen('screen-survey-core-concern'); return; }
-      else if (currentStepIdx === 2) { ensureDevDummyData(); showScreen('screen-post-concern-bridge'); return; }
-    } else if (curId === 'screen-survey-core-concern') { ensureDevDummyData(); showScreen('screen-survey-concern-reason'); return; }
-    else if (curId === 'screen-survey-concern-reason') { ensureDevDummyData(); currentStepIdx = 2; showScreen('screen-survey'); return; }
-    else if (curId === 'screen-post-concern-bridge') { showScreen('screen-capture-guide'); return; }
-    else if (curId === 'screen-capture-guide') { showScreen('screen-shape-select'); return; }
-    else if (curId === 'screen-shape-select') { 
+      if (currentStepIdx === 0) { 
+        if (!userSelections.q7_name) userSelections.q7_name = "테스트나비"; 
+        currentStepIdx = 1; 
+        renderSurveyStep(); 
+        return; 
+      }
+      else if (currentStepIdx === 1) { 
+        ensureDevDummyData(); 
+        showScreen('screen-post-survey-intro'); 
+        return; 
+      }
+      else if (currentStepIdx === 2) { 
+        ensureDevDummyData(); 
+        showScreen('screen-post-concern-bridge'); 
+        return; 
+      }
+    } else if (curId === 'screen-post-survey-intro') {
+      ensureDevDummyData();
+      showScreen('screen-survey-core-concern');
+      return;
+    } else if (curId === 'screen-survey-core-concern') { 
+      ensureDevDummyData(); 
+      showScreen('screen-survey-concern-reason'); 
+      return; 
+    } else if (curId === 'screen-survey-concern-reason') { 
+      ensureDevDummyData(); 
+      currentStepIdx = 2; 
+      showScreen('screen-survey'); 
+      return; 
+    } else if (curId === 'screen-post-concern-bridge') { 
+      showScreen('screen-capture-guide'); 
+      return; 
+    } else if (curId === 'screen-capture-guide') { 
+      showScreen('screen-shape-select'); 
+      return; 
+    } else if (curId === 'screen-shape-select') { 
       ensureDevDummyData(); 
       if (typeof exportAlignedTexture === 'function') exportAlignedTexture(); 
       showScreen('screen-loading'); 
       startAnswerShowcaseSequence(); 
       return; 
-    }
-    else if (curId === 'screen-loading') {
+    } else if (curId === 'screen-loading') {
       ensureDevDummyData();
       var butterflyName = userSelections.q7_name ? userSelections.q7_name.trim() : "나비";
       var nameHeader = document.getElementById('preview-butterfly-name');
@@ -427,10 +463,19 @@ document.addEventListener('click', function(e) {
       var guideText = document.getElementById('preview-guide-text');
       if (guideText) guideText.innerText = userSelections.q6_memo && userSelections.q6_memo.trim().length > 0 ? userSelections.q6_memo.trim() : "너의 찬란한 날갯짓을 응원해.";
       initFullButterflyViewer(currentExtractedTexture || createFallbackDummyTexture());
-      showScreen('screen-preview'); return;
-    } else if (curId === 'screen-preview') { ensureDevDummyData(); showScreen('screen-complete'); return; }
-    else if (curId === 'screen-complete') { showScreen('screen-share'); return; }
-    else if (curId === 'screen-share') { showScreen('screen-cover'); return; }
+      showScreen('screen-preview'); 
+      return; 
+    } else if (curId === 'screen-preview') { 
+      ensureDevDummyData(); 
+      showScreen('screen-complete'); 
+      return; 
+    } else if (curId === 'screen-complete') { 
+      showScreen('screen-share'); 
+      return; 
+    } else if (curId === 'screen-share') { 
+      showScreen('screen-cover'); 
+      return; 
+    }
   }
 
   if (btnPrev) {
@@ -468,15 +513,42 @@ document.addEventListener('click', function(e) {
         });
         updateDevScreenBadge(); return;
       }
-    } else if (curId === 'screen-survey-core-concern') { currentStepIdx = 1; showScreen('screen-survey'); return; }
-    else if (curId === 'screen-survey-concern-reason') { showScreen('screen-survey-core-concern'); return; }
-    else if (curId === 'screen-post-concern-bridge') { currentStepIdx = 2; showScreen('screen-survey'); return; }
-    else if (curId === 'screen-capture-guide') { showScreen('screen-post-concern-bridge'); return; }
-    else if (curId === 'screen-shape-select') { showScreen('screen-capture-guide'); return; }
-    else if (curId === 'screen-loading') { showScreen('screen-shape-select'); return; }
-    else if (curId === 'screen-preview') { showScreen('screen-loading'); startAnswerShowcaseSequence(); return; }
-    else if (curId === 'screen-complete') { ensureDevDummyData(); initFullButterflyViewer(currentExtractedTexture || createFallbackDummyTexture()); showScreen('screen-preview'); return; }
-    else if (curId === 'screen-share') { showScreen('screen-complete'); return; }
+    } else if (curId === 'screen-post-survey-intro') {
+      currentStepIdx = 1;
+      showScreen('screen-survey');
+      return;
+    } else if (curId === 'screen-survey-core-concern') { 
+      showScreen('screen-post-survey-intro'); 
+      return; 
+    } else if (curId === 'screen-survey-concern-reason') { 
+      showScreen('screen-survey-core-concern'); 
+      return; 
+    } else if (curId === 'screen-post-concern-bridge') { 
+      currentStepIdx = 2; 
+      showScreen('screen-survey'); 
+      return; 
+    } else if (curId === 'screen-capture-guide') { 
+      showScreen('screen-post-concern-bridge'); 
+      return; 
+    } else if (curId === 'screen-shape-select') { 
+      showScreen('screen-capture-guide'); 
+      return; 
+    } else if (curId === 'screen-loading') { 
+      showScreen('screen-shape-select'); 
+      return; 
+    } else if (curId === 'screen-preview') { 
+      showScreen('screen-loading'); 
+      startAnswerShowcaseSequence(); 
+      return; 
+    } else if (curId === 'screen-complete') { 
+      ensureDevDummyData(); 
+      initFullButterflyViewer(currentExtractedTexture || createFallbackDummyTexture()); 
+      showScreen('screen-preview'); 
+      return; 
+    } else if (curId === 'screen-share') { 
+      showScreen('screen-complete'); 
+      return; 
+    }
   }
 }, true);
 
@@ -571,6 +643,34 @@ if (btnOpeningNext) {
       currentStepIdx = 0;
       showScreen('screen-survey');
     }
+  };
+}
+
+// --------------------------------------------------------------------------
+// 🌟 4번 사진 직후 신규 화면 (screen-post-survey-intro) 타이핑 시퀀스
+// --------------------------------------------------------------------------
+function initPostSurveyIntroScreen() {
+  clearTimeout(postSurveyIntroTypeTimer);
+  var textEl = document.getElementById('post-survey-intro-text');
+  var nextGroup = document.getElementById('post-survey-intro-next-group');
+  var btnNext = document.getElementById('btn-post-survey-intro-next');
+
+  if (!textEl || !nextGroup) return;
+  textEl.innerHTML = "";
+  nextGroup.classList.add('hidden');
+  nextGroup.classList.remove('visible');
+
+  typeWriterText(textEl, "마주한 고민 중,<br>가장 꺼내기 힘든 것은 무엇인가요?", function() {
+    if (btnNext) btnNext.innerHTML = "다음으로";
+    nextGroup.classList.remove('hidden');
+    requestAnimationFrame(function() { nextGroup.classList.add('visible'); });
+  });
+}
+
+var btnPostSurveyIntroNext = document.getElementById('btn-post-survey-intro-next');
+if (btnPostSurveyIntroNext) {
+  btnPostSurveyIntroNext.onclick = function() {
+    showScreen('screen-survey-core-concern');
   };
 }
 
@@ -869,7 +969,7 @@ if (btnSurveyNext) {
       if (!userSelections.q2 || userSelections.q2.length === 0) {
         userSelections.q2 = ["비교중독", "수면 부족", "완벽주의 강박", "거절 공포", "텅 빈 잔고", "미래 막막함"];
       }
-      showScreen('screen-survey-core-concern');
+      showScreen('screen-post-survey-intro');
     } else if (currentStepIdx === 2) {
       showScreen('screen-post-concern-bridge');
     }
@@ -987,7 +1087,7 @@ function initCoreConcernScreen() {
 }
 
 if (btnCoreConcernNext) btnCoreConcernNext.onclick = function() { if (userSelections.core_concern) showScreen('screen-survey-concern-reason'); };
-if (btnCoreConcernPrev) btnCoreConcernPrev.onclick = function() { currentStepIdx = 1; showScreen('screen-survey'); };
+if (btnCoreConcernPrev) btnCoreConcernPrev.onclick = function() { showScreen('screen-post-survey-intro'); };
 
 // --------------------------------------------------------------------------
 // 핵심 고민 이유 작성 화면 로직 (서술 작성)
