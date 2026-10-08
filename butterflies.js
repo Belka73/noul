@@ -2,7 +2,7 @@
    🌟 너울(Noul) 2D 나비 7종 정밀 벡터 데이터, 패턴 데이터셋 및 더듬이 3종 렌더러
    - 초승, 새벽, 불꽃, 달무리, 산들, 별빛, 물결 나비 완벽 클린 벡터
    - 1000x1000 고해상도 대지 및 완벽 대칭 날개(wingD), 몸통(bodyD) 탑재
-   - 신규 crescent.glb 호환 패턴 및 더듬이 렌더러 지원
+   - [수정 완료] 2DButterfly_pattern/ 실제 png 파일명과 1:1 완벽 일치화
    ========================================================================== */
 
 const wingDataset = [
@@ -78,69 +78,72 @@ const wingDataset = [
   }
 ];
 
+// === 여기서부터 2부를 붙여넣으세요 ===
 // --------------------------------------------------------------------------
-// 🌟 나비별 날개 패턴(무늬) 데이터셋
+// 🌟 나비별 날개 패턴(무늬) 데이터셋 (2DButterfly_pattern/ 실제 파일명 1:1 매칭 완료)
 // --------------------------------------------------------------------------
 const wingPatternDataset = {
   'crescent': [
     { id: 'crescent_none', name: '무늬 없음', path: null, thumb: '<circle cx="20" cy="20" r="14" fill="none" stroke="currentColor" stroke-dasharray="3,3" stroke-width="1.5"/>' },
-    { id: 'crescent_1', name: '초승 무늬 1', path: '2DButterfly_pattern/crescent_pattern_2D_1_2.jpg', img: 'crescent_pattern_2D_1_2.jpg' },
-    { id: 'crescent_2', name: '초승 무늬 2', path: '2DButterfly_pattern/crescent_pattern_2D_2_2.jpg', img: 'crescent_pattern_2D_2_2.jpg' },
-    { id: 'crescent_3', name: '초승 무늬 3', path: '2DButterfly_pattern/crescent_pattern_2D_3_2.jpg', img: 'crescent_pattern_2D_3_2.jpg' },
-    { id: 'crescent_4', name: '초승 무늬 4', path: '2DButterfly_pattern/crescent_pattern_2D_4_2.jpg', img: 'crescent_pattern_2D_4_2.jpg' },
-    { id: 'crescent_5', name: '초승 무늬 5', path: '2DButterfly_pattern/crescent_pattern_2D_5_2.jpg', img: 'crescent_pattern_2D_5_2.jpg' }
+    { id: 'crescent_1', name: '초승 무늬 1', path: '2DButterfly_pattern/crescent_pattern_2D_1.png', img: 'crescent_pattern_2D_1.png' },
+    { id: 'crescent_2', name: '초승 무늬 2', path: '2DButterfly_pattern/crescent_pattern_2D_2.png', img: 'crescent_pattern_2D_2.png' },
+    { id: 'crescent_3', name: '초승 무늬 3', path: '2DButterfly_pattern/crescent_pattern_2D_3.png', img: 'crescent_pattern_2D_3.png' },
+    { id: 'crescent_4', name: '초승 무늬 4', path: '2DButterfly_pattern/crescent_pattern_2D_4.png', img: 'crescent_pattern_2D_4.png' },
+    { id: 'crescent_5', name: '초승 무늬 5', path: '2DButterfly_pattern/crescent_pattern_2D_5.png', img: 'crescent_pattern_2D_5.png' }
   ],
   'dawn-ray': [
     { id: 'dawn_none', name: '무늬 없음', path: null, thumb: '<circle cx="20" cy="20" r="14" fill="none" stroke="currentColor" stroke-dasharray="3,3" stroke-width="1.5"/>' },
-    { id: 'dawn_1', name: '새벽 무늬 1', path: '2DButterfly_pattern/dawn-ray_pattern_2D_1_2.jpg', img: 'dawn-ray_pattern_2D_1_2.jpg' },
-    { id: 'dawn_2', name: '새벽 무늬 2', path: '2DButterfly_pattern/dawn-ray_pattern_2D_2_2.jpg', img: 'dawn-ray_pattern_2D_2_2.jpg' },
-    { id: 'dawn_3', name: '새벽 무늬 3', path: '2DButterfly_pattern/dawn-ray_pattern_2D_3_2.jpg', img: 'dawn-ray_pattern_2D_3_2.jpg' },
-    { id: 'dawn_4', name: '새벽 무늬 4', path: '2DButterfly_pattern/dawn-ray_pattern_2D_4_2.jpg', img: 'dawn-ray_pattern_2D_4_2.jpg' },
-    { id: 'dawn_5', name: '새벽 무늬 5', path: '2DButterfly_pattern/dawn-ray_pattern_2D_5_2.jpg', img: 'dawn-ray_pattern_2D_5_2.jpg' }
+    { id: 'dawn_1', name: '새벽 무늬 1', path: '2DButterfly_pattern/dawn-ray_pattern_2D_1.png', img: 'dawn-ray_pattern_2D_1.png' },
+    { id: 'dawn_2', name: '새벽 무늬 2', path: '2DButterfly_pattern/dawn-ray_pattern_2D_2.png', img: 'dawn-ray_pattern_2D_2.png' },
+    { id: 'dawn_3', name: '새벽 무늬 3', path: '2DButterfly_pattern/dawn-ray_pattern_2D_3.png', img: 'dawn-ray_pattern_2D_3.png' },
+    { id: 'dawn_4', name: '새벽 무늬 4', path: '2DButterfly_pattern/dawn-ray_pattern_2D_4.png', img: 'dawn-ray_pattern_2D_4.png' },
+    { id: 'dawn_5', name: '새벽 무늬 5', path: '2DButterfly_pattern/dawn-ray_pattern_2D_5.png', img: 'dawn-ray_pattern_2D_5.png' }
   ],
   'ember': [
     { id: 'ember_none', name: '무늬 없음', path: null, thumb: '<circle cx="20" cy="20" r="14" fill="none" stroke="currentColor" stroke-dasharray="3,3" stroke-width="1.5"/>' },
-    { id: 'ember_1', name: '불꽃 무늬 1', path: '2DButterfly_pattern/ember_pattern_2D_1.jpg', img: 'ember_pattern_2D_1.jpg' },
-    { id: 'ember_2', name: '불꽃 무늬 2', path: '2DButterfly_pattern/ember_pattern_2D_2.jpg', img: 'ember_pattern_2D_2.jpg' },
-    { id: 'ember_3', name: '불꽃 무늬 3', path: '2DButterfly_pattern/ember_pattern_2D_3.jpg', img: 'ember_pattern_2D_3.jpg' },
-    { id: 'ember_4', name: '불꽃 무늬 4', path: '2DButterfly_pattern/ember_pattern_2D_4.jpg', img: 'ember_pattern_2D_4.jpg' },
-    { id: 'ember_5', name: '불꽃 무늬 5', path: '2DButterfly_pattern/ember_pattern_2D_5.jpg', img: 'ember_pattern_2D_5.jpg' }
+    { id: 'ember_1', name: '불꽃 무늬 1', path: '2DButterfly_pattern/ember_pattern_2D_1.png', img: 'ember_pattern_2D_1.png' },
+    { id: 'ember_2', name: '불꽃 무늬 2', path: '2DButterfly_pattern/ember_pattern_2D_2.png', img: 'ember_pattern_2D_2.png' },
+    { id: 'ember_3', name: '불꽃 무늬 3', path: '2DButterfly_pattern/ember_pattern_2D_3.png', img: 'ember_pattern_2D_3.png' },
+    { id: 'ember_4', name: '불꽃 무늬 4', path: '2DButterfly_pattern/ember_pattern_2D_4.png', img: 'ember_pattern_2D_4.png' },
+    { id: 'ember_5', name: '불꽃 무늬 5', path: '2DButterfly_pattern/ember_pattern_2D_5.png', img: 'ember_pattern_2D_5.png' }
   ],
   'moon-halo': [
     { id: 'moon_none', name: '무늬 없음', path: null, thumb: '<circle cx="20" cy="20" r="14" fill="none" stroke="currentColor" stroke-dasharray="3,3" stroke-width="1.5"/>' },
     { id: 'moon_1', name: '달무리 무늬 1', path: '2DButterfly_pattern/moon-halo_pattern_2D_1.png', img: 'moon-halo_pattern_2D_1.png' },
-    { id: 'moon_2', name: '달무리 무늬 2', path: '2DButterfly_pattern/moon-halo_pattern_2D_2.jpg', img: 'moon-halo_pattern_2D_2.jpg' },
-    { id: 'moon_3', name: '달무리 무늬 3', path: '2DButterfly_pattern/moon-halo_pattern_2D_3.jpg', img: 'moon-halo_pattern_2D_3.jpg' },
-    { id: 'moon_4', name: '달무리 무늬 4', path: '2DButterfly_pattern/moon-halo_pattern_2D_4.jpg', img: 'moon-halo_pattern_2D_4.jpg' },
-    { id: 'moon_5', name: '달무리 무늬 5', path: '2DButterfly_pattern/moon-halo_pattern_2D_5.jpg', img: 'moon-halo_pattern_2D_5.jpg' }
+    { id: 'moon_2', name: '달무리 무늬 2', path: '2DButterfly_pattern/moon-halo_pattern_2D_2.png', img: 'moon-halo_pattern_2D_2.png' },
+    { id: 'moon_3', name: '달무리 무늬 3', path: '2DButterfly_pattern/moon-halo_pattern_2D_3.png', img: 'moon-halo_pattern_2D_3.png' },
+    { id: 'moon_4', name: '달무리 무늬 4', path: '2DButterfly_pattern/moon-halo_pattern_2D_4.png', img: 'moon-halo_pattern_2D_4.png' },
+    { id: 'moon_5', name: '달무리 무늬 5', path: '2DButterfly_pattern/moon-halo_pattern_2D_5.png', img: 'moon-halo_pattern_2D_5.png' }
   ],
   'petal': [
     { id: 'petal_none', name: '무늬 없음', path: null, thumb: '<circle cx="20" cy="20" r="14" fill="none" stroke="currentColor" stroke-dasharray="3,3" stroke-width="1.5"/>' },
-    { id: 'petal_1', name: '산들 무늬 1', path: '2DButterfly_pattern/petal_pattern_2D_1.jpg', img: 'petal_pattern_2D_1.jpg' },
-    { id: 'petal_2', name: '산들 무늬 2', path: '2DButterfly_pattern/petal_pattern_2D_2.jpg', img: 'petal_pattern_2D_2.jpg' },
-    { id: 'petal_3', name: '산들 무늬 3', path: '2DButterfly_pattern/petal_pattern_2D_3.jpg', img: 'petal_pattern_2D_3.jpg' },
-    { id: 'petal_4', name: '산들 무늬 4', path: '2DButterfly_pattern/petal_pattern_2D_4.jpg', img: 'petal_pattern_2D_4.jpg' },
-    { id: 'petal_5', name: '산들 무늬 5', path: '2DButterfly_pattern/petal_pattern_2D_5.jpg', img: 'petal_pattern_2D_5.jpg' }
+    { id: 'petal_1', name: '산들 무늬 1', path: '2DButterfly_pattern/petal_pattern_2D_1.png', img: 'petal_pattern_2D_1.png' },
+    { id: 'petal_2', name: '산들 무늬 2', path: '2DButterfly_pattern/petal_pattern_2D_2.png', img: 'petal_pattern_2D_2.png' },
+    { id: 'petal_3', name: '산들 무늬 3', path: '2DButterfly_pattern/petal_pattern_2D_3.png', img: 'petal_pattern_2D_3.png' },
+    { id: 'petal_4', name: '산들 무늬 4', path: '2DButterfly_pattern/petal_pattern_2D_4.png', img: 'petal_pattern_2D_4.png' },
+    { id: 'petal_5', name: '산들 무늬 5', path: '2DButterfly_pattern/petal_pattern_2D_5.png', img: 'petal_pattern_2D_5.png' }
   ],
   'starlight': [
     { id: 'starlight_none', name: '무늬 없음', path: null, thumb: '<circle cx="20" cy="20" r="14" fill="none" stroke="currentColor" stroke-dasharray="3,3" stroke-width="1.5"/>' },
-    { id: 'starlight_1', name: '별빛 무늬 1', path: '2DButterfly_pattern/starlight_pattern_2D_1.jpg', img: 'starlight_pattern_2D_1.jpg' },
-    { id: 'starlight_2', name: '별빛 무늬 2', path: '2DButterfly_pattern/starlight_pattern_2D_2.jpg', img: 'starlight_pattern_2D_2.jpg' },
-    { id: 'starlight_3', name: '별빛 무늬 3', path: '2DButterfly_pattern/starlight_pattern_2D_3.jpg', img: 'starlight_pattern_2D_3.jpg' },
-    { id: 'starlight_4', name: '별빛 무늬 4', path: '2DButterfly_pattern/starlight_pattern_2D_4.jpg', img: 'starlight_pattern_2D_4.jpg' },
-    { id: 'starlight_5', name: '별빛 무늬 5', path: '2DButterfly_pattern/starlight_pattern_2D_5.jpg', img: 'starlight_pattern_2D_5.jpg' }
+    { id: 'starlight_1', name: '별빛 무늬 1', path: '2DButterfly_pattern/starlight_pattern_2D_1.png', img: 'starlight_pattern_2D_1.png' },
+    { id: 'starlight_2', name: '별빛 무늬 2', path: '2DButterfly_pattern/starlight_pattern_2D_2.png', img: 'starlight_pattern_2D_2.png' },
+    { id: 'starlight_3', name: '별빛 무늬 3', path: '2DButterfly_pattern/starlight_pattern_2D_3.png', img: 'starlight_pattern_2D_3.png' },
+    { id: 'starlight_4', name: '별빛 무늬 4', path: '2DButterfly_pattern/starlight_pattern_2D_4.png', img: 'starlight_pattern_2D_4.png' },
+    { id: 'starlight_5', name: '별빛 무늬 5', path: '2DButterfly_pattern/starlight_pattern_2D_5.png', img: 'starlight_pattern_2D_5.png' }
   ],
   'wave-fin': [
     { id: 'wave_none', name: '무늬 없음', path: null, thumb: '<circle cx="20" cy="20" r="14" fill="none" stroke="currentColor" stroke-dasharray="3,3" stroke-width="1.5"/>' },
-    { id: 'wave_1', name: '물결 무늬 1', path: '2DButterfly_pattern/wave-fin_pattern_2D_1.jpg', img: 'wave-fin_pattern_2D_1.jpg' },
-    { id: 'wave_2', name: '물결 무늬 2', path: '2DButterfly_pattern/wave-fin_pattern_2D_2.jpg', img: 'wave-fin_pattern_2D_2.jpg' },
-    { id: 'wave_3', name: '물결 무늬 3', path: '2DButterfly_pattern/wave-fin_pattern_2D_3.jpg', img: 'wave-fin_pattern_2D_3.jpg' },
-    { id: 'wave_4', name: '물결 무늬 4', path: '2DButterfly_pattern/wave-fin_pattern_2D_4.jpg', img: 'wave-fin_pattern_2D_4.jpg' },
-    { id: 'wave_5', name: '물결 무늬 5', path: '2DButterfly_pattern/wave-fin_pattern_2D_5.jpg', img: 'wave-fin_pattern_2D_5.jpg' }
+    { id: 'wave_1', name: '물결 무늬 1', path: '2DButterfly_pattern/wave-fin_pattern_2D_1.png', img: 'wave-fin_pattern_2D_1.png' },
+    { id: 'wave_2', name: '물결 무늬 2', path: '2DButterfly_pattern/wave-fin_pattern_2D_2.png', img: 'wave-fin_pattern_2D_2.png' },
+    { id: 'wave_3', name: '물결 무늬 3', path: '2DButterfly_pattern/wave-fin_pattern_2D_3.png', img: 'wave-fin_pattern_2D_3.png' },
+    { id: 'wave_4', name: '물결 무늬 4', path: '2DButterfly_pattern/wave-fin_pattern_2D_4.png', img: 'wave-fin_pattern_2D_4.png' },
+    { id: 'wave_5', name: '물결 무늬 5', path: '2DButterfly_pattern/wave-fin_pattern_2D_5.png', img: 'wave-fin_pattern_2D_5.png' }
   ]
 };
 
+// --------------------------------------------------------------------------
 // 더듬이 3종 렌더러
+// --------------------------------------------------------------------------
 const antennaDataset = [
   {
     id: 'ball',
