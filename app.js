@@ -3,7 +3,7 @@
    - [기능 보존 100%]: 화면 전환, 3D 뷰어, 물리 엔진, 검색, 인터랙션 전체 유지
    - [역할 분리 완료]: 도안 정렬 및 하단 캐러셀 로직은 shape-select.js에서 전담
    - [3D 비대칭/대칭 완벽 매핑]: 대칭 미선택 시 좌우 날개에 사용자 원본 100% 독립 매핑
-   - [3D 날개 패턴 밀착 안착]: 텍스처 래핑 및 UV 밀착 설정을 통해 날개 빈 공간 완벽 제거
+   - [3D 패턴 1:1 완벽 안착]: 정상 머티리얼 블렌딩 및 DEV 형태 동기화 복원
    ========================================================================== */
 
 // 🌟 [안전장치]: shape-select.js 로드 순서와 무관하게 app.js 자체에서도 에러가 안 나도록 보장
@@ -254,28 +254,21 @@ function stopLoading3DScene() {
 }
 
 // --------------------------------------------------------------------------
-// 🌟 [핵심 수정]: 날개 텍스처를 3D 지오메트리에 빈틈없이 완벽 밀착시키는 생성기
+// 🌟 공유 화면용 선명한 3D 나비 씬
 // --------------------------------------------------------------------------
 var shareScene, shareCamera, shareRenderer, shareGroup, shareWingL, shareWingR;
 var shareAnimFrameId = null;
 
 function createWingMaterials(textureURL) {
   var isSym = (typeof isSymmetryEnabled !== 'undefined') ? isSymmetryEnabled : false;
-  
   var texL = new THREE.TextureLoader().load(textureURL);
   texL.flipY = false;
-  texL.wrapS = THREE.ClampToEdgeWrapping;
-  texL.wrapT = THREE.ClampToEdgeWrapping;
-  texL.minFilter = THREE.LinearFilter;
-  texL.magFilter = THREE.LinearFilter;
-  texL.generateMipmaps = false;
 
   var matL = new THREE.MeshBasicMaterial({ 
     map: texL, 
     side: THREE.DoubleSide, 
     transparent: true, 
-    alphaTest: 0.02,
-    depthWrite: true
+    alphaTest: 0.05 
   });
 
   // 대칭이 아닐 경우 우측 날개는 텍스처를 독립적으로 매핑
@@ -283,18 +276,11 @@ function createWingMaterials(textureURL) {
   if (!isSym) {
     var texR = new THREE.TextureLoader().load(textureURL);
     texR.flipY = false;
-    texR.wrapS = THREE.ClampToEdgeWrapping;
-    texR.wrapT = THREE.ClampToEdgeWrapping;
-    texR.minFilter = THREE.LinearFilter;
-    texR.magFilter = THREE.LinearFilter;
-    texR.generateMipmaps = false;
-
     matR = new THREE.MeshBasicMaterial({ 
       map: texR, 
       side: THREE.DoubleSide, 
       transparent: true, 
-      alphaTest: 0.02,
-      depthWrite: true
+      alphaTest: 0.05 
     });
   }
   return { left: matL, right: matR };
@@ -434,7 +420,7 @@ function ensureDevDummyData() {
   if (!userSelections.concern_reason) userSelections.concern_reason = "항상 잘 해내야 한다는 마음이 앞서서요.";
   if (!userSelections.q6_memo) userSelections.q6_memo = "너의 찬란한 날갯짓을 응원해.";
   
-  // 🌟 사용자가 직접 추출한 텍스처가 이미 있다면 덮어쓰지 않고 보존
+  // 🌟 형태와 텍스처가 어긋나지 않도록 텍스처 추출 보장
   if (!currentExtractedTexture) {
     try {
       if (typeof exportAlignedTexture === 'function') exportAlignedTexture();
