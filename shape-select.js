@@ -592,7 +592,9 @@ if (interactiveFrame && alignCanvas) {
 // --------------------------------------------------------------------------
 // 🌟 [수정 완료]: 3D 나비용 텍스처를 1:1로 합성하여 추출 (Promise 기반 보장)
 // - 사용자 배경 사진: isSymmetryEnabled(대칭 여부)에 따라 적용
-// - 3D 패턴 png: 이중 반전 복제(왜곡)를 제거하고 원본 규격(1000x1000) 그대로 단 한 번만 합성
+// - 3D 패턴 png: 우측 날개 원본 영역(500~1000)을 우측에 그대로 그리고,
+//   중심축(X=500)을 기준으로 좌측(0~500)에 정확히 1:1 거울 반전 투영하여
+//   크기 축소 및 교차 왜곡을 완벽히 방지함
 // --------------------------------------------------------------------------
 function exportAlignedTexture() {
   return new Promise(function(resolve) {
@@ -641,8 +643,18 @@ function exportAlignedTexture() {
     if (singleWingPatternPath3D) {
       function drawPatternAndFinish(img) {
         if (img && (img.naturalWidth > 0 || img.width > 0)) {
-          // 🌟 [수정 핵심]: 반전 덧칠 없이 원본 1000x1000 규격을 1:1 그대로 단 한 번만 온전하게 합성
-          fctx.drawImage(img, 0, 0, outW, outH);
+          var halfW = outW / 2; // 500
+
+          // 1) 우측 날개는 원본 우측 절반(500~1000)을 우측 캔버스(500~1000)에 그대로 1:1 드로잉
+          fctx.drawImage(img, halfW, 0, halfW, outH, halfW, 0, halfW, outH);
+
+          // 2) 좌측 날개는 나비 중심선(X=500)을 기준축으로 삼아 정확히 거울 반전 복제
+          //    (우측 날개 원본 영역을 읽어 반전된 축의 양의 방향으로 그림 -> 화면의 0~500 영역에 완벽히 1:1 대칭 안착)
+          fctx.save();
+          fctx.translate(halfW, 0); // X = 500 기준축
+          fctx.scale(-1, 1);        // 좌우 거울 반전
+          fctx.drawImage(img, halfW, 0, halfW, outH, 0, 0, halfW, outH);
+          fctx.restore();
         }
         currentExtractedTexture = finalCanvas.toDataURL('image/png');
         resolve(currentExtractedTexture);
