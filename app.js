@@ -2,7 +2,7 @@
    🌟 너울(Noul) 메인 애플리케이션 로직 (app.js)
    - [기존 요소 100% 보존]: 3D 뷰어, 물리 엔진, 검색, 인터랙션 전체 유지
    - [날개 회전 정상화]: 상위 빈 그룹이 아닌 실제 Mesh(child.isMesh) 타겟팅 및 기존 모델 기본 각도(baseRotY) 보존형 정밀 날갯짓 복구
-   - [패턴 누락 완벽 해결]: 3DButterfly/ 한쪽 날개 무늬 사전 캐싱 및 1:1 합성 보장
+   - [패턴 경로 수정]: 3DButterfly_pattern/ 한쪽 날개 무늬 사전 캐싱 및 1:1 합성 보장
    ========================================================================== */
 
 var ALL_SCREENS = [
@@ -155,7 +155,7 @@ function loadButterflyModel(group, shapeId, antId, wingMat, whiteMat, scale, onL
 
     model.traverse(function(child) {
       var n = child.name || '';
-      // 🌟 [수정]: 피벗을 가진 최상위 Wing 노드를 날갯짓 타겟으로 잡고, 재질은 Mesh에 정상 부여
+      // 🌟 피벗을 가진 최상위 Wing 노드를 날갯짓 타겟으로 잡고, 재질은 Mesh에 정상 부여
       if (n.indexOf('Wing_L') > -1) {
         if (!wL) {
           wL = child;
@@ -210,7 +210,6 @@ function initLoading3DScene() {
   (function animateLoading() {
     loadingAnimFrameId = requestAnimationFrame(animateLoading);
     var t = clock.getElapsedTime(), flap = Math.sin(t * 7.5) * 0.42;
-    // 🌟 [수정]: 덮어쓰지 않고 캐싱된 기본 각도를 기준으로 펄럭임 적용
     if (loadingWingL && loadingWingR) { 
       loadingWingL.rotation.y = (loadingWingL.userData.baseRotY || 0) + flap; 
       loadingWingR.rotation.y = (loadingWingR.userData.baseRotY || 0) - flap; 
@@ -262,7 +261,6 @@ function initShare3DScene() {
   (function animateShare() {
     shareAnimFrameId = requestAnimationFrame(animateShare);
     var t = clock.getElapsedTime(), flap = Math.sin(t * 7.5) * 0.42;
-    // 🌟 [수정]: 덮어쓰지 않고 캐싱된 기본 각도를 기준으로 펄럭임 적용
     if (shareWingL && shareWingR) { 
       shareWingL.rotation.y = (shareWingL.userData.baseRotY || 0) + flap; 
       shareWingR.rotation.y = (shareWingR.userData.baseRotY || 0) - flap; 
@@ -661,12 +659,11 @@ function preloadPatternImage(path) {
   }
 }
 
-// 3D 한쪽 날개 패턴 이미지 사전 캐싱 함수
+// 3D 한쪽 날개 패턴 이미지 사전 캐싱 함수 (3DButterfly_pattern 경로 및 파일명 규칙 반영)
 function preloadSingleWingPattern(shape, patternId) {
   if (!patternId || patternId.indexOf('none') > -1) return;
   var patNum = patternId.split('_')[1] || "1";
-  if (patNum.length === 1) patNum = "0" + patNum;
-  var path = '3DButterfly/wing_pattern_' + shape + '_' + patNum + '.png';
+  var path = '3DButterfly_pattern/' + shape + '_pattern_3D_' + patNum + '.png';
   if (!patternImageCache[path]) {
     var img = new Image();
     img.crossOrigin = "anonymous";
@@ -1181,12 +1178,11 @@ function exportAlignedTexture() {
   // 1. 사용자 사진 텍스처 합성
   fctx.drawImage(baseCanvas, 0, 0, alignCanvas.width, alignCanvas.height, 0, 0, outW, outH);
 
-  // 2. 3D 나비 날개에 맞는 한쪽 날개 패턴(3DButterfly/) 1:1 합성
+  // 2. 3D 나비 날개에 맞는 한쪽 날개 패턴(3DButterfly_pattern/) 1:1 합성
   var singleWingPatternPath = null;
   if (selectedPatternId && selectedPatternId.indexOf('none') === -1) {
     var patNum = selectedPatternId.split('_')[1] || "1";
-    if (patNum.length === 1) patNum = "0" + patNum;
-    singleWingPatternPath = '3DButterfly/wing_pattern_' + selectedButterflyShape + '_' + patNum + '.png';
+    singleWingPatternPath = '3DButterfly_pattern/' + selectedButterflyShape + '_pattern_3D_' + patNum + '.png';
   }
 
   if (singleWingPatternPath) {
@@ -1721,7 +1717,6 @@ function initFullButterflyViewer(textureURL) {
         leftWingMesh = null; rightWingMesh = null; antennaMesh = null;
         gltf.scene.traverse(function(child) {
           var n = child.name || '';
-          // 🌟 [수정]: 피벗을 쥔 최상위 노드를 Wing 타겟으로 잡고, 재질은 메시마다 부여
           if (n.indexOf('Wing_L') > -1) { 
             if (!leftWingMesh) {
               leftWingMesh = child;
@@ -1777,7 +1772,6 @@ function initFullButterflyViewer(textureURL) {
       }
     }
 
-    // 🌟 [수정]: initialRot의 X, Z 각도를 보존하면서 Y축 각도만 펄럭임 반영
     if (!isFlyingAway) {
       if (elapsedSec < 3.6) {
         var progress = Math.min(1.0, elapsedSec / 3.6);
@@ -1788,8 +1782,8 @@ function initFullButterflyViewer(textureURL) {
           rightWingMesh.rotation.set(initialRotR.x, initialRotR.y - flapIntro, initialRotR.z);
         }
       } else {
-        fullGroup.position.y = 0; // 몸통 Y축 정위치 완전 고정
-        var flapIdle = Math.sin(time * 6.5) * 0.35; // 순수 날개만 부드러운 날갯짓 지속
+        fullGroup.position.y = 0;
+        var flapIdle = Math.sin(time * 6.5) * 0.35;
         if (leftWingMesh && rightWingMesh) {
           leftWingMesh.rotation.set(initialRotL.x, initialRotL.y + flapIdle, initialRotL.z);
           rightWingMesh.rotation.set(initialRotR.x, initialRotR.y - flapIdle, initialRotR.z);
@@ -2098,7 +2092,6 @@ function openSpecimen3DModal(item, textureUrl) {
   (function modalAnimate() {
     modalAnimFrameId = requestAnimationFrame(modalAnimate);
     var t = clock.getElapsedTime(), flap = Math.sin(t * 6.5) * 0.45;
-    // 🌟 [수정]: 덮어쓰지 않고 캐싱된 기본 각도를 기준으로 펄럭임 적용
     if (modalWingL && modalWingR) { 
       modalWingL.rotation.y = (modalWingL.userData.baseRotY || 0) + flap; 
       modalWingR.rotation.y = (modalWingR.userData.baseRotY || 0) - flap; 
