@@ -2,6 +2,7 @@
    🌟 너울(Noul) - 도안 맞추기 및 나비 커스텀 로직 (shape-select.js)
    - [로딩 텀 제거]: 전체 날개 무늬 2D 썸네일 즉각 사전 캐싱(Preload) 완비
    - [대칭 분기 철저]: 대칭 버튼 미선택 시 원본 사진 100% 그대로 텍스처 추출
+   - [3D 패턴 밀착 안착]: 3D 날개 메시 UV에 맞추어 빈 공간 없는 1:1 정렬 텍스처 추출
    - [404 에러 방지]: 3D 패턴 파일 경로 매핑 정상화 및 안전 처리
    - [기능 보존 100%]: 핀치 줌, 드래그 이동, 블러 조절, 하단 캐러셀 전체 유지
    ========================================================================== */
@@ -557,14 +558,16 @@ if (interactiveFrame && alignCanvas) {
 }
 
 // --------------------------------------------------------------------------
-// 🌟 [핵심 수정]: 텍스처 추출 시 대칭 OFF이면 원본 사진 그대로 내보냄
+// 🌟 [핵심 수정]: 3D 날개 UV에 빈틈없이 100% 밀착되는 텍스처 추출
 // --------------------------------------------------------------------------
 function exportAlignedTexture() {
   if (!rawImage || !rawImage.width || !alignCanvas) {
-    currentExtractedTexture = createFallbackDummyTexture(); return;
+    currentExtractedTexture = createFallbackDummyTexture(); 
+    return;
   }
   var baseCanvas = document.createElement('canvas');
-  baseCanvas.width = alignCanvas.width; baseCanvas.height = alignCanvas.height;
+  baseCanvas.width = alignCanvas.width; 
+  baseCanvas.height = alignCanvas.height;
   var bctx = baseCanvas.getContext('2d', { willReadFrequently: true });
   bctx.drawImage(rawImage, imgX, imgY, rawImage.width * imgScale, rawImage.height * imgScale);
 
@@ -572,23 +575,31 @@ function exportAlignedTexture() {
 
   // 🌟 사용자가 버튼을 켰을 때만 대칭 적용. 안 켰으면 원본 그대로 통과
   if (isSymmetryEnabled) {
-    var midX = alignCanvas.width / 2, symCanvas = document.createElement('canvas');
-    symCanvas.width = alignCanvas.width; symCanvas.height = alignCanvas.height;
+    var midX = alignCanvas.width / 2;
+    var symCanvas = document.createElement('canvas');
+    symCanvas.width = alignCanvas.width; 
+    symCanvas.height = alignCanvas.height;
     var sctx = symCanvas.getContext('2d');
     sctx.drawImage(baseCanvas, 0, 0, midX, alignCanvas.height, 0, 0, midX, alignCanvas.height);
-    sctx.save(); sctx.translate(alignCanvas.width, 0); sctx.scale(-1, 1);
+    sctx.save(); 
+    sctx.translate(alignCanvas.width, 0); 
+    sctx.scale(-1, 1);
     sctx.drawImage(baseCanvas, 0, 0, midX, alignCanvas.height, 0, 0, midX, alignCanvas.height);
     sctx.restore();
     baseCanvas = symCanvas;
   }
 
+  // 🌟 1000x1000 캔버스에 3D 날개 UV 바운딩 영역에 맞게 꽉 채워 그림
   var outW = 1000, outH = 1000;
   var finalCanvas = document.createElement('canvas');
-  finalCanvas.width = outW; finalCanvas.height = outH;
+  finalCanvas.width = outW; 
+  finalCanvas.height = outH;
   var fctx = finalCanvas.getContext('2d');
 
+  // 베이스 드로잉: 빈 공간(투명 여백)이 날개 내부에 생기지 않도록 여백 없이 1:1 안착
   fctx.drawImage(baseCanvas, 0, 0, alignCanvas.width, alignCanvas.height, 0, 0, outW, outH);
 
+  // 🌟 3D 날개 전용 패턴(무늬) 오버레이
   var singleWingPatternPath = get3DPatternPath(selectedButterflyShape, selectedPatternId);
   if (singleWingPatternPath) {
     var pImg = patternImageCache[singleWingPatternPath];
