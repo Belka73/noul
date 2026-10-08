@@ -1,4 +1,4 @@
-/* ==========================================================================
+\/* ==========================================================================
    🌟 너울(Noul) - 도안 맞추기 및 나비 커스텀 로직 (shape-select.js)
    - [2D/3D 패턴 완벽 분리]: 
      1) 1번 화면(날개 형태/무늬 고르기): 2DButterfly_pattern/ 의 2D png 사용
@@ -8,6 +8,7 @@
      * 대칭 On/Off는 사용자가 촬영/업로드한 사진 배경에만 적용
      * 3D 고유 패턴 png는 항상 온전한 대칭 완성형 규격 그대로 얹어짐
    - [비동기 1:1 텍스처 보장]: 3D 패턴 png 로딩 완료 후 3D 씬으로 전달
+   - [수정 완료]: 3D 패턴 합성 시 좌우 날개 UV 정밀 대칭 정렬로 양쪽 날개 1:1 완벽 장착
    - [기능 보존 100%]: 핀치 줌, 드래그 이동, 블러 조절, 하단 캐러셀 전체 유지
    ========================================================================== */
 
@@ -591,7 +592,7 @@ if (interactiveFrame && alignCanvas) {
 // --------------------------------------------------------------------------
 // 🌟 [핵심 수정]: 3D 나비용 텍스처를 1:1로 합성하여 추출 (Promise 기반 보장)
 // - 사용자 배경 사진: isSymmetryEnabled(대칭 여부)에 따라 적용
-// - 3D 패턴 png: 대칭 여부와 무관하게 항상 온전한 대칭 완성형 규격으로 1000x1000에 얹어짐
+// - 3D 패턴 png: 오른쪽 날개(완벽한 기준)를 기반으로 왼쪽 날개 영역에 1:1 정밀 미러링 안착
 // --------------------------------------------------------------------------
 function exportAlignedTexture() {
   return new Promise(function(resolve) {
@@ -635,14 +636,21 @@ function exportAlignedTexture() {
 
     fctx.drawImage(baseCanvas, 0, 0, alignCanvas.width, alignCanvas.height, 0, 0, outW, outH);
 
-    // 3단계: 시스템 3D 패턴 png(3DButterfly_pattern/)를 온전한 완성본 형태로 위에 얹음
+    // 3단계: 시스템 3D 패턴 png(3DButterfly_pattern/)를 정밀 좌우 대칭으로 합성
     var singleWingPatternPath3D = get3DPatternPath(selectedButterflyShape, selectedPatternId);
     if (singleWingPatternPath3D) {
       function drawPatternAndFinish(img) {
         if (img && (img.naturalWidth > 0 || img.width > 0)) {
+          var halfW = outW / 2; // 500
+          
+          // 1) 오른쪽 날개: 원본 1:1 완벽한 위치에 그대로 드로잉 (500~1000)
+          fctx.drawImage(img, halfW, 0, halfW, outH, halfW, 0, halfW, outH);
+
+          // 2) 왼쪽 날개: 완벽하게 일치하는 오른쪽 날개 패턴을 좌우 반전하여 왼쪽(0~500)에 1:1 일치화
           fctx.save();
-          // 3D 패턴은 이미 좌우 대칭 및 3D 날개 메쉬에 맞춘 완제품이므로 1000x1000에 1:1 정위치 합성
-          fctx.drawImage(img, 0, 0, outW, outH);
+          fctx.translate(halfW, 0);
+          fctx.scale(-1, 1);
+          fctx.drawImage(img, halfW, 0, halfW, outH, 0, 0, halfW, outH);
           fctx.restore();
         }
         currentExtractedTexture = finalCanvas.toDataURL('image/png');
