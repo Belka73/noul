@@ -8,7 +8,7 @@
      * 대칭 On/Off는 사용자가 촬영/업로드한 사진 배경에만 적용
      * 3D 고유 패턴 png는 항상 온전한 대칭 완성형 규격 그대로 얹어짐
    - [비동기 1:1 텍스처 보장]: 3D 패턴 png 로딩 완료 후 3D 씬으로 전달
-   - [수정 완료]: 클리핑 마스크 기반 1:1 무손실 대칭 드로잉으로 패턴 확대 현상 제거 및 완벽한 대칭 안착
+   - [수정 완료]: 불필요한 마스크/임시캔버스 없이 오른쪽 날개를 좌측으로 1:1 직관 대칭 복제하여 패턴 왜곡 및 크기 불일치 완전 해결
    - [기능 보존 100%]: 핀치 줌, 드래그 이동, 블러 조절, 하단 캐러셀 전체 유지
    ========================================================================== */
 
@@ -592,7 +592,7 @@ if (interactiveFrame && alignCanvas) {
 // --------------------------------------------------------------------------
 // 🌟 [핵심 수정]: 3D 나비용 텍스처를 1:1로 합성하여 추출 (Promise 기반 보장)
 // - 사용자 배경 사진: isSymmetryEnabled(대칭 여부)에 따라 적용
-// - 3D 패턴 png: 확대 왜곡 없이 1000x1000 원본 비율 그대로 우측 렌더링 + 좌측 1:1 정밀 반전 클리핑
+// - 3D 패턴 png: 1000x1000 원본 크기 그대로 그린 뒤, 오른쪽 반쪽을 왼쪽으로 수평 반전 복제
 // --------------------------------------------------------------------------
 function exportAlignedTexture() {
   return new Promise(function(resolve) {
@@ -641,27 +641,17 @@ function exportAlignedTexture() {
     if (singleWingPatternPath3D) {
       function drawPatternAndFinish(img) {
         if (img && (img.naturalWidth > 0 || img.width > 0)) {
-          var halfW = outW / 2; // 500
-
-          // [1] 오른쪽 날개 (500 ~ 1000 영역)
-          // 우측 절반에만 클리핑 마스크를 씌운 뒤, 원본 1000x1000 크기 그대로 1:1 드로잉 (확대 왜곡 방지)
-          fctx.save();
-          fctx.beginPath();
-          fctx.rect(halfW, 0, halfW, outH);
-          fctx.clip();
+          // 1) 1000x1000 원본 패턴 이미지를 1:1 원래 배율 그대로 온전히 캔버스에 드로잉
+          // (오른쪽 날개는 3D 메쉬와 완벽하게 일치하는 원본 1:1 상태 유지)
           fctx.drawImage(img, 0, 0, outW, outH);
-          fctx.restore();
 
-          // [2] 왼쪽 날개 (0 ~ 500 영역)
-          // 좌측 절반에 클리핑 마스크를 씌우고, 중심축(500) 기준으로 수평 반전하여 1:1 원래 크기 그대로 투영
+          // 2) 오른쪽 날개(500~1000) 그래픽을 중심선(X=500) 기준으로 수평 반전하여 왼쪽 날개(0~500)에 덮어씌움
+          // 전체 캔버스를 수평으로 뒤집으면(scale(-1, 1)), 원본의 X: 500~1000 영역이 화면의 X: 0~500 위치로 완벽하게 1:1 거울 대칭 복제됨
           fctx.save();
-          fctx.beginPath();
-          fctx.rect(0, 0, halfW, outH);
-          fctx.clip();
-          fctx.translate(halfW, 0);
+          fctx.translate(outW, 0);
           fctx.scale(-1, 1);
-          fctx.translate(-halfW, 0);
-          fctx.drawImage(img, 0, 0, outW, outH);
+          // 뒤집힌 상태에서 원본 이미지의 우측 절반(500, 0, 500, 1000)을 읽어 (500, 0, 500, 1000)에 찍으면 좌측(0~500)에 그대로 안착
+          fctx.drawImage(img, 500, 0, 500, 1000, 500, 0, 500, 1000);
           fctx.restore();
         }
         currentExtractedTexture = finalCanvas.toDataURL('image/png');
