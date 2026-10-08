@@ -3,7 +3,7 @@
    - Three.js 공통 씬/조명/카메라 설정
    - GLB 3D 나비 모델 로딩 및 텍스처 매핑 (1000x1000 완제품 텍스처 1:1 정위치 투영)
    - 로딩 화면 3D, 공유 화면 3D, 완성 뷰어(비행/기모으기/파티클), 표본실 3D 모달
-   - [적용 완료]: 날개 메쉬(Wing_L, Wing_R)에 1:1 텍스처 매핑 및 양면 렌더링(DoubleSide), alphaTest 완벽 적용
+   - [확대 버그 해결]: 1000x1000 합본 텍스처의 좌/우 절반(0.5)을 분할 매핑하여 날개 확대 현상 완전 해결
    ========================================================================== */
 
 // --------------------------------------------------------------------------
@@ -127,21 +127,39 @@ function stopLoading3DScene() {
 }
 
 // --------------------------------------------------------------------------
-// 🌟 [핵심 수정]: 날개 머티리얼 생성 (Three.js 텍스처 및 양면 머티리얼 적용)
+// 🌟 [핵심 수정]: 날개 텍스처 좌/우 0.5 분할 매핑 (2배 확대 및 왜곡 완전 해결)
+// - 전체 1000px 캔버스에서 좌측 날개는 0~500px 영역을 사용
+// - 우측 날개는 500~1000px 영역을 사용
 // --------------------------------------------------------------------------
 function createWingMaterials(textureURL) {
   var textureLoader = new THREE.TextureLoader();
-  var tex = textureLoader.load(textureURL);
-  tex.flipY = false;
-  tex.wrapS = THREE.ClampToEdgeWrapping;
-  tex.wrapT = THREE.ClampToEdgeWrapping;
-  if (THREE.sRGBEncoding) {
-    tex.encoding = THREE.sRGBEncoding;
-  }
-  tex.needsUpdate = true;
 
-  var wingMat = new THREE.MeshStandardMaterial({ 
-    map: tex, 
+  // 왼쪽 날개 전용 텍스처 (왼쪽 절반 0.0 ~ 0.5)
+  var texL = textureLoader.load(textureURL);
+  texL.flipY = false;
+  texL.wrapS = THREE.ClampToEdgeWrapping;
+  texL.wrapT = THREE.ClampToEdgeWrapping;
+  texL.repeat.set(0.5, 1.0);
+  texL.offset.set(0.0, 0.0);
+  if (THREE.sRGBEncoding) {
+    texL.encoding = THREE.sRGBEncoding;
+  }
+  texL.needsUpdate = true;
+
+  // 오른쪽 날개 전용 텍스처 (오른쪽 절반 0.5 ~ 1.0)
+  var texR = textureLoader.load(textureURL);
+  texR.flipY = false;
+  texR.wrapS = THREE.ClampToEdgeWrapping;
+  texR.wrapT = THREE.ClampToEdgeWrapping;
+  texR.repeat.set(0.5, 1.0);
+  texR.offset.set(0.5, 0.0);
+  if (THREE.sRGBEncoding) {
+    texR.encoding = THREE.sRGBEncoding;
+  }
+  texR.needsUpdate = true;
+
+  var wingMatL = new THREE.MeshStandardMaterial({ 
+    map: texL, 
     side: THREE.DoubleSide, 
     transparent: true, 
     alphaTest: 0.05,
@@ -149,7 +167,16 @@ function createWingMaterials(textureURL) {
     metalness: 0.1
   });
 
-  return { left: wingMat, right: wingMat };
+  var wingMatR = new THREE.MeshStandardMaterial({ 
+    map: texR, 
+    side: THREE.DoubleSide, 
+    transparent: true, 
+    alphaTest: 0.05,
+    roughness: 0.6,
+    metalness: 0.1
+  });
+
+  return { left: wingMatL, right: wingMatR };
 }
 
 // --------------------------------------------------------------------------
@@ -509,7 +536,7 @@ function bindInteractiveEvents(targetEl) {
   targetEl.ontouchstart = function(e) { if (e.touches.length === 1) handlePointerStart(e.touches[0].clientX, e.touches[0].clientY); };
   window.addEventListener('touchmove', function(e) { if (isUserDragging && e.touches.length === 1) handlePointerMove(e.touches[0].clientX, e.touches[0].clientY); }, { passive: true });
   window.addEventListener('touchend', function(e) { if (e.changedTouches.length > 0) handlePointerEnd(e.changedTouches[0].clientX, e.changedTouches[0].clientY); }, { passive: true });
-  window.addEventListener('touchcancel', function(e) { if (e.changedTouches.length > 0) handlePointerEnd(e.changedTouches[0].clientX, e.changedTouches[0].clientY); else resetChargeState(); }, { passive: true });
+  window.addEventListener('cancel', function(e) { if (e.changedTouches.length > 0) handlePointerEnd(e.changedTouches[0].clientX, e.changedTouches[0].clientY); else resetChargeState(); }, { passive: true });
   targetEl.onmousedown = function(e) { handlePointerStart(e.clientX, e.clientY); };
   window.addEventListener('mousemove', function(e) { if (isUserDragging) handlePointerMove(e.clientX, e.clientY); });
   window.addEventListener('mouseup', function(e) { handlePointerEnd(e.clientX, e.clientY); });
