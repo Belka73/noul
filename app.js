@@ -1,7 +1,7 @@
 /* ==========================================================================
    🌟 너울(Noul) 메인 애플리케이션 로직 (app.js)
    - [기존 요소 100% 보존]: 3D 뷰어, 물리 엔진, 검색, 인터랙션 전체 유지
-   - [날개 회전 정상화]: 상위 빈 그룹이 아닌 실제 Mesh(child.isMesh)만 정확히 타겟팅하여 몸통 고정 및 날개만 독립 펄럭임 복구
+   - [날개 회전 정상화]: 상위 빈 그룹이 아닌 실제 Mesh(child.isMesh) 타겟팅 및 기존 모델 기본 각도(baseRotY) 보존형 정밀 날갯짓 복구
    - [패턴 누락 완벽 해결]: 3DButterfly/ 한쪽 날개 무늬 사전 캐싱 및 1:1 합성 보장
    ========================================================================== */
 
@@ -155,24 +155,26 @@ function loadButterflyModel(group, shapeId, antId, wingMat, whiteMat, scale, onL
 
     model.traverse(function(child) {
       var n = child.name || '';
-      // 🌟 [수정 완료]: 상위 빈 그룹이 아닌 실제 메쉬(child.isMesh)만 정확히 날개 회전 타겟으로 등록
-      if (n.indexOf('Wing_L') > -1) { 
-        if (child.isMesh) {
-          if (!wL) wL = child;
-          child.material = wingMat; 
+      // 🌟 [수정]: 피벗을 가진 최상위 Wing 노드를 날갯짓 타겟으로 잡고, 재질은 Mesh에 정상 부여
+      if (n.indexOf('Wing_L') > -1) {
+        if (!wL) {
+          wL = child;
+          wL.userData.baseRotY = child.rotation.y;
         }
+        if (child.isMesh) child.material = wingMat;
       }
-      else if (n.indexOf('Wing_R') > -1) { 
-        if (child.isMesh) {
-          if (!wR) wR = child;
-          child.material = wingMat; 
+      else if (n.indexOf('Wing_R') > -1) {
+        if (!wR) {
+          wR = child;
+          wR.userData.baseRotY = child.rotation.y;
         }
+        if (child.isMesh) child.material = wingMat;
       }
-      else if (n.indexOf('Body') > -1) { 
-        if (child.isMesh) child.material = whiteMat; 
+      else if (n.indexOf('Body') > -1 && child.isMesh) { 
+        child.material = whiteMat; 
       }
-      else if (n.indexOf('Antenna_') > -1) { 
-        if (child.isMesh) child.material = whiteMat; 
+      else if (n.indexOf('Antenna_') > -1 && child.isMesh) { 
+        child.material = whiteMat; 
         child.visible = n.indexOf(targetAnt) > -1; 
       }
     });
@@ -208,7 +210,11 @@ function initLoading3DScene() {
   (function animateLoading() {
     loadingAnimFrameId = requestAnimationFrame(animateLoading);
     var t = clock.getElapsedTime(), flap = Math.sin(t * 7.5) * 0.42;
-    if (loadingWingL && loadingWingR) { loadingWingL.rotation.y = flap; loadingWingR.rotation.y = -flap; }
+    // 🌟 [수정]: 덮어쓰지 않고 캐싱된 기본 각도를 기준으로 펄럭임 적용
+    if (loadingWingL && loadingWingR) { 
+      loadingWingL.rotation.y = (loadingWingL.userData.baseRotY || 0) + flap; 
+      loadingWingR.rotation.y = (loadingWingR.userData.baseRotY || 0) - flap; 
+    }
     loadingRenderer.render(loadingScene, loadingCamera);
   })();
 }
@@ -256,7 +262,11 @@ function initShare3DScene() {
   (function animateShare() {
     shareAnimFrameId = requestAnimationFrame(animateShare);
     var t = clock.getElapsedTime(), flap = Math.sin(t * 7.5) * 0.42;
-    if (shareWingL && shareWingR) { shareWingL.rotation.y = flap; shareWingR.rotation.y = -flap; }
+    // 🌟 [수정]: 덮어쓰지 않고 캐싱된 기본 각도를 기준으로 펄럭임 적용
+    if (shareWingL && shareWingR) { 
+      shareWingL.rotation.y = (shareWingL.userData.baseRotY || 0) + flap; 
+      shareWingR.rotation.y = (shareWingR.userData.baseRotY || 0) - flap; 
+    }
     shareRenderer.render(shareScene, shareCamera);
   })();
 }
@@ -1711,30 +1721,26 @@ function initFullButterflyViewer(textureURL) {
         leftWingMesh = null; rightWingMesh = null; antennaMesh = null;
         gltf.scene.traverse(function(child) {
           var n = child.name || '';
-          // 🌟 [수정 완료]: 상위 빈 그룹이 아닌 실제 Mesh(child.isMesh)만 정확히 타겟팅하여 몸통 회전 방지
+          // 🌟 [수정]: 피벗을 쥔 최상위 노드를 Wing 타겟으로 잡고, 재질은 메시마다 부여
           if (n.indexOf('Wing_L') > -1) { 
-            if (child.isMesh) {
-              if (!leftWingMesh) {
-                leftWingMesh = child;
-                initialRotL = { x: child.rotation.x, y: child.rotation.y, z: child.rotation.z };
-              }
-              child.material = wingMat; 
+            if (!leftWingMesh) {
+              leftWingMesh = child;
+              initialRotL = { x: child.rotation.x, y: child.rotation.y, z: child.rotation.z };
             }
+            if (child.isMesh) child.material = wingMat; 
           }
           else if (n.indexOf('Wing_R') > -1) { 
-            if (child.isMesh) {
-              if (!rightWingMesh) {
-                rightWingMesh = child;
-                initialRotR = { x: child.rotation.x, y: child.rotation.y, z: child.rotation.z };
-              }
-              child.material = wingMat; 
+            if (!rightWingMesh) {
+              rightWingMesh = child;
+              initialRotR = { x: child.rotation.x, y: child.rotation.y, z: child.rotation.z };
             }
+            if (child.isMesh) child.material = wingMat; 
           }
-          else if (n.indexOf('Body') > -1) { 
-            if (child.isMesh) child.material = whiteMat; 
+          else if (n.indexOf('Body') > -1 && child.isMesh) { 
+            child.material = whiteMat; 
           }
-          else if (n.indexOf('Antenna_') > -1) { 
-            if (child.isMesh) child.material = whiteMat; 
+          else if (n.indexOf('Antenna_') > -1 && child.isMesh) { 
+            child.material = whiteMat; 
             child.visible = n.indexOf(targetAnt) > -1; 
             if (child.visible) antennaMesh = child; 
           }
@@ -1771,29 +1777,29 @@ function initFullButterflyViewer(textureURL) {
       }
     }
 
-    // 🌟 [수정 완료] 몸통은 (0, 0, 0)에 완전히 고정되고, 순수 날개 Mesh만 펄럭임
+    // 🌟 [수정]: initialRot의 X, Z 각도를 보존하면서 Y축 각도만 펄럭임 반영
     if (!isFlyingAway) {
       if (elapsedSec < 3.6) {
         var progress = Math.min(1.0, elapsedSec / 3.6);
         fullGroup.position.y = -7.0 + 7.0 * (1.0 - Math.pow(1.0 - progress, 3));
         var flapIntro = Math.sin(time * 30.0) * (0.85 * Math.pow(1.0 - progress, 1.4));
         if (leftWingMesh && rightWingMesh) {
-          leftWingMesh.rotation.y = initialRotL.y + 0.25 + flapIntro;
-          rightWingMesh.rotation.y = initialRotR.y - 0.25 - flapIntro;
+          leftWingMesh.rotation.set(initialRotL.x, initialRotL.y + flapIntro, initialRotL.z);
+          rightWingMesh.rotation.set(initialRotR.x, initialRotR.y - flapIntro, initialRotR.z);
         }
       } else {
-        fullGroup.position.y = 0; // 몸통 Y축 정위치 완전 고정 (통째로 흔들리지 않음)
+        fullGroup.position.y = 0; // 몸통 Y축 정위치 완전 고정
         var flapIdle = Math.sin(time * 6.5) * 0.35; // 순수 날개만 부드러운 날갯짓 지속
         if (leftWingMesh && rightWingMesh) {
-          leftWingMesh.rotation.y = initialRotL.y + 0.25 + flapIdle;
-          rightWingMesh.rotation.y = initialRotR.y - 0.25 - flapIdle;
+          leftWingMesh.rotation.set(initialRotL.x, initialRotL.y + flapIdle, initialRotL.z);
+          rightWingMesh.rotation.set(initialRotR.x, initialRotR.y - flapIdle, initialRotR.z);
         }
       }
     } else {
       var flyAngle = Math.sin(time * 26.0) * 0.75;
       if (leftWingMesh && rightWingMesh) {
-        leftWingMesh.rotation.y = initialRotL.y + 0.28 + flyAngle;
-        rightWingMesh.rotation.y = initialRotR.y - 0.28 - flyAngle;
+        leftWingMesh.rotation.set(initialRotL.x, initialRotL.y + flyAngle, initialRotL.z);
+        rightWingMesh.rotation.set(initialRotR.x, initialRotR.y - flyAngle, initialRotR.z);
       }
       fullGroup.position.y += 0.09; fullGroup.position.z -= 0.04;
 
@@ -2092,7 +2098,11 @@ function openSpecimen3DModal(item, textureUrl) {
   (function modalAnimate() {
     modalAnimFrameId = requestAnimationFrame(modalAnimate);
     var t = clock.getElapsedTime(), flap = Math.sin(t * 6.5) * 0.45;
-    if (modalWingL && modalWingR) { modalWingL.rotation.y = flap; modalWingR.rotation.y = -flap; }
+    // 🌟 [수정]: 덮어쓰지 않고 캐싱된 기본 각도를 기준으로 펄럭임 적용
+    if (modalWingL && modalWingR) { 
+      modalWingL.rotation.y = (modalWingL.userData.baseRotY || 0) + flap; 
+      modalWingR.rotation.y = (modalWingR.userData.baseRotY || 0) - flap; 
+    }
     modalThreeRenderer.render(modalThreeScene, modalThreeCamera);
   })();
 }
