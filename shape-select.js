@@ -8,7 +8,7 @@
      * 대칭 On/Off는 사용자가 촬영/업로드한 사진 배경에만 적용
      * 3D 고유 패턴 png는 항상 온전한 대칭 완성형 규격 그대로 얹어짐
    - [비동기 1:1 텍스처 보장]: 3D 패턴 png 로딩 완료 후 3D 씬으로 전달
-   - [수정 완료]: 불필요한 마스크/임시캔버스 없이 오른쪽 날개를 좌측으로 1:1 직관 대칭 복제하여 패턴 왜곡 및 크기 불일치 완전 해결
+   - [1번 사진 1:1 일치화]: 인위적인 반쪽 분할/왜곡을 완전히 없애고 2D 화면 프레임 그대로 1000x1000 정위치 렌더링
    - [기능 보존 100%]: 핀치 줌, 드래그 이동, 블러 조절, 하단 캐러셀 전체 유지
    ========================================================================== */
 
@@ -590,11 +590,10 @@ if (interactiveFrame && alignCanvas) {
 }
 
 // --------------------------------------------------------------------------
-// 🌟 [수정 완료]: 3D 나비용 텍스처를 1:1로 합성하여 추출 (Promise 기반 보장)
-// - 사용자 배경 사진: isSymmetryEnabled(대칭 여부)에 따라 적용
-// - 3D 패턴 png: 우측 날개 원본 영역(500~1000)을 우측에 그대로 그리고,
-//   중심축(X=500)을 기준으로 좌측(0~500)에 정확히 1:1 거울 반전 투영하여
-//   크기 축소 및 교차 왜곡을 완벽히 방지함
+// 🌟 [핵심 수정]: 1번 사진(2D)과 100% 동일하게 1000x1000 정위치 텍스처 추출
+// - 캔버스 왜곡/거울반전 트릭을 완전히 배제
+// - 사용자가 1번 화면에서 배치한 사진 그대로를 1000x1000으로 리사이징
+// - 그 위에 선택된 3D 고유 무늬(1000x1000)를 정확히 1:1 오버레이하여 생성
 // --------------------------------------------------------------------------
 function exportAlignedTexture() {
   return new Promise(function(resolve) {
@@ -604,7 +603,7 @@ function exportAlignedTexture() {
       return;
     }
 
-    // 1단계: 사용자 사진 레이어 렌더링
+    // 1단계: 사용자 사진 레이어 렌더링 (alignCanvas 내용 복제)
     var baseCanvas = document.createElement('canvas');
     baseCanvas.width = alignCanvas.width; 
     baseCanvas.height = alignCanvas.height;
@@ -613,7 +612,7 @@ function exportAlignedTexture() {
 
     if (currentBlurPx > 0) executeReliableFastBlur(baseCanvas, currentBlurPx * 0.9);
 
-    // 🌟 사용자가 대칭을 켰을 때만 '사진'에 대칭 적용 (안 켰으면 원본 사진 그대로 유지)
+    // 사용자가 대칭을 켰을 때만 사진에 대칭 적용
     if (isSymmetryEnabled) {
       var midX = alignCanvas.width / 2;
       var symCanvas = document.createElement('canvas');
@@ -629,7 +628,7 @@ function exportAlignedTexture() {
       baseCanvas = symCanvas;
     }
 
-    // 2단계: 3D UV 표준 해상도(1000x1000) 캔버스에 사용자 사진 배경 배치
+    // 2단계: 3D UV 표준 해상도(1000x1000) 캔버스에 사용자 사진 1:1 정위치 전개
     var outW = 1000, outH = 1000;
     var finalCanvas = document.createElement('canvas');
     finalCanvas.width = outW; 
@@ -638,23 +637,13 @@ function exportAlignedTexture() {
 
     fctx.drawImage(baseCanvas, 0, 0, alignCanvas.width, alignCanvas.height, 0, 0, outW, outH);
 
-    // 3단계: 시스템 3D 패턴 png(3DButterfly_pattern/) 합성
+    // 3단계: 시스템 3D 패턴 png(3DButterfly_pattern/)를 1000x1000 전체에 1:1 정위치로 안착
     var singleWingPatternPath3D = get3DPatternPath(selectedButterflyShape, selectedPatternId);
     if (singleWingPatternPath3D) {
       function drawPatternAndFinish(img) {
         if (img && (img.naturalWidth > 0 || img.width > 0)) {
-          var halfW = outW / 2; // 500
-
-          // 1) 우측 날개는 원본 우측 절반(500~1000)을 우측 캔버스(500~1000)에 그대로 1:1 드로잉
-          fctx.drawImage(img, halfW, 0, halfW, outH, halfW, 0, halfW, outH);
-
-          // 2) 좌측 날개는 나비 중심선(X=500)을 기준축으로 삼아 정확히 거울 반전 복제
-          //    (우측 날개 원본 영역을 읽어 반전된 축의 양의 방향으로 그림 -> 화면의 0~500 영역에 완벽히 1:1 대칭 안착)
-          fctx.save();
-          fctx.translate(halfW, 0); // X = 500 기준축
-          fctx.scale(-1, 1);        // 좌우 거울 반전
-          fctx.drawImage(img, halfW, 0, halfW, outH, 0, 0, halfW, outH);
-          fctx.restore();
+          // 인위적인 좌우 분할/반전 없이 1번 사진 2D 미리보기처럼 전체 캔버스에 온전히 1:1 드로잉
+          fctx.drawImage(img, 0, 0, outW, outH);
         }
         currentExtractedTexture = finalCanvas.toDataURL('image/png');
         resolve(currentExtractedTexture);
@@ -665,7 +654,7 @@ function exportAlignedTexture() {
         drawPatternAndFinish(cachedImg);
         return;
       } else {
-        // 캐시가 준비되지 않았을 경우 비동기 로딩을 기다려 확실히 합성
+        // 캐시가 준비되지 않았을 경우 비동기 로딩 대기 후 1:1 합성
         var tempImg = new Image();
         tempImg.crossOrigin = "anonymous";
         tempImg.onload = function() {
