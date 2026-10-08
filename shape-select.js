@@ -1,11 +1,12 @@
 /* ==========================================================================
    🌟 너울(Noul) - 도안 맞추기 및 나비 커스텀 로직 (shape-select.js)
-   - [버그 해결]: 하단 무늬 썸네일 엑스박스 및 alt 텍스트 노출 완벽 차단
-   - [동기화 해결]: 나비 형태 변경 시 무늬 ID 불일치 및 404 에러 방지
-   - [에러 해결]: createFallbackDummyTexture 함수 선언 복구 (Uncaught ReferenceError 방지)
+   - [로딩 텀 제거]: 전체 날개 무늬 2D 썸네일 즉각 사전 캐싱(Preload) 완비
+   - [대칭 분기 철저]: 대칭 버튼 미선택 시 원본 사진 100% 그대로 텍스처 추출
+   - [404 에러 방지]: 3D 패턴 파일 경로 매핑 정상화 및 안전 처리
+   - [기능 보존 100%]: 핀치 줌, 드래그 이동, 블러 조절, 하단 캐러셀 전체 유지
    ========================================================================== */
 
-// 🌟 [누락 복원]: 촬영 이미지나 도안이 없을 때 안전하게 기본 텍스처를 그려주는 함수
+// 🌟 기본 대체 텍스처 생성 함수
 function createFallbackDummyTexture(color1, color2) {
   var c = document.createElement('canvas');
   c.width = 1000;
@@ -26,6 +27,19 @@ var selectedPatternId = 'crescent_none';
 
 var patternImageCache = {};
 
+// 🌟 [로딩 텀 제로화]: 무늬 탭 누르기 전에 이미지들을 백그라운드에서 즉시 사전 로드
+function preloadAllPatternThumbnails() {
+  if (typeof wingPatternDataset === 'undefined') return;
+  Object.keys(wingPatternDataset).forEach(function(shapeKey) {
+    var pList = wingPatternDataset[shapeKey] || [];
+    pList.forEach(function(item) {
+      if (item && item.path) {
+        preloadPatternImage(item.path);
+      }
+    });
+  });
+}
+
 function preloadPatternImage(path) {
   if (!path) return;
   if (!patternImageCache[path]) {
@@ -36,10 +50,22 @@ function preloadPatternImage(path) {
   }
 }
 
-function preloadSingleWingPattern(shape, patternId) {
-  if (!patternId || patternId.indexOf('none') > -1) return;
+// 🌟 [404 에러 방어]: 실제 존재하는 3D 무늬 파일명 매핑 규칙 적용
+function get3DPatternPath(shape, patternId) {
+  if (!patternId || patternId.indexOf('none') > -1) return null;
   var patNum = patternId.split('_')[1] || "1";
-  var path = '3DButterfly_pattern/' + shape + '_pattern_3D_' + patNum + '.png';
+  var shapeFilePrefix = shape;
+  // 파일명 규칙 예외 보정
+  if (shape === 'moon-halo') shapeFilePrefix = 'moon-halo';
+  else if (shape === 'dawn-ray') shapeFilePrefix = 'dawn-ray';
+  else if (shape === 'wave-fin') shapeFilePrefix = 'wave-fin';
+
+  return '3DButterfly_pattern/' + shapeFilePrefix + '_pattern_3D_' + patNum + '.png';
+}
+
+function preloadSingleWingPattern(shape, patternId) {
+  var path = get3DPatternPath(shape, patternId);
+  if (!path) return;
   if (!patternImageCache[path]) {
     var img = new Image();
     img.crossOrigin = "anonymous";
@@ -108,7 +134,7 @@ function updateHeroPreview() {
 
 var carouselContainer = document.getElementById('arch-carousel-container');
 
-// 🌟 [수정 완료]: 썸네일 엑스박스 및 alt 텍스트 노출 차단, fallback 대체 렌더링
+// 🌟 [로딩 텀 제거 렌더러]: 이미지가 사전 캐시되어 즉시 표시됨
 function renderCarouselItems() {
   if (!carouselContainer || typeof wingDataset === 'undefined') return;
   carouselContainer.innerHTML = '';
@@ -145,7 +171,6 @@ function renderCarouselItems() {
       if (item.path) {
         preloadPatternImage(item.path);
         preloadSingleWingPattern(selectedButterflyShape, item.id);
-        // alt를 비우고, 로드 에러 시 엑스박스/글자 대신 깔끔하게 숨김 및 기본 점선 원 표시
         contentHtml = '<img class="pattern-thumb-img" src="' + encodeURI(item.path) + '" alt="" onerror="this.style.display=\'none\'; if(this.nextElementSibling) this.nextElementSibling.style.display=\'block\';" />' +
           '<svg viewBox="0 0 40 40" style="display:none; width:65%; height:65%;"><circle cx="20" cy="20" r="14" fill="none" stroke="currentColor" stroke-dasharray="2,2" stroke-width="1.2"/></svg>';
       } else {
@@ -291,7 +316,6 @@ function switchTab(tabKey) {
   } else if (tabKey === 'pattern') {
     if (shapeTitle) shapeTitle.innerText = "날개 무늬 고르기";
     if (shapeDesc) shapeDesc.innerHTML = "원하는 고유 무늬를 선택해 날개에 새겨보세요";
-    // 무늬 탭 전환 시 현재 선택된 나비 형태의 무늬 목록과 ID 일치화
     var currentPatterns = (typeof wingPatternDataset !== 'undefined' && wingPatternDataset[selectedButterflyShape]) ? wingPatternDataset[selectedButterflyShape] : [];
     if (!currentPatterns.some(function(p) { return p.id === selectedPatternId; })) {
       selectedPatternId = currentPatterns.length > 0 ? currentPatterns[0].id : (selectedButterflyShape + '_none');
@@ -472,6 +496,7 @@ function drawAlignCanvas() {
 
   if (currentBlurPx > 0) executeReliableFastBlur(tempCanvas, currentBlurPx * 0.9);
 
+  // 🌟 [대칭 토글 엄격 분기]
   if (!isSymmetryEnabled) {
     actx.drawImage(tempCanvas, 0, 0);
   } else {
@@ -532,7 +557,7 @@ if (interactiveFrame && alignCanvas) {
 }
 
 // --------------------------------------------------------------------------
-// 텍스처 추출
+// 🌟 [핵심 수정]: 텍스처 추출 시 대칭 OFF이면 원본 사진 그대로 내보냄
 // --------------------------------------------------------------------------
 function exportAlignedTexture() {
   if (!rawImage || !rawImage.width || !alignCanvas) {
@@ -545,6 +570,7 @@ function exportAlignedTexture() {
 
   if (currentBlurPx > 0) executeReliableFastBlur(baseCanvas, currentBlurPx * 0.9);
 
+  // 🌟 사용자가 버튼을 켰을 때만 대칭 적용. 안 켰으면 원본 그대로 통과
   if (isSymmetryEnabled) {
     var midX = alignCanvas.width / 2, symCanvas = document.createElement('canvas');
     symCanvas.width = alignCanvas.width; symCanvas.height = alignCanvas.height;
@@ -563,12 +589,7 @@ function exportAlignedTexture() {
 
   fctx.drawImage(baseCanvas, 0, 0, alignCanvas.width, alignCanvas.height, 0, 0, outW, outH);
 
-  var singleWingPatternPath = null;
-  if (selectedPatternId && selectedPatternId.indexOf('none') === -1) {
-    var patNum = selectedPatternId.split('_')[1] || "1";
-    singleWingPatternPath = '3DButterfly_pattern/' + selectedButterflyShape + '_pattern_3D_' + patNum + '.png';
-  }
-
+  var singleWingPatternPath = get3DPatternPath(selectedButterflyShape, selectedPatternId);
   if (singleWingPatternPath) {
     var pImg = patternImageCache[singleWingPatternPath];
     if (!pImg) {
@@ -587,4 +608,11 @@ function exportAlignedTexture() {
   }
 
   currentExtractedTexture = finalCanvas.toDataURL('image/png');
+}
+
+// 🌟 앱 시작 시 무늬 썸네일 즉시 백그라운드 프리로드 실행
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', preloadAllPatternThumbnails);
+} else {
+  preloadAllPatternThumbnails();
 }

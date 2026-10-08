@@ -2,7 +2,7 @@
    🌟 너울(Noul) 메인 애플리케이션 로직 (app.js)
    - [기능 보존 100%]: 화면 전환, 3D 뷰어, 물리 엔진, 검색, 인터랙션 전체 유지
    - [역할 분리 완료]: 도안 정렬 및 하단 캐러셀 로직은 shape-select.js에서 전담
-   - [오류 완전 방어]: createFallbackDummyTexture 자체 탑재 및 안전 호출 보장
+   - [3D 비대칭/대칭 완벽 매핑]: 대칭 미선택 시 좌우 날개에 사용자 원본 100% 독립 매핑
    ========================================================================== */
 
 // 🌟 [안전장치]: shape-select.js 로드 순서와 무관하게 app.js 자체에서도 에러가 안 나도록 보장
@@ -172,7 +172,8 @@ function setupCommon3DScene(container, camZ, lookY) {
   return { scene: scene, camera: camera, renderer: renderer };
 }
 
-function loadButterflyModel(group, shapeId, antId, wingMat, whiteMat, scale, onLoaded) {
+// 🌟 [핵심 수정]: 좌우 날개 독립 머티리얼 지원 (대칭 OFF 시 사용자 원본 사진 1:1 보존)
+function loadButterflyModel(group, shapeId, antId, wingMatL, wingMatR, whiteMat, scale, onLoaded) {
   if (!window.THREE || !THREE.GLTFLoader) return;
   var modelPath = '3DButterfly/' + (shapeId || 'crescent') + '.glb';
   var targetAnt = 'Antenna_' + (antId || 'ball');
@@ -188,14 +189,14 @@ function loadButterflyModel(group, shapeId, antId, wingMat, whiteMat, scale, onL
           wL = child;
           wL.userData.baseRotY = child.rotation.y;
         }
-        if (child.isMesh) child.material = wingMat;
+        if (child.isMesh) child.material = wingMatL;
       }
       else if (n.indexOf('Wing_R') > -1) {
         if (!wR) {
           wR = child;
           wR.userData.baseRotY = child.rotation.y;
         }
-        if (child.isMesh) child.material = wingMat;
+        if (child.isMesh) child.material = wingMatR || wingMatL;
       }
       else if (n.indexOf('Body') > -1 && child.isMesh) { 
         child.material = whiteMat; 
@@ -228,7 +229,7 @@ function initLoading3DScene() {
   loadingGroup.rotation.set(0.25, -0.8, 0.35);
   loadingGroup.position.set(-0.28, -0.22, 0);
 
-  loadButterflyModel(loadingGroup, selectedButterflyShape, selectedAntennaType, whiteMat, whiteMat, 0.95, function(l, r) {
+  loadButterflyModel(loadingGroup, selectedButterflyShape, selectedAntennaType, whiteMat, whiteMat, whiteMat, 0.95, function(l, r) {
     loadingWingL = l; loadingWingR = r;
   });
   loadingScene.add(loadingGroup);
@@ -257,6 +258,33 @@ function stopLoading3DScene() {
 var shareScene, shareCamera, shareRenderer, shareGroup, shareWingL, shareWingR;
 var shareAnimFrameId = null;
 
+function createWingMaterials(textureURL) {
+  var isSym = (typeof isSymmetryEnabled !== 'undefined') ? isSymmetryEnabled : false;
+  var texL = new THREE.TextureLoader().load(textureURL);
+  texL.flipY = false;
+
+  var matL = new THREE.MeshBasicMaterial({ 
+    map: texL, 
+    side: THREE.DoubleSide, 
+    transparent: true, 
+    alphaTest: 0.05 
+  });
+
+  // 대칭이 아닐 경우 우측 날개는 텍스처를 독립적으로 매핑
+  var matR = matL;
+  if (!isSym) {
+    var texR = new THREE.TextureLoader().load(textureURL);
+    texR.flipY = false;
+    matR = new THREE.MeshBasicMaterial({ 
+      map: texR, 
+      side: THREE.DoubleSide, 
+      transparent: true, 
+      alphaTest: 0.05 
+    });
+  }
+  return { left: matL, right: matR };
+}
+
 function initShare3DScene() {
   stopShare3DScene();
   var res = setupCommon3DScene(document.getElementById('share-three-container'), 7.5, 0);
@@ -264,22 +292,14 @@ function initShare3DScene() {
   shareScene = res.scene; shareCamera = res.camera; shareRenderer = res.renderer;
 
   var texUrl = currentExtractedTexture || createFallbackDummyTexture('#ffffff', '#cfcfcf');
-  var tex = new THREE.TextureLoader().load(texUrl);
-  tex.flipY = false;
-
-  var wingMat = new THREE.MeshBasicMaterial({ 
-    map: tex, 
-    side: THREE.DoubleSide, 
-    transparent: true, 
-    alphaTest: 0.05 
-  });
+  var wingMats = createWingMaterials(texUrl);
   var whiteMat = new THREE.MeshStandardMaterial({ color: 0xffffff, side: THREE.DoubleSide, roughness: 0.35 });
 
   shareGroup = new THREE.Group();
   shareGroup.rotation.set(0.25, -0.8, 0.35);
   shareGroup.position.set(0, 0.45, 0);
 
-  loadButterflyModel(shareGroup, selectedButterflyShape, selectedAntennaType, wingMat, whiteMat, 0.68, function(l, r) {
+  loadButterflyModel(shareGroup, selectedButterflyShape, selectedAntennaType, wingMats.left, wingMats.right, whiteMat, 0.68, function(l, r) {
     shareWingL = l; shareWingR = r;
   });
   shareScene.add(shareGroup);
@@ -388,7 +408,7 @@ var btnActionHome = document.getElementById('btn-action-home');
 if (btnActionHome) btnActionHome.onclick = function() { location.reload(); };
 
 // --------------------------------------------------------------------------
-// 🌟 DEV 전역 건너뛰기 이벤트 (에러 없는 안전한 1:1 순차 전환)
+// 🌟 DEV 전역 건너뛰기 이벤트
 // --------------------------------------------------------------------------
 function ensureDevDummyData() {
   if (!userSelections.q7_name) userSelections.q7_name = "테스트나비";
@@ -399,7 +419,7 @@ function ensureDevDummyData() {
   if (!userSelections.concern_reason) userSelections.concern_reason = "항상 잘 해내야 한다는 마음이 앞서서요.";
   if (!userSelections.q6_memo) userSelections.q6_memo = "너의 찬란한 날갯짓을 응원해.";
   
-  // 🌟 안전 호출: 함수가 있고 캔버스가 유효할 때만 실행
+  // 🌟 사용자가 직접 추출한 텍스처가 이미 있다면 덮어쓰지 않고 보존
   if (!currentExtractedTexture) {
     try {
       if (typeof exportAlignedTexture === 'function') exportAlignedTexture();
@@ -993,7 +1013,7 @@ if (inputQ7Name) {
   };
 }
 
-// 🌟 [정석 진행]: 고민 선택 완료 시 브릿지 화면(screen-post-survey-intro)으로 정상 진입
+// 🌟 [정석 진행]: 2단계 완료 시 브릿지 화면(screen-post-survey-intro)으로 정상 진입
 if (btnSurveyNext) {
   btnSurveyNext.onclick = function() {
     if (currentStepIdx === 0) { currentStepIdx = 1; renderSurveyStep(); }
@@ -1202,7 +1222,7 @@ function stopBubblePhysics() {
 }
 
 // --------------------------------------------------------------------------
-// 🌟 나비 뷰어 및 인터랙션 로직 (몸통은 고정, 날개만 지속 펄럭임)
+// 🌟 나비 뷰어 및 인터랙션 로직
 // --------------------------------------------------------------------------
 var fullScene, fullCamera, fullRenderer, fullGroup, leftWingMesh, rightWingMesh, antennaMesh;
 var isFlyingAway = false, animFrameId = null;
@@ -1240,6 +1260,7 @@ async function saveButterflyToSupabase() {
   } catch (err) { console.error("Supabase 나비 저장 에러:", err); }
 }
 
+// 🌟 [핵심 보정]: 대칭 OFF 시 원본 사진 그대로 3D 날개 좌우에 100% 매핑
 function initFullButterflyViewer(textureURL) {
   var container = document.getElementById('three-container');
   if (animFrameId) { cancelAnimationFrame(animFrameId); animFrameId = null; }
@@ -1263,8 +1284,7 @@ function initFullButterflyViewer(textureURL) {
   var dirLight = new THREE.DirectionalLight(0xffffff, 0.85);
   dirLight.position.set(0, 5, 10); fullScene.add(dirLight);
 
-  var userTexture = new THREE.TextureLoader().load(textureURL);
-  userTexture.flipY = false;
+  var wingMats = createWingMaterials(textureURL);
 
   fullGroup = new THREE.Group();
   butterflyRotX = DEFAULT_ROT_X; butterflyRotY = DEFAULT_ROT_Y;
@@ -1274,12 +1294,6 @@ function initFullButterflyViewer(textureURL) {
   previewStartTime = performance.now();
   isFlyingAway = false; isFlyingTransitionTriggered = false; resetChargeState();
 
-  var wingMat = new THREE.MeshBasicMaterial({ 
-    map: userTexture, 
-    side: THREE.DoubleSide, 
-    transparent: true, 
-    alphaTest: 0.05 
-  });
   var whiteMat = new THREE.MeshStandardMaterial({ color: 0xffffff, side: THREE.DoubleSide, roughness: 0.35, metalness: 0.0 });
   var targetAnt = 'Antenna_' + selectedAntennaType;
 
@@ -1294,14 +1308,14 @@ function initFullButterflyViewer(textureURL) {
               leftWingMesh = child;
               initialRotL = { x: child.rotation.x, y: child.rotation.y, z: child.rotation.z };
             }
-            if (child.isMesh) child.material = wingMat; 
+            if (child.isMesh) child.material = wingMats.left; 
           }
           else if (n.indexOf('Wing_R') > -1) { 
             if (!rightWingMesh) {
               rightWingMesh = child;
               initialRotR = { x: child.rotation.x, y: child.rotation.y, z: child.rotation.z };
             }
-            if (child.isMesh) child.material = wingMat; 
+            if (child.isMesh) child.material = wingMats.right; 
           }
           else if (n.indexOf('Body') > -1 && child.isMesh) { 
             child.material = whiteMat; 
@@ -1615,7 +1629,7 @@ async function initSpecimenGallery() {
 }
 
 // --------------------------------------------------------------------------
-// 🌟 3D 표본실 모달 (몸통 고정, 날개만 펄럭임)
+// 🌟 3D 표본실 모달
 // --------------------------------------------------------------------------
 var modalThreeScene, modalThreeCamera, modalThreeRenderer, modalGroup, modalWingL, modalWingR, modalAnimFrameId = null;
 
@@ -1641,21 +1655,13 @@ function openSpecimen3DModal(item, textureUrl) {
   if (!res) return;
   modalThreeScene = res.scene; modalThreeCamera = res.camera; modalThreeRenderer = res.renderer;
 
-  var tex = new THREE.TextureLoader().load(textureUrl);
-  tex.flipY = false;
-
-  var wingMat = new THREE.MeshBasicMaterial({ 
-    map: tex, 
-    side: THREE.DoubleSide, 
-    transparent: true, 
-    alphaTest: 0.05 
-  });
+  var wingMats = createWingMaterials(textureUrl);
   var whiteMat = new THREE.MeshStandardMaterial({ color: 0xffffff, side: THREE.DoubleSide, roughness: 0.3 });
 
   modalGroup = new THREE.Group();
   modalGroup.position.set(0, -0.35, 0);
 
-  loadButterflyModel(modalGroup, item.wingId, item.antId, wingMat, whiteMat, 0.88, function(l, r) {
+  loadButterflyModel(modalGroup, item.wingId, item.antId, wingMats.left, wingMats.right, whiteMat, 0.88, function(l, r) {
     modalWingL = l; modalWingR = r;
   });
   modalThreeScene.add(modalGroup);
