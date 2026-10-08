@@ -592,8 +592,7 @@ if (interactiveFrame && alignCanvas) {
 // --------------------------------------------------------------------------
 // 🌟 [수정 완료]: 3D 나비용 텍스처를 1:1로 합성하여 추출 (Promise 기반 보장)
 // - 사용자 배경 사진: isSymmetryEnabled(대칭 여부)에 따라 적용
-// - 3D 패턴 png: 오른쪽 날개(0~1000)를 온전히 그린 후, 잘라내지 않고 1000px 전체를 수평 거울 반전하여
-//   뿌리 영역 유실 및 크기 축소 없이 100% 동일한 크기로 좌측에 대칭 복제
+// - 3D 패턴 png: 이중 반전 복제(왜곡)를 제거하고 원본 규격(1000x1000) 그대로 단 한 번만 합성
 // --------------------------------------------------------------------------
 function exportAlignedTexture() {
   return new Promise(function(resolve) {
@@ -642,16 +641,8 @@ function exportAlignedTexture() {
     if (singleWingPatternPath3D) {
       function drawPatternAndFinish(img) {
         if (img && (img.naturalWidth > 0 || img.width > 0)) {
-          // 1) 오른쪽 날개 완벽 장착 (1000x1000 원본 그대로 1:1 드로잉)
+          // 🌟 [수정 핵심]: 반전 덧칠 없이 원본 1000x1000 규격을 1:1 그대로 단 한 번만 온전하게 합성
           fctx.drawImage(img, 0, 0, outW, outH);
-
-          // 2) 500px 지점에서 자르지 않고, 전체(1000x1000)를 좌우 거울 반전 복제
-          //    (날개 뿌리 영역 유실 및 크기 축소 0%)
-          fctx.save();
-          fctx.translate(outW, 0); // 1000px 우측으로 이동
-          fctx.scale(-1, 1);       // X축 기준 거울 반전
-          fctx.drawImage(img, 0, 0, outW, outH); // 원본 크기 그대로 1:1 완벽 대칭 투영
-          fctx.restore();
         }
         currentExtractedTexture = finalCanvas.toDataURL('image/png');
         resolve(currentExtractedTexture);
