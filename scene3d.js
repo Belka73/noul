@@ -3,7 +3,7 @@
    - Three.js 공통 씬/조명/카메라 설정
    - GLB 3D 나비 모델 로딩 및 텍스처 매핑 (좌우 날개 정밀 1:1 정렬 보정)
    - 로딩 화면 3D, 공유 화면 3D, 완성 뷰어(비행/기모으기/파티클), 표본실 3D 모달
-   - [수정 완료]: 3D 패턴이 왼쪽/오른쪽 날개 양쪽에 완벽히 일치하여 안착되도록 머티리얼 매핑 일원화
+   - [수정 완료]: 왼쪽 날개(Wing_L)의 미러 UV 축에 맞춘 텍스처 반전 및 오프셋 보정으로 양쪽 날개 패턴 완벽 일치화
    ========================================================================== */
 
 // --------------------------------------------------------------------------
@@ -33,7 +33,7 @@ function setupCommon3DScene(container, camZ, lookY) {
   return { scene: scene, camera: camera, renderer: renderer };
 }
 
-// 🌟 [수정]: 좌우 날개가 1000x1000 완성형 텍스처를 1:1로 완벽하게 동일 정렬하여 입히도록 통일
+// 🌟 [핵심 수정]: 왼쪽 날개와 오른쪽 날개에 각 메쉬 UV 특성에 맞춘 전용 머티리얼 매핑
 function loadButterflyModel(group, shapeId, antId, wingMatL, wingMatR, whiteMat, scale, onLoaded) {
   if (!window.THREE || !THREE.GLTFLoader) return;
   var modelPath = '3DButterfly/' + (shapeId || 'crescent') + '.glb';
@@ -57,7 +57,7 @@ function loadButterflyModel(group, shapeId, antId, wingMatL, wingMatR, whiteMat,
           wR = child;
           wR.userData.baseRotY = child.rotation.y;
         }
-        if (child.isMesh) child.material = wingMatR || wingMatL;
+        if (child.isMesh) child.material = wingMatR;
       }
       else if (n.indexOf('Body') > -1 && child.isMesh) { 
         child.material = whiteMat; 
@@ -114,24 +114,42 @@ function stopLoading3DScene() {
 }
 
 // --------------------------------------------------------------------------
-// 🌟 날개 텍스처 및 머티리얼 일원화 생성 (왼쪽/오른쪽 동일 안착)
+// 🌟 [핵심 보정]: 좌우 날개 텍스처 생성기
+// - Wing_R: 기준 정위치 텍스처 (현재 완벽하게 맞는 상태 유지)
+// - Wing_L: 모델의 미러(Mirror) UV 축에 맞춰 X축 반전 및 원점(offset) 보정
 // --------------------------------------------------------------------------
 function createWingMaterials(textureURL) {
-  var tex = new THREE.TextureLoader().load(textureURL);
-  tex.flipY = false;
-  tex.wrapS = THREE.ClampToEdgeWrapping;
-  tex.wrapT = THREE.ClampToEdgeWrapping;
-  tex.needsUpdate = true;
+  var loader = new THREE.TextureLoader();
 
-  var wingMat = new THREE.MeshBasicMaterial({ 
-    map: tex, 
+  // 1. 오른쪽 날개(Wing_R) 텍스처 (기준 정방향)
+  var texR = loader.load(textureURL);
+  texR.flipY = false;
+  texR.wrapS = THREE.ClampToEdgeWrapping;
+  texR.wrapT = THREE.ClampToEdgeWrapping;
+
+  var matR = new THREE.MeshBasicMaterial({ 
+    map: texR, 
     side: THREE.DoubleSide, 
     transparent: true, 
     alphaTest: 0.05 
   });
 
-  // 좌우 날개가 동일한 1000x1000 완성 텍스처 규격을 정확하게 투영받도록 반환
-  return { left: wingMat, right: wingMat };
+  // 2. 왼쪽 날개(Wing_L) 텍스처 (좌우 대칭 UV 보정)
+  var texL = loader.load(textureURL);
+  texL.flipY = false;
+  texL.wrapS = THREE.RepeatWrapping;
+  texL.wrapT = THREE.ClampToEdgeWrapping;
+  texL.repeat.x = -1;
+  texL.offset.x = 1;
+
+  var matL = new THREE.MeshBasicMaterial({ 
+    map: texL, 
+    side: THREE.DoubleSide, 
+    transparent: true, 
+    alphaTest: 0.05 
+  });
+
+  return { left: matL, right: matR };
 }
 
 // --------------------------------------------------------------------------
