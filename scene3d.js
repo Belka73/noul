@@ -1,9 +1,9 @@
 /* ==========================================================================
    🌟 너울(Noul) 3D 그래픽 및 Three.js 씬 관리 모듈 (scene3d.js)
    - Three.js 공통 씬/조명/카메라 설정
-   - GLB 3D 나비 모델 로딩 및 텍스처 매핑 (비대칭/대칭 1:1 보존)
+   - GLB 3D 나비 모델 로딩 및 텍스처 매핑 (좌우 날개 정밀 1:1 정렬 보정)
    - 로딩 화면 3D, 공유 화면 3D, 완성 뷰어(비행/기모으기/파티클), 표본실 3D 모달
-   - [기능 보존 100%]: 기존 app.js 원본 3D 로직 완벽 일치
+   - [수정 완료]: 3D 패턴이 왼쪽/오른쪽 날개 양쪽에 완벽히 일치하여 안착되도록 머티리얼 매핑 일원화
    ========================================================================== */
 
 // --------------------------------------------------------------------------
@@ -33,7 +33,7 @@ function setupCommon3DScene(container, camZ, lookY) {
   return { scene: scene, camera: camera, renderer: renderer };
 }
 
-// 🌟 [핵심 수정]: 좌우 날개 독립 머티리얼 지원 (대칭 OFF 시 사용자 원본 사진 1:1 보존)
+// 🌟 [수정]: 좌우 날개가 1000x1000 완성형 텍스처를 1:1로 완벽하게 동일 정렬하여 입히도록 통일
 function loadButterflyModel(group, shapeId, antId, wingMatL, wingMatR, whiteMat, scale, onLoaded) {
   if (!window.THREE || !THREE.GLTFLoader) return;
   var modelPath = '3DButterfly/' + (shapeId || 'crescent') + '.glb';
@@ -114,37 +114,31 @@ function stopLoading3DScene() {
 }
 
 // --------------------------------------------------------------------------
-// 🌟 공유 화면용 선명한 3D 나비 씬
+// 🌟 날개 텍스처 및 머티리얼 일원화 생성 (왼쪽/오른쪽 동일 안착)
 // --------------------------------------------------------------------------
-var shareScene, shareCamera, shareRenderer, shareGroup, shareWingL, shareWingR;
-var shareAnimFrameId = null;
-
 function createWingMaterials(textureURL) {
-  var isSym = (typeof isSymmetryEnabled !== 'undefined') ? isSymmetryEnabled : false;
-  var texL = new THREE.TextureLoader().load(textureURL);
-  texL.flipY = false;
+  var tex = new THREE.TextureLoader().load(textureURL);
+  tex.flipY = false;
+  tex.wrapS = THREE.ClampToEdgeWrapping;
+  tex.wrapT = THREE.ClampToEdgeWrapping;
+  tex.needsUpdate = true;
 
-  var matL = new THREE.MeshBasicMaterial({ 
-    map: texL, 
+  var wingMat = new THREE.MeshBasicMaterial({ 
+    map: tex, 
     side: THREE.DoubleSide, 
     transparent: true, 
     alphaTest: 0.05 
   });
 
-  // 대칭이 아닐 경우 우측 날개는 텍스처를 독립적으로 매핑
-  var matR = matL;
-  if (!isSym) {
-    var texR = new THREE.TextureLoader().load(textureURL);
-    texR.flipY = false;
-    matR = new THREE.MeshBasicMaterial({ 
-      map: texR, 
-      side: THREE.DoubleSide, 
-      transparent: true, 
-      alphaTest: 0.05 
-    });
-  }
-  return { left: matL, right: matR };
+  // 좌우 날개가 동일한 1000x1000 완성 텍스처 규격을 정확하게 투영받도록 반환
+  return { left: wingMat, right: wingMat };
 }
+
+// --------------------------------------------------------------------------
+// 🌟 공유 화면용 선명한 3D 나비 씬
+// --------------------------------------------------------------------------
+var shareScene, shareCamera, shareRenderer, shareGroup, shareWingL, shareWingR;
+var shareAnimFrameId = null;
 
 function initShare3DScene() {
   stopShare3DScene();
@@ -184,7 +178,7 @@ function stopShare3DScene() {
 }
 
 // --------------------------------------------------------------------------
-// 🌟 나비 뷰어 및 인터랙션 로직
+// 🌟 나비 뷰어 및 인터랙션 로직 (screen-preview)
 // --------------------------------------------------------------------------
 var fullScene, fullCamera, fullRenderer, fullGroup, leftWingMesh, rightWingMesh, antennaMesh;
 var isFlyingAway = false, animFrameId = null;
@@ -491,7 +485,7 @@ function bindInteractiveEvents(targetEl) {
 }
 
 // --------------------------------------------------------------------------
-// 🌟 3D 표본실 모달
+// 🌟 3D 표본실 모달 (screen-gallery 내 상세 뷰어)
 // --------------------------------------------------------------------------
 var modalThreeScene, modalThreeCamera, modalThreeRenderer, modalGroup, modalWingL, modalWingR, modalAnimFrameId = null;
 
