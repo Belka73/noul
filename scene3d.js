@@ -3,7 +3,7 @@
    - Three.js 공통 씬/조명/카메라 설정
    - GLB 3D 나비 모델 로딩 및 텍스처 매핑
    - 로딩 화면 3D, 공유 화면 3D, 완성 뷰어(비행/기모으기/파티클), 표본실 3D 모달
-   - [단순 1:1 매핑]: 양쪽 날개 UV와 PNG가 동일하므로 단일 머티리얼로 동일하게 적용
+   - [순수 1:1 정위치 매핑]: 왼쪽/오른쪽 날개 UV가 동일하므로 어떠한 변형/뒤집기 없이 동일 텍스처 적용
    ========================================================================== */
 
 // --------------------------------------------------------------------------
@@ -36,7 +36,7 @@ function setupCommon3DScene(container, camZ, lookY) {
   return { scene: scene, camera: camera, renderer: renderer };
 }
 
-// 🌟 좌우 날개 메쉬에 단일 텍스처 머티리얼 동일 적용
+// 🌟 좌우 날개 메쉬에 단일 텍스처 머티리얼을 어떠한 변형 없이 동일하게 적용
 function loadButterflyModel(group, shapeId, antId, wingMat, whiteMat, scale, onLoaded) {
   if (!window.THREE || !THREE.GLTFLoader) return;
   var modelPath = '3DButterfly/' + (shapeId || 'crescent') + '.glb';
@@ -52,6 +52,7 @@ function loadButterflyModel(group, shapeId, antId, wingMat, whiteMat, scale, onL
         if (n.indexOf('Wing_L') === 0 || n.startsWith('Wing_L')) {
           wL = child;
           wL.userData.baseRotY = child.rotation.y;
+          // 어떠한 UV 버텍스 조작이나 텍스처 변형 없이 오른쪽과 똑같이 얹음
           child.material = wingMat;
           child.castShadow = true;
           child.receiveShadow = true;
@@ -123,8 +124,8 @@ function stopLoading3DScene() {
 }
 
 // --------------------------------------------------------------------------
-// 🌟 [수정]: UV와 동일한 1000x1000 정사각 캔버스에 사진과 패턴을 1:1로 얹어
-// 좌우 날개 구분 없이 똑같이 입힐 수 있는 단 하나의 wingMat 반환
+// 🌟 [수정]: UV와 동일한 1000x1000 캔버스 위에 사진과 패턴을 1:1로 얹어
+// 오른쪽 날개와 왼쪽 날개에 똑같이 씌울 단 하나의 wingMat 생성
 // --------------------------------------------------------------------------
 function createWingMaterials(textureURL, patternPath3D) {
   var patPath = patternPath3D || (typeof currentSelected3DPatternPath !== 'undefined' ? currentSelected3DPatternPath : null);
@@ -149,10 +150,10 @@ function createWingMaterials(textureURL, patternPath3D) {
   bgImg.crossOrigin = "anonymous";
   bgImg.onload = function() {
     ctx.clearRect(0, 0, 1000, 1000);
-    // 1. 사용자 사진 배경 1:1 드로잉
+    // 1. 사용자 사진 배경 1:1 원본 드로잉
     ctx.drawImage(bgImg, 0, 0, 1000, 1000);
 
-    // 2. 3D 패턴 도안을 변형 없이 UV 위치 그대로 위에 얹음
+    // 2. 3D 패턴 도안을 변형이나 오프셋 없이 1000x1000 그대로 얹음
     if (patPath) {
       var patImg = new Image();
       patImg.crossOrigin = "anonymous";
@@ -287,6 +288,7 @@ function initFullButterflyViewer(textureURL) {
             var n = child.name || '';
             if (n.indexOf('Wing_L') === 0 || n.startsWith('Wing_L')) { 
               leftWingMesh = child; 
+              // 왼쪽 날개도 오른쪽 날개와 100% 동일한 머티리얼을 그대로 얹음
               child.material = wingMat; 
               initialRotL = { x: child.rotation.x, y: child.rotation.y, z: child.rotation.z }; 
             }
