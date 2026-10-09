@@ -3,9 +3,11 @@
    - [2D/3D 패턴 완벽 분리]: 
      1) 1번 화면(날개 형태/무늬 고르기): 2DButterfly_pattern/ 의 2D png 사용
      2) 2번 화면(3D 나비 프리뷰/비행): 3DButterfly_pattern/ 의 3D png 1:1 매칭 구움
-   - [404/503 에러 방어]: 사전 로드 트래픽 분산 및 3D 패턴 파일명 정밀 매칭
-   - [대칭 분기 철저]: 대칭 On/Off는 사용자가 직접 토글 버튼을 눌렀을 때만 적용
-   - [기능 보존 100%]: 핀치 줌, 드래그 이동, 블러 조절, 하단 캐러셀 전체 유지
+   - [핵심 수정 사항]:
+     1) 나비 꾸미기 페이지의 SVG 나비틀 기준(1000x1000)과 3D 나비 날개 텍스처 1:1 완벽 정렬
+     2) 사진 비율을 정비율로 엄격히 유지
+     3) 사용자가 대칭 버튼을 직접 눌렀을 때만 대칭 적용 (미선택 시 원본 사진 그대로 비대칭 유지)
+     4) 핀치 줌, 드래그 이동, 블러 조절, 캐러셀 등 기존 기능 100% 보존
    ========================================================================== */
 
 // 🌟 전역 텍스처 변수 안전 선언 (ReferenceError 방지)
@@ -527,7 +529,7 @@ function drawAlignCanvas() {
 
   if (currentBlurPx > 0) executeReliableFastBlur(tempCanvas, currentBlurPx * 0.9);
 
-  // 사용자가 대칭 버튼을 켰을 때만 대칭
+  // 🌟 사용자가 버튼을 눌렀을 때만 대칭 적용 (미선택 시 원본 온전 드로잉)
   if (!isSymmetryEnabled) {
     actx.drawImage(tempCanvas, 0, 0);
   } else {
@@ -588,7 +590,7 @@ if (interactiveFrame && alignCanvas) {
 }
 
 // --------------------------------------------------------------------------
-// 🌟 텍스처 추출 함수 (안정적인 1000x1000 추출로 복구)
+// 🌟 텍스처 추출 함수 (SVG 나비틀 1:1 완벽 정렬 & 정비율 추출)
 // --------------------------------------------------------------------------
 function exportAlignedTexture() {
   return new Promise(function(resolve) {
@@ -602,39 +604,47 @@ function exportAlignedTexture() {
       return;
     }
 
-    var baseCanvas = document.createElement('canvas');
-    baseCanvas.width = alignCanvas.width; 
-    baseCanvas.height = alignCanvas.height;
-    var bctx = baseCanvas.getContext('2d', { willReadFrequently: true });
-    bctx.drawImage(rawImage, imgX, imgY, rawImage.width * imgScale, rawImage.height * imgScale);
-
-    if (currentBlurPx > 0) executeReliableFastBlur(baseCanvas, currentBlurPx * 0.9);
-
-    if (isSymmetryEnabled) {
-      var midX = alignCanvas.width / 2;
-      var symCanvas = document.createElement('canvas');
-      symCanvas.width = alignCanvas.width; 
-      symCanvas.height = alignCanvas.height;
-      var sctx = symCanvas.getContext('2d');
-      sctx.drawImage(baseCanvas, 0, 0, midX, alignCanvas.height, 0, 0, midX, alignCanvas.height);
-      sctx.save(); 
-      sctx.translate(alignCanvas.width, 0); 
-      sctx.scale(-1, 1);
-      sctx.drawImage(baseCanvas, 0, 0, midX, alignCanvas.height, 0, 0, midX, alignCanvas.height);
-      sctx.restore();
-      baseCanvas = symCanvas;
-    }
+    // 1. alignCanvas 크기(600x600)와 3D 기준 고해상도 캔버스(1000x1000) 사이의 배율 산출
+    var scaleRatio = 1000 / alignCanvas.width;
 
     var finalCanvas = document.createElement('canvas');
-    finalCanvas.width = 1000; 
+    finalCanvas.width = 1000;
     finalCanvas.height = 1000;
-    var fctx = finalCanvas.getContext('2d');
+    var fctx = finalCanvas.getContext('2d', { willReadFrequently: true });
 
-    fctx.drawImage(
-      baseCanvas, 
-      0, 0, alignCanvas.width, alignCanvas.height, 
-      0, 0, 1000, 1000
-    );
+    // 2. 사용자가 조정한 사진 위치(imgX, imgY)와 크기를 1000x1000 해상도로 정확히 1:1 환산
+    var scaledImgX = imgX * scaleRatio;
+    var scaledImgY = imgY * scaleRatio;
+    var scaledImgW = (rawImage.width * imgScale) * scaleRatio;
+    var scaledImgH = (rawImage.height * imgScale) * scaleRatio;
+
+    fctx.drawImage(rawImage, scaledImgX, scaledImgY, scaledImgW, scaledImgH);
+
+    // 3. 블러 적용 (1000x1000 해상도 배율에 맞게 반경 비례 보정)
+    if (currentBlurPx > 0) {
+      executeReliableFastBlur(finalCanvas, (currentBlurPx * 0.9) * scaleRatio);
+    }
+
+    // 4. 🌟 [절대 규칙] 사용자가 대칭 버튼을 켰을 때만 대칭 수행
+    if (isSymmetryEnabled) {
+      var midX = 500;
+      var symCanvas = document.createElement('canvas');
+      symCanvas.width = 1000;
+      symCanvas.height = 1000;
+      var sctx = symCanvas.getContext('2d');
+
+      // 좌측 절반을 그대로 그림
+      sctx.drawImage(finalCanvas, 0, 0, midX, 1000, 0, 0, midX, 1000);
+      // 우측 절반에 좌측을 거울 반전 복사
+      sctx.save();
+      sctx.translate(1000, 0);
+      sctx.scale(-1, 1);
+      sctx.drawImage(finalCanvas, 0, 0, midX, 1000, 0, 0, midX, 1000);
+      sctx.restore();
+
+      fctx.clearRect(0, 0, 1000, 1000);
+      fctx.drawImage(symCanvas, 0, 0);
+    }
 
     currentExtractedTexture = finalCanvas.toDataURL('image/png');
     window.currentExtractedTexture = currentExtractedTexture;

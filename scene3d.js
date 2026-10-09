@@ -2,10 +2,12 @@
    🌟 너울(Noul) 3D 그래픽 및 Three.js 씬 관리 모듈 (scene3d.js)
    - Three.js 공통 씬/조명/카메라 설정
    - GLB 3D 나비 모델 로딩 및 텍스처 매핑
-   - [UV 정방향 복구 적용]:
-     * UV 좌우 반전용 코드 전면 제거 및 정상 좌표계 복구
-     * 2D SVG/캔버스 중심선(midX) 기준 왼쪽/오른쪽 날개 1:1 정방향 대칭 매핑
-     * 인트로 상승 시 고주파 떨림/크기 요동 버그 해결 (부드러운 Ease-out 플랩 적용)
+   - [핵심 수정 사항]:
+     1) 텍스처 강제 분할/강제 대칭 코드 전면 삭제: SVG 나비틀 기준 1:1 정방향 텍스처 온전 전달
+     2) 사용자가 누른 대칭 상태만 반영된 추출 텍스처를 3D 양쪽 날개에 정비율로 적용
+     3) 3D 패턴(patPath) Multiply 합성 규격 및 비파괴 결합 유지
+     4) 프리뷰 인트로 시 상승 크기 요동 및 날개 떨림 제거 (부드러운 Ease-out 플랩 적용)
+     5) 더듬이, 몸통, 비행, 기 모으기, 표본실 모달 등 기존 기능 100% 보존
    ========================================================================== */
 
 // --------------------------------------------------------------------------
@@ -128,93 +130,58 @@ function stopLoading3DScene() {
 }
 
 // --------------------------------------------------------------------------
-// 🌟 좌/우 날개용 머티리얼 생성 함수 (UV 정방향 및 SVG 기준 1:1 대칭 매핑)
+// 🌟 날개용 머티리얼 생성 함수
+// - 임의의 캔버스 좌우 분할 및 강제 대칭(Flip) 전면 제거
+// - 2D SVG 틀에 정렬된 텍스처를 1:1 정방향으로 얹고 3D 패턴과 합성
 // --------------------------------------------------------------------------
 function createWingMaterials(textureURL, patternPath3D) {
   var patPath = patternPath3D || (typeof currentSelected3DPatternPath !== 'undefined' ? currentSelected3DPatternPath : null);
 
-  // 1. 오른쪽 날개용 캔버스 (1000x1000)
-  var canvasR = document.createElement('canvas');
-  canvasR.width = 1000;
-  canvasR.height = 1000;
-  var ctxR = canvasR.getContext('2d');
+  var canvas = document.createElement('canvas');
+  canvas.width = 1000;
+  canvas.height = 1000;
+  var ctx = canvas.getContext('2d');
 
-  var texR = new THREE.CanvasTexture(canvasR);
-  texR.flipY = false;
-  if (THREE.sRGBEncoding) texR.encoding = THREE.sRGBEncoding;
+  var tex = new THREE.CanvasTexture(canvas);
+  tex.flipY = false;
+  if (THREE.sRGBEncoding) tex.encoding = THREE.sRGBEncoding;
 
-  var matR = new THREE.MeshBasicMaterial({ 
-    map: texR, 
-    side: THREE.DoubleSide
-  });
-
-  // 2. 왼쪽 날개용 캔버스 (1000x1000)
-  var canvasL = document.createElement('canvas');
-  canvasL.width = 1000;
-  canvasL.height = 1000;
-  var ctxL = canvasL.getContext('2d');
-
-  var texL = new THREE.CanvasTexture(canvasL);
-  texL.flipY = false;
-  if (THREE.sRGBEncoding) texL.encoding = THREE.sRGBEncoding;
-
-  var matL = new THREE.MeshBasicMaterial({ 
-    map: texL, 
-    side: THREE.DoubleSide
+  var wingMat = new THREE.MeshBasicMaterial({ 
+    map: tex, 
+    side: THREE.DoubleSide 
   });
 
   var bgImg = new Image();
   bgImg.crossOrigin = "anonymous";
   bgImg.onload = function() {
-    function drawBaseAndPattern(patImg) {
-      var fullW = bgImg.width;
-      var fullH = bgImg.height;
-      var midX = fullW / 2; // 중심선
+    ctx.clearRect(0, 0, 1000, 1000);
+    // 2D SVG 나비틀에서 정렬/추출된 사진 그대로 1:1 드로잉 (임의 대칭/자르기 없음)
+    ctx.drawImage(bgImg, 0, 0, 1000, 1000);
 
-      // [오른쪽 날개 드로잉]: 원본 사진의 중심선(midX)부터 오른쪽 끝까지를 캔버스에 1:1 정방향 매핑
-      ctxR.clearRect(0, 0, 1000, 1000);
-      ctxR.drawImage(bgImg, midX, 0, fullW - midX, fullH, 0, 0, 1000, 1000);
-
-      if (patImg) {
-        ctxR.save();
-        ctxR.globalCompositeOperation = 'multiply';
-        ctxR.globalAlpha = 0.95;
-        ctxR.drawImage(patImg, 0, 0, 1000, 1000);
-        ctxR.restore();
-      }
-      texR.needsUpdate = true;
-
-      // [왼쪽 날개 드로잉]: 원본 사진의 0부터 중심선(midX)까지를 캔버스에 1:1 정방향 매핑 (반전 제거)
-      ctxL.clearRect(0, 0, 1000, 1000);
-      ctxL.drawImage(bgImg, 0, 0, midX, fullH, 0, 0, 1000, 1000);
-
-      if (patImg) {
-        ctxL.save();
-        ctxL.globalCompositeOperation = 'multiply';
-        ctxL.globalAlpha = 0.95;
-        ctxL.drawImage(patImg, 0, 0, 1000, 1000);
-        ctxL.restore();
-      }
-      texL.needsUpdate = true;
-    }
-
+    // 3D 패턴(무늬)이 있을 경우 원본 규격 유지하며 정방향 곱하기 합성
     if (patPath) {
       var patImg = new Image();
       patImg.crossOrigin = "anonymous";
       patImg.onload = function() {
-        drawBaseAndPattern(patImg);
+        ctx.save();
+        ctx.globalCompositeOperation = 'multiply';
+        ctx.globalAlpha = 0.95;
+        ctx.drawImage(patImg, 0, 0, 1000, 1000);
+        ctx.restore();
+        tex.needsUpdate = true;
       };
       patImg.onerror = function() {
-        drawBaseAndPattern(null);
+        tex.needsUpdate = true;
       };
       patImg.src = patPath;
     } else {
-      drawBaseAndPattern(null);
+      tex.needsUpdate = true;
     }
   };
   bgImg.src = textureURL;
 
-  return { matL: matL, matR: matR };
+  // 정상 복구된 3D UV는 하나의 텍스처 평면을 1:1로 읽으므로 좌/우 동일 머티리얼 적용
+  return { matL: wingMat, matR: wingMat };
 }
 
 // --------------------------------------------------------------------------
@@ -263,7 +230,7 @@ function stopShare3DScene() {
 }
 
 // --------------------------------------------------------------------------
-// 🌟 나비 뷰어 및 인터랙션 로직 (screen-preview: 떨림/요동 방지 수정)
+// 🌟 나비 뷰어 및 인터랙션 로직 (screen-preview)
 // --------------------------------------------------------------------------
 var fullScene, fullCamera, fullRenderer, fullGroup, leftWingMesh, rightWingMesh, antennaMesh;
 var isFlyingAway = false, animFrameId = null;
@@ -313,7 +280,7 @@ function initFullButterflyViewer(textureURL) {
   fullGroup = new THREE.Group();
   butterflyRotX = DEFAULT_ROT_X; butterflyRotY = DEFAULT_ROT_Y;
   fullGroup.rotation.set(butterflyRotX, butterflyRotY, 0);
-  fullGroup.position.set(0, -7.0, 0);
+  fullGroup.position.set(0, -6.5, 0);
 
   previewStartTime = performance.now();
   isFlyingAway = false; isFlyingTransitionTriggered = false; resetChargeState();
@@ -382,23 +349,23 @@ function initFullButterflyViewer(textureURL) {
       }
     }
 
+    // 🌟 떨림 및 크기 요동 제거 로직:
+    // 과도한 고주파 플랩을 배제하고, 부드러운 3차 감속 곡선(Ease-Out)으로 일정하게 올라옵니다.
     if (!isFlyingAway) {
-      // 🌟 떨림 제거: 과도한 주파수(30.0) 대신 부드러운 완충 상승 애니메이션 적용
-      if (elapsedSec < 3.2) {
-        var progress = Math.min(1.0, elapsedSec / 3.2);
-        // 부드러운 3차 가속 감속
+      if (elapsedSec < 3.0) {
+        var progress = Math.min(1.0, elapsedSec / 3.0);
         var easeOut = 1.0 - Math.pow(1.0 - progress, 3);
-        fullGroup.position.y = -7.0 + 7.0 * easeOut;
         
-        // 떨림 없이 자연스러운 상승 날갯짓
-        var flapIntro = Math.sin(time * 14.0) * (0.55 * (1.0 - easeOut * 0.4));
+        fullGroup.position.y = -6.5 * (1.0 - easeOut);
+        
+        var flapIntro = Math.sin(time * 8.0) * (0.35 * (1.0 - easeOut * 0.2));
         if (leftWingMesh && rightWingMesh) {
           leftWingMesh.rotation.set(initialRotL.x, initialRotL.y + flapIntro, initialRotL.z);
           rightWingMesh.rotation.set(initialRotR.x, initialRotR.y - flapIntro, initialRotR.z);
         }
       } else {
         fullGroup.position.y = 0;
-        var flapIdle = Math.sin(time * 6.5) * 0.35;
+        var flapIdle = Math.sin(time * 5.0) * 0.28;
         if (leftWingMesh && rightWingMesh) {
           leftWingMesh.rotation.set(initialRotL.x, initialRotL.y + flapIdle, initialRotL.z);
           rightWingMesh.rotation.set(initialRotR.x, initialRotR.y - flapIdle, initialRotR.z);
