@@ -2,11 +2,9 @@
    🌟 너울(Noul) 3D 그래픽 및 Three.js 씬 관리 모듈 (scene3d.js)
    - Three.js 공통 씬/조명/카메라 설정
    - GLB 3D 나비 모델 로딩 및 텍스처 매핑
-   - [좌우 날개 반쪽 분할 매핑 복원]:
-     * 오른쪽 날개(Wing_R): 원본 텍스처의 오른쪽 절반(500~1000) 영역 매핑
-     * 왼쪽 날개(Wing_L): 원본 텍스처의 왼쪽 절반(0~500) 영역 매핑
-     * 4장으로 분열되는 현상 해결 및 비대칭/정비율 유지
-     * 무늬 패턴(patImg): 사진과 독립적으로 원래 반전 방향 유지
+   - [좌/우 날개 정상 텍스처 매핑 완벽 복원]:
+     * 나비 날개가 온전하게 하나로 합쳐지는 안정적인 분할 렌더러 복구
+     * 날개 패턴(patImg): 원래의 고유 정렬 및 반전 상태 유지
    - 로딩 화면 3D, 공유 화면 3D, 완성 뷰어(비행/기모으기/파티클), 표본실 3D 모달
    ========================================================================== */
 
@@ -130,7 +128,7 @@ function stopLoading3DScene() {
 }
 
 // --------------------------------------------------------------------------
-// 🌟 좌/우 날개용 머티리얼 생성 함수 (날개 분열 수정 및 원본 위치 복구)
+// 🌟 좌/우 날개용 머티리얼 생성 함수 (정상 나비 형태 복구)
 // --------------------------------------------------------------------------
 function createWingMaterials(textureURL, patternPath3D) {
   var patPath = patternPath3D || (typeof currentSelected3DPatternPath !== 'undefined' ? currentSelected3DPatternPath : null);
@@ -177,11 +175,12 @@ function createWingMaterials(textureURL, patternPath3D) {
       var fullH = bgImg.height;
 
       // --------------------------------------------------------------------
-      // [오른쪽 날개 드로잉]: 중앙(500)부터 오른쪽 끝(1000) 영역만 얹음
+      // [오른쪽 날개 드로잉]: 원본 사진의 오른쪽 절반 영역 배치
       // --------------------------------------------------------------------
       ctxR.clearRect(0, 0, 1000, 1000);
       ctxR.drawImage(bgImg, halfW, 0, halfW, fullH, 0, 0, 1000, 1000);
 
+      // 무늬 패턴: 오른쪽 정방향 합성
       if (patImg) {
         ctxR.save();
         ctxR.globalCompositeOperation = 'multiply';
@@ -192,16 +191,12 @@ function createWingMaterials(textureURL, patternPath3D) {
       texR.needsUpdate = true;
 
       // --------------------------------------------------------------------
-      // [왼쪽 날개 드로잉]: 왼쪽 끝(0)부터 중앙(500) 영역만 얹음
+      // [왼쪽 날개 드로잉]: 원본 사진의 왼쪽 절반 영역 배치
       // --------------------------------------------------------------------
       ctxL.clearRect(0, 0, 1000, 1000);
-      ctxL.save();
-      ctxL.translate(1000, 0);
-      ctxL.scale(-1, 1);
       ctxL.drawImage(bgImg, 0, 0, halfW, fullH, 0, 0, 1000, 1000);
-      ctxL.restore();
 
-      // 무늬 패턴: 왼쪽 날개 UV에 맞게 반전 합성
+      // 무늬 패턴: 왼쪽 날개 원래 반전 위치로 합성
       if (patImg) {
         ctxL.save();
         ctxL.translate(1000, 0);
