@@ -1,9 +1,9 @@
 /* ==========================================================================
    🌟 너울(Noul) 3D 그래픽 및 Three.js 씬 관리 모듈 (scene3d.js)
    - Three.js 공통 씬/조명/카메라 설정
-   - GLB 3D 나비 모델 로딩 및 텍스처 매핑 (1000x1000 완제품 텍스처 1:1 정위치 투영)
+   - GLB 3D 나비 모델 로딩 및 텍스처 매핑 (한쪽 기준 날개 1:1 미러 매핑)
    - 로딩 화면 3D, 공유 화면 3D, 완성 뷰어(비행/기모으기/파티클), 표본실 3D 모달
-   - [과거 정상 코드 복원]: 임의의 캔버스 분할을 완전히 제거하고 단일 텍스처 1:1 매핑으로 날개 왜곡 해결
+   - [미러 UV 매칭 완료]: 1000x1000 합본에서 기준 날개(500~1000)를 1:1 추출하여 좌우 완벽 대칭 안착
    ========================================================================== */
 
 // --------------------------------------------------------------------------
@@ -36,7 +36,7 @@ function setupCommon3DScene(container, camZ, lookY) {
   return { scene: scene, camera: camera, renderer: renderer };
 }
 
-// 🌟 좌우 날개 메쉬에 텍스처 머티리얼 적용 (과거 app_6.js 정상 규격 복원)
+// 🌟 좌우 날개 메쉬에 텍스처 머티리얼 적용
 function loadButterflyModel(group, shapeId, antId, wingMat, whiteMat, scale, onLoaded) {
   if (!window.THREE || !THREE.GLTFLoader) return;
   var modelPath = '3DButterfly/' + (shapeId || 'crescent') + '.glb';
@@ -123,23 +123,38 @@ function stopLoading3DScene() {
 }
 
 // --------------------------------------------------------------------------
-// 🌟 날개 전용 1:1 단일 텍스처 머티리얼 생성 함수 (정상 코드 복원)
+// 🌟 [핵심 수정]: 3D 모델의 미러 UV 규격에 맞춘 단일 기준 날개 머티리얼 생성
+// - 1000x1000 합본 이미지 중 기준이 되는 날개(X: 500 ~ 1000)를 1:1로 잘라내어
+//   양쪽 날개 메쉬에 공급 (모델링 내부 미러 UV가 반대쪽 날개 대칭 자동 완성)
 // --------------------------------------------------------------------------
 function createWingMaterials(textureURL) {
-  var textureLoader = new THREE.TextureLoader();
-  var tex = textureLoader.load(textureURL);
-  tex.flipY = false;
+  var singleWingCanvas = document.createElement('canvas');
+  singleWingCanvas.width = 500;
+  singleWingCanvas.height = 1000;
+  var sctx = singleWingCanvas.getContext('2d');
+
+  var wingTex = new THREE.CanvasTexture(singleWingCanvas);
+  wingTex.flipY = false;
   if (THREE.sRGBEncoding) {
-    tex.encoding = THREE.sRGBEncoding;
+    wingTex.encoding = THREE.sRGBEncoding;
   }
-  tex.needsUpdate = true;
 
   var wingMat = new THREE.MeshBasicMaterial({ 
-    map: tex, 
+    map: wingTex, 
     side: THREE.DoubleSide, 
     transparent: true, 
     alphaTest: 0.05 
   });
+
+  var img = new Image();
+  img.crossOrigin = "anonymous";
+  img.onload = function() {
+    // 1000x1000 합본 중 우측 기준 날개 영역(500~1000px)만 1:1로 추출
+    sctx.clearRect(0, 0, 500, 1000);
+    sctx.drawImage(img, 500, 0, 500, 1000, 0, 0, 500, 1000);
+    wingTex.needsUpdate = true;
+  };
+  img.src = textureURL;
 
   return wingMat;
 }
