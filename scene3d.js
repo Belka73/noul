@@ -3,7 +3,7 @@
    - Three.js 공통 씬/조명/카메라 설정
    - GLB 3D 나비 모델 로딩 및 텍스처 매핑 (1000x1000 완제품 텍스처 1:1 정위치 투영)
    - 로딩 화면 3D, 공유 화면 3D, 완성 뷰어(비행/기모으기/파티클), 표본실 3D 모달
-   - [확대 버그 해결]: 1000x1000 합본 텍스처의 좌/우 절반(0.5)을 분할 매핑하여 날개 확대 현상 완전 해결
+   - [확대/비대칭 버그 종결]: 좌/우 날개 메쉬의 독립 UV에 맞춰 1:1 좌우 날개 텍스처를 정밀 분할 매핑
    ========================================================================== */
 
 // --------------------------------------------------------------------------
@@ -127,36 +127,26 @@ function stopLoading3DScene() {
 }
 
 // --------------------------------------------------------------------------
-// 🌟 [핵심 수정]: 날개 텍스처 좌/우 0.5 분할 매핑 (2배 확대 및 왜곡 완전 해결)
-// - 전체 1000px 캔버스에서 좌측 날개는 0~500px 영역을 사용
-// - 우측 날개는 500~1000px 영역을 사용
+// 🌟 [핵심 수정]: 좌/우 날개 전용 1:1 정밀 텍스처 추출 및 매핑
+// - 1000x1000 원본에서 왼쪽 날개(0~500px), 오른쪽 날개(500~1000px)를 각각 분리 생성
+// - 3D 날개 메쉬의 독립 UV에 정확하게 1:1 투영되도록 보장
 // --------------------------------------------------------------------------
 function createWingMaterials(textureURL) {
-  var textureLoader = new THREE.TextureLoader();
+  var canvasL = document.createElement('canvas');
+  canvasL.width = 500; canvasL.height = 1000;
+  var ctxL = canvasL.getContext('2d');
 
-  // 왼쪽 날개 전용 텍스처 (왼쪽 절반 0.0 ~ 0.5)
-  var texL = textureLoader.load(textureURL);
+  var canvasR = document.createElement('canvas');
+  canvasR.width = 500; canvasR.height = 1000;
+  var ctxR = canvasR.getContext('2d');
+
+  var texL = new THREE.CanvasTexture(canvasL);
   texL.flipY = false;
-  texL.wrapS = THREE.ClampToEdgeWrapping;
-  texL.wrapT = THREE.ClampToEdgeWrapping;
-  texL.repeat.set(0.5, 1.0);
-  texL.offset.set(0.0, 0.0);
-  if (THREE.sRGBEncoding) {
-    texL.encoding = THREE.sRGBEncoding;
-  }
-  texL.needsUpdate = true;
+  if (THREE.sRGBEncoding) texL.encoding = THREE.sRGBEncoding;
 
-  // 오른쪽 날개 전용 텍스처 (오른쪽 절반 0.5 ~ 1.0)
-  var texR = textureLoader.load(textureURL);
+  var texR = new THREE.CanvasTexture(canvasR);
   texR.flipY = false;
-  texR.wrapS = THREE.ClampToEdgeWrapping;
-  texR.wrapT = THREE.ClampToEdgeWrapping;
-  texR.repeat.set(0.5, 1.0);
-  texR.offset.set(0.5, 0.0);
-  if (THREE.sRGBEncoding) {
-    texR.encoding = THREE.sRGBEncoding;
-  }
-  texR.needsUpdate = true;
+  if (THREE.sRGBEncoding) texR.encoding = THREE.sRGBEncoding;
 
   var wingMatL = new THREE.MeshStandardMaterial({ 
     map: texL, 
@@ -175,6 +165,21 @@ function createWingMaterials(textureURL) {
     roughness: 0.6,
     metalness: 0.1
   });
+
+  var img = new Image();
+  img.crossOrigin = "anonymous";
+  img.onload = function() {
+    // 1) 왼쪽 날개: 1000x1000 이미지의 좌측 절반(0~500px)을 추출
+    ctxL.clearRect(0, 0, 500, 1000);
+    ctxL.drawImage(img, 0, 0, 500, 1000, 0, 0, 500, 1000);
+    texL.needsUpdate = true;
+
+    // 2) 오른쪽 날개: 1000x1000 이미지의 우측 절반(500~1000px)을 추출
+    ctxR.clearRect(0, 0, 500, 1000);
+    ctxR.drawImage(img, 500, 0, 500, 1000, 0, 0, 500, 1000);
+    texR.needsUpdate = true;
+  };
+  img.src = textureURL;
 
   return { left: wingMatL, right: wingMatR };
 }
