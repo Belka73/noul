@@ -3,11 +3,11 @@
    - Three.js 공통 씬/조명/카메라 설정
    - GLB 3D 나비 모델 로딩 및 텍스처 매핑
    - [핵심 수정 사항]:
-     1) 2D 사진 1장을 몸통 중심(X=500) 기준으로 좌/우로 나누어 Wing_L, Wing_R에 각각 안착
-     2) 가로 늘림(스트레칭) 완전 차단: 사진의 원래 가로세로 종횡비 100% 유지
-     3) 3D 나비 전체에서 하나의 사진이 자연스럽게 이어지며, 사진 2개가 복제되는 현상 원천 해결
-     4) 사용자가 대칭 버튼을 눌렀을 때만 대칭 반영 (미선택 시 원본 사진 비대칭 유지)
-     5) 3D 패턴 Multiply 합성, 비행, 기 모으기 등 기존 기능 100% 보존
+     1) 몸통 기준 자르기/늘리기/욱여넣기 코드 완전 삭제
+     2) 2D SVG 나비틀(1000x1000) 안착 사진을 1:1 정비율 그대로 날개에 투영
+     3) 2D 화면에서 밝은 영역에 맞춘 사진 구도와 크기가 3D 날개에 왜곡 없이 100% 일치
+     4) 사용자가 대칭 버튼을 켰을 때만 대칭 반영 (미선택 시 원본 사진 비대칭 유지)
+     5) 더듬이, 몸통(흰색 재질), 3D 패턴 Multiply 합성, 비행 등 기존 기능 100% 보존
    ========================================================================== */
 
 // --------------------------------------------------------------------------
@@ -131,92 +131,59 @@ function stopLoading3DScene() {
 
 // --------------------------------------------------------------------------
 // 🌟 날개용 머티리얼 생성 함수
-// - 1장의 2D 사진을 몸통 중심(X=500) 기준으로 정확히 나누어 좌/우 날개에 분할 안착
-// - 가로를 억지로 늘리지 않고 1:1 정비율 그대로 유지
+// - 억지로 쪼개거나 가로를 늘리는 행위 전면 배제
+// - 2D SVG 나비틀(1000x1000)에서 밝은 영역에 맞춰진 원본 사진 그대로 1:1 매핑
 // --------------------------------------------------------------------------
 function createWingMaterials(textureURL, patternPath3D) {
   var patPath = patternPath3D || (typeof currentSelected3DPatternPath !== 'undefined' ? currentSelected3DPatternPath : null);
 
-  var canvasL = document.createElement('canvas');
-  canvasL.width = 1000;
-  canvasL.height = 1000;
-  var ctxL = canvasL.getContext('2d');
+  var canvas = document.createElement('canvas');
+  canvas.width = 1000;
+  canvas.height = 1000;
+  var ctx = canvas.getContext('2d');
 
-  var canvasR = document.createElement('canvas');
-  canvasR.width = 1000;
-  canvasR.height = 1000;
-  var ctxR = canvasR.getContext('2d');
-
-  var texL = new THREE.CanvasTexture(canvasL);
-  var texR = new THREE.CanvasTexture(canvasR);
-  texL.flipY = false;
-  texR.flipY = false;
+  var tex = new THREE.CanvasTexture(canvas);
+  tex.flipY = false;
   if (THREE.sRGBEncoding) {
-    texL.encoding = THREE.sRGBEncoding;
-    texR.encoding = THREE.sRGBEncoding;
+    tex.encoding = THREE.sRGBEncoding;
   }
 
-  var matL = new THREE.MeshBasicMaterial({ 
-    map: texL, 
-    side: THREE.DoubleSide 
-  });
-  var matR = new THREE.MeshBasicMaterial({ 
-    map: texR, 
+  var wingMat = new THREE.MeshBasicMaterial({ 
+    map: tex, 
     side: THREE.DoubleSide 
   });
 
   var bgImg = new Image();
   bgImg.crossOrigin = "anonymous";
   bgImg.onload = function() {
-    ctxL.clearRect(0, 0, 1000, 1000);
-    ctxR.clearRect(0, 0, 1000, 1000);
+    ctx.clearRect(0, 0, 1000, 1000);
+    // 2D 꾸미기 화면에서 사용자가 보고 배치한 사진 그대로 1:1 정비율 드로잉
+    ctx.drawImage(bgImg, 0, 0, 1000, 1000);
 
-    // 1. [오른쪽 날개: Wing_R]
-    // 2D 이미지의 오른쪽 절반(X: 500 ~ 1000)을 가로 늘림 없이 원본 비율 그대로 매핑
-    ctxR.drawImage(bgImg, 500, 0, 500, 1000, 0, 0, 1000, 1000);
-
-    // 2. [왼쪽 날개: Wing_L]
-    // 2D 이미지의 왼쪽 절반(X: 0 ~ 500)을 가져와, 오른쪽으로 겹쳐진 UV에 맞춰
-    // 수평 반전하여 날개 중심선(몸통)에서부터 자연스럽게 연결
-    ctxL.save();
-    ctxL.translate(1000, 0);
-    ctxL.scale(-1, 1);
-    ctxL.drawImage(bgImg, 0, 0, 500, 1000, 0, 0, 1000, 1000);
-    ctxL.restore();
-
-    // 3. 3D 패턴(무늬)이 있을 경우 비파괴 Multiply 합성
+    // 3D 패턴(무늬)이 있을 경우 비파괴 Multiply 합성
     if (patPath) {
       var patImg = new Image();
       patImg.crossOrigin = "anonymous";
       patImg.onload = function() {
-        ctxL.save();
-        ctxL.globalCompositeOperation = 'multiply';
-        ctxL.globalAlpha = 0.95;
-        ctxL.drawImage(patImg, 0, 0, 1000, 1000);
-        ctxL.restore();
-
-        ctxR.save();
-        ctxR.globalCompositeOperation = 'multiply';
-        ctxR.globalAlpha = 0.95;
-        ctxR.drawImage(patImg, 0, 0, 1000, 1000);
-        ctxR.restore();
-
-        texL.needsUpdate = true;
-        texR.needsUpdate = true;
+        ctx.save();
+        ctx.globalCompositeOperation = 'multiply';
+        ctx.globalAlpha = 0.95;
+        ctx.drawImage(patImg, 0, 0, 1000, 1000);
+        ctx.restore();
+        tex.needsUpdate = true;
       };
       patImg.onerror = function() {
-        texL.needsUpdate = true;
-        texR.needsUpdate = true;
+        tex.needsUpdate = true;
       };
       patImg.src = patPath;
     } else {
-      texL.needsUpdate = true;
-      texR.needsUpdate = true;
+      tex.needsUpdate = true;
     }
   };
   bgImg.src = textureURL;
 
-  return { matL: matL, matR: matR };
+  // 3D 날개 메시는 2D 도안과 1:1로 일치하므로 가공 없이 원본 텍스처를 그대로 적용
+  return { matL: wingMat, matR: wingMat };
 }
 
 // --------------------------------------------------------------------------
