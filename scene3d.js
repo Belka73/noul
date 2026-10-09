@@ -3,11 +3,11 @@
    - Three.js 공통 씬/조명/카메라 설정
    - GLB 3D 나비 모델 로딩 및 텍스처 매핑
    - [핵심 수정 사항]:
-     1) 왼쪽 날개(matL)와 오른쪽 날개(matR)에 2D 사진의 좌/우 영역을 각각 분리 매핑
-     2) 임의 대칭 발생 원천 차단: 사용자가 버튼을 누르지 않으면 100% 비대칭 유지
-     3) 2D SVG 나비틀(1000x1000) 안착 기준 1:1 정비율 보장 (왜곡 완전 배제)
-     4) 3D 패턴(patPath) Multiply 합성 및 비파괴 결합 로직 유지
-     5) 더듬이, 몸통, 비행, 기 모으기, 표본실 모달 등 기존 3D 기능 100% 보존
+     1) 2D 사진 1장을 몸통 중심(X=500) 기준으로 좌/우로 나누어 Wing_L, Wing_R에 각각 안착
+     2) 가로 늘림(스트레칭) 완전 차단: 사진의 원래 가로세로 종횡비 100% 유지
+     3) 3D 나비 전체에서 하나의 사진이 자연스럽게 이어지며, 사진 2개가 복제되는 현상 원천 해결
+     4) 사용자가 대칭 버튼을 눌렀을 때만 대칭 반영 (미선택 시 원본 사진 비대칭 유지)
+     5) 3D 패턴 Multiply 합성, 비행, 기 모으기 등 기존 기능 100% 보존
    ========================================================================== */
 
 // --------------------------------------------------------------------------
@@ -130,20 +130,18 @@ function stopLoading3DScene() {
 }
 
 // --------------------------------------------------------------------------
-// 🌟 날개용 머티리얼 생성 함수 (비대칭 원본 유지 & 정비율 1:1 보장)
-// - 2D 나비 전체(1000x1000)에서 좌측은 Wing_L로, 우측은 Wing_R로 각각 독립 전달
-// - 동일 텍스처 중복 적용으로 인한 강제 거울 대칭 원천 차단
+// 🌟 날개용 머티리얼 생성 함수
+// - 1장의 2D 사진을 몸통 중심(X=500) 기준으로 정확히 나누어 좌/우 날개에 분할 안착
+// - 가로를 억지로 늘리지 않고 1:1 정비율 그대로 유지
 // --------------------------------------------------------------------------
 function createWingMaterials(textureURL, patternPath3D) {
   var patPath = patternPath3D || (typeof currentSelected3DPatternPath !== 'undefined' ? currentSelected3DPatternPath : null);
 
-  // 1. 왼쪽 날개 캔버스 (정비율 1000x1000)
   var canvasL = document.createElement('canvas');
   canvasL.width = 1000;
   canvasL.height = 1000;
   var ctxL = canvasL.getContext('2d');
 
-  // 2. 오른쪽 날개 캔버스 (정비율 1000x1000)
   var canvasR = document.createElement('canvas');
   canvasR.width = 1000;
   canvasR.height = 1000;
@@ -173,20 +171,20 @@ function createWingMaterials(textureURL, patternPath3D) {
     ctxL.clearRect(0, 0, 1000, 1000);
     ctxR.clearRect(0, 0, 1000, 1000);
 
-    // [오른쪽 날개: Wing_R]
-    // 2D 이미지 전체(1000x1000)를 원본 위치 그대로 캔버스에 배치
-    ctxR.drawImage(bgImg, 0, 0, 1000, 1000);
+    // 1. [오른쪽 날개: Wing_R]
+    // 2D 이미지의 오른쪽 절반(X: 500 ~ 1000)을 가로 늘림 없이 원본 비율 그대로 매핑
+    ctxR.drawImage(bgImg, 500, 0, 500, 1000, 0, 0, 1000, 1000);
 
-    // [왼쪽 날개: Wing_L]
-    // 3D 모델의 Wing_L UV가 오른쪽 날개와 겹쳐져 있으므로,
-    // 중심축 X=500을 기준으로 반전하여 2D 이미지의 왼쪽 영역이 올바른 위치에 오도록 안착
+    // 2. [왼쪽 날개: Wing_L]
+    // 2D 이미지의 왼쪽 절반(X: 0 ~ 500)을 가져와, 오른쪽으로 겹쳐진 UV에 맞춰
+    // 수평 반전하여 날개 중심선(몸통)에서부터 자연스럽게 연결
     ctxL.save();
     ctxL.translate(1000, 0);
     ctxL.scale(-1, 1);
-    ctxL.drawImage(bgImg, 0, 0, 1000, 1000);
+    ctxL.drawImage(bgImg, 0, 0, 500, 1000, 0, 0, 1000, 1000);
     ctxL.restore();
 
-    // 3D 패턴(무늬)이 있을 경우 비파괴 Multiply 합성
+    // 3. 3D 패턴(무늬)이 있을 경우 비파괴 Multiply 합성
     if (patPath) {
       var patImg = new Image();
       patImg.crossOrigin = "anonymous";
@@ -218,7 +216,6 @@ function createWingMaterials(textureURL, patternPath3D) {
   };
   bgImg.src = textureURL;
 
-  // 좌/우 독립된 머티리얼 반환으로 강제 대칭 현상 제거
   return { matL: matL, matR: matR };
 }
 
