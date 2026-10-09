@@ -3,9 +3,9 @@
    - Three.js 공통 씬/조명/카메라 설정
    - GLB 3D 나비 모델 로딩 및 텍스처 매핑
    - [핵심 수정 사항]:
-     1) 텍스처 강제 분할(500x1000), 가로 스트레칭 왜곡 코드 완전 삭제
-     2) 2D SVG 나비틀(1000x1000) 기준 배치된 사진을 1:1 정비율 그대로 3D 날개에 투영
-     3) 사용자가 대칭 버튼을 켰을 때만 대칭 반영 (미선택 시 원본 사진 비대칭 100% 유지)
+     1) 왼쪽 날개(matL)와 오른쪽 날개(matR)에 2D 사진의 좌/우 영역을 각각 분리 매핑
+     2) 임의 대칭 발생 원천 차단: 사용자가 버튼을 누르지 않으면 100% 비대칭 유지
+     3) 2D SVG 나비틀(1000x1000) 안착 기준 1:1 정비율 보장 (왜곡 완전 배제)
      4) 3D 패턴(patPath) Multiply 합성 및 비파괴 결합 로직 유지
      5) 더듬이, 몸통, 비행, 기 모으기, 표본실 모달 등 기존 3D 기능 100% 보존
    ========================================================================== */
@@ -130,60 +130,96 @@ function stopLoading3DScene() {
 }
 
 // --------------------------------------------------------------------------
-// 🌟 날개용 머티리얼 생성 함수 (정비율 100% 보장 및 2D SVG 기준 1:1 안착)
-// - 인위적인 쪼개기/늘리기 코드를 완전히 배제
-// - 2D SVG 틀(1000x1000)에서 사용자가 배치한 사진 구도 그대로 1:1 매핑
+// 🌟 날개용 머티리얼 생성 함수 (비대칭 원본 유지 & 정비율 1:1 보장)
+// - 2D 나비 전체(1000x1000)에서 좌측은 Wing_L로, 우측은 Wing_R로 각각 독립 전달
+// - 동일 텍스처 중복 적용으로 인한 강제 거울 대칭 원천 차단
 // --------------------------------------------------------------------------
 function createWingMaterials(textureURL, patternPath3D) {
   var patPath = patternPath3D || (typeof currentSelected3DPatternPath !== 'undefined' ? currentSelected3DPatternPath : null);
 
-  var canvas = document.createElement('canvas');
-  canvas.width = 1000;
-  canvas.height = 1000;
-  var ctx = canvas.getContext('2d');
+  // 1. 왼쪽 날개 캔버스 (정비율 1000x1000)
+  var canvasL = document.createElement('canvas');
+  canvasL.width = 1000;
+  canvasL.height = 1000;
+  var ctxL = canvasL.getContext('2d');
 
-  var tex = new THREE.CanvasTexture(canvas);
-  tex.flipY = false;
+  // 2. 오른쪽 날개 캔버스 (정비율 1000x1000)
+  var canvasR = document.createElement('canvas');
+  canvasR.width = 1000;
+  canvasR.height = 1000;
+  var ctxR = canvasR.getContext('2d');
+
+  var texL = new THREE.CanvasTexture(canvasL);
+  var texR = new THREE.CanvasTexture(canvasR);
+  texL.flipY = false;
+  texR.flipY = false;
   if (THREE.sRGBEncoding) {
-    tex.encoding = THREE.sRGBEncoding;
+    texL.encoding = THREE.sRGBEncoding;
+    texR.encoding = THREE.sRGBEncoding;
   }
 
-  var wingMat = new THREE.MeshBasicMaterial({ 
-    map: tex, 
+  var matL = new THREE.MeshBasicMaterial({ 
+    map: texL, 
+    side: THREE.DoubleSide 
+  });
+  var matR = new THREE.MeshBasicMaterial({ 
+    map: texR, 
     side: THREE.DoubleSide 
   });
 
   var bgImg = new Image();
   bgImg.crossOrigin = "anonymous";
   bgImg.onload = function() {
-    ctx.clearRect(0, 0, 1000, 1000);
-    // 2D SVG 나비틀에서 사용자가 맞춘 1000x1000 사진을 비율 왜곡 없이 1:1 그대로 드로잉
-    ctx.drawImage(bgImg, 0, 0, 1000, 1000);
+    ctxL.clearRect(0, 0, 1000, 1000);
+    ctxR.clearRect(0, 0, 1000, 1000);
+
+    // [오른쪽 날개: Wing_R]
+    // 2D 이미지 전체(1000x1000)를 원본 위치 그대로 캔버스에 배치
+    ctxR.drawImage(bgImg, 0, 0, 1000, 1000);
+
+    // [왼쪽 날개: Wing_L]
+    // 3D 모델의 Wing_L UV가 오른쪽 날개와 겹쳐져 있으므로,
+    // 중심축 X=500을 기준으로 반전하여 2D 이미지의 왼쪽 영역이 올바른 위치에 오도록 안착
+    ctxL.save();
+    ctxL.translate(1000, 0);
+    ctxL.scale(-1, 1);
+    ctxL.drawImage(bgImg, 0, 0, 1000, 1000);
+    ctxL.restore();
 
     // 3D 패턴(무늬)이 있을 경우 비파괴 Multiply 합성
     if (patPath) {
       var patImg = new Image();
       patImg.crossOrigin = "anonymous";
       patImg.onload = function() {
-        ctx.save();
-        ctx.globalCompositeOperation = 'multiply';
-        ctx.globalAlpha = 0.95;
-        ctx.drawImage(patImg, 0, 0, 1000, 1000);
-        ctx.restore();
-        tex.needsUpdate = true;
+        ctxL.save();
+        ctxL.globalCompositeOperation = 'multiply';
+        ctxL.globalAlpha = 0.95;
+        ctxL.drawImage(patImg, 0, 0, 1000, 1000);
+        ctxL.restore();
+
+        ctxR.save();
+        ctxR.globalCompositeOperation = 'multiply';
+        ctxR.globalAlpha = 0.95;
+        ctxR.drawImage(patImg, 0, 0, 1000, 1000);
+        ctxR.restore();
+
+        texL.needsUpdate = true;
+        texR.needsUpdate = true;
       };
       patImg.onerror = function() {
-        tex.needsUpdate = true;
+        texL.needsUpdate = true;
+        texR.needsUpdate = true;
       };
       patImg.src = patPath;
     } else {
-      tex.needsUpdate = true;
+      texL.needsUpdate = true;
+      texR.needsUpdate = true;
     }
   };
   bgImg.src = textureURL;
 
-  // 3D 모델의 날개 메시는 이 1:1 대지에서 자신의 날개 외곽선 영역을 정확히 찾아 입힙니다.
-  return { matL: wingMat, matR: wingMat };
+  // 좌/우 독립된 머티리얼 반환으로 강제 대칭 현상 제거
+  return { matL: matL, matR: matR };
 }
 
 // --------------------------------------------------------------------------
