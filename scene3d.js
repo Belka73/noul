@@ -2,13 +2,10 @@
    🌟 너울(Noul) 3D 그래픽 및 Three.js 씬 관리 모듈 (scene3d.js)
    - Three.js 공통 씬/조명/카메라 설정
    - GLB 3D 나비 모델 로딩 및 텍스처 매핑
-   - [좌우 날개 온전한 1:1 사진 연결 및 정비율 보정]:
-     * 몸통 중심선(midX)을 기준으로 왼쪽/오른쪽 날개 매핑 방향 완벽 일치화
-     * 강제 거울 대칭 원천 차단 (대칭 토글 미선택 시 온전한 한 장의 비대칭 사진 유지)
-     * 세로 종횡비 1.34배 보정으로 가로 퍼짐 왜곡 완벽 상쇄
-     * 무늬 패턴(patImg) 규격 및 정방향 합성 유지
-     * alphaTest 제거로 날개 메쉬 외곽선 보존
-   - 로딩 화면 3D, 공유 화면 3D, 완성 뷰어(비행/기모으기/파티클), 표본실 3D 모달
+   - [UV 정방향 복구 적용]:
+     * UV 좌우 반전용 코드 전면 제거 및 정상 좌표계 복구
+     * 2D SVG/캔버스 중심선(midX) 기준 왼쪽/오른쪽 날개 1:1 정방향 대칭 매핑
+     * 인트로 상승 시 고주파 떨림/크기 요동 버그 해결 (부드러운 Ease-out 플랩 적용)
    ========================================================================== */
 
 // --------------------------------------------------------------------------
@@ -131,7 +128,7 @@ function stopLoading3DScene() {
 }
 
 // --------------------------------------------------------------------------
-// 🌟 좌/우 날개용 머티리얼 생성 함수
+// 🌟 좌/우 날개용 머티리얼 생성 함수 (UV 정방향 및 SVG 기준 1:1 대칭 매핑)
 // --------------------------------------------------------------------------
 function createWingMaterials(textureURL, patternPath3D) {
   var patPath = patternPath3D || (typeof currentSelected3DPatternPath !== 'undefined' ? currentSelected3DPatternPath : null);
@@ -172,21 +169,12 @@ function createWingMaterials(textureURL, patternPath3D) {
     function drawBaseAndPattern(patImg) {
       var fullW = bgImg.width;
       var fullH = bgImg.height;
-      var midX = fullW / 2; // 나비 몸통 중심선
+      var midX = fullW / 2; // 중심선
 
-      // 가로 늘어짐 왜곡을 없애기 위한 세로 정비율 확장 보정
-      var aspectCompensation = 1.34;
-      var destH = 1000 * aspectCompensation;
-      var destY = (1000 - destH) / 2;
-
-      // --------------------------------------------------------------------
-      // [오른쪽 날개 드로잉]:
-      // 사진의 몸통 중심선(midX)부터 오른쪽 끝까지를 캔버스에 매핑
-      // --------------------------------------------------------------------
+      // [오른쪽 날개 드로잉]: 원본 사진의 중심선(midX)부터 오른쪽 끝까지를 캔버스에 1:1 정방향 매핑
       ctxR.clearRect(0, 0, 1000, 1000);
-      ctxR.drawImage(bgImg, midX, 0, midX, fullH, 0, destY, 1000, destH);
+      ctxR.drawImage(bgImg, midX, 0, fullW - midX, fullH, 0, 0, 1000, 1000);
 
-      // 무늬 패턴: 오른쪽 정방향 합성 (원본 규격 불변)
       if (patImg) {
         ctxR.save();
         ctxR.globalCompositeOperation = 'multiply';
@@ -196,15 +184,10 @@ function createWingMaterials(textureURL, patternPath3D) {
       }
       texR.needsUpdate = true;
 
-      // --------------------------------------------------------------------
-      // [왼쪽 날개 드로잉]:
-      // 3D 메쉬의 몸통 축(U=0)과 사진의 몸통선(midX)이 일치되도록 매핑하여
-      // 좌우 날개가 하나의 온전한 사진으로 연결되게 함
-      // --------------------------------------------------------------------
+      // [왼쪽 날개 드로잉]: 원본 사진의 0부터 중심선(midX)까지를 캔버스에 1:1 정방향 매핑 (반전 제거)
       ctxL.clearRect(0, 0, 1000, 1000);
-      ctxL.drawImage(bgImg, 0, 0, midX, fullH, 1000, destY, -1000, destH);
+      ctxL.drawImage(bgImg, 0, 0, midX, fullH, 0, 0, 1000, 1000);
 
-      // 무늬 패턴: 정방향 합성 (원본 규격 불변)
       if (patImg) {
         ctxL.save();
         ctxL.globalCompositeOperation = 'multiply';
@@ -280,7 +263,7 @@ function stopShare3DScene() {
 }
 
 // --------------------------------------------------------------------------
-// 🌟 나비 뷰어 및 인터랙션 로직 (screen-preview)
+// 🌟 나비 뷰어 및 인터랙션 로직 (screen-preview: 떨림/요동 방지 수정)
 // --------------------------------------------------------------------------
 var fullScene, fullCamera, fullRenderer, fullGroup, leftWingMesh, rightWingMesh, antennaMesh;
 var isFlyingAway = false, animFrameId = null;
@@ -400,10 +383,15 @@ function initFullButterflyViewer(textureURL) {
     }
 
     if (!isFlyingAway) {
-      if (elapsedSec < 3.6) {
-        var progress = Math.min(1.0, elapsedSec / 3.6);
-        fullGroup.position.y = -7.0 + 7.0 * (1.0 - Math.pow(1.0 - progress, 3));
-        var flapIntro = Math.sin(time * 30.0) * (0.85 * Math.pow(1.0 - progress, 1.4));
+      // 🌟 떨림 제거: 과도한 주파수(30.0) 대신 부드러운 완충 상승 애니메이션 적용
+      if (elapsedSec < 3.2) {
+        var progress = Math.min(1.0, elapsedSec / 3.2);
+        // 부드러운 3차 가속 감속
+        var easeOut = 1.0 - Math.pow(1.0 - progress, 3);
+        fullGroup.position.y = -7.0 + 7.0 * easeOut;
+        
+        // 떨림 없이 자연스러운 상승 날갯짓
+        var flapIntro = Math.sin(time * 14.0) * (0.55 * (1.0 - easeOut * 0.4));
         if (leftWingMesh && rightWingMesh) {
           leftWingMesh.rotation.set(initialRotL.x, initialRotL.y + flapIntro, initialRotL.z);
           rightWingMesh.rotation.set(initialRotR.x, initialRotR.y - flapIntro, initialRotR.z);
@@ -417,7 +405,7 @@ function initFullButterflyViewer(textureURL) {
         }
       }
     } else {
-      var flyAngle = Math.sin(time * 26.0) * 0.75;
+      var flyAngle = Math.sin(time * 24.0) * 0.7;
       if (leftWingMesh && rightWingMesh) {
         leftWingMesh.rotation.set(initialRotL.x, initialRotL.y + flyAngle, initialRotL.z);
         rightWingMesh.rotation.set(initialRotR.x, initialRotR.y - flyAngle, initialRotR.z);
