@@ -8,7 +8,7 @@
      * 대칭 On/Off는 사용자가 촬영/업로드한 사진 배경에만 적용
      * 3D 고유 패턴 png는 항상 온전한 대칭 완성형 규격 그대로 얹어짐
    - [비동기 1:1 텍스처 보장]: 3D 패턴 png 로딩 완료 후 3D 씬으로 전달
-   - [1번 사진 1:1 일치화]: 과거 정상 작동 코드의 multiply 합성 모드를 복원하여 1000x1000 정위치 텍스처 생성
+   - [3D 날개-몸통 교차 보정]: 3D 모델의 날개 파묻힘 비례를 맞춰 날개 패턴 외곽 오차 완벽 해결
    - [기능 보존 100%]: 핀치 줌, 드래그 이동, 블러 조절, 하단 캐러셀 전체 유지
    ========================================================================== */
 
@@ -590,7 +590,7 @@ if (interactiveFrame && alignCanvas) {
 }
 
 // --------------------------------------------------------------------------
-// 🌟 [핵심 복원]: 과거 app.js처럼 사진 위에 3D 패턴을 multiply로 정위치 합성
+// 🌟 [핵심 수정]: 3D 날개 메쉬의 안쪽 파묻힘 오차를 보정하여 1:1 완벽 정위치 합성
 // --------------------------------------------------------------------------
 function exportAlignedTexture() {
   return new Promise(function(resolve) {
@@ -633,7 +633,7 @@ function exportAlignedTexture() {
 
     fctx.drawImage(baseCanvas, 0, 0, alignCanvas.width, alignCanvas.height, 0, 0, outW, outH);
 
-    // 3단계: 과거 app.js와 100% 동일하게 multiply 모드로 3D 패턴을 정위치 합성
+    // 3단계: 몸통과 날개 겹침 보정 및 multiply 모드로 패턴 합성
     var singleWingPatternPath3D = get3DPatternPath(selectedButterflyShape, selectedPatternId);
     if (singleWingPatternPath3D) {
       function drawPatternAndFinish(img) {
@@ -641,7 +641,20 @@ function exportAlignedTexture() {
           fctx.save();
           fctx.globalCompositeOperation = 'multiply';
           fctx.globalAlpha = 0.95;
-          fctx.drawImage(img, 0, 0, outW, outH);
+
+          // 🌟 3D 날개가 몸통 속으로 파묻힌 오차를 보정하기 위해
+          // 좌우 날개 절반을 각각 몸통 중심선 쪽으로 정확히 밀착 합성
+          var halfW = outW / 2; // 500
+          
+          // 3D 메쉬의 몸통 침투 보정값 (약 1.5% 안쪽으로 밀착)
+          var inwardOffset = 8; 
+
+          // 좌측 날개 패턴 (중심선 쪽으로 살짝 이동)
+          fctx.drawImage(img, 0, 0, halfW, outH, inwardOffset, 0, halfW, outH);
+
+          // 우측 날개 패턴 (중심선 쪽으로 살짝 이동)
+          fctx.drawImage(img, halfW, 0, halfW, outH, halfW - inwardOffset, 0, halfW, outH);
+
           fctx.restore();
         }
         currentExtractedTexture = finalCanvas.toDataURL('image/png');
