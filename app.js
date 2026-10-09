@@ -5,7 +5,14 @@
      2) Three.js 그래픽 및 3D 물리 뷰어: scene3d.js
      3) 화면 네비게이션, 설문, Supabase 통신: app.js
    - [기능 보존 100%]: 타이핑, 설문, 핵심 고민, 물리 버블, 표본실 DB 연동 유지
+   - [안전성 보강]: currentExtractedTexture 참조 에러(ReferenceError) 방지 처리
    ========================================================================== */
+
+// 🌟 [안전장치]: 전역 텍스처 변수 선언 보장 (ReferenceError 방지)
+if (typeof window.currentExtractedTexture === 'undefined') {
+  window.currentExtractedTexture = null;
+}
+var currentExtractedTexture = window.currentExtractedTexture;
 
 // 🌟 [안전장치]: shape-select.js 로드 순서와 무관하게 app.js 자체에서도 에러가 안 나도록 보장
 if (typeof createFallbackDummyTexture === 'undefined') {
@@ -177,7 +184,8 @@ function startAnswerShowcaseSequence() {
             guideText.innerText = userSelections.q6_memo && userSelections.q6_memo.trim().length > 0 
               ? userSelections.q6_memo.trim() : "너의 찬란한 날갯짓을 응원해.";
           }
-          initFullButterflyViewer(currentExtractedTexture || createFallbackDummyTexture());
+          var currentTex = window.currentExtractedTexture || currentExtractedTexture || createFallbackDummyTexture();
+          initFullButterflyViewer(currentTex);
           showScreen('screen-preview');
           setTimeout(function() { if (whiteFlash) whiteFlash.classList.remove('flash-active'); }, 1200);
         }, 1400);
@@ -244,13 +252,19 @@ function ensureDevDummyData() {
   if (!userSelections.concern_reason) userSelections.concern_reason = "항상 잘 해내야 한다는 마음이 앞서서요.";
   if (!userSelections.q6_memo) userSelections.q6_memo = "너의 찬란한 날갯짓을 응원해.";
   
-  // 🌟 형태와 텍스처가 어긋나지 않도록 텍스처 추출 보장
-  if (!currentExtractedTexture) {
+  // 🌟 형태와 텍스처가 어긋나지 않도록 텍스처 추출 보장 (참조 에러 방지)
+  var currentTex = window.currentExtractedTexture || currentExtractedTexture;
+  if (!currentTex) {
     try {
-      if (typeof exportAlignedTexture === 'function') exportAlignedTexture();
-      else currentExtractedTexture = createFallbackDummyTexture();
+      if (typeof exportAlignedTexture === 'function') {
+        exportAlignedTexture();
+      } else {
+        window.currentExtractedTexture = createFallbackDummyTexture();
+        currentExtractedTexture = window.currentExtractedTexture;
+      }
     } catch(err) {
-      currentExtractedTexture = createFallbackDummyTexture();
+      window.currentExtractedTexture = createFallbackDummyTexture();
+      currentExtractedTexture = window.currentExtractedTexture;
     }
   }
 }
@@ -336,7 +350,8 @@ document.addEventListener('click', function(e) {
       if (nameHeader) nameHeader.innerText = '‘' + butterflyName + '’';
       var guideText = document.getElementById('preview-guide-text');
       if (guideText) guideText.innerText = userSelections.q6_memo && userSelections.q6_memo.trim().length > 0 ? userSelections.q6_memo.trim() : "너의 찬란한 날갯짓을 응원해.";
-      initFullButterflyViewer(currentExtractedTexture || createFallbackDummyTexture());
+      var currentTex = window.currentExtractedTexture || currentExtractedTexture || createFallbackDummyTexture();
+      initFullButterflyViewer(currentTex);
       showScreen('screen-preview'); 
       return; 
     } else if (curId === 'screen-preview') { 
@@ -416,7 +431,8 @@ document.addEventListener('click', function(e) {
       return; 
     } else if (curId === 'screen-complete') { 
       ensureDevDummyData(); 
-      initFullButterflyViewer(currentExtractedTexture || createFallbackDummyTexture()); 
+      var currentTex = window.currentExtractedTexture || currentExtractedTexture || createFallbackDummyTexture();
+      initFullButterflyViewer(currentTex); 
       showScreen('screen-preview'); 
       return; 
     } else if (curId === 'screen-share') { 
@@ -1051,11 +1067,12 @@ function stopBubblePhysics() {
 // --------------------------------------------------------------------------
 async function saveButterflyToSupabase() {
   try {
+    var finalTex = window.currentExtractedTexture || currentExtractedTexture;
     specimenButterfliesData.unshift({
       id: Date.now(), name: userSelections.q7_name || '나비',
       wingId: selectedButterflyShape, antId: selectedAntennaType, patternId: selectedPatternId, q1: [],
       core_concern: userSelections.core_concern || (userSelections.q2 && userSelections.q2[0]) || "",
-      memo: userSelections.q6_memo || '', textureUrl: currentExtractedTexture,
+      memo: userSelections.q6_memo || '', textureUrl: finalTex,
       date: new Date().toISOString().slice(0, 10).replace(/-/g, '. ')
     });
 
@@ -1063,7 +1080,7 @@ async function saveButterflyToSupabase() {
     await supabase.from('butterflies').insert([{
       name: userSelections.q7_name || '이름없는 나비', wing_shape: selectedButterflyShape, antenna_type: selectedAntennaType,
       q1: [], q2: userSelections.q2, core_concern: userSelections.core_concern, q3: [], q4: [], q5: [],
-      memo: userSelections.q6_memo || '', revisit_date: null, email: null, texture_url: currentExtractedTexture
+      memo: userSelections.q6_memo || '', revisit_date: null, email: null, texture_url: finalTex
     }]);
   } catch (err) { console.error("Supabase 나비 저장 에러:", err); }
 }
