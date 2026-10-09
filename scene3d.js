@@ -2,10 +2,11 @@
    🌟 너울(Noul) 3D 그래픽 및 Three.js 씬 관리 모듈 (scene3d.js)
    - Three.js 공통 씬/조명/카메라 설정
    - GLB 3D 나비 모델 로딩 및 텍스처 매핑
-   - [세로 확장 요청 직전 원본 매핑 상태로 100% 롤백]:
-     * 강제 거울 대칭 없이 사진 원본 구도 그대로 좌우 날개 연결
-     * 무늬 패턴(patImg)의 위치 및 반전 방향 절대 불변
-     * 몸통 중심선(x=midX) 기준으로 좌우 날개 1:1 투영
+   - [왼쪽 날개 UV 정방향 복원에 맞춘 1:1 정방향 매핑]:
+     * 왼쪽 날개 사진 드로잉 음수 폭(-1000) 제거 -> 정방향(0, 0, 1000, 1000) 드로잉
+     * 왼쪽 날개 무늬 패턴 반전(scale -1) 코드 완전 제거 -> 정방향 합성
+     * 사진의 몸통 중심선(midX) 기준으로 좌우 1:1 완벽 연결 (강제 거울 대칭 원천 차단)
+     * alphaTest 제거로 날개 메쉬 외곽선 손상 방지
    - 로딩 화면 3D, 공유 화면 3D, 완성 뷰어(비행/기모으기/파티클), 표본실 3D 모달
    ========================================================================== */
 
@@ -129,7 +130,7 @@ function stopLoading3DScene() {
 }
 
 // --------------------------------------------------------------------------
-// 🌟 좌/우 날개용 머티리얼 생성 함수 (요청 직전 원본 상태 복원)
+// 🌟 좌/우 날개용 머티리얼 생성 함수 (UV 정방향 복원 반영)
 // --------------------------------------------------------------------------
 function createWingMaterials(textureURL, patternPath3D) {
   var patPath = patternPath3D || (typeof currentSelected3DPatternPath !== 'undefined' ? currentSelected3DPatternPath : null);
@@ -146,9 +147,7 @@ function createWingMaterials(textureURL, patternPath3D) {
 
   var matR = new THREE.MeshBasicMaterial({ 
     map: texR, 
-    side: THREE.DoubleSide, 
-    transparent: true, 
-    alphaTest: 0.05 
+    side: THREE.DoubleSide
   });
 
   // 2. 왼쪽 날개용 캔버스 (1000x1000)
@@ -163,9 +162,7 @@ function createWingMaterials(textureURL, patternPath3D) {
 
   var matL = new THREE.MeshBasicMaterial({ 
     map: texL, 
-    side: THREE.DoubleSide, 
-    transparent: true, 
-    alphaTest: 0.05 
+    side: THREE.DoubleSide
   });
 
   var bgImg = new Image();
@@ -178,12 +175,12 @@ function createWingMaterials(textureURL, patternPath3D) {
 
       // --------------------------------------------------------------------
       // [오른쪽 날개 드로잉]:
-      // 사진의 몸통 중심선(midX)부터 오른쪽 끝까지를 캔버스 전체에 드로잉
+      // 사진의 몸통 중심선(midX)부터 오른쪽 끝까지를 캔버스 전체에 정방향 드로잉
       // --------------------------------------------------------------------
       ctxR.clearRect(0, 0, 1000, 1000);
       ctxR.drawImage(bgImg, midX, 0, midX, fullH, 0, 0, 1000, 1000);
 
-      // 무늬 패턴: 오른쪽 정방향 합성 (규격 절대 불변)
+      // 무늬 패턴: 오른쪽 정방향 합성 (원본 규격 100% 불변)
       if (patImg) {
         ctxR.save();
         ctxR.globalCompositeOperation = 'multiply';
@@ -195,16 +192,15 @@ function createWingMaterials(textureURL, patternPath3D) {
 
       // --------------------------------------------------------------------
       // [왼쪽 날개 드로잉]:
-      // 사진의 왼쪽 영역(0 ~ midX)을 왼쪽 날개 캔버스에 드로잉
+      // UV가 정방향으로 복원되었으므로 음수 폭(-1000) 반전 없이
+      // 사진의 왼쪽 영역(0 ~ midX)을 정방향(0, 0, 1000, 1000)으로 드로잉
       // --------------------------------------------------------------------
       ctxL.clearRect(0, 0, 1000, 1000);
-      ctxL.drawImage(bgImg, 0, 0, midX, fullH, 1000, 0, -1000, 1000);
+      ctxL.drawImage(bgImg, 0, 0, midX, fullH, 0, 0, 1000, 1000);
 
-      // 무늬 패턴: 왼쪽 날개 원래 반전 위치로 합성 (규격 절대 불변)
+      // 무늬 패턴: 반전 코드(translate, scale) 없이 정방향 그대로 합성
       if (patImg) {
         ctxL.save();
-        ctxL.translate(1000, 0);
-        ctxL.scale(-1, 1);
         ctxL.globalCompositeOperation = 'multiply';
         ctxL.globalAlpha = 0.95;
         ctxL.drawImage(patImg, 0, 0, 1000, 1000);
