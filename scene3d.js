@@ -2,10 +2,10 @@
    🌟 너울(Noul) 3D 그래픽 및 Three.js 씬 관리 모듈 (scene3d.js)
    - Three.js 공통 씬/조명/카메라 설정
    - GLB 3D 나비 모델 로딩 및 텍스처 매핑
-   - [사진만 정비율 매핑]:
+   - [몸통 중심선 기준 정합 매핑]:
      * 날개 형태와 3D 모델 UV 기준점은 100% 그대로 유지
      * 무늬 패턴(patImg)의 위치 및 반전 방향 절대 불변
-     * 오직 사용자의 사진(bgImg)만 가로 스트레칭을 제거하여 1:1 정비율로 드로잉
+     * 몸통 중심선(x=500)을 기준으로 좌우 날개에 사진을 맞물려 정합
    - 로딩 화면 3D, 공유 화면 3D, 완성 뷰어(비행/기모으기/파티클), 표본실 3D 모달
    ========================================================================== */
 
@@ -129,7 +129,7 @@ function stopLoading3DScene() {
 }
 
 // --------------------------------------------------------------------------
-// 🌟 좌/우 날개용 머티리얼 생성 함수 (날개/패턴 불변, 오직 사진만 정비율)
+// 🌟 좌/우 날개용 머티리얼 생성 함수 (중심선 맞물림 및 정규 렌더러)
 // --------------------------------------------------------------------------
 function createWingMaterials(textureURL, patternPath3D) {
   var patPath = patternPath3D || (typeof currentSelected3DPatternPath !== 'undefined' ? currentSelected3DPatternPath : null);
@@ -175,19 +175,14 @@ function createWingMaterials(textureURL, patternPath3D) {
       var halfW = bgImg.width / 2;
       var fullH = bgImg.height;
 
-      // 🌟 [오직 사진만 정비율 계산]
-      // 가로 500 세로 1000 조각을 억지로 1000x1000으로 늘리지 않고,
-      // 원본 비율(1:2)을 유지하면서 캔버스 높이(1000) 기준 가로 폭 500으로 정비율 드로잉
-      var drawW = 500;
-      var drawH = 1000;
-
       // --------------------------------------------------------------------
-      // [오른쪽 날개 드로잉]: 날개 뿌리(안쪽)를 x=0에 맞추고 정비율로 사진 안착
+      // [오른쪽 날개 드로잉]:
+      // 사진의 몸통선(halfW)부터 오른쪽 끝까지를 캔버스의 날개 뿌리(0)에 맞춰 정방향 배치
       // --------------------------------------------------------------------
       ctxR.clearRect(0, 0, 1000, 1000);
-      ctxR.drawImage(bgImg, halfW, 0, halfW, fullH, 0, 0, drawW, drawH);
+      ctxR.drawImage(bgImg, halfW, 0, halfW, fullH, 0, 0, 1000, 1000);
 
-      // 무늬 패턴: 원래 설정된 규격(0, 0, 1000, 1000) 절대 불변
+      // 무늬 패턴: 오른쪽 정방향 합성 (불변)
       if (patImg) {
         ctxR.save();
         ctxR.globalCompositeOperation = 'multiply';
@@ -198,12 +193,17 @@ function createWingMaterials(textureURL, patternPath3D) {
       texR.needsUpdate = true;
 
       // --------------------------------------------------------------------
-      // [왼쪽 날개 드로잉]: 날개 뿌리(안쪽)를 x=0에 맞추고 정비율로 사진 안착
+      // [왼쪽 날개 드로잉]:
+      // 블렌더의 뒤집힌 UV 기준점(날개 뿌리 안쪽)에 사진의 몸통선(halfW)이 정확히 맞닿도록 반전 배치
       // --------------------------------------------------------------------
       ctxL.clearRect(0, 0, 1000, 1000);
-      ctxL.drawImage(bgImg, 0, 0, halfW, fullH, 0, 0, drawW, drawH);
+      ctxL.save();
+      ctxL.translate(1000, 0);
+      ctxL.scale(-1, 1);
+      ctxL.drawImage(bgImg, 0, 0, halfW, fullH, 0, 0, 1000, 1000);
+      ctxL.restore();
 
-      // 무늬 패턴: 원래 설정된 왼쪽 날개 반전 위치 절대 불변
+      // 무늬 패턴: 왼쪽 날개 원래 반전 위치로 합성 (불변)
       if (patImg) {
         ctxL.save();
         ctxL.translate(1000, 0);
@@ -320,7 +320,7 @@ function initFullButterflyViewer(textureURL) {
   if (THREE.sRGBEncoding) {
     fullRenderer.outputEncoding = THREE.sRGBEncoding;
   }
-  container.appendChild(fullRenderer.domElement);
+  container.appendChild(renderer.domElement);
 
   fullScene.add(new THREE.AmbientLight(0xffffff, 0.95));
   var dirLight = new THREE.DirectionalLight(0xffffff, 0.85);
