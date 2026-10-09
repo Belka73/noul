@@ -135,7 +135,7 @@ function createWingMaterials(textureURL, patternPath3D) {
   var ctx = canvas.getContext('2d');
 
   var wingTex = new THREE.CanvasTexture(canvas);
-  wingTex.flipY = false;
+  wingTex.flipY = true;
   if (THREE.sRGBEncoding) wingTex.encoding = THREE.sRGBEncoding;
 
   var wingMat = new THREE.MeshBasicMaterial({ 
