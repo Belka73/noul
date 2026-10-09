@@ -3,7 +3,7 @@
    - Three.js 공통 씬/조명/카메라 설정
    - GLB 3D 나비 모델 로딩 및 텍스처 매핑 (1000x1000 완제품 텍스처 1:1 정위치 투영)
    - 로딩 화면 3D, 공유 화면 3D, 완성 뷰어(비행/기모으기/파티클), 표본실 3D 모달
-   - [확대/비대칭 버그 종결]: 좌/우 날개 메쉬의 독립 UV에 맞춰 1:1 좌우 날개 텍스처를 정밀 분할 매핑
+   - [과거 정상 코드 복원]: 임의의 캔버스 분할을 완전히 제거하고 단일 텍스처 1:1 매핑으로 날개 왜곡 해결
    ========================================================================== */
 
 // --------------------------------------------------------------------------
@@ -36,8 +36,8 @@ function setupCommon3DScene(container, camZ, lookY) {
   return { scene: scene, camera: camera, renderer: renderer };
 }
 
-// 🌟 좌우 날개 메쉬에 텍스처 머티리얼 적용
-function loadButterflyModel(group, shapeId, antId, wingMatL, wingMatR, whiteMat, scale, onLoaded) {
+// 🌟 좌우 날개 메쉬에 텍스처 머티리얼 적용 (과거 app_6.js 정상 규격 복원)
+function loadButterflyModel(group, shapeId, antId, wingMat, whiteMat, scale, onLoaded) {
   if (!window.THREE || !THREE.GLTFLoader) return;
   var modelPath = '3DButterfly/' + (shapeId || 'crescent') + '.glb';
   var targetAnt = 'Antenna_' + (antId || 'ball');
@@ -47,35 +47,29 @@ function loadButterflyModel(group, shapeId, antId, wingMatL, wingMatR, whiteMat,
     var wL = null, wR = null;
 
     model.traverse(function(child) {
-      var n = child.name || '';
-      if (n.indexOf('Wing_L') > -1) {
-        if (!wL) {
+      if (child.isMesh) {
+        var n = child.name || '';
+        if (n.indexOf('Wing_L') === 0 || n.startsWith('Wing_L')) {
           wL = child;
           wL.userData.baseRotY = child.rotation.y;
-        }
-        if (child.isMesh) {
-          child.material = wingMatL;
+          child.material = wingMat;
           child.castShadow = true;
           child.receiveShadow = true;
         }
-      }
-      else if (n.indexOf('Wing_R') > -1) {
-        if (!wR) {
+        else if (n.indexOf('Wing_R') === 0 || n.startsWith('Wing_R')) {
           wR = child;
           wR.userData.baseRotY = child.rotation.y;
-        }
-        if (child.isMesh) {
-          child.material = wingMatR || wingMatL;
+          child.material = wingMat;
           child.castShadow = true;
           child.receiveShadow = true;
         }
-      }
-      else if (n.indexOf('Body') > -1 && child.isMesh) { 
-        child.material = whiteMat; 
-      }
-      else if (n.indexOf('Antenna_') > -1 && child.isMesh) { 
-        child.material = whiteMat; 
-        child.visible = n.indexOf(targetAnt) > -1; 
+        else if (n.indexOf('Body') === 0 || n.startsWith('Body')) { 
+          child.material = whiteMat; 
+        }
+        else if (n.indexOf('Antenna_') === 0 || n.startsWith('Antenna_')) { 
+          child.material = whiteMat; 
+          child.visible = n.startsWith(targetAnt); 
+        }
       }
     });
     model.scale.set(scale, scale, scale);
@@ -103,7 +97,7 @@ function initLoading3DScene() {
   loadingGroup.rotation.set(0.25, -0.8, 0.35);
   loadingGroup.position.set(-0.28, -0.22, 0);
 
-  loadButterflyModel(loadingGroup, selectedButterflyShape, selectedAntennaType, whiteMat, whiteMat, whiteMat, 0.95, function(l, r) {
+  loadButterflyModel(loadingGroup, selectedButterflyShape, selectedAntennaType, whiteMat, whiteMat, 0.95, function(l, r) {
     loadingWingL = l; loadingWingR = r;
   });
   loadingScene.add(loadingGroup);
@@ -116,6 +110,8 @@ function initLoading3DScene() {
       loadingWingL.rotation.y = (loadingWingL.userData.baseRotY || 0) + flap; 
       loadingWingR.rotation.y = (loadingWingR.userData.baseRotY || 0) - flap; 
     }
+    loadingGroup.position.y = -0.22 + Math.sin(t * 2.2) * 0.08;
+    loadingGroup.rotation.z = 0.35 + Math.sin(t * 1.5) * 0.04;
     loadingRenderer.render(loadingScene, loadingCamera);
   })();
 }
@@ -127,61 +123,25 @@ function stopLoading3DScene() {
 }
 
 // --------------------------------------------------------------------------
-// 🌟 [핵심 수정]: 좌/우 날개 전용 1:1 정밀 텍스처 추출 및 매핑
-// - 1000x1000 원본에서 왼쪽 날개(0~500px), 오른쪽 날개(500~1000px)를 각각 분리 생성
-// - 3D 날개 메쉬의 독립 UV에 정확하게 1:1 투영되도록 보장
+// 🌟 날개 전용 1:1 단일 텍스처 머티리얼 생성 함수 (정상 코드 복원)
 // --------------------------------------------------------------------------
 function createWingMaterials(textureURL) {
-  var canvasL = document.createElement('canvas');
-  canvasL.width = 500; canvasL.height = 1000;
-  var ctxL = canvasL.getContext('2d');
+  var textureLoader = new THREE.TextureLoader();
+  var tex = textureLoader.load(textureURL);
+  tex.flipY = false;
+  if (THREE.sRGBEncoding) {
+    tex.encoding = THREE.sRGBEncoding;
+  }
+  tex.needsUpdate = true;
 
-  var canvasR = document.createElement('canvas');
-  canvasR.width = 500; canvasR.height = 1000;
-  var ctxR = canvasR.getContext('2d');
-
-  var texL = new THREE.CanvasTexture(canvasL);
-  texL.flipY = false;
-  if (THREE.sRGBEncoding) texL.encoding = THREE.sRGBEncoding;
-
-  var texR = new THREE.CanvasTexture(canvasR);
-  texR.flipY = false;
-  if (THREE.sRGBEncoding) texR.encoding = THREE.sRGBEncoding;
-
-  var wingMatL = new THREE.MeshStandardMaterial({ 
-    map: texL, 
+  var wingMat = new THREE.MeshBasicMaterial({ 
+    map: tex, 
     side: THREE.DoubleSide, 
     transparent: true, 
-    alphaTest: 0.05,
-    roughness: 0.6,
-    metalness: 0.1
+    alphaTest: 0.05 
   });
 
-  var wingMatR = new THREE.MeshStandardMaterial({ 
-    map: texR, 
-    side: THREE.DoubleSide, 
-    transparent: true, 
-    alphaTest: 0.05,
-    roughness: 0.6,
-    metalness: 0.1
-  });
-
-  var img = new Image();
-  img.crossOrigin = "anonymous";
-  img.onload = function() {
-    // 1) 왼쪽 날개: 1000x1000 이미지의 좌측 절반(0~500px)을 추출
-    ctxL.clearRect(0, 0, 500, 1000);
-    ctxL.drawImage(img, 0, 0, 500, 1000, 0, 0, 500, 1000);
-    texL.needsUpdate = true;
-
-    // 2) 오른쪽 날개: 1000x1000 이미지의 우측 절반(500~1000px)을 추출
-    ctxR.clearRect(0, 0, 500, 1000);
-    ctxR.drawImage(img, 500, 0, 500, 1000, 0, 0, 500, 1000);
-    texR.needsUpdate = true;
-  };
-  img.src = textureURL;
-
-  return { left: wingMatL, right: wingMatR };
+  return wingMat;
 }
 
 // --------------------------------------------------------------------------
@@ -197,14 +157,14 @@ function initShare3DScene() {
   shareScene = res.scene; shareCamera = res.camera; shareRenderer = res.renderer;
 
   var texUrl = currentExtractedTexture || createFallbackDummyTexture('#ffffff', '#cfcfcf');
-  var wingMats = createWingMaterials(texUrl);
+  var wingMat = createWingMaterials(texUrl);
   var whiteMat = new THREE.MeshStandardMaterial({ color: 0xffffff, side: THREE.DoubleSide, roughness: 0.35 });
 
   shareGroup = new THREE.Group();
   shareGroup.rotation.set(0.25, -0.8, 0.35);
   shareGroup.position.set(0, 0.45, 0);
 
-  loadButterflyModel(shareGroup, selectedButterflyShape, selectedAntennaType, wingMats.left, wingMats.right, whiteMat, 0.68, function(l, r) {
+  loadButterflyModel(shareGroup, selectedButterflyShape, selectedAntennaType, wingMat, whiteMat, 0.68, function(l, r) {
     shareWingL = l; shareWingR = r;
   });
   shareScene.add(shareGroup);
@@ -217,6 +177,8 @@ function initShare3DScene() {
       shareWingL.rotation.y = (shareWingL.userData.baseRotY || 0) + flap; 
       shareWingR.rotation.y = (shareWingR.userData.baseRotY || 0) - flap; 
     }
+    shareGroup.position.y = 0.45 + Math.sin(t * 2.2) * 0.08;
+    shareGroup.rotation.z = 0.35 + Math.sin(t * 1.5) * 0.04;
     shareRenderer.render(shareScene, shareCamera);
   })();
 }
@@ -273,7 +235,7 @@ function initFullButterflyViewer(textureURL) {
   var dirLight = new THREE.DirectionalLight(0xffffff, 0.85);
   dirLight.position.set(0, 5, 10); fullScene.add(dirLight);
 
-  var wingMats = createWingMaterials(textureURL);
+  var wingMat = createWingMaterials(textureURL);
 
   fullGroup = new THREE.Group();
   butterflyRotX = DEFAULT_ROT_X; butterflyRotY = DEFAULT_ROT_Y;
@@ -291,36 +253,26 @@ function initFullButterflyViewer(textureURL) {
       new THREE.GLTFLoader().load('3DButterfly/' + selectedButterflyShape + '.glb', function(gltf) {
         leftWingMesh = null; rightWingMesh = null; antennaMesh = null;
         gltf.scene.traverse(function(child) {
-          var n = child.name || '';
-          if (n.indexOf('Wing_L') > -1) { 
-            if (!leftWingMesh) {
-              leftWingMesh = child;
-              initialRotL = { x: child.rotation.x, y: child.rotation.y, z: child.rotation.z };
+          if (child.isMesh) {
+            var n = child.name || '';
+            if (n.indexOf('Wing_L') === 0 || n.startsWith('Wing_L')) { 
+              leftWingMesh = child; 
+              child.material = wingMat; 
+              initialRotL = { x: child.rotation.x, y: child.rotation.y, z: child.rotation.z }; 
             }
-            if (child.isMesh) {
-              child.material = wingMats.left; 
-              child.castShadow = true;
-              child.receiveShadow = true;
+            else if (n.indexOf('Wing_R') === 0 || n.startsWith('Wing_R')) { 
+              rightWingMesh = child; 
+              child.material = wingMat; 
+              initialRotR = { x: child.rotation.x, y: child.rotation.y, z: child.rotation.z }; 
             }
-          }
-          else if (n.indexOf('Wing_R') > -1) { 
-            if (!rightWingMesh) {
-              rightWingMesh = child;
-              initialRotR = { x: child.rotation.x, y: child.rotation.y, z: child.rotation.z };
+            else if (n.indexOf('Body') === 0 || n.startsWith('Body')) { 
+              child.material = whiteMat; 
             }
-            if (child.isMesh) {
-              child.material = wingMats.right; 
-              child.castShadow = true;
-              child.receiveShadow = true;
+            else if (n.indexOf('Antenna_') === 0 || n.startsWith('Antenna_')) { 
+              child.material = whiteMat; 
+              child.visible = n.startsWith(targetAnt); 
+              if (child.visible) antennaMesh = child; 
             }
-          }
-          else if (n.indexOf('Body') > -1 && child.isMesh) { 
-            child.material = whiteMat; 
-          }
-          else if (n.indexOf('Antenna_') > -1 && child.isMesh) { 
-            child.material = whiteMat; 
-            child.visible = n.indexOf(targetAnt) > -1; 
-            if (child.visible) antennaMesh = child; 
           }
         });
         gltf.scene.scale.set(0.76, 0.76, 0.76);
@@ -574,13 +526,13 @@ function openSpecimen3DModal(item, textureUrl) {
   if (!res) return;
   modalThreeScene = res.scene; modalThreeCamera = res.camera; modalThreeRenderer = res.renderer;
 
-  var wingMats = createWingMaterials(textureUrl);
+  var wingMat = createWingMaterials(textureUrl);
   var whiteMat = new THREE.MeshStandardMaterial({ color: 0xffffff, side: THREE.DoubleSide, roughness: 0.3 });
 
   modalGroup = new THREE.Group();
   modalGroup.position.set(0, -0.35, 0);
 
-  loadButterflyModel(modalGroup, item.wingId, item.antId, wingMats.left, wingMats.right, whiteMat, 0.88, function(l, r) {
+  loadButterflyModel(modalGroup, item.wingId, item.antId, wingMat, whiteMat, 0.88, function(l, r) {
     modalWingL = l; modalWingR = r;
   });
   modalThreeScene.add(modalGroup);
