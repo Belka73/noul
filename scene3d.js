@@ -2,11 +2,12 @@
    🌟 너울(Noul) 3D 그래픽 및 Three.js 씬 관리 모듈 (scene3d.js)
    - Three.js 공통 씬/조명/카메라 설정
    - GLB 3D 나비 모델 로딩 및 텍스처 매핑
-   - [왼쪽 날개 UV 정방향 복원에 맞춘 1:1 정방향 매핑]:
-     * 왼쪽 날개 사진 드로잉 음수 폭(-1000) 제거 -> 정방향(0, 0, 1000, 1000) 드로잉
-     * 왼쪽 날개 무늬 패턴 반전(scale -1) 코드 완전 제거 -> 정방향 합성
-     * 사진의 몸통 중심선(midX) 기준으로 좌우 1:1 완벽 연결 (강제 거울 대칭 원천 차단)
-     * alphaTest 제거로 날개 메쉬 외곽선 손상 방지
+   - [좌우 날개 온전한 1:1 사진 연결 및 정비율 보정]:
+     * 몸통 중심선(midX)을 기준으로 왼쪽/오른쪽 날개 매핑 방향 완벽 일치화
+     * 강제 거울 대칭 원천 차단 (대칭 토글 미선택 시 온전한 한 장의 비대칭 사진 유지)
+     * 세로 종횡비 1.34배 보정으로 가로 퍼짐 왜곡 완벽 상쇄
+     * 무늬 패턴(patImg) 규격 및 정방향 합성 유지
+     * alphaTest 제거로 날개 메쉬 외곽선 보존
    - 로딩 화면 3D, 공유 화면 3D, 완성 뷰어(비행/기모으기/파티클), 표본실 3D 모달
    ========================================================================== */
 
@@ -130,7 +131,7 @@ function stopLoading3DScene() {
 }
 
 // --------------------------------------------------------------------------
-// 🌟 좌/우 날개용 머티리얼 생성 함수 (UV 정방향 복원 반영)
+// 🌟 좌/우 날개용 머티리얼 생성 함수
 // --------------------------------------------------------------------------
 function createWingMaterials(textureURL, patternPath3D) {
   var patPath = patternPath3D || (typeof currentSelected3DPatternPath !== 'undefined' ? currentSelected3DPatternPath : null);
@@ -173,14 +174,19 @@ function createWingMaterials(textureURL, patternPath3D) {
       var fullH = bgImg.height;
       var midX = fullW / 2; // 나비 몸통 중심선
 
+      // 가로 늘어짐 왜곡을 없애기 위한 세로 정비율 확장 보정
+      var aspectCompensation = 1.34;
+      var destH = 1000 * aspectCompensation;
+      var destY = (1000 - destH) / 2;
+
       // --------------------------------------------------------------------
       // [오른쪽 날개 드로잉]:
-      // 사진의 몸통 중심선(midX)부터 오른쪽 끝까지를 캔버스 전체에 정방향 드로잉
+      // 사진의 몸통 중심선(midX)부터 오른쪽 끝까지를 캔버스에 매핑
       // --------------------------------------------------------------------
       ctxR.clearRect(0, 0, 1000, 1000);
-      ctxR.drawImage(bgImg, midX, 0, midX, fullH, 0, 0, 1000, 1000);
+      ctxR.drawImage(bgImg, midX, 0, midX, fullH, 0, destY, 1000, destH);
 
-      // 무늬 패턴: 오른쪽 정방향 합성 (원본 규격 100% 불변)
+      // 무늬 패턴: 오른쪽 정방향 합성 (원본 규격 불변)
       if (patImg) {
         ctxR.save();
         ctxR.globalCompositeOperation = 'multiply';
@@ -192,13 +198,13 @@ function createWingMaterials(textureURL, patternPath3D) {
 
       // --------------------------------------------------------------------
       // [왼쪽 날개 드로잉]:
-      // UV가 정방향으로 복원되었으므로 음수 폭(-1000) 반전 없이
-      // 사진의 왼쪽 영역(0 ~ midX)을 정방향(0, 0, 1000, 1000)으로 드로잉
+      // 3D 메쉬의 몸통 축(U=0)과 사진의 몸통선(midX)이 일치되도록 매핑하여
+      // 좌우 날개가 하나의 온전한 사진으로 연결되게 함
       // --------------------------------------------------------------------
       ctxL.clearRect(0, 0, 1000, 1000);
-      ctxL.drawImage(bgImg, 0, 0, midX, fullH, 0, 0, 1000, 1000);
+      ctxL.drawImage(bgImg, 0, 0, midX, fullH, 1000, destY, -1000, destH);
 
-      // 무늬 패턴: 반전 코드(translate, scale) 없이 정방향 그대로 합성
+      // 무늬 패턴: 정방향 합성 (원본 규격 불변)
       if (patImg) {
         ctxL.save();
         ctxL.globalCompositeOperation = 'multiply';
