@@ -3,11 +3,11 @@
    - Three.js 공통 씬/조명/카메라 설정
    - GLB 3D 나비 모델 로딩 및 텍스처 매핑
    - [핵심 수정 사항]:
-     1) 텍스처 강제 분할/강제 대칭 코드 전면 삭제: SVG 나비틀 기준 1:1 정방향 텍스처 온전 전달
-     2) 사용자가 누른 대칭 상태만 반영된 추출 텍스처를 3D 양쪽 날개에 정비율로 적용
-     3) 3D 패턴(patPath) Multiply 합성 규격 및 비파괴 결합 유지
-     4) 프리뷰 인트로 시 상승 크기 요동 및 날개 떨림 제거 (부드러운 Ease-out 플랩 적용)
-     5) 더듬이, 몸통, 비행, 기 모으기, 표본실 모달 등 기존 기능 100% 보존
+     1) SVG 나비틀(1000x1000) 중심축(X=500)을 기준으로 좌/우 날개 텍스처를 각각 500x1000 정비율 분할
+     2) 사용자가 대칭 버튼을 켜지 않았을 때: 원본 사진의 좌/우가 각각 Wing_L, Wing_R에 매핑되어 온전한 비대칭 사진 유지
+     3) 사용자가 대칭 버튼을 켰을 때: 좌우 거울 대칭이 적용된 이미지가 그대로 3D 날개 양쪽에 정합
+     4) 3D 패턴(patPath) Multiply 합성 및 비파괴 결합 로직 유지
+     5) 3D 나비 모델 구조, 애니메이션, 기 모으기, 비행, 표본실 모달 등 기존 기능 100% 유지
    ========================================================================== */
 
 // --------------------------------------------------------------------------
@@ -131,57 +131,95 @@ function stopLoading3DScene() {
 
 // --------------------------------------------------------------------------
 // 🌟 날개용 머티리얼 생성 함수
-// - 임의의 캔버스 좌우 분할 및 강제 대칭(Flip) 전면 제거
-// - 2D SVG 틀에 정렬된 텍스처를 1:1 정방향으로 얹고 3D 패턴과 합성
+// - 2D SVG 나비틀 기준(1000x1000) 중심축(X=500)을 기준으로 좌/우 날개 독립 분할
+// - 좌측(0~500)은 Wing_L에, 우측(500~1000)은 Wing_R에 정비율로 매핑 (임의 대칭 금지)
+// - 3D 날개 UV 포개짐(Overlap)을 고려하여 오른쪽 날개 영역을 올바른 방향으로 매핑
 // --------------------------------------------------------------------------
 function createWingMaterials(textureURL, patternPath3D) {
   var patPath = patternPath3D || (typeof currentSelected3DPatternPath !== 'undefined' ? currentSelected3DPatternPath : null);
 
-  var canvas = document.createElement('canvas');
-  canvas.width = 1000;
-  canvas.height = 1000;
-  var ctx = canvas.getContext('2d');
+  // 1. 왼쪽 날개용 캔버스 (0~500 영역)
+  var canvasL = document.createElement('canvas');
+  canvasL.width = 500;
+  canvasL.height = 1000;
+  var ctxL = canvasL.getContext('2d');
 
-  var tex = new THREE.CanvasTexture(canvas);
-  tex.flipY = false;
-  if (THREE.sRGBEncoding) tex.encoding = THREE.sRGBEncoding;
+  // 2. 오른쪽 날개용 캔버스 (500~1000 영역)
+  var canvasR = document.createElement('canvas');
+  canvasR.width = 500;
+  canvasR.height = 1000;
+  var ctxR = canvasR.getContext('2d');
 
-  var wingMat = new THREE.MeshBasicMaterial({ 
-    map: tex, 
+  var texL = new THREE.CanvasTexture(canvasL);
+  var texR = new THREE.CanvasTexture(canvasR);
+  texL.flipY = false;
+  texR.flipY = false;
+  if (THREE.sRGBEncoding) {
+    texL.encoding = THREE.sRGBEncoding;
+    texR.encoding = THREE.sRGBEncoding;
+  }
+
+  var matL = new THREE.MeshBasicMaterial({ 
+    map: texL, 
+    side: THREE.DoubleSide 
+  });
+  var matR = new THREE.MeshBasicMaterial({ 
+    map: texR, 
     side: THREE.DoubleSide 
   });
 
   var bgImg = new Image();
   bgImg.crossOrigin = "anonymous";
   bgImg.onload = function() {
-    ctx.clearRect(0, 0, 1000, 1000);
-    // 2D SVG 나비틀에서 정렬/추출된 사진 그대로 1:1 드로잉 (임의 대칭/자르기 없음)
-    ctx.drawImage(bgImg, 0, 0, 1000, 1000);
+    ctxL.clearRect(0, 0, 500, 1000);
+    ctxR.clearRect(0, 0, 500, 1000);
 
-    // 3D 패턴(무늬)이 있을 경우 원본 규격 유지하며 정방향 곱하기 합성
+    // 2D SVG 나비틀의 1000x1000 전체 사진에서 좌측 0~500 영역을 왼쪽 날개 캔버스에 1:1 정비율로 드로잉
+    ctxL.drawImage(bgImg, 0, 0, 500, 1000, 0, 0, 500, 1000);
+
+    // 오른쪽 날개 영역(500~1000)을 오른쪽 날개 캔버스에 드로잉
+    // 3D 모델의 Wing_R UV가 Wing_L UV와 거울 대칭으로 포개어져 있으므로, 수평 반전하여 그려 넣어야 3D 날개에서 사진이 자연스럽게 이어집니다.
+    ctxR.save();
+    ctxR.translate(500, 0);
+    ctxR.scale(-1, 1);
+    ctxR.drawImage(bgImg, 500, 0, 500, 1000, 0, 0, 500, 1000);
+    ctxR.restore();
+
+    // 3D 패턴(무늬)이 있을 경우 비파괴 Multiply 합성
     if (patPath) {
       var patImg = new Image();
       patImg.crossOrigin = "anonymous";
       patImg.onload = function() {
-        ctx.save();
-        ctx.globalCompositeOperation = 'multiply';
-        ctx.globalAlpha = 0.95;
-        ctx.drawImage(patImg, 0, 0, 1000, 1000);
-        ctx.restore();
-        tex.needsUpdate = true;
+        // 왼쪽 날개 패턴 합성
+        ctxL.save();
+        ctxL.globalCompositeOperation = 'multiply';
+        ctxL.globalAlpha = 0.95;
+        ctxL.drawImage(patImg, 0, 0, 500, 1000);
+        ctxL.restore();
+
+        // 오른쪽 날개 패턴 합성
+        ctxR.save();
+        ctxR.globalCompositeOperation = 'multiply';
+        ctxR.globalAlpha = 0.95;
+        ctxR.drawImage(patImg, 0, 0, 500, 1000);
+        ctxR.restore();
+
+        texL.needsUpdate = true;
+        texR.needsUpdate = true;
       };
       patImg.onerror = function() {
-        tex.needsUpdate = true;
+        texL.needsUpdate = true;
+        texR.needsUpdate = true;
       };
       patImg.src = patPath;
     } else {
-      tex.needsUpdate = true;
+      texL.needsUpdate = true;
+      texR.needsUpdate = true;
     }
   };
   bgImg.src = textureURL;
 
-  // 정상 복구된 3D UV는 하나의 텍스처 평면을 1:1로 읽으므로 좌/우 동일 머티리얼 적용
-  return { matL: wingMat, matR: wingMat };
+  return { matL: matL, matR: matR };
 }
 
 // --------------------------------------------------------------------------
@@ -349,8 +387,6 @@ function initFullButterflyViewer(textureURL) {
       }
     }
 
-    // 🌟 떨림 및 크기 요동 제거 로직:
-    // 과도한 고주파 플랩을 배제하고, 부드러운 3차 감속 곡선(Ease-Out)으로 일정하게 올라옵니다.
     if (!isFlyingAway) {
       if (elapsedSec < 3.0) {
         var progress = Math.min(1.0, elapsedSec / 3.0);
