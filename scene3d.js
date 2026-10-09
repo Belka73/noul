@@ -3,8 +3,10 @@
    - Three.js 공통 씬/조명/카메라 설정
    - GLB 3D 나비 모델 로딩 및 텍스처 매핑
    - [좌우 날개 분리 매핑]: 
-     * 왼쪽 날개(Wing_L): 뒤집힌 UV에 맞춰 PNG 텍스처를 좌우 반전 매핑
-     * 오른쪽 날개(Wing_R): 정방향 PNG 텍스처 매핑
+     * 오른쪽 날개(Wing_R): 원본 사진의 오른쪽 절반(500~1000) 매핑
+     * 왼쪽 날개(Wing_L): 원본 사진의 왼쪽 절반(0~500) 매핑
+     * 대칭 버튼 OFF 시 사진이 자동으로 대칭되지 않고 원본 구도 그대로 연결
+     * 대칭 버튼 ON 시에만 좌우 대칭 적용
    - 로딩 화면 3D, 공유 화면 3D, 완성 뷰어(비행/기모으기/파티클), 표본실 3D 모달
    ========================================================================== */
 
@@ -128,9 +130,9 @@ function stopLoading3DScene() {
 }
 
 // --------------------------------------------------------------------------
-// 🌟 좌/우 날개용 머티리얼 생성 함수
-// - matR: 원본 텍스처 (오른쪽 날개용)
-// - matL: 좌우 반전된 텍스처 (왼쪽 날개 UV 반전 보정용)
+// 🌟 좌/우 날개용 머티리얼 생성 함수 (비대칭 분기 및 정비율 매핑)
+// - matR: 원본 사진의 '오른쪽 절반' + 3D 반쪽 패턴
+// - matL: 원본 사진의 '왼쪽 절반' (블렌더 UV와 직접 정합) + 3D 반쪽 패턴
 // --------------------------------------------------------------------------
 function createWingMaterials(textureURL, patternPath3D) {
   var patPath = patternPath3D || (typeof currentSelected3DPatternPath !== 'undefined' ? currentSelected3DPatternPath : null);
@@ -152,7 +154,7 @@ function createWingMaterials(textureURL, patternPath3D) {
     alphaTest: 0.05 
   });
 
-  // 2. 왼쪽 날개용 캔버스 (좌우 반전)
+  // 2. 왼쪽 날개용 캔버스
   var canvasL = document.createElement('canvas');
   canvasL.width = 1000;
   canvasL.height = 1000;
@@ -173,9 +175,12 @@ function createWingMaterials(textureURL, patternPath3D) {
   bgImg.crossOrigin = "anonymous";
   bgImg.onload = function() {
     function drawBaseAndPattern(patImg) {
-      // 오른쪽 날개 그리기
+      var halfW = bgImg.width / 2;
+      var fullH = bgImg.height;
+
+      // 🌟 [오른쪽 날개]: 원본 사진의 오른쪽 절반 영역(halfW ~ bgImg.width)을 1000x1000에 채움
       ctxR.clearRect(0, 0, 1000, 1000);
-      ctxR.drawImage(bgImg, 0, 0, 1000, 1000);
+      ctxR.drawImage(bgImg, halfW, 0, halfW, fullH, 0, 0, 1000, 1000);
       if (patImg) {
         ctxR.save();
         ctxR.globalCompositeOperation = 'multiply';
@@ -185,18 +190,19 @@ function createWingMaterials(textureURL, patternPath3D) {
       }
       texR.needsUpdate = true;
 
-      // 왼쪽 날개 그리기 (가로 축 좌우 반전)
+      // 🌟 [왼쪽 날개]: 원본 사진의 왼쪽 절반 영역(0 ~ halfW)을 반전 없이 그대로 채움
+      // (블렌더에서 뒤집힌 왼쪽 날개 UV가 이 이미지를 받아 원래 방향대로 바르게 펼쳐지므로, 추가 반전을 넣지 않아야 비대칭이 유지됩니다)
       ctxL.clearRect(0, 0, 1000, 1000);
-      ctxL.save();
-      ctxL.translate(1000, 0);
-      ctxL.scale(-1, 1);
-      ctxL.drawImage(bgImg, 0, 0, 1000, 1000);
+      ctxL.drawImage(bgImg, 0, 0, halfW, fullH, 0, 0, 1000, 1000);
+
+      // 무늬 패턴은 블렌더 UV 기준점에 맞게 그대로 얹음
       if (patImg) {
+        ctxL.save();
         ctxL.globalCompositeOperation = 'multiply';
         ctxL.globalAlpha = 0.95;
         ctxL.drawImage(patImg, 0, 0, 1000, 1000);
+        ctxL.restore();
       }
-      ctxL.restore();
       texL.needsUpdate = true;
     }
 
