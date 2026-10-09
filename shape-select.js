@@ -612,7 +612,7 @@ function exportAlignedTexture() {
     finalCanvas.height = 1000;
     var fctx = finalCanvas.getContext('2d', { willReadFrequently: true });
 
-    // 2. 사용자가 조정한 사진 위치(imgX, imgY)와 크기를 1000x1000 해상도로 정확히 1:1 환산
+    // 2. 사용자가 조정한 사진 위치(imgX, imgY)와 크기를 1000x1000 해상도로 정확히 1:1 환산 (정비율 엄격 유지)
     var scaledImgX = imgX * scaleRatio;
     var scaledImgY = imgY * scaleRatio;
     var scaledImgW = (rawImage.width * imgScale) * scaleRatio;
@@ -625,7 +625,7 @@ function exportAlignedTexture() {
       executeReliableFastBlur(finalCanvas, (currentBlurPx * 0.9) * scaleRatio);
     }
 
-    // 4. 🌟 [절대 규칙] 사용자가 대칭 버튼을 켰을 때만 대칭 수행
+    // 4. 🌟 [절대 규칙] 사용자가 대칭 버튼을 켰을 때만 대칭 수행 (미선택 시 비대칭 원본 온전 보존)
     if (isSymmetryEnabled) {
       var midX = 500;
       var symCanvas = document.createElement('canvas');
@@ -633,9 +633,9 @@ function exportAlignedTexture() {
       symCanvas.height = 1000;
       var sctx = symCanvas.getContext('2d');
 
-      // 좌측 절반을 그대로 그림
+      // 좌측 절반(0~500)을 그대로 그림
       sctx.drawImage(finalCanvas, 0, 0, midX, 1000, 0, 0, midX, 1000);
-      // 우측 절반에 좌측을 거울 반전 복사
+      // 우측 절반(500~1000)에 좌측을 거울 반전 복사
       sctx.save();
       sctx.translate(1000, 0);
       sctx.scale(-1, 1);
