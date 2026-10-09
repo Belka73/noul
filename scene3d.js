@@ -3,7 +3,7 @@
    - Three.js 공통 씬/조명/카메라 설정
    - GLB 3D 나비 모델 로딩 및 텍스처 매핑 (한쪽 기준 날개 1:1 미러 매핑)
    - 로딩 화면 3D, 공유 화면 3D, 완성 뷰어(비행/기모으기/파티클), 표본실 3D 모달
-   - [원상 복구]: 1000x1000 온전한 전체 텍스처를 매핑하여 왜곡 없이 원래 규격으로 복원
+   - [원상 복구 및 정밀 매칭]: 한쪽 날개 전용 3D 패턴과 사진을 1:1 결합 후 좌우 대칭 매핑
    ========================================================================== */
 
 // --------------------------------------------------------------------------
@@ -36,13 +36,12 @@ function setupCommon3DScene(container, camZ, lookY) {
   return { scene: scene, camera: camera, renderer: renderer };
 }
 
-// 🌟 좌우 날개 메쉬에 텍스처 머티리얼 적용 (좌/우 독립 머티리얼 지원)
+// 🌟 좌우 날개 메쉬에 텍스처 머티리얼 적용 (좌/우 독립 대칭 머티리얼 지원)
 function loadButterflyModel(group, shapeId, antId, wingMaterials, whiteMat, scale, onLoaded) {
   if (!window.THREE || !THREE.GLTFLoader) return;
   var modelPath = '3DButterfly/' + (shapeId || 'crescent') + '.glb';
   var targetAnt = 'Antenna_' + (antId || 'ball');
 
-  // wingMaterials가 객체({ matL, matR })인지 단일 머티리얼인지 호환 처리
   var matL = (wingMaterials && wingMaterials.matL) ? wingMaterials.matL : wingMaterials;
   var matR = (wingMaterials && wingMaterials.matR) ? wingMaterials.matR : wingMaterials;
 
@@ -127,32 +126,71 @@ function stopLoading3DScene() {
 }
 
 // --------------------------------------------------------------------------
-// 🌟 [수정]: 좌우 독립 머티리얼 반환 (1000x1000 텍스처 1:1 매핑)
-// - 동일 인스턴스 공유로 인한 좌우 매핑 왜곡 방지
+// 🌟 [수정]: 한쪽 전용 3D 패턴 도안과 사진 텍스처를 1:1 정밀 결합 및 좌우 대칭 생성
 // --------------------------------------------------------------------------
-function createWingMaterials(textureURL) {
-  var texLoader = new THREE.TextureLoader();
-  var wingTex = texLoader.load(textureURL);
-  wingTex.flipY = false;
-  wingTex.wrapS = THREE.ClampToEdgeWrapping;
-  wingTex.wrapT = THREE.ClampToEdgeWrapping;
-  if (THREE.sRGBEncoding) {
-    wingTex.encoding = THREE.sRGBEncoding;
-  }
+function createWingMaterials(textureURL, patternPath3D) {
+  var patPath = patternPath3D || (typeof currentSelected3DPatternPath !== 'undefined' ? currentSelected3DPatternPath : null);
 
-  var matL = new THREE.MeshBasicMaterial({ 
-    map: wingTex, 
-    side: THREE.DoubleSide, 
-    transparent: true, 
-    alphaTest: 0.05 
-  });
+  // 1. 단일 날개 전용 캔버스 생성 (1000x1000)
+  var wingCanvas = document.createElement('canvas');
+  wingCanvas.width = 1000;
+  wingCanvas.height = 1000;
+  var wctx = wingCanvas.getContext('2d');
+
+  // 2. Three.js 텍스처 생성
+  var texR = new THREE.CanvasTexture(wingCanvas);
+  texR.flipY = false;
+  texR.wrapS = THREE.ClampToEdgeWrapping;
+  texR.wrapT = THREE.ClampToEdgeWrapping;
+  if (THREE.sRGBEncoding) texR.encoding = THREE.sRGBEncoding;
+
+  // 3. 반대쪽 날개용 텍스처 복제 및 대칭 반전
+  var texL = texR.clone();
+  texL.wrapS = THREE.RepeatWrapping;
+  texL.wrapT = THREE.ClampToEdgeWrapping;
+  texL.repeat.x = -1;
+  texL.offset.x = 1;
+  texL.needsUpdate = true;
 
   var matR = new THREE.MeshBasicMaterial({ 
-    map: wingTex, 
+    map: texR, 
     side: THREE.DoubleSide, 
     transparent: true, 
     alphaTest: 0.05 
   });
+
+  var matL = new THREE.MeshBasicMaterial({ 
+    map: texL, 
+    side: THREE.DoubleSide, 
+    transparent: true, 
+    alphaTest: 0.05 
+  });
+
+  // 4. 배경 이미지와 패턴 이미지 비동기 합성
+  var bgImg = new Image();
+  bgImg.crossOrigin = "anonymous";
+  bgImg.onload = function() {
+    wctx.drawImage(bgImg, 0, 0, 1000, 1000);
+
+    if (patPath) {
+      var patImg = new Image();
+      patImg.crossOrigin = "anonymous";
+      patImg.onload = function() {
+        wctx.save();
+        wctx.globalCompositeOperation = 'multiply';
+        wctx.globalAlpha = 0.95;
+        wctx.drawImage(patImg, 0, 0, 1000, 1000);
+        wctx.restore();
+        texR.needsUpdate = true;
+        texL.needsUpdate = true;
+      };
+      patImg.src = patPath;
+    } else {
+      texR.needsUpdate = true;
+      texL.needsUpdate = true;
+    }
+  };
+  bgImg.src = textureURL;
 
   return { matL: matL, matR: matR };
 }
@@ -170,7 +208,7 @@ function initShare3DScene() {
   shareScene = res.scene; shareCamera = res.camera; shareRenderer = res.renderer;
 
   var texUrl = currentExtractedTexture || createFallbackDummyTexture('#ffffff', '#cfcfcf');
-  var wingMats = createWingMaterials(texUrl);
+  var wingMats = createWingMaterials(texUrl, currentSelected3DPatternPath);
   var whiteMat = new THREE.MeshStandardMaterial({ color: 0xffffff, side: THREE.DoubleSide, roughness: 0.35 });
 
   shareGroup = new THREE.Group();
@@ -248,7 +286,7 @@ function initFullButterflyViewer(textureURL) {
   var dirLight = new THREE.DirectionalLight(0xffffff, 0.85);
   dirLight.position.set(0, 5, 10); fullScene.add(dirLight);
 
-  var wingMats = createWingMaterials(textureURL);
+  var wingMats = createWingMaterials(textureURL, currentSelected3DPatternPath);
 
   fullGroup = new THREE.Group();
   butterflyRotX = DEFAULT_ROT_X; butterflyRotY = DEFAULT_ROT_Y;
@@ -539,7 +577,7 @@ function openSpecimen3DModal(item, textureUrl) {
   if (!res) return;
   modalThreeScene = res.scene; modalThreeCamera = res.camera; modalThreeRenderer = res.renderer;
 
-  var wingMats = createWingMaterials(textureUrl);
+  var wingMats = createWingMaterials(textureUrl, currentSelected3DPatternPath);
   var whiteMat = new THREE.MeshStandardMaterial({ color: 0xffffff, side: THREE.DoubleSide, roughness: 0.3 });
 
   modalGroup = new THREE.Group();

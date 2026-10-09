@@ -6,9 +6,8 @@
    - [404/503 에러 방어]: 사전 로드 트래픽 분산 및 3D 패턴 파일명 정밀 매칭
    - [대칭 분기 철저]: 
      * 대칭 On/Off는 사용자가 촬영/업로드한 사진 배경에만 적용
-     * 3D 고유 패턴 png는 항상 온전한 대칭 완성형 규격 그대로 얹어짐
-   - [비동기 1:1 텍스처 보장]: 3D 패턴 png 로딩 완료 후 3D 씬으로 전달
-   - [원상 복구 완료]: 확대 왜곡을 유발하는 임의 오프셋을 완전히 제거하고 1:1 정위치 드로잉 복원
+     * 3D 고유 패턴 png는 항상 온전한 규격 그대로 분리 적용
+   - [비동기 1:1 텍스처 보장]: 순수 사진 텍스처와 3D 패턴 경로 분리 전달
    - [기능 보존 100%]: 핀치 줌, 드래그 이동, 블러 조절, 하단 캐러셀 전체 유지
    ========================================================================== */
 
@@ -30,6 +29,9 @@ var activeCustomTab = 'wing';
 var selectedButterflyShape = 'crescent';
 var selectedAntennaType = 'ball';
 var selectedPatternId = 'crescent_none';
+
+// 🌟 3D 씬으로 전달할 순수 3D 패턴 경로 전역 변수
+var currentSelected3DPatternPath = null;
 
 var patternImageCache = {};
 
@@ -590,10 +592,14 @@ if (interactiveFrame && alignCanvas) {
 }
 
 // --------------------------------------------------------------------------
-// 🌟 [원상 복구]: 과거 정상 코드와 100% 동일한 1000x1000 정위치 텍스처 추출
+// 🌟 [수정]: 순수 사용자 사진 배경 텍스처 추출 및 3D 패턴 경로 분리
+// - 3D 패턴 PNG를 1000x1000에 늘려 굽지 않고 독립적인 경로로 Three.js에 전달
 // --------------------------------------------------------------------------
 function exportAlignedTexture() {
   return new Promise(function(resolve) {
+    // 3D 패턴 전용 파일 경로를 전역에 기록
+    currentSelected3DPatternPath = get3DPatternPath(selectedButterflyShape, selectedPatternId);
+
     if (!rawImage || !rawImage.width || !alignCanvas) {
       currentExtractedTexture = createFallbackDummyTexture(); 
       resolve(currentExtractedTexture);
@@ -624,7 +630,7 @@ function exportAlignedTexture() {
       baseCanvas = symCanvas;
     }
 
-    // 2단계: 표준 해상도(1000x1000) 캔버스에 사용자 사진 전개
+    // 2단계: 표준 해상도(1000x1000) 캔버스에 순수 사용자 사진만 전개
     var outW = 1000, outH = 1000;
     var finalCanvas = document.createElement('canvas');
     finalCanvas.width = outW; 
@@ -633,42 +639,7 @@ function exportAlignedTexture() {
 
     fctx.drawImage(baseCanvas, 0, 0, alignCanvas.width, alignCanvas.height, 0, 0, outW, outH);
 
-    // 3단계: 1000x1000 캔버스 전체에 1:1 온전히 드로잉 (과거 app.js 정상 규격 복원)
-    var singleWingPatternPath3D = get3DPatternPath(selectedButterflyShape, selectedPatternId);
-    if (singleWingPatternPath3D) {
-      function drawPatternAndFinish(img) {
-        if (img && (img.naturalWidth > 0 || img.width > 0)) {
-          fctx.save();
-          fctx.globalCompositeOperation = 'multiply';
-          fctx.globalAlpha = 0.95;
-          fctx.drawImage(img, 0, 0, outW, outH);
-          fctx.restore();
-        }
-        currentExtractedTexture = finalCanvas.toDataURL('image/png');
-        resolve(currentExtractedTexture);
-      }
-
-      var cachedImg = patternImageCache[singleWingPatternPath3D];
-      if (cachedImg && cachedImg.complete && (cachedImg.naturalWidth > 0 || cachedImg.width > 0)) {
-        drawPatternAndFinish(cachedImg);
-        return;
-      } else {
-        var tempImg = new Image();
-        tempImg.crossOrigin = "anonymous";
-        tempImg.onload = function() {
-          patternImageCache[singleWingPatternPath3D] = tempImg;
-          drawPatternAndFinish(tempImg);
-        };
-        tempImg.onerror = function() {
-          console.warn("3D 패턴 파일 로드 실패:", singleWingPatternPath3D);
-          currentExtractedTexture = finalCanvas.toDataURL('image/png');
-          resolve(currentExtractedTexture);
-        };
-        tempImg.src = singleWingPatternPath3D;
-        return;
-      }
-    }
-
+    // 3D 패턴은 캔버스에 구워 넣지 않고 원본 파일 그대로 3D 엔진으로 전달
     currentExtractedTexture = finalCanvas.toDataURL('image/png');
     resolve(currentExtractedTexture);
   });
