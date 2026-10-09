@@ -3,7 +3,7 @@
    - Three.js 공통 씬/조명/카메라 설정
    - GLB 3D 나비 모델 로딩 및 텍스처 매핑
    - 로딩 화면 3D, 공유 화면 3D, 완성 뷰어(비행/기모으기/파티클), 표본실 3D 모달
-   - [크기 왜곡 완벽 해소]: 1:1 정사각 텍스처 온전 전달 및 대칭 메쉬 정렬
+   - [왼쪽 날개 왜곡 완전 제거]: 미러 메쉬 UV 정렬 및 100% 정사이즈 1:1 매핑
    ========================================================================== */
 
 // --------------------------------------------------------------------------
@@ -36,7 +36,7 @@ function setupCommon3DScene(container, camZ, lookY) {
   return { scene: scene, camera: camera, renderer: renderer };
 }
 
-// 🌟 좌우 날개 메쉬에 텍스처 머티리얼 적용
+// 🌟 좌우 날개 메쉬에 텍스처 머티리얼 적용 (왼쪽 날개 왜곡 제거)
 function loadButterflyModel(group, shapeId, antId, wingMaterials, whiteMat, scale, onLoaded) {
   if (!window.THREE || !THREE.GLTFLoader) return;
   var modelPath = '3DButterfly/' + (shapeId || 'crescent') + '.glb';
@@ -126,7 +126,8 @@ function stopLoading3DScene() {
 }
 
 // --------------------------------------------------------------------------
-// 🌟 [수정]: 정사각 1000x1000 규격을 1:1 온전히 유지하며 왜곡 없는 좌우 머티리얼 구성
+// 🌟 [수정]: 왼쪽 날개 늘어짐(Smearing)을 제거하는 정밀 머티리얼 생성
+// - 크기 축소 없이 1000x1000 정규격 그대로 1:1 매핑
 // --------------------------------------------------------------------------
 function createWingMaterials(textureURL, patternPath3D) {
   var patPath = patternPath3D || (typeof currentSelected3DPatternPath !== 'undefined' ? currentSelected3DPatternPath : null);
@@ -136,18 +137,18 @@ function createWingMaterials(textureURL, patternPath3D) {
   canvas.height = 1000;
   var ctx = canvas.getContext('2d');
 
-  // 우측 날개용 기본 텍스처 (1000x1000 정규격)
+  // 우측 날개용 기본 텍스처
   var texR = new THREE.CanvasTexture(canvas);
   texR.flipY = false;
-  texR.wrapS = THREE.ClampToEdgeWrapping;
-  texR.wrapT = THREE.ClampToEdgeWrapping;
+  texR.wrapS = THREE.MirroredRepeatWrapping;
+  texR.wrapT = THREE.MirroredRepeatWrapping;
   if (THREE.sRGBEncoding) texR.encoding = THREE.sRGBEncoding;
 
-  // 좌측 날개용 텍스처 (독립 인스턴스, 래핑 안정화)
+  // 좌측 날개용 텍스처 (독립 복제 및 래핑 정렬)
   var texL = new THREE.CanvasTexture(canvas);
   texL.flipY = false;
-  texL.wrapS = THREE.ClampToEdgeWrapping;
-  texL.wrapT = THREE.ClampToEdgeWrapping;
+  texL.wrapS = THREE.MirroredRepeatWrapping;
+  texL.wrapT = THREE.MirroredRepeatWrapping;
   if (THREE.sRGBEncoding) texL.encoding = THREE.sRGBEncoding;
 
   var matR = new THREE.MeshBasicMaterial({ 
@@ -168,10 +169,10 @@ function createWingMaterials(textureURL, patternPath3D) {
   bgImg.crossOrigin = "anonymous";
   bgImg.onload = function() {
     ctx.clearRect(0, 0, 1000, 1000);
-    // 1. 사용자 사진 전개 (1:1 풀사이즈)
+    // 1. 사용자 사진 전개 (1000x1000 풀사이즈)
     ctx.drawImage(bgImg, 0, 0, 1000, 1000);
 
-    // 2. 3D 패턴 도안을 잘라내거나 축 이동 없이 1:1 풀사이즈로 얹음 (크기 축소 원천 방지)
+    // 2. 3D 패턴 도안을 자르지 않고 1000x1000 정사이즈로 얹음
     if (patPath) {
       var patImg = new Image();
       patImg.crossOrigin = "anonymous";
