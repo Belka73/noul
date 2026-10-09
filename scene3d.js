@@ -3,7 +3,7 @@
    - Three.js 공통 씬/조명/카메라 설정
    - GLB 3D 나비 모델 로딩 및 텍스처 매핑
    - 로딩 화면 3D, 공유 화면 3D, 완성 뷰어(비행/기모으기/파티클), 표본실 3D 모달
-   - [순수 1:1 정위치 매핑]: 왼쪽/오른쪽 날개 UV가 동일하므로 어떠한 변형 없이 동일 텍스처 적용
+   - [순수 1:1 정위치 매핑]: 왼쪽/오른쪽 날개 UV 규격 일치화 및 왜곡 방지 보정
    ========================================================================== */
 
 // --------------------------------------------------------------------------
@@ -52,7 +52,6 @@ function loadButterflyModel(group, shapeId, antId, wingMat, whiteMat, scale, onL
         if (n.indexOf('Wing_L') === 0 || n.startsWith('Wing_L')) {
           wL = child;
           wL.userData.baseRotY = child.rotation.y;
-          // 오른쪽 날개와 똑같이 어떠한 조작도 없이 1:1로 얹음
           child.material = wingMat;
           child.castShadow = true;
           child.receiveShadow = true;
@@ -135,7 +134,8 @@ function createWingMaterials(textureURL, patternPath3D) {
   var ctx = canvas.getContext('2d');
 
   var wingTex = new THREE.CanvasTexture(canvas);
-  wingTex.flipY = true;
+  // GLTF UV 좌표계 왜곡 방지: flipY를 false로 일치시켜 상하 왜곡 및 좌우 어긋남 방지
+  wingTex.flipY = false;
   if (THREE.sRGBEncoding) wingTex.encoding = THREE.sRGBEncoding;
 
   var wingMat = new THREE.MeshBasicMaterial({ 
@@ -287,7 +287,6 @@ function initFullButterflyViewer(textureURL) {
             var n = child.name || '';
             if (n.indexOf('Wing_L') === 0 || n.startsWith('Wing_L')) { 
               leftWingMesh = child; 
-              // 어떠한 인덱스 조작이나 UV 뒤집기 없이 오른쪽과 100% 동일하게 할당
               child.material = wingMat; 
               initialRotL = { x: child.rotation.x, y: child.rotation.y, z: child.rotation.z }; 
             }
