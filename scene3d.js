@@ -6,6 +6,7 @@
      * 날개 형태와 3D 모델 UV 기준점은 100% 그대로 유지
      * 무늬 패턴(patImg)의 위치 및 반전 방향 절대 불변
      * 몸통 중심선(x=500)을 기준으로 좌우 날개에 사진을 맞물려 정합
+   - [버그 픽스]: initFullButterflyViewer 내 fullRenderer 변수명 오타 수정
    - 로딩 화면 3D, 공유 화면 3D, 완성 뷰어(비행/기모으기/파티클), 표본실 3D 모달
    ========================================================================== */
 
@@ -320,7 +321,7 @@ function initFullButterflyViewer(textureURL) {
   if (THREE.sRGBEncoding) {
     fullRenderer.outputEncoding = THREE.sRGBEncoding;
   }
-  container.appendChild(renderer.domElement);
+  container.appendChild(fullRenderer.domElement);
 
   fullScene.add(new THREE.AmbientLight(0xffffff, 0.95));
   var dirLight = new THREE.DirectionalLight(0xffffff, 0.85);
