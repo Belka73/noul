@@ -1,649 +1,634 @@
 /* ==========================================================================
-   🌟 너울(Noul) - 도안 맞추기 및 나비 커스텀 로직 (shape-select.js)
-   - [2D/3D 패턴 완벽 분리]: 
-     1) 1번 화면(날개 형태/무늬 고르기): 2DButterfly_pattern/ 의 2D png 사용
-     2) 2번 화면(3D 나비 프리뷰/비행): 3DButterfly_pattern/ 의 3D png 1:1 매칭 구움
-   - [404/503 에러 방어]: 사전 로드 트래픽 분산 및 3D 패턴 파일명 정밀 매칭
-   - [대칭 분기 철저]: 
-     * 대칭 On/Off는 사용자가 직접 토글 버튼을 눌렀을 때만 적용
-   - [정비율 텍스처 추출]: 사용자가 맞춤틀에서 조정한 원본 구도와 정비율을 그대로 1000x1000으로 추출
-   - [기능 보존 100%]: 핀치 줌, 드래그 이동, 블러 조절, 하단 캐러셀 전체 유지
+   🌟 너울(Noul) 3D 그래픽 및 Three.js 씬 관리 모듈 (scene3d.js)
+   - Three.js 공통 씬/조명/카메라 설정
+   - GLB 3D 나비 모델 로딩 및 텍스처 매핑
+   - [좌우 날개 분리 매핑]: 
+     * 오른쪽 날개(Wing_R): 원본 사진의 오른쪽 절반(500~1000) 매핑
+     * 왼쪽 날개(Wing_L): 원본 사진의 왼쪽 절반(0~500)을 UV에 맞춰 반전 매핑
+     * 대칭 버튼을 켜지 않았을 때 사진이 자동으로 대칭되지 않고 원본 그대로 이어짐
+   - 로딩 화면 3D, 공유 화면 3D, 완성 뷰어(비행/기모으기/파티클), 표본실 3D 모달
    ========================================================================== */
 
-// 🌟 기본 대체 텍스처 생성 함수
-function createFallbackDummyTexture(color1, color2) {
-  var c = document.createElement('canvas');
-  c.width = 1000;
-  c.height = 1000;
-  var ctx = c.getContext('2d');
-  var grad = ctx.createLinearGradient(0, 0, 1000, 1000);
-  grad.addColorStop(0, color1 || '#ffffff');
-  grad.addColorStop(1, color2 || '#e5e7eb');
-  ctx.fillStyle = grad;
-  ctx.fillRect(0, 0, 1000, 1000);
-  return c.toDataURL('image/png');
+// --------------------------------------------------------------------------
+// 3D 나비 공통 생성 헬퍼 함수
+// --------------------------------------------------------------------------
+function setupCommon3DScene(container, camZ, lookY) {
+  if (!container || !window.THREE) return null;
+  container.innerHTML = '';
+  var w = container.clientWidth || window.innerWidth;
+  var h = container.clientHeight || window.innerHeight;
+  var scene = new THREE.Scene();
+  var camera = new THREE.PerspectiveCamera(40, w / h, 0.1, 100);
+  camera.position.set(0, 0, camZ || 7.5);
+  camera.lookAt(0, lookY || 0, 0);
+
+  var renderer = new THREE.WebGLRenderer({ alpha: true, antialias: true });
+  renderer.setSize(w, h);
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+  if (THREE.sRGBEncoding) {
+    renderer.outputEncoding = THREE.sRGBEncoding;
+  }
+  container.appendChild(renderer.domElement);
+
+  var amb = new THREE.AmbientLight(0xffffff, 1.0);
+  scene.add(amb);
+  var dir = new THREE.DirectionalLight(0xffffff, 0.9);
+  dir.position.set(3, 6, 8);
+  scene.add(dir);
+
+  return { scene: scene, camera: camera, renderer: renderer };
 }
 
-var activeCustomTab = 'wing';
-var selectedButterflyShape = 'crescent';
-var selectedAntennaType = 'ball';
-var selectedPatternId = 'crescent_none';
+// 🌟 좌/우 날개에 각각의 머티리얼을 독립적으로 바인딩
+function loadButterflyModel(group, shapeId, antId, wingMaterials, whiteMat, scale, onLoaded) {
+  if (!window.THREE || !THREE.GLTFLoader) return;
+  var modelPath = '3DButterfly/' + (shapeId || 'crescent') + '.glb';
+  var targetAnt = 'Antenna_' + (antId || 'ball');
 
-// 🌟 3D 씬으로 전달할 순수 3D 패턴 경로 전역 변수
-var currentSelected3DPatternPath = null;
+  var matL = wingMaterials && wingMaterials.matL ? wingMaterials.matL : wingMaterials;
+  var matR = wingMaterials && wingMaterials.matR ? wingMaterials.matR : wingMaterials;
 
-var patternImageCache = {};
+  new THREE.GLTFLoader().load(modelPath, function(gltf) {
+    var model = gltf.scene;
+    var wL = null, wR = null;
 
-// 🌟 [503 방어형 프리로드]: 전체를 무차별 요청하지 않고 현재 형태 위주로 안전하게 프리로드
-function preloadAllPatternThumbnails() {
-  if (typeof wingPatternDataset === 'undefined') return;
-  
-  preloadPatternsForShape(selectedButterflyShape);
-
-  setTimeout(function() {
-    Object.keys(wingPatternDataset).forEach(function(shapeKey) {
-      if (shapeKey !== selectedButterflyShape) {
-        preloadPatternsForShape(shapeKey);
+    model.traverse(function(child) {
+      if (child.isMesh) {
+        var n = child.name || '';
+        if (n.indexOf('Wing_L') === 0 || n.startsWith('Wing_L')) {
+          wL = child;
+          wL.userData.baseRotY = child.rotation.y;
+          child.material = matL;
+          child.castShadow = true;
+          child.receiveShadow = true;
+        }
+        else if (n.indexOf('Wing_R') === 0 || n.startsWith('Wing_R')) {
+          wR = child;
+          wR.userData.baseRotY = child.rotation.y;
+          child.material = matR;
+          child.castShadow = true;
+          child.receiveShadow = true;
+        }
+        else if (n.indexOf('Body') === 0 || n.startsWith('Body')) { 
+          child.material = whiteMat; 
+        }
+        else if (n.indexOf('Antenna_') === 0 || n.startsWith('Antenna_')) { 
+          child.material = whiteMat; 
+          child.visible = n.startsWith(targetAnt); 
+        }
       }
     });
-  }, 1200);
-}
-
-function preloadPatternsForShape(shapeKey) {
-  var pList = wingPatternDataset[shapeKey] || [];
-  pList.forEach(function(item) {
-    if (item && item.path) {
-      preloadPatternImage(item.path);
-      var path3D = get3DPatternPath(shapeKey, item.id);
-      if (path3D) preloadPatternImage(path3D);
-    }
+    model.scale.set(scale, scale, scale);
+    group.add(model);
+    if (onLoaded) onLoaded(wL, wR);
+  }, undefined, function(err) {
+    console.error("모델 로드 오류:", err);
   });
 }
 
-function preloadPatternImage(path) {
-  if (!path) return;
-  if (!patternImageCache[path]) {
-    var img = new Image();
-    img.crossOrigin = "anonymous";
-    img.onload = function() {
-      patternImageCache[path] = img;
-    };
-    img.onerror = function() {
-      patternImageCache[path] = null;
-    };
-    img.src = path;
-  }
-}
-
-// 🌟 [3D 패턴 전용 매핑 함수]: 404 방지 및 실제 파일명 완벽 일치화
-function get3DPatternPath(shape, patternId) {
-  if (!patternId || patternId.indexOf('none') > -1) return null;
-
-  var parts = patternId.split('_');
-  var patNum = parts[parts.length - 1] || "1";
-
-  var shapeFilePrefix = shape || 'crescent';
-  if (shapeFilePrefix === 'moon-halo' || shapeFilePrefix === 'moon') shapeFilePrefix = 'moon-halo';
-  else if (shapeFilePrefix === 'dawn-ray' || shapeFilePrefix === 'dawn') shapeFilePrefix = 'dawn-ray';
-  else if (shapeFilePrefix === 'wave-fin' || shapeFilePrefix === 'wave') shapeFilePrefix = 'wave-fin';
-
-  return '3DButterfly_pattern/' + shapeFilePrefix + '_pattern_3D_' + patNum + '.png';
-}
-
-function preloadSingleWingPattern(shape, patternId) {
-  var path3D = get3DPatternPath(shape, patternId);
-  if (path3D) preloadPatternImage(path3D);
-}
-
-function getSelectedPatternObject() {
-  if (typeof wingPatternDataset === 'undefined') return null;
-  var patterns = wingPatternDataset[selectedButterflyShape] || wingPatternDataset['crescent'] || [];
-  return patterns.find(function(p) { return p.id === selectedPatternId; }) || patterns[0] || null;
-}
-
-var butterflyPathData = {};
-if (typeof wingDataset !== 'undefined') {
-  wingDataset.forEach(function(w) { butterflyPathData[w.id] = w; });
-}
-
 // --------------------------------------------------------------------------
-// 🌟 1번 화면: 2D 나비 외곽선 및 2D 무늬(2DButterfly_pattern/) 1:1 정밀 렌더러
+// 🌟 로딩 화면용 3D 블러 나비 씬
 // --------------------------------------------------------------------------
-function updateHeroPreview() {
-  var heroSvg = document.getElementById('hero-butterfly-svg');
-  var heroPathContainer = document.getElementById('hero-path-container');
-  if (!heroSvg || !heroPathContainer || typeof wingDataset === 'undefined') return;
+var loadingScene, loadingCamera, loadingRenderer, loadingGroup, loadingWingL, loadingWingR;
+var loadingAnimFrameId = null;
 
-  var currentWing = butterflyPathData[selectedButterflyShape] || wingDataset[0];
-  var ant = antennaDataset.find(function(a) { return a.id === selectedAntennaType; }) || antennaDataset[0];
+function initLoading3DScene() {
+  stopLoading3DScene();
+  var res = setupCommon3DScene(document.getElementById('loading-three-container'), 7.5, 0);
+  if (!res) return;
+  loadingScene = res.scene; loadingCamera = res.camera; loadingRenderer = res.renderer;
 
-  heroSvg.setAttribute('viewBox', currentWing.viewBox || '0 0 1000 1000');
+  var whiteMat = new THREE.MeshStandardMaterial({ color: 0xffffff, side: THREE.DoubleSide, roughness: 0.35 });
+  loadingGroup = new THREE.Group();
+  loadingGroup.rotation.set(0.25, -0.8, 0.35);
+  loadingGroup.position.set(-0.28, -0.22, 0);
 
-  var wingD = currentWing.wingD || currentWing.d;
-  var bodyD = currentWing.bodyD || "";
-  var pat = getSelectedPatternObject();
+  loadButterflyModel(loadingGroup, selectedButterflyShape, selectedAntennaType, { matL: whiteMat, matR: whiteMat }, whiteMat, 0.95, function(l, r) {
+    loadingWingL = l; loadingWingR = r;
+  });
+  loadingScene.add(loadingGroup);
 
-  var patternSvgEl = "";
-  if (pat && pat.path) {
-    preloadPatternImage(pat.path);
-    preloadSingleWingPattern(selectedButterflyShape, selectedPatternId);
-    patternSvgEl = 
-      '<g opacity="0.95" style="mix-blend-mode: multiply;">' +
-        '<image href="' + pat.path + '" x="0" y="0" width="1000" height="1000" preserveAspectRatio="none"/>' +
-      '</g>';
-  }
-
-  heroPathContainer.innerHTML = 
-    '<defs>' +
-      '<mask id="butterfly-outside-mask" maskUnits="userSpaceOnUse" x="-200" y="-200" width="1400" height="1400">' +
-        '<rect x="-200" y="-200" width="1400" height="1400" fill="white"/>' +
-        '<path d="' + wingD + '" fill="black" fill-rule="nonzero"/>' +
-      '</mask>' +
-      '<clipPath id="hero-wing-exact-clip">' +
-        '<path d="' + wingD + '" fill-rule="nonzero"/>' +
-      '</clipPath>' +
-    '</defs>' +
-    '<rect x="-200" y="-200" width="1400" height="1400" fill="rgba(0, 0, 0, 0.72)" mask="url(#butterfly-outside-mask)"/>' +
-    '<g clip-path="url(#hero-wing-exact-clip)">' +
-      patternSvgEl +
-    '</g>' +
-    (bodyD ? '<path d="' + bodyD + '" fill="#ffffff"/>' : '') +
-    '<g transform="translate(' + currentWing.headX + ', ' + currentWing.headY + ')" filter="url(#antenna-subtle-contrast)" color="#ffffff">' +
-      ant.render(10.5) +
-    '</g>';
-}
-
-var carouselContainer = document.getElementById('arch-carousel-container');
-
-// 🌟 [하단 캐러셀 렌더러]: 2D 썸네일 표시
-function renderCarouselItems() {
-  if (!carouselContainer || typeof wingDataset === 'undefined') return;
-  carouselContainer.innerHTML = '';
-  
-  var dataset = [];
-  if (activeCustomTab === 'wing') {
-    dataset = wingDataset;
-  } else if (activeCustomTab === 'pattern') {
-    if (typeof wingPatternDataset !== 'undefined') {
-      dataset = wingPatternDataset[selectedButterflyShape] || wingPatternDataset['crescent'] || [];
+  var clock = new THREE.Clock();
+  (function animateLoading() {
+    loadingAnimFrameId = requestAnimationFrame(animateLoading);
+    var t = clock.getElapsedTime(), flap = Math.sin(t * 7.5) * 0.42;
+    if (loadingWingL && loadingWingR) { 
+      loadingWingL.rotation.y = (loadingWingL.userData.baseRotY || 0) + flap; 
+      loadingWingR.rotation.y = (loadingWingR.userData.baseRotY || 0) - flap; 
     }
-  } else if (activeCustomTab === 'antenna') {
-    dataset = antennaDataset;
-  }
+    loadingGroup.position.y = -0.22 + Math.sin(t * 2.2) * 0.08;
+    loadingGroup.rotation.z = 0.35 + Math.sin(t * 1.5) * 0.04;
+    loadingRenderer.render(loadingScene, loadingCamera);
+  })();
+}
 
-  dataset.forEach(function(item) {
-    var isActive = false;
-    if (activeCustomTab === 'wing') isActive = (item.id === selectedButterflyShape);
-    else if (activeCustomTab === 'pattern') isActive = (item.id === selectedPatternId);
-    else if (activeCustomTab === 'antenna') isActive = (item.id === selectedAntennaType);
+function stopLoading3DScene() {
+  if (loadingAnimFrameId) { cancelAnimationFrame(loadingAnimFrameId); loadingAnimFrameId = null; }
+  var c = document.getElementById('loading-three-container');
+  if (c) c.innerHTML = '';
+}
 
-    var div = document.createElement('div');
-    div.className = 'arch-track-item';
-    var contentHtml = '';
+// --------------------------------------------------------------------------
+// 🌟 좌/우 날개용 머티리얼 생성 함수 (사진 비대칭 분기 및 정비율 매핑)
+// - matR: 원본 사진의 '오른쪽 반쪽' + 3D 반쪽 패턴
+// - matL: 원본 사진의 '왼쪽 반쪽' (반전된 UV 보정) + 3D 반쪽 패턴
+// --------------------------------------------------------------------------
+function createWingMaterials(textureURL, patternPath3D) {
+  var patPath = patternPath3D || (typeof currentSelected3DPatternPath !== 'undefined' ? currentSelected3DPatternPath : null);
 
-    if (activeCustomTab === 'wing') {
-      var wingPath = item.wingD || item.d;
-      var bodyPath = item.bodyD || "";
-      contentHtml = '<svg viewBox="' + item.viewBox + '" preserveAspectRatio="xMidYMid meet">' +
-        '<path d="' + wingPath + '" fill="currentColor" fill-rule="nonzero"/>' +
-        (bodyPath ? '<path d="' + bodyPath + '" fill="currentColor"/>' : '') +
-        '</svg>';
-    } else if (activeCustomTab === 'pattern') {
-      if (item.path) {
-        preloadPatternImage(item.path);
-        preloadSingleWingPattern(selectedButterflyShape, item.id);
-        contentHtml = '<img class="pattern-thumb-img" src="' + encodeURI(item.path) + '" alt="" onerror="this.style.display=\'none\'; if(this.nextElementSibling) this.nextElementSibling.style.display=\'block\';" />' +
-          '<svg viewBox="0 0 40 40" style="display:none; width:65%; height:65%;"><circle cx="20" cy="20" r="14" fill="none" stroke="currentColor" stroke-dasharray="2,2" stroke-width="1.2"/></svg>';
-      } else {
-        contentHtml = '<svg viewBox="0 0 40 40" preserveAspectRatio="xMidYMid meet">' + (item.thumb || '<circle cx="20" cy="20" r="14" fill="none" stroke="currentColor" stroke-dasharray="3,3" stroke-width="1.5"/>') + '</svg>';
+  // 1. 오른쪽 날개용 캔버스 (정방향)
+  var canvasR = document.createElement('canvas');
+  canvasR.width = 1000;
+  canvasR.height = 1000;
+  var ctxR = canvasR.getContext('2d');
+
+  var texR = new THREE.CanvasTexture(canvasR);
+  texR.flipY = false;
+  if (THREE.sRGBEncoding) texR.encoding = THREE.sRGBEncoding;
+
+  var matR = new THREE.MeshBasicMaterial({ 
+    map: texR, 
+    side: THREE.DoubleSide, 
+    transparent: true, 
+    alphaTest: 0.05 
+  });
+
+  // 2. 왼쪽 날개용 캔버스 (좌우 반전 보정)
+  var canvasL = document.createElement('canvas');
+  canvasL.width = 1000;
+  canvasL.height = 1000;
+  var ctxL = canvasL.getContext('2d');
+
+  var texL = new THREE.CanvasTexture(canvasL);
+  texL.flipY = false;
+  if (THREE.sRGBEncoding) texL.encoding = THREE.sRGBEncoding;
+
+  var matL = new THREE.MeshBasicMaterial({ 
+    map: texL, 
+    side: THREE.DoubleSide, 
+    transparent: true, 
+    alphaTest: 0.05 
+  });
+
+  var bgImg = new Image();
+  bgImg.crossOrigin = "anonymous";
+  bgImg.onload = function() {
+    function drawBaseAndPattern(patImg) {
+      var halfW = bgImg.width / 2;
+      var fullH = bgImg.height;
+
+      // 🌟 [오른쪽 날개]: 원본 사진의 오른쪽 절반 영역(halfW ~ bgImg.width)을 1000x1000에 채움
+      ctxR.clearRect(0, 0, 1000, 1000);
+      ctxR.drawImage(bgImg, halfW, 0, halfW, fullH, 0, 0, 1000, 1000);
+      if (patImg) {
+        ctxR.save();
+        ctxR.globalCompositeOperation = 'multiply';
+        ctxR.globalAlpha = 0.95;
+        ctxR.drawImage(patImg, 0, 0, 1000, 1000);
+        ctxR.restore();
       }
-    } else if (activeCustomTab === 'antenna') {
-      contentHtml = '<svg viewBox="-26 -30 52 38" preserveAspectRatio="xMidYMid meet"><g>' + item.render(1.1) + '</g></svg>';
+      texR.needsUpdate = true;
+
+      // 🌟 [왼쪽 날개]: 원본 사진의 왼쪽 절반 영역(0 ~ halfW)을 뒤집힌 UV에 맞춰 좌우 반전 후 1000x1000에 채움
+      ctxL.clearRect(0, 0, 1000, 1000);
+      ctxL.save();
+      // 왼쪽 날개의 뒤집힌 UV를 상쇄하기 위해 텍스처 좌표를 좌우 반전
+      ctxL.translate(1000, 0);
+      ctxL.scale(-1, 1);
+      ctxL.drawImage(bgImg, 0, 0, halfW, fullH, 0, 0, 1000, 1000);
+      ctxL.restore();
+
+      // 패턴은 블렌더 UV 기준점에 맞게 그대로 얹음
+      if (patImg) {
+        ctxL.save();
+        ctxL.globalCompositeOperation = 'multiply';
+        ctxL.globalAlpha = 0.95;
+        ctxL.drawImage(patImg, 0, 0, 1000, 1000);
+        ctxL.restore();
+      }
+      texL.needsUpdate = true;
     }
 
-    div.innerHTML = '<button type="button" class="shape-thumb-btn ' + (isActive ? 'active' : '') + '" data-type="' + activeCustomTab + '" data-id="' + item.id + '">' + contentHtml + '</button><span class="shape-item-label text-[11px] ' + (isActive ? 'font-bold text-white' : 'font-medium text-neutral-500') + ' tracking-tight">' + item.name + '</span>';
-    carouselContainer.appendChild(div);
-  });
-
-  bindItemClickEvents();
-  updateCarouselPadding();
-  applyStraightSelection();
-
-  setTimeout(function() {
-    var activeBtn = carouselContainer.querySelector('.shape-thumb-btn.active');
-    if (activeBtn) snapItemToExactCenter(activeBtn.closest('.arch-track-item'));
-  }, 50);
-}
-
-function bindItemClickEvents() {
-  if (!carouselContainer) return;
-  carouselContainer.querySelectorAll('.shape-thumb-btn').forEach(function(btn) {
-    btn.onclick = function() {
-      setActiveItemVisual(btn);
-      snapItemToExactCenter(btn.closest('.arch-track-item'));
-    };
-  });
-}
-
-function updateCarouselPadding() {
-  if (!carouselContainer) return;
-  var firstItem = carouselContainer.querySelector('.arch-track-item');
-  if (firstItem) {
-    var pad = Math.max(0, (carouselContainer.clientWidth - firstItem.offsetWidth) / 2);
-    carouselContainer.style.paddingLeft = pad + 'px';
-    carouselContainer.style.paddingRight = pad + 'px';
-  }
-}
-
-function applyStraightSelection() {
-  if (!carouselContainer) return;
-  var cWidth = carouselContainer.clientWidth, centerX = carouselContainer.scrollLeft + (cWidth / 2);
-  var items = carouselContainer.querySelectorAll('.arch-track-item');
-  var centerDetectedItem = null, minDistance = Infinity;
-
-  items.forEach(function(item) {
-    var dist = Math.abs(centerX - (item.offsetLeft + item.offsetWidth / 2));
-    if (dist < minDistance) { minDistance = dist; centerDetectedItem = item; }
-    item.style.transform = 'none';
-    item.style.opacity = Math.max(0.35, 1 - (dist / (cWidth * 0.42))).toFixed(2);
-  });
-
-  if (centerDetectedItem && minDistance <= 36) {
-    var btn = centerDetectedItem.querySelector('.shape-thumb-btn');
-    if (btn && !btn.classList.contains('active')) setActiveItemVisual(btn);
-  }
-}
-
-function setActiveItemVisual(btn) {
-  carouselContainer.querySelectorAll('.shape-thumb-btn').forEach(function(b) {
-    b.classList.remove('active');
-    var txt = b.parentElement.querySelector('.shape-item-label');
-    if (txt) { txt.classList.remove('font-bold', 'text-white'); txt.classList.add('font-medium', 'text-neutral-500'); }
-  });
-  btn.classList.add('active');
-  var activeTxt = btn.parentElement.querySelector('.shape-item-label');
-  if (activeTxt) { activeTxt.classList.add('font-bold', 'text-white'); activeTxt.classList.remove('font-medium', 'text-neutral-500'); }
-
-  var type = btn.getAttribute('data-type'), id = btn.getAttribute('data-id');
-  if (type === 'wing') { 
-    selectedButterflyShape = id; 
-    var currentPatterns = (typeof wingPatternDataset !== 'undefined' && wingPatternDataset[selectedButterflyShape]) ? wingPatternDataset[selectedButterflyShape] : [];
-    selectedPatternId = currentPatterns.length > 0 ? currentPatterns[0].id : (selectedButterflyShape + '_none');
-    preloadSingleWingPattern(selectedButterflyShape, selectedPatternId);
-    drawAlignCanvas(); 
-  } else if (type === 'pattern') {
-    selectedPatternId = id;
-    var curObj = getSelectedPatternObject();
-    if (curObj && curObj.path) preloadPatternImage(curObj.path);
-    preloadSingleWingPattern(selectedButterflyShape, selectedPatternId);
-    drawAlignCanvas();
-  } else if (type === 'antenna') { 
-    selectedAntennaType = id; 
-  }
-  updateHeroPreview();
-}
-
-function snapItemToExactCenter(itemElement) {
-  if (!carouselContainer || !itemElement) return;
-  var targetScroll = itemElement.offsetLeft - ((carouselContainer.clientWidth - itemElement.offsetWidth) / 2);
-  carouselContainer.scrollTo({ left: targetScroll, behavior: 'smooth' });
-}
-
-function autoSnapToNearestCenter() {
-  if (!carouselContainer) return;
-  var centerX = carouselContainer.scrollLeft + (carouselContainer.clientWidth / 2);
-  var closestItem = null, minDistance = Infinity;
-  carouselContainer.querySelectorAll('.arch-track-item').forEach(function(item) {
-    var dist = Math.abs(centerX - (item.offsetLeft + item.offsetWidth / 2));
-    if (dist < minDistance) { minDistance = dist; closestItem = item; }
-  });
-  if (closestItem) {
-    var btn = closestItem.querySelector('.shape-thumb-btn');
-    if (btn) setActiveItemVisual(btn);
-    snapItemToExactCenter(closestItem);
-  }
-}
-
-if (carouselContainer) {
-  var scrollTimer = null;
-  carouselContainer.addEventListener('scroll', function() {
-    applyStraightSelection();
-    clearTimeout(scrollTimer);
-    scrollTimer = setTimeout(autoSnapToNearestCenter, 100);
-  }, { passive: true });
-}
-
-window.addEventListener('resize', function() {
-  updateCarouselPadding(); 
-  applyStraightSelection();
-});
-
-var tabWing = document.getElementById('tab-wing');
-var tabPattern = document.getElementById('tab-pattern');
-var tabAntenna = document.getElementById('tab-antenna');
-var tabBlur = document.getElementById('tab-blur');
-var shapeTitle = document.getElementById('shape-screen-title');
-var shapeDesc = document.getElementById('shape-screen-desc');
-var blurSliderBox = document.getElementById('blur-slider-box');
-var carouselStage = document.getElementById('carousel-stage');
-
-function switchTab(tabKey) {
-  activeCustomTab = tabKey;
-  [tabWing, tabPattern, tabAntenna, tabBlur].forEach(function(b) { if (b) b.classList.remove('active-tab'); });
-  
-  if (tabKey === 'wing') {
-    if (shapeTitle) shapeTitle.innerText = "날개 형태 고르기";
-    if (shapeDesc) shapeDesc.innerHTML = "<strong class='text-white'>[드래그]</strong> 이동, <strong class='text-white'>[두 손가락 핀치]</strong> 확대/축소";
-  } else if (tabKey === 'pattern') {
-    if (shapeTitle) shapeTitle.innerText = "날개 무늬 고르기";
-    if (shapeDesc) shapeDesc.innerHTML = "원하는 고유 무늬를 선택해 날개에 새겨보세요";
-    var currentPatterns = (typeof wingPatternDataset !== 'undefined' && wingPatternDataset[selectedButterflyShape]) ? wingPatternDataset[selectedButterflyShape] : [];
-    if (!currentPatterns.some(function(p) { return p.id === selectedPatternId; })) {
-      selectedPatternId = currentPatterns.length > 0 ? currentPatterns[0].id : (selectedButterflyShape + '_none');
+    if (patPath) {
+      var patImg = new Image();
+      patImg.crossOrigin = "anonymous";
+      patImg.onload = function() {
+        drawBaseAndPattern(patImg);
+      };
+      patImg.onerror = function() {
+        drawBaseAndPattern(null);
+      };
+      patImg.src = patPath;
+    } else {
+      drawBaseAndPattern(null);
     }
-  } else if (tabKey === 'antenna') {
-    if (shapeTitle) shapeTitle.innerText = "더듬이 모양 고르기";
-    if (shapeDesc) shapeDesc.innerHTML = "나비의 인상을 결정할 더듬이를 선택해 보세요";
-  } else if (tabKey === 'blur') {
-    if (shapeTitle) shapeTitle.innerText = "질감 및 대칭 조정";
-    if (shapeDesc) shapeDesc.innerHTML = "색상의 부드러움과 좌우 대칭을 조절해 보세요";
-  }
-
-  if (tabKey === 'wing' || tabKey === 'pattern' || tabKey === 'antenna') {
-    var activeTabEl = tabKey === 'wing' ? tabWing : (tabKey === 'pattern' ? tabPattern : tabAntenna);
-    if (activeTabEl) activeTabEl.classList.add('active-tab');
-    if (blurSliderBox) blurSliderBox.classList.add('hidden-slider');
-    if (carouselStage) carouselStage.style.display = 'flex';
-    requestAnimationFrame(renderCarouselItems);
-  } else if (tabKey === 'blur') {
-    if (tabBlur) tabBlur.classList.add('active-tab');
-    if (blurSliderBox) blurSliderBox.classList.remove('hidden-slider');
-    if (carouselStage) carouselStage.style.display = 'none';
-  }
-}
-
-if (tabWing) tabWing.onclick = function() { switchTab('wing'); };
-if (tabPattern) tabPattern.onclick = function() { switchTab('pattern'); };
-if (tabAntenna) tabAntenna.onclick = function() { switchTab('antenna'); };
-if (tabBlur) tabBlur.onclick = function() { switchTab('blur'); };
-
-var btnRephoto = document.getElementById('btn-rephoto-from-shape');
-if (btnRephoto) {
-  btnRephoto.onclick = function() {
-    if (cameraInput) cameraInput.value = '';
-    if (albumInput) albumInput.value = '';
-    showScreen('screen-capture-guide');
   };
+  bgImg.src = textureURL;
+
+  return { matL: matL, matR: matR };
 }
 
-var btnConfirmShape = document.getElementById('btn-confirm-shape');
-if (btnConfirmShape) {
-  btnConfirmShape.onclick = async function() {
-    btnConfirmShape.disabled = true;
+// --------------------------------------------------------------------------
+// 🌟 공유 화면용 선명한 3D 나비 씬
+// --------------------------------------------------------------------------
+var shareScene, shareCamera, shareRenderer, shareGroup, shareWingL, shareWingR;
+var shareAnimFrameId = null;
+
+function initShare3DScene() {
+  stopShare3DScene();
+  var res = setupCommon3DScene(document.getElementById('share-three-container'), 7.5, 0);
+  if (!res) return;
+  shareScene = res.scene; shareCamera = res.camera; shareRenderer = res.renderer;
+
+  var texUrl = currentExtractedTexture || createFallbackDummyTexture('#ffffff', '#cfcfcf');
+  var wingMats = createWingMaterials(texUrl, currentSelected3DPatternPath);
+  var whiteMat = new THREE.MeshStandardMaterial({ color: 0xffffff, side: THREE.DoubleSide, roughness: 0.35 });
+
+  shareGroup = new THREE.Group();
+  shareGroup.rotation.set(0.25, -0.8, 0.35);
+  shareGroup.position.set(0, 0.45, 0);
+
+  loadButterflyModel(shareGroup, selectedButterflyShape, selectedAntennaType, wingMats, whiteMat, 0.68, function(l, r) {
+    shareWingL = l; shareWingR = r;
+  });
+  shareScene.add(shareGroup);
+
+  var clock = new THREE.Clock();
+  (function animateShare() {
+    shareAnimFrameId = requestAnimationFrame(animateShare);
+    var t = clock.getElapsedTime(), flap = Math.sin(t * 7.5) * 0.42;
+    if (shareWingL && shareWingR) { 
+      shareWingL.rotation.y = (shareWingL.userData.baseRotY || 0) + flap; 
+      shareWingR.rotation.y = (shareWingR.userData.baseRotY || 0) - flap; 
+    }
+    shareGroup.position.y = 0.45 + Math.sin(t * 2.2) * 0.08;
+    shareGroup.rotation.z = 0.35 + Math.sin(t * 1.5) * 0.04;
+    shareRenderer.render(shareScene, shareCamera);
+  })();
+}
+
+function stopShare3DScene() {
+  if (shareAnimFrameId) { cancelAnimationFrame(shareAnimFrameId); shareAnimFrameId = null; }
+  var c = document.getElementById('share-three-container');
+  if (c) c.innerHTML = '';
+}
+
+// --------------------------------------------------------------------------
+// 🌟 나비 뷰어 및 인터랙션 로직 (screen-preview)
+// --------------------------------------------------------------------------
+var fullScene, fullCamera, fullRenderer, fullGroup, leftWingMesh, rightWingMesh, antennaMesh;
+var isFlyingAway = false, animFrameId = null;
+var initialRotL = { x: 0, y: 0, z: 0 }, initialRotR = { x: 0, y: 0, z: 0 };
+var DEFAULT_ROT_X = 0, DEFAULT_ROT_Y = 0, butterflyRotX = DEFAULT_ROT_X, butterflyRotY = DEFAULT_ROT_Y;
+var isUserDragging = false, lastPointerX = 0, lastPointerY = 0, previewStartTime = 0;
+var isPressingScreen = false, pressStartTime = 0, isChargeTriggered = false, chargeProgress = 0, chargeVibrateInterval = null;
+var particleCanvas = null, pctx = null, energyParticles = [], isFlyingTransitionTriggered = false;
+
+function triggerDeviceVibrate(durationMs, intensity) {
+  try {
+    if (navigator.vibrate) navigator.vibrate(durationMs || 40);
+    else if (window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.haptic) {
+      window.webkit.messageHandlers.haptic.postMessage({ type: 'impactMedium' });
+    }
+  } catch(e) {}
+}
+
+function initFullButterflyViewer(textureURL) {
+  var container = document.getElementById('three-container');
+  if (animFrameId) { cancelAnimationFrame(animFrameId); animFrameId = null; }
+  if (!container || !window.THREE) return;
+  container.innerHTML = ''; container.style.opacity = '1';
+
+  var glowBg = document.querySelector('.preview-ethereal-glow-bg');
+  if (glowBg) glowBg.style.opacity = '1';
+
+  var width = window.innerWidth, height = window.innerHeight;
+  fullScene = new THREE.Scene();
+  fullCamera = new THREE.PerspectiveCamera(38, width / height, 0.1, 1000);
+  fullCamera.position.set(0, 0, 8.8); fullCamera.lookAt(0, 0, 0);
+
+  fullRenderer = new THREE.WebGLRenderer({ alpha: true, antialias: true });
+  fullRenderer.setSize(width, height);
+  fullRenderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+  if (THREE.sRGBEncoding) {
+    fullRenderer.outputEncoding = THREE.sRGBEncoding;
+  }
+  container.appendChild(fullRenderer.domElement);
+
+  fullScene.add(new THREE.AmbientLight(0xffffff, 0.95));
+  var dirLight = new THREE.DirectionalLight(0xffffff, 0.85);
+  dirLight.position.set(0, 5, 10); fullScene.add(dirLight);
+
+  var wingMats = createWingMaterials(textureURL, currentSelected3DPatternPath);
+
+  fullGroup = new THREE.Group();
+  butterflyRotX = DEFAULT_ROT_X; butterflyRotY = DEFAULT_ROT_Y;
+  fullGroup.rotation.set(butterflyRotX, butterflyRotY, 0);
+  fullGroup.position.set(0, -7.0, 0);
+
+  previewStartTime = performance.now();
+  isFlyingAway = false; isFlyingTransitionTriggered = false; resetChargeState();
+
+  var whiteMat = new THREE.MeshStandardMaterial({ color: 0xffffff, side: THREE.DoubleSide, roughness: 0.35, metalness: 0.0 });
+  var targetAnt = 'Antenna_' + selectedAntennaType;
+
+  if (window.THREE && THREE.GLTFLoader) {
     try {
-      await exportAlignedTexture();
+      new THREE.GLTFLoader().load('3DButterfly/' + selectedButterflyShape + '.glb', function(gltf) {
+        leftWingMesh = null; rightWingMesh = null; antennaMesh = null;
+        gltf.scene.traverse(function(child) {
+          if (child.isMesh) {
+            var n = child.name || '';
+            if (n.indexOf('Wing_L') === 0 || n.startsWith('Wing_L')) { 
+              leftWingMesh = child; 
+              child.material = wingMats.matL; 
+              initialRotL = { x: child.rotation.x, y: child.rotation.y, z: child.rotation.z }; 
+            }
+            else if (n.indexOf('Wing_R') === 0 || n.startsWith('Wing_R')) { 
+              rightWingMesh = child; 
+              child.material = wingMats.matR; 
+              initialRotR = { x: child.rotation.x, y: child.rotation.y, z: child.rotation.z }; 
+            }
+            else if (n.indexOf('Body') === 0 || n.startsWith('Body')) { 
+              child.material = whiteMat; 
+            }
+            else if (n.indexOf('Antenna_') === 0 || n.startsWith('Antenna_')) { 
+              child.material = whiteMat; 
+              child.visible = n.startsWith(targetAnt); 
+              if (child.visible) antennaMesh = child; 
+            }
+          }
+        });
+        gltf.scene.scale.set(0.76, 0.76, 0.76);
+        fullGroup.add(gltf.scene);
+      });
     } catch(err) {
-      console.warn("텍스처 추출 중 예외 발생, 기본 진행:", err);
-    } finally {
-      btnConfirmShape.disabled = false;
-      showScreen('screen-loading');
-      startAnswerShowcaseSequence();
+      console.error("3D 프리뷰 모델 로딩 실패:", err);
     }
-  };
+  }
+
+  fullScene.add(fullGroup);
+  initEnergyParticleSystem();
+  var clock = new THREE.Clock();
+
+  (function animate() {
+    animFrameId = requestAnimationFrame(animate);
+    var time = clock.getElapsedTime(), now = performance.now(), elapsedSec = (now - previewStartTime) / 1000;
+
+    if (!isUserDragging) {
+      butterflyRotX += (DEFAULT_ROT_X - butterflyRotX) * 0.05;
+      var diffY = (DEFAULT_ROT_Y - butterflyRotY);
+      butterflyRotY += Math.atan2(Math.sin(diffY), Math.cos(diffY)) * 0.05;
+    }
+    fullGroup.rotation.x = butterflyRotX; fullGroup.rotation.y = butterflyRotY;
+
+    if (isPressingScreen && !isFlyingAway) {
+      var pressDuration = (now - pressStartTime) / 1000;
+      if (pressDuration >= 2.0) {
+        if (!isChargeTriggered) { isChargeTriggered = true; startChargeVibrationLoop(); }
+        var currentChargeSec = Math.max(0, pressDuration - 2.0);
+        chargeProgress = Math.min(1.0, currentChargeSec / 2.0);
+        updateChargeUIAndCamera(chargeProgress, currentChargeSec);
+        spawnEnergyParticles();
+      }
+    }
+
+    if (!isFlyingAway) {
+      if (elapsedSec < 3.6) {
+        var progress = Math.min(1.0, elapsedSec / 3.6);
+        fullGroup.position.y = -7.0 + 7.0 * (1.0 - Math.pow(1.0 - progress, 3));
+        var flapIntro = Math.sin(time * 30.0) * (0.85 * Math.pow(1.0 - progress, 1.4));
+        if (leftWingMesh && rightWingMesh) {
+          leftWingMesh.rotation.set(initialRotL.x, initialRotL.y + flapIntro, initialRotL.z);
+          rightWingMesh.rotation.set(initialRotR.x, initialRotR.y - flapIntro, initialRotR.z);
+        }
+      } else {
+        fullGroup.position.y = 0;
+        var flapIdle = Math.sin(time * 6.5) * 0.35;
+        if (leftWingMesh && rightWingMesh) {
+          leftWingMesh.rotation.set(initialRotL.x, initialRotL.y + flapIdle, initialRotL.z);
+          rightWingMesh.rotation.set(initialRotR.x, initialRotR.y - flapIdle, initialRotR.z);
+        }
+      }
+    } else {
+      var flyAngle = Math.sin(time * 26.0) * 0.75;
+      if (leftWingMesh && rightWingMesh) {
+        leftWingMesh.rotation.set(initialRotL.x, initialRotL.y + flyAngle, initialRotL.z);
+        rightWingMesh.rotation.set(initialRotR.x, initialRotR.y - flyAngle, initialRotR.z);
+      }
+      fullGroup.position.y += 0.09; fullGroup.position.z -= 0.04;
+
+      if (fullGroup.position.y > 4.6 && !isFlyingTransitionTriggered) {
+        isFlyingTransitionTriggered = true;
+        clearTimeout(flightSafetyTimer);
+        saveButterflyToSupabase();
+        if (container) container.style.opacity = '0';
+        var glowBgEl = document.querySelector('.preview-ethereal-glow-bg');
+        if (glowBgEl) glowBgEl.style.opacity = '0';
+        var headerUIEl = document.getElementById('preview-header-ui');
+        if (headerUIEl) headerUIEl.style.opacity = '0';
+        var footerUIEl = document.getElementById('preview-footer-ui');
+        if (footerUIEl) { footerUIEl.style.setProperty('display', 'none', 'important'); footerUIEl.style.opacity = '0'; }
+
+        var globalCurtain = document.getElementById('cinematic-transition-curtain');
+        if (globalCurtain) globalCurtain.classList.add('active-curtain');
+
+        setTimeout(function() {
+          showScreen('screen-complete');
+          setTimeout(function() { if (globalCurtain) globalCurtain.classList.remove('active-curtain'); }, 80);
+          isFlyingAway = false; isFlyingTransitionTriggered = false;
+          if (container) container.style.opacity = '1';
+          if (glowBgEl) glowBgEl.style.opacity = '1';
+          resetChargeState();
+        }, 2000);
+      }
+    }
+    renderEnergyParticles();
+    fullRenderer.render(fullScene, fullCamera);
+  })();
+  bindInteractiveEvents(container);
+}
+
+function initEnergyParticleSystem() {
+  particleCanvas = document.getElementById('energy-particles-canvas');
+  if (!particleCanvas) return;
+  particleCanvas.width = window.innerWidth; particleCanvas.height = window.innerHeight;
+  pctx = particleCanvas.getContext('2d'); energyParticles = [];
+}
+
+function spawnEnergyParticles() {
+  if (!pctx) return;
+  var cx = window.innerWidth / 2, cy = window.innerHeight / 2;
+  for (var i = 0; i < 2; i++) {
+    var angle = Math.random() * Math.PI * 2, dist = 90 + Math.random() * 80;
+    energyParticles.push({
+      x: cx + Math.cos(angle) * dist, y: cy + Math.sin(angle) * dist,
+      vx: (Math.random() - 0.5) * 0.8, vy: -Math.random() * 1.5 - 0.5,
+      size: Math.random() * 2.8 + 1.2, alpha: 1.0, decay: Math.random() * 0.015 + 0.01
+    });
+  }
+}
+
+function renderEnergyParticles() {
+  if (!pctx || !particleCanvas) return;
+  pctx.clearRect(0, 0, particleCanvas.width, particleCanvas.height);
+  for (var i = energyParticles.length - 1; i >= 0; i--) {
+    var p = energyParticles[i];
+    p.x += p.vx; p.y += p.vy; p.alpha -= p.decay;
+    if (p.alpha <= 0) { energyParticles.splice(i, 1); continue; }
+    pctx.save();
+    pctx.fillStyle = 'rgba(255, 255, 255, ' + p.alpha + ')';
+    pctx.beginPath(); pctx.arc(p.x, p.y, p.size, 0, Math.PI * 2); pctx.fill();
+    pctx.restore();
+  }
+}
+
+function updateChargeUIAndCamera(progress, currentChargeSec) {
+  if (isFlyingAway) return;
+  var chargeWidget = document.getElementById('energy-charge-widget');
+  var innerFill = document.getElementById('charge-inner-fill');
+  var headerUI = document.getElementById('preview-header-ui');
+  var footerUI = document.getElementById('preview-footer-ui');
+
+  if (chargeWidget) { chargeWidget.classList.remove('hidden'); chargeWidget.style.setProperty('display', 'flex', 'important'); }
+  var currentSize = 22 + (96 - 22) * progress;
+  if (innerFill) { innerFill.style.width = currentSize + 'px'; innerFill.style.height = currentSize + 'px'; }
+  if (fullCamera) fullCamera.position.z = 8.8 - (2.6 * progress);
+
+  if (headerUI) headerUI.style.opacity = Math.max(0, 1.0 - Math.min(1.0, currentChargeSec / 1.5));
+  if (footerUI) { footerUI.style.display = 'flex'; footerUI.style.opacity = '1'; }
+
+  var flyLabel = document.getElementById('preview-fly-label');
+  if (flyLabel) flyLabel.innerText = progress >= 1.0 ? "위로 쓸어 올려주세요" : "화면을 길게 눌러주세요.";
+}
+
+function startChargeVibrationLoop() {
+  if (chargeVibrateInterval) clearInterval(chargeVibrateInterval);
+  triggerDeviceVibrate(45, 0.6);
+  chargeVibrateInterval = setInterval(function() {
+    if (!isPressingScreen || !isChargeTriggered || isFlyingAway) {
+      clearInterval(chargeVibrateInterval); chargeVibrateInterval = null; return;
+    }
+    triggerDeviceVibrate(Math.round(25 + (chargeProgress * 60)), 0.4 + (chargeProgress * 0.6));
+  }, 110);
+}
+
+function resetChargeState() {
+  isPressingScreen = false; isChargeTriggered = false; chargeProgress = 0;
+  if (chargeVibrateInterval) { clearInterval(chargeVibrateInterval); chargeVibrateInterval = null; }
+
+  var chargeWidget = document.getElementById('energy-charge-widget');
+  var innerFill = document.getElementById('charge-inner-fill');
+  var headerUI = document.getElementById('preview-header-ui');
+  var footerUI = document.getElementById('preview-footer-ui');
+
+  if (chargeWidget) { chargeWidget.classList.add('hidden'); chargeWidget.style.setProperty('display', 'none', 'important'); }
+  if (innerFill) { innerFill.style.width = '22px'; innerFill.style.height = '22px'; }
+  if (fullCamera) fullCamera.position.z = 8.8;
+  if (headerUI) headerUI.style.opacity = 1.0;
+  if (footerUI && !isFlyingAway) { footerUI.style.display = 'flex'; footerUI.style.opacity = 1.0; footerUI.style.pointerEvents = 'none'; }
+
+  var flyLabel = document.getElementById('preview-fly-label');
+  if (flyLabel) flyLabel.innerText = "화면을 길게 눌러주세요.";
+}
+
+function bindInteractiveEvents(targetEl) {
+  var touchStartY = 0, touchStartX = 0;
+  function handlePointerStart(clientX, clientY) {
+    if (isFlyingAway) return;
+    isUserDragging = true; lastPointerX = clientX; lastPointerY = clientY; touchStartX = clientX; touchStartY = clientY;
+    var chargeWidget = document.getElementById('energy-charge-widget');
+    if (chargeWidget) { chargeWidget.style.left = clientX + 'px'; chargeWidget.style.top = clientY + 'px'; }
+    isPressingScreen = true; pressStartTime = performance.now();
+  }
+  function handlePointerMove(clientX, clientY) {
+    if (!isUserDragging || isFlyingAway) return;
+    var deltaX = clientX - lastPointerX, deltaY = clientY - lastPointerY;
+    if (!isChargeTriggered) {
+      if (Math.hypot(clientX - touchStartX, clientY - touchStartY) > 15) pressStartTime = performance.now();
+      butterflyRotY += deltaX * 0.013;
+      butterflyRotX = Math.max(-1.4, Math.min(1.4, butterflyRotX + deltaY * 0.013));
+    }
+    lastPointerX = clientX; lastPointerY = clientY;
+  }
+  function handlePointerEnd(clientX, clientY) {
+    if (!isUserDragging) return;
+    isUserDragging = false;
+    var swipeDeltaY = touchStartY - clientY;
+    var chargeWidget = document.getElementById('energy-charge-widget');
+    if (chargeWidget) { chargeWidget.classList.add('hidden'); chargeWidget.style.setProperty('display', 'none', 'important'); }
+    if (chargeVibrateInterval) { clearInterval(chargeVibrateInterval); chargeVibrateInterval = null; }
+
+    if (isChargeTriggered && chargeProgress >= 1.0 && swipeDeltaY > 40 && !isFlyingAway) {
+      isFlyingAway = true;
+      triggerDeviceVibrate(180, 1.0);
+      var footerUI = document.getElementById('preview-footer-ui');
+      if (footerUI) { footerUI.style.setProperty('display', 'none', 'important'); footerUI.style.opacity = '0'; footerUI.style.pointerEvents = 'none'; }
+      clearTimeout(flightSafetyTimer);
+      flightSafetyTimer = setTimeout(function() {
+        if (!isFlyingTransitionTriggered) {
+          isFlyingTransitionTriggered = true; saveButterflyToSupabase(); showScreen('screen-complete');
+        }
+      }, 3500);
+    } else resetChargeState();
+  }
+
+  targetEl.oncontextmenu = function(e) { e.preventDefault(); return false; };
+  targetEl.ontouchstart = function(e) { if (e.touches.length === 1) handlePointerStart(e.touches[0].clientX, e.touches[0].clientY); };
+  window.addEventListener('touchmove', function(e) { if (isUserDragging && e.touches.length === 1) handlePointerMove(e.touches[0].clientX, e.touches[0].clientY); }, { passive: true });
+  window.addEventListener('touchend', function(e) { if (e.changedTouches.length > 0) handlePointerEnd(e.changedTouches[0].clientX, e.changedTouches[0].clientY); }, { passive: true });
+  window.addEventListener('cancel', function(e) { if (e.changedTouches.length > 0) handlePointerEnd(e.changedTouches[0].clientX, e.changedTouches[0].clientY); else resetChargeState(); }, { passive: true });
+  targetEl.onmousedown = function(e) { handlePointerStart(e.clientX, e.clientY); };
+  window.addEventListener('mousemove', function(e) { if (isUserDragging) handlePointerMove(e.clientX, e.clientY); });
+  window.addEventListener('mouseup', function(e) { handlePointerEnd(e.clientX, e.clientY); });
 }
 
 // --------------------------------------------------------------------------
-// 캔버스 드로잉 및 블러
+// 🌟 3D 표본실 모달 (screen-gallery 내 상세 뷰어)
 // --------------------------------------------------------------------------
-function executeReliableFastBlur(canvas, radius) {
-  if (radius <= 0.2) return;
-  var ctx = canvas.getContext('2d', { willReadFrequently: true });
-  var w = canvas.width, h = canvas.height;
-  var imgData = ctx.getImageData(0, 0, w, h);
-  var src = imgData.data;
-  var r = Math.max(1, Math.round(radius)), kernelSize = r * 2 + 1;
-  var temp = new Uint8ClampedArray(src.length);
+var modalThreeScene, modalThreeCamera, modalThreeRenderer, modalGroup, modalWingL, modalWingR, modalAnimFrameId = null;
 
-  for (var y = 0; y < h; y++) {
-    var rowStart = y * w * 4, rSum = 0, gSum = 0, bSum = 0, aSum = 0;
-    for (var i = -r; i <= r; i++) {
-      var px = Math.min(w - 1, Math.max(0, i)), pIndex = rowStart + px * 4;
-      rSum += src[pIndex]; gSum += src[pIndex + 1]; bSum += src[pIndex + 2]; aSum += src[pIndex + 3];
-    }
-    for (var x = 0; x < w; x++) {
-      var outIndex = rowStart + x * 4;
-      temp[outIndex] = rSum / kernelSize; temp[outIndex + 1] = gSum / kernelSize; temp[outIndex + 2] = bSum / kernelSize; temp[outIndex + 3] = aSum / kernelSize;
-      var remIdx = rowStart + Math.min(w - 1, Math.max(0, x - r)) * 4;
-      var addIdx = rowStart + Math.min(w - 1, Math.max(0, x + r + 1)) * 4;
-      rSum += src[addIdx] - src[remIdx]; gSum += src[addIdx + 1] - src[remIdx + 1]; bSum += src[addIdx + 2] - src[remIdx + 2]; aSum += src[addIdx + 3] - src[remIdx + 3];
-    }
+function openSpecimen3DModal(item, textureUrl) {
+  var modal = document.getElementById('specimen-detail-modal');
+  var nameEl = document.getElementById('modal-butterfly-name');
+  var tagsEl = document.getElementById('modal-specimen-tags');
+  var memoEl = document.getElementById('modal-specimen-memo');
+  var dateEl = document.getElementById('modal-specimen-date');
+  var container = document.getElementById('specimen-three-container');
+
+  if (nameEl) nameEl.innerText = '‘' + item.name + '’';
+  if (tagsEl) {
+    var coreTag = item.core_concern || (item.tags && item.tags[item.tags.length - 1]);
+    tagsEl.innerHTML = coreTag ? '<span class="specimen-glass-pill bg-white text-black font-bold border-white" style="box-shadow: 0 0 12px rgba(255, 255, 255, 0.45);">#' + coreTag + '</span>' : '';
   }
+  if (memoEl) memoEl.innerText = (item.memo || item.q6_memo) ? ('"' + (item.memo || item.q6_memo) + '"') : '"너의 찬란한 날갯짓을 응원해."';
+  if (dateEl) dateEl.innerText = item.date || "2026. 10. 24";
+  if (modal) modal.classList.remove('hidden');
 
-  for (var x = 0; x < w; x++) {
-    var rSum2 = 0, gSum2 = 0, bSum2 = 0, aSum2 = 0;
-    for (var i = -r; i <= r; i++) {
-      var py = Math.min(h - 1, Math.max(0, i)), pIndex2 = (py * w + x) * 4;
-      rSum2 += temp[pIndex2]; gSum2 += temp[pIndex2 + 1]; bSum2 += temp[pIndex2 + 2]; aSum2 += temp[pIndex2 + 3];
-    }
-    for (var y = 0; y < h; y++) {
-      var outIndex2 = (y * w + x) * 4;
-      src[outIndex2] = rSum2 / kernelSize; src[outIndex2 + 1] = gSum2 / kernelSize; src[outIndex2 + 2] = bSum2 / kernelSize; src[outIndex2 + 3] = aSum2 / kernelSize;
-      var remIdx2 = (Math.min(h - 1, Math.max(0, y - r)) * w + x) * 4;
-      var addIdx2 = (Math.min(h - 1, Math.max(0, y + r + 1)) * w + x) * 4;
-      rSum2 += temp[addIdx2] - temp[remIdx2]; gSum2 += temp[addIdx2 + 1] - temp[remIdx2 + 1]; bSum2 += temp[addIdx2 + 2] - temp[remIdx2 + 2]; aSum2 += temp[addIdx2 + 3] - temp[remIdx2 + 3];
-    }
-  }
-  ctx.putImageData(imgData, 0, 0);
-}
+  if (modalAnimFrameId) { cancelAnimationFrame(modalAnimFrameId); modalAnimFrameId = null; }
+  var res = setupCommon3DScene(container, 7.3, -0.35);
+  if (!res) return;
+  modalThreeScene = res.scene; modalThreeCamera = res.camera; modalThreeRenderer = res.renderer;
 
-var rawImage = new Image();
-var alignCanvas = document.getElementById('align-canvas');
-var actx = alignCanvas ? alignCanvas.getContext('2d', { willReadFrequently: true }) : null;
-var imgX = 0, imgY = 0, imgScale = 1.0;
-var isDragging = false, startX = 0, startY = 0, startPinchDist = 0, pinchStartScale = 1.0;
-var currentExtractedTexture = null, currentBlurPx = 0, isSymmetryEnabled = false;
+  var wingMats = createWingMaterials(textureUrl, currentSelected3DPatternPath);
+  var whiteMat = new THREE.MeshStandardMaterial({ color: 0xffffff, side: THREE.DoubleSide, roughness: 0.3 });
 
-var blurSlider = document.getElementById('blur-slider');
-var toggleSymmetryBtn = document.getElementById('toggle-symmetry-btn');
+  modalGroup = new THREE.Group();
+  modalGroup.position.set(0, -0.35, 0);
 
-function updateSliderProgress(val, min, max) {
-  if (!blurSlider) return;
-  var minVal = parseFloat(min !== undefined ? min : (blurSlider.min || 0));
-  var maxVal = parseFloat(max !== undefined ? max : (blurSlider.max || 25));
-  var percent = Math.max(0, Math.min(100, ((parseFloat(val) - minVal) / (maxVal - minVal)) * 100));
-  blurSlider.style.setProperty('--blur-percent', percent + '%');
-}
-
-function applyBlurValue(val) {
-  currentBlurPx = parseFloat(val) || 0;
-  updateSliderProgress(currentBlurPx);
-  drawAlignCanvas();
-}
-
-if (blurSlider) {
-  blurSlider.oninput = function(e) { applyBlurValue(e.target.value); };
-  blurSlider.onchange = function(e) { applyBlurValue(e.target.value); };
-}
-
-if (toggleSymmetryBtn) {
-  toggleSymmetryBtn.onclick = function() {
-    isSymmetryEnabled = !isSymmetryEnabled;
-    toggleSymmetryBtn.classList.toggle('toggle-active', isSymmetryEnabled);
-    toggleSymmetryBtn.setAttribute('aria-pressed', isSymmetryEnabled ? 'true' : 'false');
-    drawAlignCanvas();
-  };
-}
-
-function handleFile(file) {
-  if (!file) return;
-  var reader = new FileReader();
-  reader.onload = function(e) {
-    var img = new Image();
-    img.onload = function() {
-      rawImage = img;
-      if (blurSlider) { blurSlider.value = 0; currentBlurPx = 0; updateSliderProgress(0); }
-      isSymmetryEnabled = false;
-      if (toggleSymmetryBtn) { toggleSymmetryBtn.classList.remove('toggle-active'); toggleSymmetryBtn.setAttribute('aria-pressed', 'false'); }
-      initAlignUI();
-      showScreen('screen-shape-select');
-    };
-    img.src = e.target.result;
-  };
-  reader.readAsDataURL(file);
-}
-
-var cameraInput = document.getElementById('camera-input');
-var albumInput = document.getElementById('album-input');
-if (cameraInput) {
-  cameraInput.onclick = function(e) { e.target.value = null; };
-  cameraInput.onchange = function(e) { if (e.target.files && e.target.files[0]) handleFile(e.target.files[0]); };
-}
-if (albumInput) {
-  albumInput.onclick = function(e) { e.target.value = null; };
-  albumInput.onchange = function(e) { if (e.target.files && e.target.files[0]) handleFile(e.target.files[0]); };
-}
-
-function initAlignUI() {
-  if (!rawImage || !rawImage.width || !alignCanvas) return;
-  imgScale = alignCanvas.width / Math.min(rawImage.width, rawImage.height);
-  imgX = (alignCanvas.width - rawImage.width * imgScale) / 2;
-  imgY = (alignCanvas.height - rawImage.height * imgScale) / 2;
-  drawAlignCanvas();
-}
-
-function drawAlignCanvas() {
-  if (!alignCanvas || !actx) return;
-  actx.clearRect(0, 0, alignCanvas.width, alignCanvas.height);
-  if (!rawImage || !rawImage.width) return;
-
-  var midX = alignCanvas.width / 2;
-  var tempCanvas = document.createElement('canvas');
-  tempCanvas.width = alignCanvas.width; tempCanvas.height = alignCanvas.height;
-  var tctx = tempCanvas.getContext('2d', { willReadFrequently: true });
-  tctx.drawImage(rawImage, imgX, imgY, rawImage.width * imgScale, rawImage.height * imgScale);
-
-  if (currentBlurPx > 0) executeReliableFastBlur(tempCanvas, currentBlurPx * 0.9);
-
-  // 🌟 [대칭 토글 엄격 분기: 사용자가 대칭 버튼을 켰을 때만 대칭]
-  if (!isSymmetryEnabled) {
-    actx.drawImage(tempCanvas, 0, 0);
-  } else {
-    actx.drawImage(tempCanvas, 0, 0, midX, alignCanvas.height, 0, 0, midX, alignCanvas.height);
-    actx.save();
-    actx.translate(alignCanvas.width, 0); actx.scale(-1, 1);
-    actx.drawImage(tempCanvas, 0, 0, midX, alignCanvas.height, 0, 0, midX, alignCanvas.height);
-    actx.restore();
-  }
-}
-
-var interactiveFrame = document.getElementById('interactive-align-frame');
-if (interactiveFrame && alignCanvas) {
-  interactiveFrame.onmousedown = function(e) {
-    isDragging = true;
-    var rect = alignCanvas.getBoundingClientRect(), sFactor = alignCanvas.width / rect.width;
-    startX = (e.clientX - rect.left) * sFactor - imgX; startY = (e.clientY - rect.top) * sFactor - imgY;
-  };
-  window.addEventListener('mousemove', function(e) {
-    if (!isDragging || !alignCanvas) return;
-    var rect = alignCanvas.getBoundingClientRect(), sFactor = alignCanvas.width / rect.width;
-    imgX = (e.clientX - rect.left) * sFactor - startX; imgY = (e.clientY - rect.top) * sFactor - startY;
-    drawAlignCanvas();
+  loadButterflyModel(modalGroup, item.wingId, item.antId, wingMats, whiteMat, 0.88, function(l, r) {
+    modalWingL = l; modalWingR = r;
   });
-  window.addEventListener('mouseup', function() { isDragging = false; });
-  interactiveFrame.addEventListener('wheel', function(e) {
-    e.preventDefault();
-    imgScale *= (e.deltaY < 0 ? 1.06 : 0.94);
-    drawAlignCanvas();
-  }, { passive: false });
+  modalThreeScene.add(modalGroup);
 
-  interactiveFrame.addEventListener('touchstart', function(e) {
-    var rect = alignCanvas.getBoundingClientRect(), sFactor = alignCanvas.width / rect.width;
-    if (e.touches.length === 1) {
-      isDragging = true;
-      startX = (e.touches[0].clientX - rect.left) * sFactor - imgX; startY = (e.touches[0].clientY - rect.top) * sFactor - imgY;
-    } else if (e.touches.length === 2) {
-      isDragging = false;
-      startPinchDist = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY);
-      pinchStartScale = imgScale;
+  var clock = new THREE.Clock();
+  (function modalAnimate() {
+    modalAnimFrameId = requestAnimationFrame(modalAnimate);
+    var t = clock.getElapsedTime(), flap = Math.sin(t * 6.5) * 0.45;
+    if (modalWingL && modalWingR) { 
+      modalWingL.rotation.y = (modalWingL.userData.baseRotY || 0) + flap; 
+      modalWingR.rotation.y = (modalWingR.userData.baseRotY || 0) - flap; 
     }
-  }, { passive: false });
-
-  window.addEventListener('touchmove', function(e) {
-    if (!document.getElementById('screen-shape-select').classList.contains('active')) return;
-    var rect = alignCanvas.getBoundingClientRect(), sFactor = alignCanvas.width / rect.width;
-    if (e.touches.length === 1 && isDragging) {
-      if (e.cancelable) e.preventDefault();
-      imgX = (e.touches[0].clientX - rect.left) * sFactor - startX; imgY = (e.touches[0].clientY - rect.top) * sFactor - startY;
-      drawAlignCanvas();
-    } else if (e.touches.length === 2 && startPinchDist > 0) {
-      if (e.cancelable) e.preventDefault();
-      imgScale = pinchStartScale * (Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY) / startPinchDist);
-      drawAlignCanvas();
-    }
-  }, { passive: false });
-  window.addEventListener('touchend', function() { isDragging = false; startPinchDist = 0; });
-}
-
-// --------------------------------------------------------------------------
-// 🌟 [수정 완료]: 정비율 유지 및 대칭 옵션 엄격 준수 텍스처 추출
-// - 맞춤틀에서 맞춘 구도와 비율을 1000x1000 캔버스에 왜곡 없이 1:1 그대로 추출
-// - isSymmetryEnabled가 true일 때만 좌우 대칭 적용
-// --------------------------------------------------------------------------
-function exportAlignedTexture() {
-  return new Promise(function(resolve) {
-    currentSelected3DPatternPath = get3DPatternPath(selectedButterflyShape, selectedPatternId);
-
-    if (!rawImage || !rawImage.width || !alignCanvas) {
-      currentExtractedTexture = createFallbackDummyTexture(); 
-      resolve(currentExtractedTexture);
-      return;
-    }
-
-    // 1단계: 사용자의 드래그/줌/블러가 반영된 캔버스 생성
-    var baseCanvas = document.createElement('canvas');
-    baseCanvas.width = alignCanvas.width; 
-    baseCanvas.height = alignCanvas.height;
-    var bctx = baseCanvas.getContext('2d', { willReadFrequently: true });
-    bctx.drawImage(rawImage, imgX, imgY, rawImage.width * imgScale, rawImage.height * imgScale);
-
-    if (currentBlurPx > 0) executeReliableFastBlur(baseCanvas, currentBlurPx * 0.9);
-
-    // 사용자가 대칭 버튼을 켰을 때만 좌우 대칭 생성
-    if (isSymmetryEnabled) {
-      var midX = alignCanvas.width / 2;
-      var symCanvas = document.createElement('canvas');
-      symCanvas.width = alignCanvas.width; 
-      symCanvas.height = alignCanvas.height;
-      var sctx = symCanvas.getContext('2d');
-      sctx.drawImage(baseCanvas, 0, 0, midX, alignCanvas.height, 0, 0, midX, alignCanvas.height);
-      sctx.save(); 
-      sctx.translate(alignCanvas.width, 0); 
-      sctx.scale(-1, 1);
-      sctx.drawImage(baseCanvas, 0, 0, midX, alignCanvas.height, 0, 0, midX, alignCanvas.height);
-      sctx.restore();
-      baseCanvas = symCanvas;
-    }
-
-    // 2단계: 맞춤틀 전체 화면(정사각 비율)을 1000x1000 고해상도 규격으로 왜곡 없이 정비율 1:1 복사
-    var finalCanvas = document.createElement('canvas');
-    finalCanvas.width = 1000; 
-    finalCanvas.height = 1000;
-    var fctx = finalCanvas.getContext('2d');
-
-    fctx.drawImage(
-      baseCanvas, 
-      0, 0, alignCanvas.width, alignCanvas.height, 
-      0, 0, 1000, 1000
-    );
-
-    currentExtractedTexture = finalCanvas.toDataURL('image/png');
-    resolve(currentExtractedTexture);
-  });
-}
-
-// 🌟 앱 시작 시 안전한 분산 프리로드 실행
-if (document.readyState === 'loading') {
-  document.addEventListener('DOMContentLoaded', preloadAllPatternThumbnails);
-} else {
-  preloadAllPatternThumbnails();
+    modalThreeRenderer.render(modalThreeScene, modalThreeCamera);
+  })();
 }
