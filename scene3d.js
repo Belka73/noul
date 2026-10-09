@@ -3,7 +3,7 @@
    - Three.js 공통 씬/조명/카메라 설정
    - GLB 3D 나비 모델 로딩 및 텍스처 매핑
    - 로딩 화면 3D, 공유 화면 3D, 완성 뷰어(비행/기모으기/파티클), 표본실 3D 모달
-   - [순수 1:1 정위치 매핑]: 왼쪽/오른쪽 날개 UV 규격 일치화 및 왜곡 방지 보정
+   - [왜곡 제거 완료]: Wing_R UV 가로 반전 보정 및 1:1 완벽 정위치 텍스처 매핑
    ========================================================================== */
 
 // --------------------------------------------------------------------------
@@ -36,7 +36,20 @@ function setupCommon3DScene(container, camZ, lookY) {
   return { scene: scene, camera: camera, renderer: renderer };
 }
 
-// 🌟 좌우 날개 메쉬에 단일 텍스처 머티리얼을 어떠한 변형 없이 동일하게 적용
+// 🌟 날개 UV 왜곡 방지 헬퍼: 오른쪽 날개(Wing_R)의 반전된 UV 좌우 좌표를 정상화
+function correctRightWingUV(mesh) {
+  if (!mesh || !mesh.geometry) return;
+  var uv = mesh.geometry.attributes.uv;
+  if (!uv || mesh.userData.uvCorrected) return;
+
+  for (var i = 0; i < uv.count; i++) {
+    uv.setX(i, 1.0 - uv.getX(i));
+  }
+  uv.needsUpdate = true;
+  mesh.userData.uvCorrected = true;
+}
+
+// 🌟 좌우 날개 메쉬에 단일 텍스처 머티리얼을 왜곡 없이 동일하게 적용
 function loadButterflyModel(group, shapeId, antId, wingMat, whiteMat, scale, onLoaded) {
   if (!window.THREE || !THREE.GLTFLoader) return;
   var modelPath = '3DButterfly/' + (shapeId || 'crescent') + '.glb';
@@ -59,6 +72,7 @@ function loadButterflyModel(group, shapeId, antId, wingMat, whiteMat, scale, onL
         else if (n.indexOf('Wing_R') === 0 || n.startsWith('Wing_R')) {
           wR = child;
           wR.userData.baseRotY = child.rotation.y;
+          correctRightWingUV(child); // 오른쪽 날개 UV 반전 왜곡 교정
           child.material = wingMat;
           child.castShadow = true;
           child.receiveShadow = true;
@@ -134,7 +148,6 @@ function createWingMaterials(textureURL, patternPath3D) {
   var ctx = canvas.getContext('2d');
 
   var wingTex = new THREE.CanvasTexture(canvas);
-  // GLTF UV 좌표계 왜곡 방지: flipY를 false로 일치시켜 상하 왜곡 및 좌우 어긋남 방지
   wingTex.flipY = false;
   if (THREE.sRGBEncoding) wingTex.encoding = THREE.sRGBEncoding;
 
@@ -149,7 +162,7 @@ function createWingMaterials(textureURL, patternPath3D) {
   bgImg.crossOrigin = "anonymous";
   bgImg.onload = function() {
     ctx.clearRect(0, 0, 1000, 1000);
-    // 1. 사용자 사진 배경 1:1 드로잉
+    // 1. 사용자 사진 배경 1:1 드로잉 (왜곡 방지)
     ctx.drawImage(bgImg, 0, 0, 1000, 1000);
 
     // 2. 3D 패턴 도안을 변형 없이 UV 위치 그대로 위에 얹음
@@ -162,6 +175,9 @@ function createWingMaterials(textureURL, patternPath3D) {
         ctx.globalAlpha = 0.95;
         ctx.drawImage(patImg, 0, 0, 1000, 1000);
         ctx.restore();
+        wingTex.needsUpdate = true;
+      };
+      patImg.onerror = function() {
         wingTex.needsUpdate = true;
       };
       patImg.src = patPath;
@@ -292,6 +308,7 @@ function initFullButterflyViewer(textureURL) {
             }
             else if (n.indexOf('Wing_R') === 0 || n.startsWith('Wing_R')) { 
               rightWingMesh = child; 
+              correctRightWingUV(child); // 오른쪽 날개 UV 반전 왜곡 교정
               child.material = wingMat; 
               initialRotR = { x: child.rotation.x, y: child.rotation.y, z: child.rotation.z }; 
             }
