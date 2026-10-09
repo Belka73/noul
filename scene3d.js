@@ -2,9 +2,11 @@
    🌟 너울(Noul) 3D 그래픽 및 Three.js 씬 관리 모듈 (scene3d.js)
    - Three.js 공통 씬/조명/카메라 설정
    - GLB 3D 나비 모델 로딩 및 텍스처 매핑
-   - [사진과 무늬 패턴의 엄격한 분리]:
-     * 사진(bgImg): 대칭 버튼 유무에 따라 좌우 분할 매핑 (패턴에 영향 없음)
-     * 무늬 패턴(patImg): 사진과 독립적으로 원래의 올바른 정렬/반전 상태 유지
+   - [나비틀 기준 1:1 정규 좌표계 매핑]:
+     * 가로 2배 강제 확장 왜곡 제거: 1000x1000 정사각 대지 기준 원본 비율 1:1 그대로 투영
+     * 오른쪽 날개(Wing_R): 원본 텍스처 정방향 정비율 매핑
+     * 왼쪽 날개(Wing_L): 뒤집힌 블렌더 UV 기준점에 맞춰 자연스러운 정비율 매핑 유지
+     * 무늬 패턴(patImg): 사진과 완전히 분리되어 고유 위치/반전 방향 완벽 보존
    - 로딩 화면 3D, 공유 화면 3D, 완성 뷰어(비행/기모으기/파티클), 표본실 3D 모달
    ========================================================================== */
 
@@ -128,14 +130,12 @@ function stopLoading3DScene() {
 }
 
 // --------------------------------------------------------------------------
-// 🌟 좌/우 날개용 머티리얼 생성 함수
-// - 사진은 비대칭 분할 매핑
-// - 패턴은 사진 로직과 완전히 분리하여 원래의 올바른 정렬 상태 유지
+// 🌟 좌/우 날개용 머티리얼 생성 함수 (1:1 정비율 무왜곡 매핑)
 // --------------------------------------------------------------------------
 function createWingMaterials(textureURL, patternPath3D) {
   var patPath = patternPath3D || (typeof currentSelected3DPatternPath !== 'undefined' ? currentSelected3DPatternPath : null);
 
-  // 1. 오른쪽 날개용 캔버스 (정방향)
+  // 1. 오른쪽 날개용 캔버스 (정방향 1000x1000 1:1 대지)
   var canvasR = document.createElement('canvas');
   canvasR.width = 1000;
   canvasR.height = 1000;
@@ -152,7 +152,7 @@ function createWingMaterials(textureURL, patternPath3D) {
     alphaTest: 0.05 
   });
 
-  // 2. 왼쪽 날개용 캔버스
+  // 2. 왼쪽 날개용 캔버스 (1000x1000 1:1 대지)
   var canvasL = document.createElement('canvas');
   canvasL.width = 1000;
   canvasL.height = 1000;
@@ -173,17 +173,13 @@ function createWingMaterials(textureURL, patternPath3D) {
   bgImg.crossOrigin = "anonymous";
   bgImg.onload = function() {
     function drawBaseAndPattern(patImg) {
-      var halfW = bgImg.width / 2;
-      var fullH = bgImg.height;
-
       // --------------------------------------------------------------------
-      // [오른쪽 날개 드로잉]
+      // [오른쪽 날개 드로잉 - 1:1 정비율 그대로 매핑]
       // --------------------------------------------------------------------
       ctxR.clearRect(0, 0, 1000, 1000);
-      // 1. 사진: 오른쪽 절반(halfW ~ bgImg.width)
-      ctxR.drawImage(bgImg, halfW, 0, halfW, fullH, 0, 0, 1000, 1000);
+      // 🌟 가로를 늘려 그리지 않고 1000x1000 정사각 규격 그대로 1:1 투영
+      ctxR.drawImage(bgImg, 0, 0, 1000, 1000);
 
-      // 2. 무늬 패턴: 정방향 그대로 합성
       if (patImg) {
         ctxR.save();
         ctxR.globalCompositeOperation = 'multiply';
@@ -194,13 +190,17 @@ function createWingMaterials(textureURL, patternPath3D) {
       texR.needsUpdate = true;
 
       // --------------------------------------------------------------------
-      // [왼쪽 날개 드로잉 - 사진과 패턴 독립 렌더링]
+      // [왼쪽 날개 드로잉 - 블렌더 뒤집힌 UV 기준 정비율 투영]
       // --------------------------------------------------------------------
       ctxL.clearRect(0, 0, 1000, 1000);
-      // 1. 사진: 왼쪽 절반(0 ~ halfW)만 가져와서 배치 (사진 비대칭)
-      ctxL.drawImage(bgImg, 0, 0, halfW, fullH, 0, 0, 1000, 1000);
+      ctxL.save();
+      // 블렌더 왼쪽 날개 UV가 중앙을 기준으로 좌우 반전되어 있으므로 1:1 대칭축 투영
+      ctxL.translate(1000, 0);
+      ctxL.scale(-1, 1);
+      ctxL.drawImage(bgImg, 0, 0, 1000, 1000);
+      ctxL.restore();
 
-      // 2. 무늬 패턴: 블렌더 뒤집힌 UV에 맞춰 원래대로 반전하여 정확한 위치에 얹음
+      // 무늬 패턴은 원래 설정된 고유 반전 방향 그대로 얹음
       if (patImg) {
         ctxL.save();
         ctxL.translate(1000, 0);

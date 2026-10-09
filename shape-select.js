@@ -3,10 +3,8 @@
    - [2D/3D 패턴 완벽 분리]: 
      1) 1번 화면(날개 형태/무늬 고르기): 2DButterfly_pattern/ 의 2D png 사용
      2) 2번 화면(3D 나비 프리뷰/비행): 3DButterfly_pattern/ 의 3D png 1:1 매칭 구움
-   - [404/503 에러 방어]: 사전 로드 트래픽 분산 및 3D 패턴 파일명 정밀 매칭
-   - [대칭 분기 철저]: 
-     * 대칭 On/Off는 사용자가 직접 토글 버튼을 눌렀을 때만 적용
-   - [정비율 텍스처 추출]: 사용자가 맞춤틀에서 조정한 원본 구도와 정비율을 그대로 1000x1000으로 추출
+   - [나비틀 SVG 기준 클리핑]: 나비틀(wingD) 외곽선 기준 1:1 정비율 마스킹 추출 (외곽 검은 영역 제외)
+   - [대칭 분기 철저]: 대칭 On/Off는 사용자가 직접 토글 버튼을 눌렀을 때만 적용
    - [기능 보존 100%]: 핀치 줌, 드래그 이동, 블러 조절, 하단 캐러셀 전체 유지
    ========================================================================== */
 
@@ -590,9 +588,9 @@ if (interactiveFrame && alignCanvas) {
 }
 
 // --------------------------------------------------------------------------
-// 🌟 [수정 완료]: 정비율 유지 및 대칭 옵션 엄격 준수 텍스처 추출
-// - 맞춤틀에서 맞춘 구도와 비율을 1000x1000 캔버스에 왜곡 없이 1:1 그대로 추출
-// - isSymmetryEnabled가 true일 때만 좌우 대칭 적용
+// 🌟 [수정 완료]: 나비틀 SVG(wingD) 기준 마스킹 및 1:1 정비율 텍스처 추출
+// - 나비틀 바깥쪽의 불필요한 영역은 마스킹하여 제외
+// - 나비틀 내부 사진만 1000x1000 고해상도 대지에 1:1 정비율로 정확히 추출
 // --------------------------------------------------------------------------
 function exportAlignedTexture() {
   return new Promise(function(resolve) {
@@ -606,7 +604,7 @@ function exportAlignedTexture() {
       return;
     }
 
-    // 1단계: 사용자의 드래그/줌/블러가 반영된 캔버스 생성
+    // 1단계: 사용자의 이동/줌/블러가 반영된 기본 프레임 캔버스
     var baseCanvas = document.createElement('canvas');
     baseCanvas.width = alignCanvas.width; 
     baseCanvas.height = alignCanvas.height;
@@ -631,17 +629,33 @@ function exportAlignedTexture() {
       baseCanvas = symCanvas;
     }
 
-    // 2단계: 맞춤틀 전체 화면(정사각 비율)을 1000x1000 고해상도 규격으로 왜곡 없이 정비율 1:1 복사
+    // 2단계: 1000x1000 고해상도 규격에 나비틀 SVG(wingD) 클리핑 마스크 적용
     var finalCanvas = document.createElement('canvas');
     finalCanvas.width = 1000; 
     finalCanvas.height = 1000;
     var fctx = finalCanvas.getContext('2d');
 
+    var currentWing = butterflyPathData[selectedButterflyShape] || (typeof wingDataset !== 'undefined' ? wingDataset[0] : null);
+    var wingPathStr = currentWing ? (currentWing.wingD || currentWing.d) : null;
+
+    fctx.save();
+    // 🌟 나비틀 외곽선 Path2D 생성 후 클리핑 (나비틀 외부 검은 영역 원천 차단)
+    if (wingPathStr && typeof Path2D !== 'undefined') {
+      try {
+        var wingPath2D = new Path2D(wingPathStr);
+        fctx.clip(wingPath2D);
+      } catch(e) {
+        console.warn("SVG 클리핑 적용 예외:", e);
+      }
+    }
+
+    // 나비틀 내부 영역에 사용자가 맞춘 1:1 정비율 사진을 정확히 복사
     fctx.drawImage(
       baseCanvas, 
       0, 0, alignCanvas.width, alignCanvas.height, 
       0, 0, 1000, 1000
     );
+    fctx.restore();
 
     currentExtractedTexture = finalCanvas.toDataURL('image/png');
     window.currentExtractedTexture = currentExtractedTexture;
