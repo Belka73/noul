@@ -7,7 +7,7 @@
    - [대칭 분기 철저]: 
      * 대칭 On/Off는 사용자가 촬영/업로드한 사진 배경에만 적용
      * 3D 고유 패턴 png는 항상 온전한 규격 그대로 분리 적용
-   - [비동기 1:1 텍스처 보장]: 순수 사진 텍스처와 3D 패턴 경로 분리 전달
+   - [Overlap UV 1:1 정위치 추출]: 오른쪽 날개 기준 영역을 1000x1000 규격으로 정직하게 추출
    - [기능 보존 100%]: 핀치 줌, 드래그 이동, 블러 조절, 하단 캐러셀 전체 유지
    ========================================================================== */
 
@@ -531,7 +531,7 @@ function drawAlignCanvas() {
 
   if (currentBlurPx > 0) executeReliableFastBlur(tempCanvas, currentBlurPx * 0.9);
 
-  // 🌟 [대칭 토글 엄격 분기: 사용자 사진에만 적용]
+  // 🌟 [대칭 토글 엄격 분기: 2D 뷰어 상에서 사용자 사진 프리뷰용]
   if (!isSymmetryEnabled) {
     actx.drawImage(tempCanvas, 0, 0);
   } else {
@@ -592,8 +592,9 @@ if (interactiveFrame && alignCanvas) {
 }
 
 // --------------------------------------------------------------------------
-// 🌟 [수정]: 순수 사용자 사진 배경 텍스처 추출 및 3D 패턴 경로 분리
-// - 3D 패턴 PNG를 1000x1000에 늘려 굽지 않고 독립적인 경로로 Three.js에 전달
+// 🌟 [수정 완료]: Overlap UV 규격에 일치시킨 반쪽 날개 배경 텍스처 추출
+// - 3D 모델의 날개 UV(0~1) 및 반쪽 패턴 PNG와 1:1로 일치하도록
+//   맞춤틀의 오른쪽 날개 영역을 1000x1000 캔버스에 정확히 매핑하여 추출
 // --------------------------------------------------------------------------
 function exportAlignedTexture() {
   return new Promise(function(resolve) {
@@ -606,7 +607,7 @@ function exportAlignedTexture() {
       return;
     }
 
-    // 1단계: 사용자 사진 레이어 복제
+    // 1단계: 2D 조작(이동/확대/블러)이 반영된 프레임 생성
     var baseCanvas = document.createElement('canvas');
     baseCanvas.width = alignCanvas.width; 
     baseCanvas.height = alignCanvas.height;
@@ -630,16 +631,21 @@ function exportAlignedTexture() {
       baseCanvas = symCanvas;
     }
 
-    // 2단계: 표준 해상도(1000x1000) 캔버스에 순수 사용자 사진만 전개
+    // 2단계: 3D 모델의 오른쪽 날개 UV 영역(중앙 midX부터 끝까지)을 1000x1000 캔버스에 1:1 추출
     var outW = 1000, outH = 1000;
     var finalCanvas = document.createElement('canvas');
     finalCanvas.width = outW; 
     finalCanvas.height = outH;
     var fctx = finalCanvas.getContext('2d');
 
-    fctx.drawImage(baseCanvas, 0, 0, alignCanvas.width, alignCanvas.height, 0, 0, outW, outH);
+    var halfW = alignCanvas.width / 2;
+    // 중앙 기준선(midX)부터 오른쪽 끝 영역을 1000x1000 전체 UV 영역으로 정직하게 매핑
+    fctx.drawImage(
+      baseCanvas, 
+      halfW, 0, halfW, alignCanvas.height, 
+      0, 0, outW, outH
+    );
 
-    // 3D 패턴은 캔버스에 구워 넣지 않고 원본 파일 그대로 3D 엔진으로 전달
     currentExtractedTexture = finalCanvas.toDataURL('image/png');
     resolve(currentExtractedTexture);
   });
