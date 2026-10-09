@@ -5,9 +5,8 @@
      2) 2번 화면(3D 나비 프리뷰/비행): 3DButterfly_pattern/ 의 3D png 1:1 매칭 구움
    - [404/503 에러 방어]: 사전 로드 트래픽 분산 및 3D 패턴 파일명 정밀 매칭
    - [대칭 분기 철저]: 
-     * 대칭 On/Off는 사용자가 촬영/업로드한 사진 배경에만 적용
-     * 3D 고유 패턴 png는 항상 온전한 규격 그대로 분리 적용
-   - [Overlap UV 1:1 정위치 추출]: 오른쪽 날개 기준 영역을 1000x1000 규격으로 정직하게 추출
+     * 대칭 On/Off는 사용자가 직접 토글 버튼을 눌렀을 때만 적용
+   - [정비율 텍스처 추출]: 사용자가 맞춤틀에서 조정한 원본 구도와 정비율을 그대로 1000x1000으로 추출
    - [기능 보존 100%]: 핀치 줌, 드래그 이동, 블러 조절, 하단 캐러셀 전체 유지
    ========================================================================== */
 
@@ -39,10 +38,8 @@ var patternImageCache = {};
 function preloadAllPatternThumbnails() {
   if (typeof wingPatternDataset === 'undefined') return;
   
-  // 현재 선택된 형태의 무늬들을 우선 캐싱
   preloadPatternsForShape(selectedButterflyShape);
 
-  // 나머지 형태들은 지연 시간을 두고 순차적으로 가볍게 요청
   setTimeout(function() {
     Object.keys(wingPatternDataset).forEach(function(shapeKey) {
       if (shapeKey !== selectedButterflyShape) {
@@ -72,7 +69,6 @@ function preloadPatternImage(path) {
       patternImageCache[path] = img;
     };
     img.onerror = function() {
-      // 404 등 로드 실패 시 무한 재요청 방지
       patternImageCache[path] = null;
     };
     img.src = path;
@@ -83,11 +79,9 @@ function preloadPatternImage(path) {
 function get3DPatternPath(shape, patternId) {
   if (!patternId || patternId.indexOf('none') > -1) return null;
 
-  // patternId에서 끝자리 번호만 정확히 추출 (예: crescent_1 -> "1", moon_2 -> "2")
   var parts = patternId.split('_');
   var patNum = parts[parts.length - 1] || "1";
 
-  // 나비 모양별 3D 폴더 내 파일명 접두사 정규화 (실제 파일시스템 대조)
   var shapeFilePrefix = shape || 'crescent';
   if (shapeFilePrefix === 'moon-halo' || shapeFilePrefix === 'moon') shapeFilePrefix = 'moon-halo';
   else if (shapeFilePrefix === 'dawn-ray' || shapeFilePrefix === 'dawn') shapeFilePrefix = 'dawn-ray';
@@ -130,7 +124,6 @@ function updateHeroPreview() {
   var pat = getSelectedPatternObject();
 
   var patternSvgEl = "";
-  // 1번 화면(2D 미리보기)에서는 반드시 2D 패턴 png를 사용
   if (pat && pat.path) {
     preloadPatternImage(pat.path);
     preloadSingleWingPattern(selectedButterflyShape, selectedPatternId);
@@ -531,7 +524,7 @@ function drawAlignCanvas() {
 
   if (currentBlurPx > 0) executeReliableFastBlur(tempCanvas, currentBlurPx * 0.9);
 
-  // 🌟 [대칭 토글 엄격 분기: 2D 뷰어 상에서 사용자 사진 프리뷰용]
+  // 🌟 [대칭 토글 엄격 분기: 사용자가 대칭 버튼을 켰을 때만 대칭]
   if (!isSymmetryEnabled) {
     actx.drawImage(tempCanvas, 0, 0);
   } else {
@@ -592,13 +585,12 @@ if (interactiveFrame && alignCanvas) {
 }
 
 // --------------------------------------------------------------------------
-// 🌟 [수정 완료]: Overlap UV 규격에 일치시킨 반쪽 날개 배경 텍스처 추출
-// - 3D 모델의 날개 UV(0~1) 및 반쪽 패턴 PNG와 1:1로 일치하도록
-//   맞춤틀의 오른쪽 날개 영역을 1000x1000 캔버스에 정확히 매핑하여 추출
+// 🌟 [수정 완료]: 정비율 유지 및 대칭 옵션 엄격 준수 텍스처 추출
+// - 맞춤틀에서 맞춘 구도와 비율을 1000x1000 캔버스에 왜곡 없이 1:1 그대로 추출
+// - isSymmetryEnabled가 true일 때만 좌우 대칭 적용
 // --------------------------------------------------------------------------
 function exportAlignedTexture() {
   return new Promise(function(resolve) {
-    // 3D 패턴 전용 파일 경로를 전역에 기록
     currentSelected3DPatternPath = get3DPatternPath(selectedButterflyShape, selectedPatternId);
 
     if (!rawImage || !rawImage.width || !alignCanvas) {
@@ -607,7 +599,7 @@ function exportAlignedTexture() {
       return;
     }
 
-    // 1단계: 2D 조작(이동/확대/블러)이 반영된 프레임 생성
+    // 1단계: 사용자의 드래그/줌/블러가 반영된 캔버스 생성
     var baseCanvas = document.createElement('canvas');
     baseCanvas.width = alignCanvas.width; 
     baseCanvas.height = alignCanvas.height;
@@ -616,6 +608,7 @@ function exportAlignedTexture() {
 
     if (currentBlurPx > 0) executeReliableFastBlur(baseCanvas, currentBlurPx * 0.9);
 
+    // 사용자가 대칭 버튼을 켰을 때만 좌우 대칭 생성
     if (isSymmetryEnabled) {
       var midX = alignCanvas.width / 2;
       var symCanvas = document.createElement('canvas');
@@ -631,19 +624,16 @@ function exportAlignedTexture() {
       baseCanvas = symCanvas;
     }
 
-    // 2단계: 3D 모델의 오른쪽 날개 UV 영역(중앙 midX부터 끝까지)을 1000x1000 캔버스에 1:1 추출
-    var outW = 1000, outH = 1000;
+    // 2단계: 맞춤틀 전체 화면(정사각 비율)을 1000x1000 고해상도 규격으로 왜곡 없이 정비율 1:1 복사
     var finalCanvas = document.createElement('canvas');
-    finalCanvas.width = outW; 
-    finalCanvas.height = outH;
+    finalCanvas.width = 1000; 
+    finalCanvas.height = 1000;
     var fctx = finalCanvas.getContext('2d');
 
-    var halfW = alignCanvas.width / 2;
-    // 중앙 기준선(midX)부터 오른쪽 끝 영역을 1000x1000 전체 UV 영역으로 정직하게 매핑
     fctx.drawImage(
       baseCanvas, 
-      halfW, 0, halfW, alignCanvas.height, 
-      0, 0, outW, outH
+      0, 0, alignCanvas.width, alignCanvas.height, 
+      0, 0, 1000, 1000
     );
 
     currentExtractedTexture = finalCanvas.toDataURL('image/png');
