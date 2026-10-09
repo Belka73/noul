@@ -126,31 +126,36 @@ function stopLoading3DScene() {
 }
 
 // --------------------------------------------------------------------------
-// 🌟 [수정]: 한쪽 전용 3D 패턴 도안과 사진 텍스처를 1:1 정밀 결합 및 좌우 대칭 생성
+// 🌟 [수정]: 캔버스 레벨에서 왼쪽 날개를 물리적으로 scale(-1, 1) 반전하여 완벽한 거울 대칭 보장
 // --------------------------------------------------------------------------
 function createWingMaterials(textureURL, patternPath3D) {
   var patPath = patternPath3D || (typeof currentSelected3DPatternPath !== 'undefined' ? currentSelected3DPatternPath : null);
 
-  // 1. 단일 날개 전용 캔버스 생성 (1000x1000)
-  var wingCanvas = document.createElement('canvas');
-  wingCanvas.width = 1000;
-  wingCanvas.height = 1000;
-  var wctx = wingCanvas.getContext('2d');
+  // 1. 우측 날개 정방향 캔버스
+  var canvasR = document.createElement('canvas');
+  canvasR.width = 1000;
+  canvasR.height = 1000;
+  var ctxR = canvasR.getContext('2d');
 
-  // 2. Three.js 텍스처 생성
-  var texR = new THREE.CanvasTexture(wingCanvas);
+  // 2. 좌측 날개 전용 대칭(거울) 캔버스
+  var canvasL = document.createElement('canvas');
+  canvasL.width = 1000;
+  canvasL.height = 1000;
+  var ctxL = canvasL.getContext('2d');
+
+  // 3. 우측 날개용 Three.js 텍스처
+  var texR = new THREE.CanvasTexture(canvasR);
   texR.flipY = false;
   texR.wrapS = THREE.ClampToEdgeWrapping;
   texR.wrapT = THREE.ClampToEdgeWrapping;
   if (THREE.sRGBEncoding) texR.encoding = THREE.sRGBEncoding;
 
-  // 3. 반대쪽 날개용 텍스처 복제 및 대칭 반전
-  var texL = texR.clone();
-  texL.wrapS = THREE.RepeatWrapping;
+  // 4. 좌측 날개용 Three.js 텍스처 (독립 캔버스 기반)
+  var texL = new THREE.CanvasTexture(canvasL);
+  texL.flipY = false;
+  texL.wrapS = THREE.ClampToEdgeWrapping;
   texL.wrapT = THREE.ClampToEdgeWrapping;
-  texL.repeat.x = -1;
-  texL.offset.x = 1;
-  texL.needsUpdate = true;
+  if (THREE.sRGBEncoding) texL.encoding = THREE.sRGBEncoding;
 
   var matR = new THREE.MeshBasicMaterial({ 
     map: texR, 
@@ -166,28 +171,49 @@ function createWingMaterials(textureURL, patternPath3D) {
     alphaTest: 0.05 
   });
 
-  // 4. 배경 이미지와 패턴 이미지 비동기 합성
+  // 5. 배경 및 패턴 합성 함수 (우측은 정방향, 좌측은 scale(-1, 1) 거울상)
+  function renderBothWings(bgImg, patImg) {
+    // [우측 날개 렌더링: 정방향]
+    ctxR.clearRect(0, 0, 1000, 1000);
+    ctxR.drawImage(bgImg, 0, 0, 1000, 1000);
+    if (patImg) {
+      ctxR.save();
+      ctxR.globalCompositeOperation = 'multiply';
+      ctxR.globalAlpha = 0.95;
+      ctxR.drawImage(patImg, 0, 0, 1000, 1000);
+      ctxR.restore();
+    }
+
+    // [좌측 날개 렌더링: 완벽한 거울 대칭 반전]
+    ctxL.clearRect(0, 0, 1000, 1000);
+    ctxL.save();
+    ctxL.translate(1000, 0);
+    ctxL.scale(-1, 1);
+    ctxL.drawImage(bgImg, 0, 0, 1000, 1000);
+    if (patImg) {
+      ctxL.globalCompositeOperation = 'multiply';
+      ctxL.globalAlpha = 0.95;
+      ctxL.drawImage(patImg, 0, 0, 1000, 1000);
+    }
+    ctxL.restore();
+
+    texR.needsUpdate = true;
+    texL.needsUpdate = true;
+  }
+
+  // 6. 이미지 로드 및 렌더링 트리거
   var bgImg = new Image();
   bgImg.crossOrigin = "anonymous";
   bgImg.onload = function() {
-    wctx.drawImage(bgImg, 0, 0, 1000, 1000);
-
     if (patPath) {
       var patImg = new Image();
       patImg.crossOrigin = "anonymous";
       patImg.onload = function() {
-        wctx.save();
-        wctx.globalCompositeOperation = 'multiply';
-        wctx.globalAlpha = 0.95;
-        wctx.drawImage(patImg, 0, 0, 1000, 1000);
-        wctx.restore();
-        texR.needsUpdate = true;
-        texL.needsUpdate = true;
+        renderBothWings(bgImg, patImg);
       };
       patImg.src = patPath;
     } else {
-      texR.needsUpdate = true;
-      texL.needsUpdate = true;
+      renderBothWings(bgImg, null);
     }
   };
   bgImg.src = textureURL;
