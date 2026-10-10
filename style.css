@@ -15,6 +15,7 @@
    - [시스템 UI 제거]: 프리뷰 및 3D 상호작용 영역 파란색 화살표/하이라이트/선택 박스 완전 방지
    - [신규 추가]: 2번 사진 다음 페이지 - 가장 많이 고른 고민 탑7 물리 공 화면 레이아웃
    - [신규 추가]: 메뉴 내 정사각형 카드 및 2번/3번 레퍼런스 관람 안내 타임라인 스텝 UI
+   - [중앙 정렬 보정]: 관람 안내 원 속 숫자 광학적 수직/수평 정중앙 정렬 완벽 보정
    ========================================================================== */
 
 * {
@@ -286,7 +287,7 @@ html, body {
   position: relative;
 }
 
-/* 어두운 무채색 회색 원 & 흰색 숫자 */
+/* 🌟 어두운 무채색 회색 원 & 완벽한 정중앙 배치가 보정된 흰색 숫자 */
 .guide-step-circle {
   width: 32px;
   height: 32px;
@@ -294,16 +295,21 @@ html, body {
   background-color: #242426;
   border: 1px solid rgba(255, 255, 255, 0.14);
   color: #ffffff;
-  font-size: 14px;
+  font-size: 13.5px;
   font-weight: 700;
   display: flex;
   align-items: center;
   justify-content: center;
+  text-align: center;
+  line-height: 1 !important;
+  font-variant-numeric: tabular-nums;
+  padding: 0 !important;
+  margin: 0 !important;
   z-index: 2;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.5);
 }
 
-/* 단계 간 세로 연결선 (2번 사진 레퍼런스 스타일) */
+/* 단계 간 세로 연결선 */
 .guide-step-line {
   position: absolute;
   top: 36px;
@@ -379,7 +385,6 @@ html, body {
   transform: scale(0.96);
 }
 
-/* 버튼이 위로 부드럽게 올라오던 transition 제거 및 즉시 표시 설정 */
 .button-group-fade {
   display: none;
   opacity: 0;
@@ -644,7 +649,6 @@ html, body {
   transition: all 0.25s ease;
 }
 
-/* 패턴 썸네일 이미지 스타일 */
 .shape-thumb-btn img.pattern-thumb-img {
   width: 82%;
   height: 82%;
@@ -710,10 +714,9 @@ html, body {
 }
 
 /* ==========================================================================
-   🌟 1번 사진(고민이유) & 2번 사진(다정한한마디) 박스 완벽 수직 정렬
+   1번 사진(고민이유) & 2번 사진(다정한한마디) 박스 완벽 수직 정렬
    ========================================================================== */
 
-/* 상단 타이틀 영역 높이 일치 */
 .survey-title-box {
   min-height: 110px !important;
   display: flex;
@@ -725,7 +728,6 @@ html, body {
   z-index: 20;
 }
 
-/* 1번 화면: 핵심 고민 이유 중간 컨테이너 */
 #screen-survey-concern-reason .flex-1.w-full {
   display: flex !important;
   flex-direction: column !important;
@@ -736,7 +738,6 @@ html, body {
   transform: translateY(22px) !important;
 }
 
-/* 🌟 1번 화면: 선택된 키워드 (박스는 고정된 채 키워드만 더 위쪽으로 상향 이동) */
 .concern-reason-highlight-word {
   color: #ffffff !important;
   font-size: 1.35rem;
@@ -753,7 +754,6 @@ html, body {
   transform: translateY(-24px) !important;
 }
 
-/* 2번 화면: 다정한 한마디 중간 컨테이너 (1번 화면 박스와 Y축 완벽 일치) */
 #field-step-6 {
   flex: 1;
   width: 100%;
