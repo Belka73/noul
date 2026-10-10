@@ -18,6 +18,7 @@
    - [중앙 정렬 보정]: 관람 안내 원 속 숫자 광학적 수직/수평 정중앙 정렬 완벽 보정
    - [타임라인 연장]: 1단계 내용 길이에 맞춰 1번 원 세로선이 2단계 직전까지 유기적으로 연장되는 구조 반영
    - [디자인 개선]: 세로선 두께 축소(1px), 번호원과 본문 간격 확장, 7종 나비 좌측 정렬 보정
+   - [신규 반영]: 다정한 한마디 입력창 좌측 상단 말풍선 역삼각형 꼬리 추가
    ========================================================================== */
 
 * {
@@ -1037,6 +1038,7 @@ html, body {
 }
 
 .glass-input-card-v2 {
+  position: relative;
   background: rgba(255, 255, 255, 0.05);
   border: 1px solid rgba(255, 255, 255, 0.15);
   border-radius: 1.5rem;
@@ -1055,6 +1057,24 @@ html, body {
   color: #ffffff;
   font-size: 0.95rem;
   resize: none;
+}
+
+/* 🌟 [말풍선 꼬리]: 사각형 입력창 상단 모서리에 완벽 밀착하는 역삼각형 */
+.speech-bubble-tail {
+  position: absolute;
+  top: -9px;
+  left: 36px;
+  width: 16px;
+  height: 10px;
+  pointer-events: none;
+  z-index: 15;
+}
+
+.speech-bubble-tail svg {
+  width: 100%;
+  height: 100%;
+  display: block;
+  overflow: visible;
 }
 
 .vertical-scroll-chips {

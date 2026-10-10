@@ -20,6 +20,7 @@
          - 1위 외 나머지 공 색상을 사진 속 공(번아웃 무기력)과 동일한 진한 차콜 블랙(#1c1c1c)으로 통일
          - 찌그러짐 현상 원인 제거 및 하늘에서 우수수 떨어지는 진짜 중력 낙하/롤링 물리 연출 구현
      11) [신규 추가]: 관람 안내 화면(screen-guide) 네비게이션 바인딩 추가
+     12) [사이즈 개선]: 화면에 꽉 차도록 Top 7 물리 공 크기 및 스케일 대폭 확대
    ========================================================================== */
 
 // 🌟 [안전장치]: 전역 텍스처 변수 선언 보장 (ReferenceError 방지)
@@ -1095,6 +1096,7 @@ if (btnConcernReasonPrev) {
 
 // --------------------------------------------------------------------------
 // 가장 많이 고른 고민 키워드 Top 7 2D 물리 공 시뮬레이션
+// 🌟 화면이 꽉 차도록 전체 반지름 및 스케일 확대 보정 완료
 // --------------------------------------------------------------------------
 var top7Engine = null;
 var top7RenderLoop = null;
@@ -1104,13 +1106,13 @@ var top7GyroHandler = null;
 var top7SpawnTimeouts = [];
 
 var top7KeywordData = [
-  { rank: 1, keyword: "완벽주의 강박", percent: "28.4%", radius: 88, fill: "#f8f8f8", textColor: "#111111", subColor: "#555555" },
-  { rank: 2, keyword: "비교중독", percent: "19.2%", radius: 72, fill: "#1c1c1c", textColor: "#ffffff", subColor: "#a3a3a3" },
-  { rank: 3, keyword: "미래 막막함", percent: "16.5%", radius: 68, fill: "#1c1c1c", textColor: "#ffffff", subColor: "#a3a3a3" },
-  { rank: 4, keyword: "수면 부족", percent: "12.1%", radius: 58, fill: "#1c1c1c", textColor: "#ffffff", subColor: "#a3a3a3" },
-  { rank: 5, keyword: "텅 빈 잔고", percent: "9.8%", radius: 56, fill: "#1c1c1c", textColor: "#ffffff", subColor: "#a3a3a3" },
-  { rank: 6, keyword: "거절 공포", percent: "7.6%", radius: 55, fill: "#1c1c1c", textColor: "#ffffff", subColor: "#a3a3a3" },
-  { rank: 7, keyword: "번아웃 무기력", percent: "6.4%", radius: 54, fill: "#1c1c1c", textColor: "#ffffff", subColor: "#a3a3a3" }
+  { rank: 1, keyword: "완벽주의 강박", percent: "28.4%", radius: 135, fill: "#f8f8f8", textColor: "#111111", subColor: "#555555" },
+  { rank: 2, keyword: "비교중독", percent: "19.2%", radius: 110, fill: "#1c1c1c", textColor: "#ffffff", subColor: "#a3a3a3" },
+  { rank: 3, keyword: "미래 막막함", percent: "16.5%", radius: 104, fill: "#1c1c1c", textColor: "#ffffff", subColor: "#a3a3a3" },
+  { rank: 4, keyword: "수면 부족", percent: "12.1%", radius: 92, fill: "#1c1c1c", textColor: "#ffffff", subColor: "#a3a3a3" },
+  { rank: 5, keyword: "텅 빈 잔고", percent: "9.8%", radius: 88, fill: "#1c1c1c", textColor: "#ffffff", subColor: "#a3a3a3" },
+  { rank: 6, keyword: "거절 공포", percent: "7.6%", radius: 86, fill: "#1c1c1c", textColor: "#ffffff", subColor: "#a3a3a3" },
+  { rank: 7, keyword: "번아웃 무기력", percent: "6.4%", radius: 84, fill: "#1c1c1c", textColor: "#ffffff", subColor: "#a3a3a3" }
 ];
 
 function initTop7PhysicsScene() {
@@ -1159,7 +1161,8 @@ function initTop7PhysicsScene() {
   top7Balls = [];
   top7SpawnTimeouts = [];
 
-  var scaleRatio = Math.min(1.05, Math.max(0.85, width / 390));
+  // 화면 너비에 맞게 유동적으로 스케일 조정 (작은 화면에서도 꽉 차도록 하한선 0.92 유지)
+  var scaleRatio = Math.min(1.25, Math.max(0.92, width / 390));
 
   top7KeywordData.forEach(function(item, idx) {
     var timer = setTimeout(function() {
@@ -1260,8 +1263,8 @@ function initTop7PhysicsScene() {
 
       ctx.rotate(-angle);
 
-      var titleFontSize = Math.max(13, Math.min(17, data.radius * 0.28));
-      var percentFontSize = Math.max(11, Math.min(14, data.radius * 0.21));
+      var titleFontSize = Math.max(14, Math.min(20, data.radius * 0.26));
+      var percentFontSize = Math.max(12, Math.min(16, data.radius * 0.19));
 
       ctx.textAlign = "center";
       ctx.textBaseline = "middle";
