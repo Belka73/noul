@@ -8,7 +8,7 @@
    - [안전성 보강]: currentExtractedTexture 참조 에러(ReferenceError) 방지 처리
    - [수정 사항]: 
      1) 텍스트 브릿지 화면(screen-post-survey-intro) 제거 및 고민 선택 -> 핵심 고민 직결
-     2) 핵심 고민 질문 문구 '이 중, 가장 꺼내기 힘든 것은 무엇인가요?' 로 변경
+     2) 핵심 고민 질문 문구 '가장 꺼내기 힘든 것은 무엇인가요?' 로 변경 ('이 중,' 제거 완료)
      3) 핵심 고민 화면 하단 버튼 '다음 질문으로' -> '다음으로' 변경
      4) 오프닝 2단계 문장 위 사람(person) 이미지 노출 제어
      5) 오프닝 3단계 문장 위 고치(cocoon) 이미지 즉시 노출 제어 추가 (동일 크기/위치)
@@ -18,8 +18,9 @@
      9) 나비전환 브릿지 대사 상단 나비 이미지(butterfly_sit) 표시 연동
      10) 1위 외 나머지 공 색상 통일 및 하늘 낙하 물리 연출
      11) 관람 안내 화면(screen-guide) 네비게이션 바인딩 추가
-     12) Top 7 물리 공 크기 및 스케일 확대 보정
-     13) [신규 추가]: 1번 사진 이후 텍스트 브릿지(screen-top7-bridge) 추가 및 2번 사진 사용자 선택 키워드 연동
+     12) [사이즈 보정]: Top 7 물리 공 크기 재조정 (전체 축소 및 4~7위 대폭 축소)
+     13) 1번 사진 이후 텍스트 브릿지(screen-top7-bridge) 추가 및 2번 사진 사용자 선택 키워드 연동
+     14) [문구 줄바꿈]: 3번 사진 상단 대사 '다정한 한마디를' 2번째 줄로 줄바꿈 반영
    ========================================================================== */
 
 // 🌟 [안전장치]: 전역 텍스처 변수 선언 보장 (ReferenceError 방지)
@@ -601,7 +602,7 @@ if (btnOpeningNext) {
 }
 
 // --------------------------------------------------------------------------
-// 🌟 [신규 추가]: 1번 사진 직후 텍스트 브릿지 화면 로직 (screen-top7-bridge)
+// 1번 사진 직후 텍스트 브릿지 화면 로직 (screen-top7-bridge)
 // --------------------------------------------------------------------------
 function initTop7BridgeScreen() {
   clearTimeout(top7BridgeTypeTimer);
@@ -748,7 +749,8 @@ var surveyQuestions = [
       "월세·생활비 압박", "도파민 중독", "좁아진 시야", "낮은 자존감", "겉만 번지르르함", "감정 쓰레기통 역할", "무리한 부탁", "고립된 혼밥", "흐려진 목표", "그냥 온갖 귀찮음"
     ]
   },
-  { title: "나에게, 그리고 우리에게 건넬 다정한 한마디를 적어주세요.", desc: "" }
+  // 🌟 [3번 사진 수정]: '다정한 한마디를'이 두 번째 줄로 내려가도록 줄바꿈 반영
+  { title: "나에게, 그리고 우리에게 건넬<br>다정한 한마디를 적어주세요.", desc: "" }
 ];
 
 function buildAdaptiveVerticalRows(items) {
@@ -1061,7 +1063,7 @@ function initCoreConcernScreen() {
     };
   }
 
-  var tokens = "이 중, 가장 꺼내기 힘든 것은<br>무엇인가요?".match(/(<[^>]+>|[^<])/g) || [];
+  var tokens = "가장 꺼내기 힘든 것은<br>무엇인가요?".match(/(<[^>]+>|[^<])/g) || [];
   var idx = 0, curText = "";
   (function typeNextCoreChar() {
     if (idx < tokens.length) {
@@ -1085,7 +1087,7 @@ if (btnCoreConcernPrev) btnCoreConcernPrev.onclick = function() {
 };
 
 // --------------------------------------------------------------------------
-// 🌟 [1번 사진] 핵심 고민 이유 작성 화면 로직: 상단 타이틀 문구 반영
+// 1번 사진: 핵심 고민 이유 작성 화면 로직
 // --------------------------------------------------------------------------
 var elConcernReasonTitle = document.getElementById('concern-reason-title');
 var inputConcernReason = document.getElementById('input-concern-reason');
@@ -1135,7 +1137,8 @@ if (btnConcernReasonPrev) {
 }
 
 // --------------------------------------------------------------------------
-// 🌟 [2번 사진] 가장 많이 고른 고민 키워드 Top 7 2D 물리 공 시뮬레이션
+// 🌟 [2번 사진 수정]: 가장 많이 고른 고민 키워드 Top 7 2D 물리 공 시뮬레이션
+// 전체적으로 조금 줄이고, 4~7위 공은 더욱 작게 축소 반영
 // --------------------------------------------------------------------------
 var top7Engine = null;
 var top7RenderLoop = null;
@@ -1145,13 +1148,14 @@ var top7GyroHandler = null;
 var top7SpawnTimeouts = [];
 
 var top7KeywordData = [
-  { rank: 1, keyword: "완벽주의 강박", percent: "28.4%", radius: 135, fill: "#f8f8f8", textColor: "#111111", subColor: "#555555" },
-  { rank: 2, keyword: "비교중독", percent: "19.2%", radius: 110, fill: "#1c1c1c", textColor: "#ffffff", subColor: "#a3a3a3" },
-  { rank: 3, keyword: "미래 막막함", percent: "16.5%", radius: 104, fill: "#1c1c1c", textColor: "#ffffff", subColor: "#a3a3a3" },
-  { rank: 4, keyword: "수면 부족", percent: "12.1%", radius: 92, fill: "#1c1c1c", textColor: "#ffffff", subColor: "#a3a3a3" },
-  { rank: 5, keyword: "텅 빈 잔고", percent: "9.8%", radius: 88, fill: "#1c1c1c", textColor: "#ffffff", subColor: "#a3a3a3" },
-  { rank: 6, keyword: "거절 공포", percent: "7.6%", radius: 86, fill: "#1c1c1c", textColor: "#ffffff", subColor: "#a3a3a3" },
-  { rank: 7, keyword: "번아웃 무기력", percent: "6.4%", radius: 84, fill: "#1c1c1c", textColor: "#ffffff", subColor: "#a3a3a3" }
+  { rank: 1, keyword: "완벽주의 강박", percent: "28.4%", radius: 108, fill: "#f8f8f8", textColor: "#111111", subColor: "#555555" },
+  { rank: 2, keyword: "비교중독", percent: "19.2%", radius: 88, fill: "#1c1c1c", textColor: "#ffffff", subColor: "#a3a3a3" },
+  { rank: 3, keyword: "미래 막막함", percent: "16.5%", radius: 82, fill: "#1c1c1c", textColor: "#ffffff", subColor: "#a3a3a3" },
+  // 🌟 1,2,3위를 제외한 4~7위 원 크기 추가 축소 (기존 92~84 -> 66~58)
+  { rank: 4, keyword: "수면 부족", percent: "12.1%", radius: 66, fill: "#1c1c1c", textColor: "#ffffff", subColor: "#a3a3a3" },
+  { rank: 5, keyword: "텅 빈 잔고", percent: "9.8%", radius: 62, fill: "#1c1c1c", textColor: "#ffffff", subColor: "#a3a3a3" },
+  { rank: 6, keyword: "거절 공포", percent: "7.6%", radius: 60, fill: "#1c1c1c", textColor: "#ffffff", subColor: "#a3a3a3" },
+  { rank: 7, keyword: "번아웃 무기력", percent: "6.4%", radius: 58, fill: "#1c1c1c", textColor: "#ffffff", subColor: "#a3a3a3" }
 ];
 
 function updateTop7PickedSubtitle() {
@@ -1208,7 +1212,8 @@ function initTop7PhysicsScene() {
   top7Balls = [];
   top7SpawnTimeouts = [];
 
-  var scaleRatio = Math.min(1.25, Math.max(0.92, width / 390));
+  // 🌟 스케일 비율 조정: 너무 커져 화면을 넘치지 않도록 적정 비율 제한
+  var scaleRatio = Math.min(1.05, Math.max(0.85, width / 390));
 
   top7KeywordData.forEach(function(item, idx) {
     var timer = setTimeout(function() {
@@ -1309,8 +1314,9 @@ function initTop7PhysicsScene() {
 
       ctx.rotate(-angle);
 
-      var titleFontSize = Math.max(14, Math.min(20, data.radius * 0.26));
-      var percentFontSize = Math.max(12, Math.min(16, data.radius * 0.19));
+      // 크기 축소에 맞춘 가독성 폰트 크기 계산
+      var titleFontSize = Math.max(12, Math.min(18, data.radius * 0.28));
+      var percentFontSize = Math.max(10, Math.min(15, data.radius * 0.20));
 
       ctx.textAlign = "center";
       ctx.textBaseline = "middle";

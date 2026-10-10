@@ -10,7 +10,7 @@
      5) 더듬이, 몸통(흰색 재질), 비행, 기 모으기, 표본실 모달 등 기존 3D 기능 100% 보존
      6) [날개짓 개선]: 등장 시 빠른 날개짓 후 부드러운 감속 및 끊김 없는(Seamless) 대기 날개짓 연결
      7) [공유 화면 크기 조절]: screen-share 내 3D 나비 스케일 축소 (0.68 -> 0.48)
-     8) [로딩 화면 크기 조절]: screen-loading 내 3D 나비 스케일 축소 (0.95 -> 0.62)
+     8) [로딩 화면 크기 및 위치 조절]: 로딩 화면 3D 나비 크기 추가 축소 (0.62 -> 0.45) 및 오른쪽 이동 배치
    ========================================================================== */
 
 // --------------------------------------------------------------------------
@@ -91,7 +91,7 @@ function loadButterflyModel(group, shapeId, antId, wingMaterials, whiteMat, scal
 }
 
 // --------------------------------------------------------------------------
-// 🌟 로딩 화면용 3D 블러 나비 씬
+// 🌟 로딩 화면용 3D 블러 나비 씬 (크기 축소 & 오른쪽 배치 반영)
 // --------------------------------------------------------------------------
 var loadingScene, loadingCamera, loadingRenderer, loadingGroup, loadingWingL, loadingWingR;
 var loadingAnimFrameId = null;
@@ -105,10 +105,12 @@ function initLoading3DScene() {
   var whiteMat = new THREE.MeshStandardMaterial({ color: 0xffffff, side: THREE.DoubleSide, roughness: 0.35 });
   loadingGroup = new THREE.Group();
   loadingGroup.rotation.set(0.25, -0.8, 0.35);
-  loadingGroup.position.set(-0.28, -0.22, 0);
 
-  // 🌟 [수정 완료]: 로딩 화면 나비 크기 축소 (0.95 -> 0.62)
-  loadButterflyModel(loadingGroup, selectedButterflyShape, selectedAntennaType, { matL: whiteMat, matR: whiteMat }, whiteMat, 0.62, function(l, r) {
+  // 🌟 [수정 완료]: 위치를 오른쪽으로 이동 (-0.28 -> 0.28)
+  loadingGroup.position.set(0.28, -0.22, 0);
+
+  // 🌟 [수정 완료]: 로딩 화면 나비 크기 추가 축소 (0.62 -> 0.45)
+  loadButterflyModel(loadingGroup, selectedButterflyShape, selectedAntennaType, { matL: whiteMat, matR: whiteMat }, whiteMat, 0.45, function(l, r) {
     loadingWingL = l; loadingWingR = r;
   });
   loadingScene.add(loadingGroup);
@@ -121,6 +123,8 @@ function initLoading3DScene() {
       loadingWingL.rotation.y = (loadingWingL.userData.baseRotY || 0) + flap; 
       loadingWingR.rotation.y = (loadingWingR.userData.baseRotY || 0) - flap; 
     }
+    // 🌟 오른쪽 위치 유지하면서 은은한 부유 애니메이션
+    loadingGroup.position.x = 0.28;
     loadingGroup.position.y = -0.22 + Math.sin(t * 2.2) * 0.08;
     loadingGroup.rotation.z = 0.35 + Math.sin(t * 1.5) * 0.04;
     loadingRenderer.render(loadingScene, loadingCamera);
@@ -223,7 +227,6 @@ function initShare3DScene() {
   shareGroup.rotation.set(0.25, -0.8, 0.35);
   shareGroup.position.set(0, 0.45, 0);
 
-  // 🌟 [수정 완료]: 나비 크기를 좀 더 축소 (0.68 -> 0.48)
   loadButterflyModel(shareGroup, selectedButterflyShape, selectedAntennaType, wingMats, whiteMat, 0.48, function(l, r) {
     shareWingL = l; shareWingR = r;
   });
@@ -353,7 +356,6 @@ function initFullButterflyViewer(textureURL) {
   (function animate() {
     animFrameId = requestAnimationFrame(animate);
     var dt = clock.getDelta();
-    // 비정상적인 큰 프레임 드롭 방지 (최대 0.1초 클램프)
     if (dt > 0.1) dt = 0.1;
 
     var now = performance.now(), elapsedSec = (now - previewStartTime) / 1000;
@@ -377,25 +379,21 @@ function initFullButterflyViewer(textureURL) {
     }
 
     if (!isFlyingAway) {
-      // 🌟 등장 및 날개짓 속도 유기적 제어
-      var currentSpeed = 4.8;  // 대기 시 편안한 날개짓 속도
-      var currentAmp = 0.26;   // 대기 시 날개짓 진폭
+      var currentSpeed = 4.8;
+      var currentAmp = 0.26;
 
       if (elapsedSec < 3.0) {
         var progress = Math.min(1.0, elapsedSec / 3.0);
         var easeOut = 1.0 - Math.pow(1.0 - progress, 3);
         
-        // 상승 이동 (부드러운 easeOut)
         fullGroup.position.y = -6.5 * (1.0 - easeOut);
         
-        // 0.0 ~ 1.5초: 빠르고 힘찬 날개짓 유지
-        // 1.5 ~ 3.0초: 서서히 속도와 진폭을 줄여 대기 모드로 안착
         if (elapsedSec < 1.5) {
           currentSpeed = 17.5;
           currentAmp = 0.52;
         } else {
-          var slowFactor = (elapsedSec - 1.5) / 1.5; // 0.0 -> 1.0
-          var slowEase = 1.0 - Math.cos((slowFactor * Math.PI) / 2); // 부드러운 감속 곡선
+          var slowFactor = (elapsedSec - 1.5) / 1.5;
+          var slowEase = 1.0 - Math.cos((slowFactor * Math.PI) / 2);
           currentSpeed = 17.5 - (17.5 - 4.8) * slowEase;
           currentAmp = 0.52 - (0.52 - 0.26) * slowEase;
         }
@@ -405,7 +403,6 @@ function initFullButterflyViewer(textureURL) {
         currentAmp = 0.26;
       }
 
-      // 위상을 연속적으로 누적하여 주파수/속도가 바뀌어도 각도가 끊기지 않고 100% 매끄럽게 연결
       flapPhase += dt * currentSpeed;
       var flapAngle = Math.sin(flapPhase) * currentAmp;
 
@@ -414,7 +411,6 @@ function initFullButterflyViewer(textureURL) {
         rightWingMesh.rotation.set(initialRotR.x, initialRotR.y - flapAngle, initialRotR.z);
       }
     } else {
-      // 위로 날아갈 때의 비행 날개짓
       flapPhase += dt * 26.0;
       var flyAngle = Math.sin(flapPhase) * 0.72;
       if (leftWingMesh && rightWingMesh) {
