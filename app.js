@@ -16,7 +16,7 @@
      7) 오프닝 3단계 대사: '이야기를' -> '고치를' 로 문구 수정
      8) 나비전환 브릿지 대사: '당신에 대해 잘 알게 됐어요.<br>이제 그 마음을 나비로 만들어볼게요.' 로 수정
      9) 나비전환 브릿지 대사 상단 나비 이미지(butterfly_sit) 표시 연동
-     10) [신규 추가]: 2번 사진 다음 페이지 - 가장 많이 고른 고민 키워드 탑7 Matter.js 2D 물리 공 시뮬레이션
+     10) [수정 반영]: 탑 고민 물리 공 - 크기 대폭 확대, 3개 추가(총 10개), 겹침 및 화면 이탈 완벽 방지, 명도/색상 규칙 엄격 반영
    ========================================================================== */
 
 // 🌟 [안전장치]: 전역 텍스처 변수 선언 보장 (ReferenceError 방지)
@@ -1089,23 +1089,29 @@ if (btnConcernReasonPrev) {
 }
 
 // --------------------------------------------------------------------------
-// 🌟 [신규 기능]: 가장 많이 고른 고민 키워드 Top 7 2D 물리 공 시뮬레이션
+// 🌟 [신규 기능]: 가장 많이 고른 고민 키워드 Top 10 2D 물리 공 시뮬레이션
 // --------------------------------------------------------------------------
 var top7Engine = null;
-var top7Runner = null;
 var top7RenderLoop = null;
 var top7Balls = [];
 var top7Boundaries = [];
 var top7GyroHandler = null;
 
+// 🌟 [요청 반영 데이터셋]:
+// 1) 공 3개 추가 (총 10개)
+// 2) 원 크기 대폭 확대 (78px, 66px, 64px, 50~54px)
+// 3) 1위 가장 밝음, 2/3위 더 어둡게, 4~10위는 확실하게 더 어두운 회색 적용
 var top7KeywordData = [
-  { rank: 1, keyword: "완벽주의 강박", percent: "28.4%", radius: 58, fill: "#f0f0f0", textColor: "#111111", subColor: "#444444" },
-  { rank: 2, keyword: "비교중독", percent: "19.2%", radius: 48, fill: "#b8b8b8", textColor: "#111111", subColor: "#333333" },
-  { rank: 3, keyword: "미래 막막함", percent: "16.5%", radius: 46, fill: "#a0a0a0", textColor: "#111111", subColor: "#222222" },
-  { rank: 4, keyword: "수면 부족", percent: "12.1%", radius: 38, fill: "#6a6a6a", textColor: "#ffffff", subColor: "#d1d1d1" },
-  { rank: 5, keyword: "텅 빈 잔고", percent: "9.8%", radius: 37, fill: "#545454", textColor: "#ffffff", subColor: "#c2c2c2" },
-  { rank: 6, keyword: "거절 공포", percent: "7.6%", radius: 35, fill: "#444444", textColor: "#ffffff", subColor: "#bbbbbb" },
-  { rank: 7, keyword: "번아웃 무기력", percent: "6.4%", radius: 34, fill: "#363636", textColor: "#ffffff", subColor: "#aaaaaa" }
+  { rank: 1, keyword: "완벽주의 강박", percent: "28.4%", radius: 78, fill: "#f5f5f5", textColor: "#111111", subColor: "#444444" },
+  { rank: 2, keyword: "비교중독", percent: "19.2%", radius: 66, fill: "#828282", textColor: "#ffffff", subColor: "#d6d6d6" },
+  { rank: 3, keyword: "미래 막막함", percent: "16.5%", radius: 64, fill: "#727272", textColor: "#ffffff", subColor: "#c8c8c8" },
+  { rank: 4, keyword: "수면 부족", percent: "12.1%", radius: 54, fill: "#303030", textColor: "#ffffff", subColor: "#a8a8a8" },
+  { rank: 5, keyword: "텅 빈 잔고", percent: "9.8%", radius: 52, fill: "#2a2a2a", textColor: "#ffffff", subColor: "#a0a0a0" },
+  { rank: 6, keyword: "거절 공포", percent: "7.6%", radius: 50, fill: "#242424", textColor: "#ffffff", subColor: "#989898" },
+  { rank: 7, keyword: "번아웃 무기력", percent: "6.4%", radius: 49, fill: "#202020", textColor: "#ffffff", subColor: "#909090" },
+  { rank: 8, keyword: "관계의 피로", percent: "5.2%", radius: 48, fill: "#1c1c1c", textColor: "#ffffff", subColor: "#888888" },
+  { rank: 9, keyword: "조급한 마음", percent: "4.1%", radius: 47, fill: "#181818", textColor: "#ffffff", subColor: "#808080" },
+  { rank: 10, keyword: "자기 비하", percent: "3.5%", radius: 46, fill: "#141414", textColor: "#ffffff", subColor: "#787878" }
 ];
 
 function initTop7PhysicsScene() {
@@ -1116,6 +1122,7 @@ function initTop7PhysicsScene() {
 
   var rect = container.getBoundingClientRect();
   var width = rect.width || window.innerWidth;
+  // 하단 버튼 바깥으로 절대 빠져나가지 못하도록 컨테이너 내부 정확한 높이 반영
   var height = rect.height || (window.innerHeight - 240);
 
   canvas.width = width;
@@ -1128,36 +1135,47 @@ function initTop7PhysicsScene() {
       Mouse = Matter.Mouse,
       MouseConstraint = Matter.MouseConstraint;
 
+  // 🌟 [겹침 완벽 방지]: positionIterations / velocityIterations를 14로 대폭 상향
   top7Engine = Engine.create({
-    gravity: { x: 0, y: 1.1, scale: 0.001 }
+    positionIterations: 14,
+    velocityIterations: 14,
+    gravity: { x: 0, y: 1.25, scale: 0.001 }
   });
 
-  // 🌟 화면 프레임 바깥으로 삐져나가지 않도록 완벽히 가두는 경계벽 4면 생성
-  var wallThick = 80;
-  var floor = Bodies.rectangle(width / 2, height + wallThick / 2, width * 2, wallThick, { isStatic: true, restitution: 0.4, friction: 0.1 });
-  var leftWall = Bodies.rectangle(-wallThick / 2, height / 2, wallThick, height * 2, { isStatic: true, restitution: 0.4, friction: 0.1 });
-  var rightWall = Bodies.rectangle(width + wallThick / 2, height / 2, wallThick, height * 2, { isStatic: true, restitution: 0.4, friction: 0.1 });
-  var ceiling = Bodies.rectangle(width / 2, -wallThick / 2 - 200, width * 2, wallThick, { isStatic: true });
+  // 🌟 [화면 밖 이탈 절대 방지]: 두께 300px의 강력한 물리 방어벽 배치 (터널링 100% 방지)
+  var wallThick = 300;
+  var floor = Bodies.rectangle(width / 2, height + wallThick / 2, width * 3, wallThick, { 
+    isStatic: true, restitution: 0.25, friction: 0.2 
+  });
+  var leftWall = Bodies.rectangle(-wallThick / 2, height / 2, wallThick, height * 3, { 
+    isStatic: true, restitution: 0.25, friction: 0.2 
+  });
+  var rightWall = Bodies.rectangle(width + wallThick / 2, height / 2, wallThick, height * 3, { 
+    isStatic: true, restitution: 0.25, friction: 0.2 
+  });
+  var ceiling = Bodies.rectangle(width / 2, -wallThick / 2 - 1200, width * 3, wallThick, { 
+    isStatic: true 
+  });
 
   top7Boundaries = [floor, leftWall, rightWall, ceiling];
   Composite.add(top7Engine.world, top7Boundaries);
 
-  // 🌟 공 7개 생성: 화면 상단 위에서부터 우수수수 떨어지는 등장 연출 (시차 부여)
+  // 🌟 공 10개 생성: 화면 상단 위에서부터 우수수수 떨어지는 등장 연출 (더 커진 크기 반영)
   top7Balls = [];
   top7KeywordData.forEach(function(item, idx) {
-    // 뷰포트 폭에 맞춰 유기적 크기 보정 (기준폭 390px)
-    var scaleRatio = Math.min(1.15, Math.max(0.85, width / 390));
+    // 뷰포트 비율에 맞추어 유기적으로 크기 계산 (기본 아이폰 기준)
+    var scaleRatio = Math.min(1.1, Math.max(0.85, width / 390));
     var actualRadius = item.radius * scaleRatio;
 
-    // 상단 화면 위에서 x축 분산 및 y축 높이차를 두어 우수수수 떨어지도록 배치
-    var spawnX = (width * 0.2) + (Math.random() * (width * 0.6));
-    var spawnY = -actualRadius - (idx * 50) - Math.random() * 80;
+    // 상단 위에서 x축 분산 및 y축 높이차를 두어 공들이 겹치지 않고 우수수 떨어지도록 스폰
+    var spawnX = (actualRadius + 15) + (Math.random() * (width - (actualRadius * 2) - 30));
+    var spawnY = -actualRadius - (idx * 85) - (Math.random() * 40);
 
     var ballBody = Bodies.circle(spawnX, spawnY, actualRadius, {
-      restitution: 0.58, // 통통 튀는 탄성
-      friction: 0.08,    // 구르기 쉽도록 낮은 마찰력
-      frictionAir: 0.012,
-      density: 0.002
+      restitution: 0.35,  // 통통 튀되 서로 겹치지 않게 충격 흡수
+      friction: 0.15,     // 부드럽게 구르도록 설정
+      frictionAir: 0.015, // 적절한 공기 저항
+      density: 0.003
     });
 
     ballBody.customData = {
@@ -1180,7 +1198,7 @@ function initTop7PhysicsScene() {
   var mouseConstraint = MouseConstraint.create(top7Engine, {
     mouse: mouse,
     constraint: {
-      stiffness: 0.25,
+      stiffness: 0.2,
       render: { visible: false }
     }
   });
@@ -1192,12 +1210,12 @@ function initTop7PhysicsScene() {
     var gamma = e.gamma || 0; // 좌우 기울기 (-90 ~ 90)
     var beta = e.beta || 0;   // 앞뒤 기울기 (-180 ~ 180)
 
-    var gravityX = Math.max(-1.8, Math.min(1.8, (gamma / 45) * 1.3));
-    var gravityY = Math.max(-1.8, Math.min(1.8, (beta / 45) * 1.3));
+    var gravityX = Math.max(-2.0, Math.min(2.0, (gamma / 45) * 1.5));
+    var gravityY = Math.max(-2.0, Math.min(2.0, (beta / 45) * 1.5));
 
-    // 기기가 거의 평평하거나 너무 극단적일 때 기본 하강 중력 보정
-    if (Math.abs(gravityX) < 0.05 && Math.abs(gravityY) < 0.05) {
-      gravityY = 1.1;
+    // 기기가 거의 평평할 때 기본 아래쪽 중력 적용
+    if (Math.abs(gravityX) < 0.08 && Math.abs(gravityY) < 0.08) {
+      gravityY = 1.25;
     }
 
     top7Engine.gravity.x = gravityX;
@@ -1215,39 +1233,48 @@ function initTop7PhysicsScene() {
 
     ctx.clearRect(0, 0, width, height);
 
-    // 공 7개 그리기
+    // 공 10개 그리기
     top7Balls.forEach(function(ball) {
       var pos = ball.position;
       var angle = ball.angle;
       var data = ball.customData;
 
+      // [이중 안전장치]: 물리 엔진 외에 렌더링 단계에서도 화면 프레임 경계 내로 강제 보정
+      if (pos.x < data.radius) { Matter.Body.setPosition(ball, { x: data.radius, y: pos.y }); }
+      if (pos.x > width - data.radius) { Matter.Body.setPosition(ball, { x: width - data.radius, y: pos.y }); }
+      if (pos.y > height - data.radius) { Matter.Body.setPosition(ball, { x: pos.x, y: height - data.radius }); }
+
       ctx.save();
       ctx.translate(pos.x, pos.y);
       ctx.rotate(angle);
 
-      // 1. 공 원형 본체 (무채색 그라데이션 및 2D 섀도우)
+      // 1. 공 원형 본체
       ctx.beginPath();
       ctx.arc(0, 0, data.radius, 0, Math.PI * 2);
       ctx.fillStyle = data.fill;
       ctx.fill();
 
-      // 1위 공에만 은은한 입체 테두리 추가
+      // 외곽 테두리 (1위는 은은한 밝은 테두리, 나머지는 세련된 미세 테두리)
       if (data.rank === 1) {
-        ctx.lineWidth = 1.5;
-        ctx.strokeStyle = "rgba(255, 255, 255, 0.6)";
+        ctx.lineWidth = 2.0;
+        ctx.strokeStyle = "rgba(255, 255, 255, 0.85)";
+        ctx.stroke();
+      } else if (data.rank <= 3) {
+        ctx.lineWidth = 1.2;
+        ctx.strokeStyle = "rgba(255, 255, 255, 0.25)";
         ctx.stroke();
       } else {
         ctx.lineWidth = 1.0;
-        ctx.strokeStyle = "rgba(255, 255, 255, 0.15)";
+        ctx.strokeStyle = "rgba(255, 255, 255, 0.12)";
         ctx.stroke();
       }
 
       // 2. 글씨는 회전하지 않고 똑바로 보이도록 역회전 보정
       ctx.rotate(-angle);
 
-      // 키워드 텍스트 크기 계산
-      var titleFontSize = Math.max(10, Math.min(14, data.radius * 0.3));
-      var percentFontSize = Math.max(9, Math.min(12, data.radius * 0.23));
+      // 키워드 및 퍼센트 텍스트 크기 계산 (더 커진 원에 맞추어 확대)
+      var titleFontSize = Math.max(12, Math.min(16, data.radius * 0.28));
+      var percentFontSize = Math.max(10, Math.min(14, data.radius * 0.21));
 
       ctx.textAlign = "center";
       ctx.textBaseline = "middle";
@@ -1258,7 +1285,7 @@ function initTop7PhysicsScene() {
       ctx.fillText(data.keyword, 0, -percentFontSize * 0.65);
 
       // 하단: 퍼센트
-      ctx.font = "500 " + percentFontSize + "px -apple-system, Pretendard, sans-serif";
+      ctx.font = "600 " + percentFontSize + "px -apple-system, Pretendard, sans-serif";
       ctx.fillStyle = data.subColor;
       ctx.fillText(data.percent, 0, percentFontSize * 0.85);
 
