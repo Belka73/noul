@@ -201,21 +201,28 @@
 
     <!-- 0.8 오프닝 화면 -->
     <section id="screen-opening" class="screen flex-col flex-1 justify-between py-6 px-4 text-center relative z-20 w-full bg-black overflow-hidden">
-      <div class="opening-stage">
-        <!-- 1번 사진 페이지 상단 고치 png 이미지 배치: image 폴더 경로 지정 -->
-        <div id="opening-cocoon-group" class="hidden flex items-center justify-center w-full">
-          <img id="opening-cocoon-img" 
-               src="image/cocoon.png" 
-               onerror="if(!this.dataset.retry){this.dataset.retry='1';this.src='image/coccon.png';}" 
-               alt="고치" 
-               class="max-w-none select-none pointer-events-none" />
+      <div class="opening-stage flex-1 flex flex-col justify-center items-center gap-6 px-4">
+        
+        <!-- 중앙 메인 묶음: 문장 바로 위에 고치 이미지 배치 -->
+        <div class="flex flex-col items-center justify-center w-full max-w-[360px] mx-auto">
+          <!-- 1번 사진 페이지 상단 고치 png 이미지 (정확한 비율 및 높이 지정) -->
+          <div id="opening-cocoon-group" class="hidden flex items-center justify-center w-full mb-5">
+            <img id="opening-cocoon-img" 
+                 src="image/cocoon.png" 
+                 onerror="if(!this.dataset.retry){this.dataset.retry='1';this.src='image/coccon.png';}" 
+                 alt="고치" 
+                 style="height: 140px; width: auto; object-fit: contain;"
+                 class="select-none pointer-events-none block" />
+          </div>
+
+          <!-- 오프닝 대사 텍스트 박스 -->
+          <div class="opening-text-box w-full text-center">
+            <h2 id="opening-text" class="text-base sm:text-[1.08rem] font-medium text-white tracking-tight leading-relaxed break-keep"></h2>
+          </div>
         </div>
 
-        <div class="opening-text-box">
-          <h2 id="opening-text" class="text-base sm:text-[1.08rem] font-medium text-white tracking-tight leading-relaxed"></h2>
-        </div>
-
-        <div class="opening-button-anchor">
+        <!-- 하단 버튼 앵커 -->
+        <div class="opening-button-anchor w-full flex justify-center">
           <div id="opening-choice-group" class="button-group-fade hidden flex items-center justify-center gap-3">
             <button id="btn-opening-yes" type="button" class="opening-pill-btn">예</button>
             <button id="btn-opening-no" type="button" class="opening-pill-btn">아니오</button>
@@ -227,6 +234,7 @@
             </button>
           </div>
         </div>
+
       </div>
       <div class="pb-3"></div>
     </section>
