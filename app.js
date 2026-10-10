@@ -28,6 +28,7 @@
      19) [요청 수정 1]: 핵심 고민 안내 가이드 '(단일선택) [좌우 스크롤]' 등장 연동
      20) [요청 수정 2]: 로딩 화면 프로그레스바 시간 30초 -> 10초로 단축
      21) [요청 수정 3]: 프리뷰 하단 안내 라벨 문구 수정
+     22) [요청 수정 4]: 흰색 화면 전환 후 나비가 늦게 날아오르도록 시네마틱 타이밍 분리
    ========================================================================== */
 
 // 🌟 [안전장치]: 전역 텍스처 변수 선언 보장 (ReferenceError 방지)
@@ -182,7 +183,10 @@ function updateDevScreenBadge() {
 }
 
 // --------------------------------------------------------------------------
-// 🌟 [2번 사진 수정]: 로딩 진행바 시퀀스 (30초 -> 10초로 정확히 단축)
+// 🌟 [2번 사진 & 나비 등장 타이밍 지연 수정]: 로딩 진행바 시퀀스
+//  - 10초 동안 프로그레스바 증가
+//  - 흰색 화면으로 꽉 찬 뒤 프리뷰 페이지로 먼저 전환
+//  - 흰색이 걷히기 시작할 때 나비가 날아오르도록 실행 지연
 // --------------------------------------------------------------------------
 function startAnswerShowcaseSequence() {
   if (showcaseInterval) { clearInterval(showcaseInterval); showcaseInterval = null; }
@@ -203,6 +207,8 @@ function startAnswerShowcaseSequence() {
       setTimeout(function() {
         var whiteFlash = document.getElementById('cinematic-white-flash');
         if (whiteFlash) whiteFlash.classList.add('flash-active');
+        
+        // 1. 흰색이 화면에 꽉 찬 상태에서 프리뷰 UI 준비 및 화면 전환
         setTimeout(function() {
           stopLoading3DScene();
           var butterflyName = userSelections.q7_name ? userSelections.q7_name.trim() : "나비";
@@ -215,16 +221,21 @@ function startAnswerShowcaseSequence() {
               ? userSelections.q6_memo.trim() : "너의 찬란한 날갯짓을 응원해.";
           }
           
-          // 3번 사진 안내 문구 확실히 적용
           var flyLabel = document.getElementById('preview-fly-label');
           if (flyLabel) {
             flyLabel.innerHTML = "화면 아무 곳을<br>2초간 길게 눌러 기를 모아주세요.";
           }
 
-          var currentTex = window.currentExtractedTexture || currentExtractedTexture || createFallbackDummyTexture();
-          initFullButterflyViewer(currentTex);
+          // 화면을 먼저 preview로 전환 (아직 흰색 플래시가 덮여 있음)
           showScreen('screen-preview');
-          setTimeout(function() { if (whiteFlash) whiteFlash.classList.remove('flash-active'); }, 1200);
+
+          // 2. 화면 전환 완료 후, 흰색 빛이 서서히 걷히면서 나비가 날아오르기 시작하도록 연출 지연
+          setTimeout(function() {
+            var currentTex = window.currentExtractedTexture || currentExtractedTexture || createFallbackDummyTexture();
+            initFullButterflyViewer(currentTex);
+            if (whiteFlash) whiteFlash.classList.remove('flash-active');
+          }, 350);
+
         }, 1400);
       }, 1000);
     }
