@@ -205,12 +205,12 @@
         
         <!-- 중앙 메인 묶음: 문장 위 빨간 동그라미 위치 및 크기로 정밀 맞춤 -->
         <div class="flex flex-col items-center justify-center w-full max-w-[360px] mx-auto">
-          <!-- 1번 사진 페이지 상단 고치 png 이미지: 높이 38px로 축소하고 mb-8 및 음수 마진으로 빨간 원 위치까지 상향 조정 -->
+          <!-- 1번 사진 페이지 상단 고치/사람 png 이미지 (파일명 person.png 반영, 폴더 image/ 기준) -->
           <div id="opening-cocoon-group" class="hidden flex items-center justify-center w-full mb-8 -mt-6 pointer-events-none">
             <img id="opening-cocoon-img" 
-                 src="image/cocoon.png" 
-                 onerror="if(!this.dataset.retry){this.dataset.retry='1';this.src='image/coccon.png';}" 
-                 alt="고치" 
+                 src="image/person.png" 
+                 onerror="if(!this.dataset.retry1){this.dataset.retry1='1';this.src='image/person.jpg';}else if(!this.dataset.retry2){this.dataset.retry2='1';this.src='person.png';}else if(!this.dataset.retry3){this.dataset.retry3='1';this.src='person.jpg';}" 
+                 alt="인물" 
                  style="height: 38px; width: auto; max-width: 65px; object-fit: contain;"
                  class="select-none pointer-events-none block" />
           </div>
