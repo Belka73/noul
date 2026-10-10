@@ -16,7 +16,7 @@
    - [신규 추가]: 2번 사진 다음 페이지 - 가장 많이 고른 고민 탑7 물리 공 화면 레이아웃
    - [신규 추가]: 메뉴 내 정사각형 카드 및 2번/3번 레퍼런스 관람 안내 타임라인 스텝 UI
    - [중앙 정렬 보정]: 관람 안내 원 속 숫자 광학적 수직/수평 정중앙 정렬 완벽 보정
-   - [타임라인 고정]: 좌측 타임라인(1,2,3,4 및 연결선) 고정 & 우측 컨텐츠 단독 스크롤 구조 반영
+   - [타임라인 연장]: 1단계 내용 길이에 맞춰 1번 원 세로선이 2단계 직전까지 유기적으로 연장되는 구조 반영
    ========================================================================== */
 
 * {
@@ -262,32 +262,37 @@ html, body {
 }
 
 /* ==========================================================================
-   관람 안내 화면 (screen-guide) 고정 타임라인 및 독립 스크롤 스타일
+   관람 안내 화면 (screen-guide) 타임라인 스텝 스타일
    ========================================================================== */
 #screen-guide {
   background-color: #000000;
 }
 
-/* 좌측 고정 타임라인 축 */
-.guide-fixed-track {
+.guide-timeline-container {
+  position: relative;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+/* 각 단계 묶음 (컨텐츠 길이에 맞춰 부모 높이가 유동적으로 결정됨) */
+.guide-step-item {
+  display: flex;
+  position: relative;
+  width: 100%;
+}
+
+/* 좌측 축 (원형 번호 + 세로 연결선) */
+.guide-step-left {
   display: flex;
   flex-direction: column;
   align-items: center;
-  width: 36px;
+  width: 38px;
   flex-shrink: 0;
   position: relative;
-  z-index: 10;
 }
 
-/* 고정 타임라인 세로선 */
-.guide-fixed-line {
-  flex: 1;
-  width: 1.5px;
-  background-color: rgba(255, 255, 255, 0.16);
-  margin: 6px 0;
-}
-
-/* 어두운 무채색 회색 원 & 정중앙 배치 숫자 */
+/* 🌟 단계 번호 원: 어두운 무채색 회색 배경 + 정중앙 흰색 숫자 */
 .guide-step-circle {
   width: 32px;
   height: 32px;
@@ -310,18 +315,24 @@ html, body {
   flex-shrink: 0;
 }
 
-/* 우측 단독 스크롤 컨텐츠 */
-.guide-scrollable-content {
-  flex: 1;
-  min-width: 0;
-  height: 100%;
+/* 🌟 세로선: 우측 내용이 길어져도 다음 단계 바로 직전까지 자동으로 연장되는 절대 좌표 연결선 */
+.guide-step-line {
+  position: absolute;
+  top: 36px;
+  bottom: 0px;
+  width: 1.5px;
+  background-color: rgba(255, 255, 255, 0.16);
+  z-index: 1;
 }
 
-.guide-content-section {
+/* 우측 내용 영역 */
+.guide-step-right {
+  flex: 1;
+  min-width: 0;
+  padding-left: 14px;
   display: flex;
   flex-direction: column;
   justify-content: flex-start;
-  width: 100%;
 }
 
 .guide-step-title {
@@ -341,41 +352,6 @@ html, body {
   line-height: 1.6;
   letter-spacing: -0.2px;
   word-break: keep-all;
-}
-
-/* 기본 호환용 클래스 */
-.guide-timeline-container {
-  position: relative;
-  width: 100%;
-}
-.guide-step-item {
-  display: flex;
-  position: relative;
-  min-height: 94px;
-}
-.guide-step-left {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  width: 38px;
-  flex-shrink: 0;
-  position: relative;
-}
-.guide-step-line {
-  position: absolute;
-  top: 36px;
-  bottom: 0px;
-  width: 1.5px;
-  background-color: rgba(255, 255, 255, 0.16);
-  z-index: 1;
-}
-.guide-step-right {
-  flex: 1;
-  padding-left: 14px;
-  padding-bottom: 30px;
-  display: flex;
-  flex-direction: column;
-  justify-content: flex-start;
 }
 
 /* 오프닝 & 브릿지 화면 */
