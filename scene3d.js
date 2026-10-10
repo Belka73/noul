@@ -9,6 +9,7 @@
      4) 사용자가 대칭 버튼을 켰을 때만 대칭 반영 (미선택 시 원본 사진 비대칭 유지)
      5) 더듬이, 몸통(흰색 재질), 비행, 기 모으기, 표본실 모달 등 기존 3D 기능 100% 보존
      6) [날개짓 개선]: 등장 시 빠른 날개짓 후 부드러운 감속 및 끊김 없는(Seamless) 대기 날개짓 연결
+     7) [공유 화면 크기 조절]: screen-share 내 3D 나비 스케일 축소 (0.68 -> 0.48)
    ========================================================================== */
 
 // --------------------------------------------------------------------------
@@ -220,7 +221,8 @@ function initShare3DScene() {
   shareGroup.rotation.set(0.25, -0.8, 0.35);
   shareGroup.position.set(0, 0.45, 0);
 
-  loadButterflyModel(shareGroup, selectedButterflyShape, selectedAntennaType, wingMats, whiteMat, 0.68, function(l, r) {
+  // 🌟 [수정 완료]: 나비 크기를 좀 더 축소 (0.68 -> 0.48)
+  loadButterflyModel(shareGroup, selectedButterflyShape, selectedAntennaType, wingMats, whiteMat, 0.48, function(l, r) {
     shareWingL = l; shareWingR = r;
   });
   shareScene.add(shareGroup);
