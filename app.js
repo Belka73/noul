@@ -10,6 +10,7 @@
      1) 텍스트 브릿지 화면(screen-post-survey-intro) 제거 및 고민 선택 -> 핵심 고민 직결
      2) 핵심 고민 질문 문구 '이 중, 가장 꺼내기 힘든 것은 무엇인가요?' 로 변경
      3) 핵심 고민 화면 하단 버튼 '다음 질문으로' -> '다음으로' 변경
+     4) 오프닝 2단계 문장 위 고치 png 이미지 즉시 노출 제어 추가
    ========================================================================== */
 
 // 🌟 [안전장치]: 전역 텍스처 변수 선언 보장 (ReferenceError 방지)
@@ -283,6 +284,8 @@ document.addEventListener('click', function(e) {
     if (curId === 'screen-opening') {
       if (openingCurrentStep === 1) {
         openingCurrentStep = 2;
+        // 2단계 진입 즉시 고치 png 표시
+        if (elOpeningCocoonGroup) { elOpeningCocoonGroup.classList.remove('hidden'); }
         if (elOpeningNextGroup) { elOpeningNextGroup.classList.remove('visible'); elOpeningNextGroup.classList.add('hidden'); }
         typeWriterText(elOpeningText, "꺼내어 보이지 못한 채,<br>응어리진 무언가... 쉽게 털어놓지 못할 것도 있겠지요.", function() {
           if (btnOpeningNext) btnOpeningNext.innerHTML = "다음";
@@ -291,6 +294,8 @@ document.addEventListener('click', function(e) {
         updateDevScreenBadge(); return;
       } else if (openingCurrentStep === 2) {
         openingCurrentStep = 3;
+        // 3단계에서는 고치 숨김
+        if (elOpeningCocoonGroup) { elOpeningCocoonGroup.classList.add('hidden'); }
         if (elOpeningNextGroup) { elOpeningNextGroup.classList.remove('visible'); elOpeningNextGroup.classList.add('hidden'); }
         typeWriterText(elOpeningText, "오늘 이곳에서,<br>당신의 마음 깊은 곳에 묻어둔 이야기를<br>조심스레 꺼내어보려 합니다.", function() {
           if (btnOpeningNext) btnOpeningNext.innerHTML = "다음";
@@ -373,12 +378,16 @@ document.addEventListener('click', function(e) {
     if (curId === 'screen-opening') {
       if (openingCurrentStep === 3) {
         openingCurrentStep = 2;
+        // 2단계로 되돌아올 때 즉시 고치 표시
+        if (elOpeningCocoonGroup) { elOpeningCocoonGroup.classList.remove('hidden'); }
         typeWriterText(elOpeningText, "꺼내어 보이지 못한 채,<br>응어리진 무언가... 쉽게 털어놓지 못할 것도 있겠지요.", function() {
           if (btnOpeningNext) btnOpeningNext.innerHTML = "다음";
         });
         updateDevScreenBadge(); return;
       } else if (openingCurrentStep === 2) {
         openingCurrentStep = 1;
+        // 1단계로 되돌아올 때는 고치 숨김
+        if (elOpeningCocoonGroup) { elOpeningCocoonGroup.classList.add('hidden'); }
         typeWriterText(elOpeningText, "안녕하세요?<br>지금, 걱정 없는 삶을 살아가고 있나요?", function() {
           if (btnOpeningNext) btnOpeningNext.innerHTML = "다음";
         });
@@ -390,6 +399,7 @@ document.addEventListener('click', function(e) {
       else if (currentStepIdx === 1) { currentStepIdx = 0; renderSurveyStep(); return; }
       else if (currentStepIdx === 0) {
         showScreen('screen-opening'); openingCurrentStep = 3;
+        if (elOpeningCocoonGroup) { elOpeningCocoonGroup.classList.add('hidden'); }
         typeWriterText(elOpeningText, "오늘 이곳에서,<br>당신의 마음 깊은 곳에 묻어둔 이야기를<br>조심스레 꺼내어보려 합니다.", function() {
           if (btnOpeningNext) btnOpeningNext.innerHTML = "다음";
           if (elOpeningNextGroup) { elOpeningNextGroup.classList.remove('hidden'); elOpeningNextGroup.classList.add('visible'); }
@@ -462,6 +472,7 @@ var elOpeningText = document.getElementById('opening-text');
 var elOpeningChoiceGroup = document.getElementById('opening-choice-group');
 var elOpeningNextGroup = document.getElementById('opening-next-group');
 var btnOpeningNext = document.getElementById('btn-opening-next');
+var elOpeningCocoonGroup = document.getElementById('opening-cocoon-group');
 
 function typeWriterText(targetElement, textWithHtml, onComplete) {
   clearTimeout(typeTimer);
@@ -490,6 +501,7 @@ function typeWriterText(targetElement, textWithHtml, onComplete) {
 function resetOpeningFlow() {
   clearTimeout(typeTimer); clearTimeout(openingDelayTimer);
   openingCurrentStep = 1;
+  if (elOpeningCocoonGroup) { elOpeningCocoonGroup.classList.add('hidden'); }
   if (elOpeningText) elOpeningText.innerHTML = "";
   if (elOpeningChoiceGroup) { elOpeningChoiceGroup.classList.remove('visible'); elOpeningChoiceGroup.classList.add('hidden'); }
   if (elOpeningNextGroup) { elOpeningNextGroup.classList.add('hidden'); elOpeningNextGroup.classList.remove('visible'); }
@@ -506,6 +518,8 @@ if (btnOpeningNext) {
   btnOpeningNext.onclick = function() {
     if (openingCurrentStep === 1) {
       openingCurrentStep = 2;
+      // 🌟 [요청사항]: 2단계 진입 즉시 고치 png 표시
+      if (elOpeningCocoonGroup) { elOpeningCocoonGroup.classList.remove('hidden'); }
       if (elOpeningNextGroup) { elOpeningNextGroup.classList.remove('visible'); elOpeningNextGroup.classList.add('hidden'); }
       typeWriterText(elOpeningText, "꺼내어 보이지 못한 채,<br>응어리진 무언가... 쉽게 털어놓지 못할 것도 있겠지요.", function() {
         btnOpeningNext.innerHTML = "다음";
@@ -514,6 +528,8 @@ if (btnOpeningNext) {
       updateDevScreenBadge();
     } else if (openingCurrentStep === 2) {
       openingCurrentStep = 3;
+      // 🌟 3단계에서는 고치 숨김
+      if (elOpeningCocoonGroup) { elOpeningCocoonGroup.classList.add('hidden'); }
       if (elOpeningNextGroup) { elOpeningNextGroup.classList.remove('visible'); elOpeningNextGroup.classList.add('hidden'); }
       typeWriterText(elOpeningText, "오늘 이곳에서,<br>당신의 마음 깊은 곳에 묻어둔 이야기를<br>조심스레 꺼내어보려 합니다.", function() {
         btnOpeningNext.innerHTML = "다음";
@@ -903,7 +919,6 @@ function initCoreConcernScreen() {
   }
   if (!userSelections.core_concern && selectedItems.length > 0) userSelections.core_concern = selectedItems[0];
   
-  // 🌟 [3번 사진 수정]: 버튼 텍스트를 '다음으로'로 보장
   if (btnCoreConcernNext) {
     btnCoreConcernNext.innerText = "다음으로";
     btnCoreConcernNext.disabled = !userSelections.core_concern;
@@ -956,7 +971,6 @@ function initCoreConcernScreen() {
     };
   }
 
-  // 🌟 [요청 문구 변경]: '이 중, 가장 꺼내기 힘든 것은 무엇인가요?'
   var tokens = "이 중, 가장 꺼내기 힘든 것은<br>무엇인가요?".match(/(<[^>]+>|[^<])/g) || [];
   var idx = 0, curText = "";
   (function typeNextCoreChar() {
@@ -975,7 +989,6 @@ function initCoreConcernScreen() {
 }
 
 if (btnCoreConcernNext) btnCoreConcernNext.onclick = function() { if (userSelections.core_concern) showScreen('screen-survey-concern-reason'); };
-// 🌟 [이전 복귀 직결]: 핵심 고민 화면에서 이전 버튼을 누르면 설문 2단계(고민 다중 선택)로 바로 복귀
 if (btnCoreConcernPrev) btnCoreConcernPrev.onclick = function() { 
   currentStepIdx = 1;
   showScreen('screen-survey'); 
