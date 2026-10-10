@@ -10,7 +10,7 @@
    - [추가 5번] 작성 박스 중앙 배치 및 키워드 알약틀 제거 & 흰색 글로우 단독 표시
    - [추가 6번] 날개 무늬(패턴) 캐러셀 썸네일 & 탭 스타일 확장
    - [수정 사항]: 텍스트 화면 하단 다음 버튼의 부드럽게 위로 올라오는 효과 제거 (즉시 표시)
-   - [핵심 수정]: 1번 사진(고민 이유)과 2번 사진(다정한 한마디)의 네모 박스 위치를 1:1 절대 동기화 (오차 0px)
+   - [정상 복구 및 정밀 일치]: 1번 사진 박스 위치 기준 2번 사진 박스 위치 겹침 없이 1:1 완벽 정렬
    ========================================================================== */
 
 * {
@@ -610,48 +610,68 @@ html, body {
 }
 
 /* ==========================================================================
-   🌟 [핵심 동기화]: 1번 사진(고민이유)과 2번 사진(다정한한마디) 박스 완벽 일치화
-   - 두 화면의 중간 컨테이너를 absolute 기반으로 동일한 top 위치에 고정하여 오차를 완전히 제거
+   🌟 1번 사진(고민이유) & 2번 사진(다정한한마디) 박스 완벽 수직 정렬
+   - absolute를 제거하여 타이틀 글자와 겹치지 않게 자연스러운 flex 흐름 유지
+   - 1번 사진의 박스 수직 위치를 기준으로 2번 사진 박스를 오차 없이 일치
    ========================================================================== */
 
-/* 2번 화면: 다정한 한마디 컨테이너 */
-#field-step-6 {
-  position: absolute !important;
-  top: 135px !important;
-  bottom: 120px !important;
-  left: 0 !important;
-  right: 0 !important;
-  width: 100% !important;
+/* 상단 타이틀 영역 높이 일치 */
+.survey-title-box {
+  min-height: 110px !important;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  align-items: center;
+  flex-shrink: 0;
+  position: relative;
+  z-index: 20;
+}
+
+/* 1번 화면: 핵심 고민 이유 중간 컨테이너 */
+#screen-survey-concern-reason .flex-1.w-full {
   display: flex !important;
   flex-direction: column !important;
   align-items: center !important;
   justify-content: center !important;
   padding: 0 16px !important;
   min-height: 0 !important;
-  z-index: 10 !important;
-  overflow: hidden !important;
+  transform: translateY(22px) !important;
+}
+
+/* 1번 화면: 선택된 키워드 (위쪽으로 충분히 띄움) */
+.concern-reason-highlight-word {
+  color: #ffffff !important;
+  font-size: 1.35rem;
+  font-weight: 800;
+  letter-spacing: -0.3px;
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  text-shadow: 0 0 16px rgba(255, 255, 255, 0.9), 0 0 28px rgba(255, 255, 255, 0.55);
+  display: block;
+  text-align: center;
+  margin-top: 0 !important;
+  margin-bottom: 22px !important;
   transform: none !important;
+}
+
+/* 2번 화면: 다정한 한마디 중간 컨테이너 (1번 화면 박스와 Y축 완벽 일치) */
+#field-step-6 {
+  flex: 1;
+  width: 100%;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 0 16px;
+  min-height: 0;
+  z-index: 10;
+  overflow: hidden;
+  transform: translateY(22px) !important;
 }
 #field-step-6.hidden {
   display: none !important;
-}
-
-/* 1번 화면: 핵심 고민 이유 컨테이너 */
-#screen-survey-concern-reason .flex-1.w-full {
-  position: absolute !important;
-  top: 135px !important;
-  bottom: 120px !important;
-  left: 0 !important;
-  right: 0 !important;
-  width: 100% !important;
-  display: flex !important;
-  flex-direction: column !important;
-  align-items: center !important;
-  justify-content: center !important;
-  padding: 0 16px !important;
-  min-height: 0 !important;
-  margin: 0 !important;
-  transform: none !important;
 }
 
 .bubble-physics-bg-layer {
@@ -835,21 +855,6 @@ html, body {
   text-shadow: 0 0 16px rgba(255, 255, 255, 0.85), 0 0 32px rgba(255, 255, 255, 0.45);
 }
 
-/* 🌟 선택된 키워드: 박스 위치에 영향을 주지 않고 상단으로 자연스럽게 부유 */
-.concern-reason-highlight-word {
-  color: #ffffff !important;
-  font-size: 1.35rem;
-  font-weight: 800;
-  letter-spacing: -0.3px;
-  background: transparent !important;
-  border: none !important;
-  box-shadow: none !important;
-  text-shadow: 0 0 16px rgba(255, 255, 255, 0.9), 0 0 28px rgba(255, 255, 255, 0.55);
-  display: block;
-  text-align: center;
-  margin-bottom: 24px !important;
-}
-
 #survey-custom-input-anchor.custom-anchor-hidden {
   display: none !important;
 }
@@ -932,15 +937,6 @@ html, body {
 }
 .vertical-scroll-chips::-webkit-scrollbar {
   display: none;
-}
-
-.survey-title-box {
-  min-height: 120px;
-  display: flex;
-  flex-direction: column;
-  justify-content: flex-start;
-  align-items: center;
-  flex-shrink: 0;
 }
 
 .btn-next-action {
