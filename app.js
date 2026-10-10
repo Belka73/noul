@@ -15,6 +15,7 @@
      6) [DEV] 이전/다음 건너뛰기 프리징 및 타이머 충돌 버그 완벽 수정
      7) 오프닝 3단계 대사: '이야기를' -> '고치를' 로 문구 수정
      8) 나비전환 브릿지 대사: '당신에 대해 잘 알게 됐어요.<br>이제 그 마음을 나비로 만들어볼게요.' 로 수정
+     9) 나비전환 브릿지 대사 상단 나비 이미지(butterfly_sit) 표시 연동
    ========================================================================== */
 
 // 🌟 [안전장치]: 전역 텍스처 변수 선언 보장 (ReferenceError 방지)
@@ -360,7 +361,8 @@ document.addEventListener('click', function(e) {
       var nameHeader = document.getElementById('preview-butterfly-name');
       if (nameHeader) nameHeader.innerText = '‘' + butterflyName + '’';
       var guideText = document.getElementById('preview-guide-text');
-      if (guideText) guideText.innerText = userSelections.q6_memo && userSelections.q6_memo.trim().length > 0 ? userSelections.q6_memo.trim() : "너의 찬란한 날갯짓을 응원해.";
+      if (guideText) guideText.innerText = userSelections.q6_memo && userSelections.q6_memo.trim().length > 0 
+        ? userSelections.q6_memo.trim() : "너의 찬란한 날갯짓을 응원해.";
       var currentTex = window.currentExtractedTexture || currentExtractedTexture || createFallbackDummyTexture();
       initFullButterflyViewer(currentTex);
       showScreen('screen-preview'); 
@@ -582,13 +584,20 @@ function initPostConcernBridgeScreen() {
   var textEl = document.getElementById('post-concern-bridge-text');
   var nextGroup = document.getElementById('post-concern-bridge-next-group');
   var btnNext = document.getElementById('btn-post-concern-bridge-next');
+  var butterflyImgGroup = document.getElementById('post-concern-butterfly-group');
 
   if (!textEl || !nextGroup) return;
   textEl.innerHTML = "";
   nextGroup.classList.add('hidden');
   nextGroup.classList.remove('visible');
 
-  // 🌟 [문구 수정 완료]: 요청하신 문구로 줄바꿈(<br>) 적용하여 타이핑
+  // 나비 이미지 상시 표시 보장
+  if (butterflyImgGroup) {
+    butterflyImgGroup.classList.remove('hidden');
+    butterflyImgGroup.style.display = 'flex';
+  }
+
+  // 🌟 [문구 줄바꿈(<br>) 적용 타이핑]
   typeWriterText(textEl, "당신에 대해 잘 알게 됐어요.<br>이제 그 마음을 나비로 만들어볼게요.", function() {
     if (btnNext) btnNext.innerHTML = "다음";
     nextGroup.classList.remove('hidden');

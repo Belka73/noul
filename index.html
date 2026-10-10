@@ -386,14 +386,29 @@
       </footer>
     </section>
 
-    <!-- 1번 사진 직후 글만 나오는 브릿지 화면 -->
+    <!-- 1번 사진 직후 글만 나오는 브릿지 화면 (2번 사진과 동일한 크기/위치로 3번 나비 사진 추가) -->
     <section id="screen-post-concern-bridge" class="screen flex-col flex-1 justify-between py-6 px-4 text-center relative z-20 w-full bg-black overflow-hidden select-none">
-      <div class="opening-stage">
-        <div class="opening-text-box">
-          <h2 id="post-concern-bridge-text" class="text-base sm:text-[1.08rem] font-medium text-white tracking-tight leading-relaxed"></h2>
+      <div class="opening-stage flex-1 flex flex-col justify-center items-center gap-6 px-4">
+        
+        <!-- 중앙 메인 묶음: 2번 사진과 동일한 구조, 크기, 위치 -->
+        <div class="flex flex-col items-center justify-center w-full max-w-[360px] mx-auto">
+          
+          <!-- 3번 나비 사진 (image/butterfly_sit.jpg) -->
+          <div id="post-concern-butterfly-group" class="flex items-center justify-center w-full mb-8 -mt-6 pointer-events-none">
+            <img id="post-concern-butterfly-img" 
+                 src="image/butterfly_sit.jpg" 
+                 onerror="if(!this.dataset.retry1){this.dataset.retry1='1';this.src='image/butterfly_sit.png';}else if(!this.dataset.retry2){this.dataset.retry2='1';this.src='butterfly_sit.jpg';}else if(!this.dataset.retry3){this.dataset.retry3='1';this.src='butterfly_sit.png';}" 
+                 alt="나비" 
+                 style="height: 38px; width: auto; max-width: 65px; object-fit: contain;"
+                 class="select-none pointer-events-none block" />
+          </div>
+
+          <div class="opening-text-box w-full text-center">
+            <h2 id="post-concern-bridge-text" class="text-base sm:text-[1.08rem] font-medium text-white tracking-tight leading-relaxed break-keep"></h2>
+          </div>
         </div>
 
-        <div class="opening-button-anchor">
+        <div class="opening-button-anchor w-full flex justify-center">
           <div id="post-concern-bridge-next-group" class="button-group-fade hidden">
             <button id="btn-post-concern-bridge-next" type="button" class="opening-action-btn">
               다음
