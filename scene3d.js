@@ -8,6 +8,7 @@
      3) 셰이더 내부에서 사진(투영)과 패턴(고유 UV)의 좌표계를 완전히 분리하여 Multiply 합성
      4) 사용자가 대칭 버튼을 켰을 때만 대칭 반영 (미선택 시 원본 사진 비대칭 유지)
      5) 더듬이, 몸통(흰색 재질), 비행, 기 모으기, 표본실 모달 등 기존 3D 기능 100% 보존
+     6) [날개짓 개선]: 등장 시 빠른 날개짓 후 부드러운 감속 및 끊김 없는(Seamless) 대기 날개짓 연결
    ========================================================================== */
 
 // --------------------------------------------------------------------------
@@ -342,9 +343,16 @@ function initFullButterflyViewer(textureURL) {
   initEnergyParticleSystem();
   var clock = new THREE.Clock();
 
+  // 🌟 [핵심 개선]: 속도 변경 시에도 날개짓 각도가 절대 끊기지 않는 누적 위상 변수
+  var flapPhase = 0;
+
   (function animate() {
     animFrameId = requestAnimationFrame(animate);
-    var time = clock.getElapsedTime(), now = performance.now(), elapsedSec = (now - previewStartTime) / 1000;
+    var dt = clock.getDelta();
+    // 비정상적인 큰 프레임 드롭 방지 (최대 0.1초 클램프)
+    if (dt > 0.1) dt = 0.1;
+
+    var now = performance.now(), elapsedSec = (now - previewStartTime) / 1000;
 
     if (!isUserDragging) {
       butterflyRotX += (DEFAULT_ROT_X - butterflyRotX) * 0.05;
@@ -365,27 +373,46 @@ function initFullButterflyViewer(textureURL) {
     }
 
     if (!isFlyingAway) {
+      // 🌟 등장 및 날개짓 속도 유기적 제어
+      var currentSpeed = 4.8;  // 대기 시 편안한 날개짓 속도
+      var currentAmp = 0.26;   // 대기 시 날개짓 진폭
+
       if (elapsedSec < 3.0) {
         var progress = Math.min(1.0, elapsedSec / 3.0);
         var easeOut = 1.0 - Math.pow(1.0 - progress, 3);
         
+        // 상승 이동 (부드러운 easeOut)
         fullGroup.position.y = -6.5 * (1.0 - easeOut);
         
-        var flapIntro = Math.sin(time * 8.0) * (0.35 * (1.0 - easeOut * 0.2));
-        if (leftWingMesh && rightWingMesh) {
-          leftWingMesh.rotation.set(initialRotL.x, initialRotL.y + flapIntro, initialRotL.z);
-          rightWingMesh.rotation.set(initialRotR.x, initialRotR.y - flapIntro, initialRotR.z);
+        // 0.0 ~ 1.5초: 빠르고 힘찬 날개짓 유지
+        // 1.5 ~ 3.0초: 서서히 속도와 진폭을 줄여 대기 모드로 안착
+        if (elapsedSec < 1.5) {
+          currentSpeed = 17.5;
+          currentAmp = 0.52;
+        } else {
+          var slowFactor = (elapsedSec - 1.5) / 1.5; // 0.0 -> 1.0
+          var slowEase = 1.0 - Math.cos((slowFactor * Math.PI) / 2); // 부드러운 감속 곡선
+          currentSpeed = 17.5 - (17.5 - 4.8) * slowEase;
+          currentAmp = 0.52 - (0.52 - 0.26) * slowEase;
         }
       } else {
         fullGroup.position.y = 0;
-        var flapIdle = Math.sin(time * 5.0) * 0.28;
-        if (leftWingMesh && rightWingMesh) {
-          leftWingMesh.rotation.set(initialRotL.x, initialRotL.y + flapIdle, initialRotL.z);
-          rightWingMesh.rotation.set(initialRotR.x, initialRotR.y - flapIdle, initialRotR.z);
-        }
+        currentSpeed = 4.8;
+        currentAmp = 0.26;
+      }
+
+      // 위상을 연속적으로 누적하여 주파수/속도가 바뀌어도 각도가 끊기지 않고 100% 매끄럽게 연결
+      flapPhase += dt * currentSpeed;
+      var flapAngle = Math.sin(flapPhase) * currentAmp;
+
+      if (leftWingMesh && rightWingMesh) {
+        leftWingMesh.rotation.set(initialRotL.x, initialRotL.y + flapAngle, initialRotL.z);
+        rightWingMesh.rotation.set(initialRotR.x, initialRotR.y - flapAngle, initialRotR.z);
       }
     } else {
-      var flyAngle = Math.sin(time * 24.0) * 0.7;
+      // 위로 날아갈 때의 비행 날개짓
+      flapPhase += dt * 26.0;
+      var flyAngle = Math.sin(flapPhase) * 0.72;
       if (leftWingMesh && rightWingMesh) {
         leftWingMesh.rotation.set(initialRotL.x, initialRotL.y + flyAngle, initialRotL.z);
         rightWingMesh.rotation.set(initialRotR.x, initialRotR.y - flyAngle, initialRotR.z);
