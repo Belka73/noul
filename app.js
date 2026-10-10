@@ -23,6 +23,8 @@
      14) [문구 줄바꿈]: 3번 사진 상단 대사 '다정한 한마디를' 2번째 줄로 줄바꿈 반영
      15) [신규 기능]: 'D' 키 단축키로 DEV 컨트롤러 온/오프 토글 및 미입력 시 DEV 건너뛰기 테스트 데이터 자동 채우기 연동
      16) [유효성 검사 강화]: 일반 사용자 모드 자동 기본값 채우기 전면 제거 및 페이지별 조건 만족 시에만 다음 버튼 활성화
+     17) [신규 수정]: 핵심 고민에서 뒤로 돌아갈 때 사용자가 직접 입력한 키워드 완전 삭제 및 초기화
+     18) [물리 개선]: Top 7 공 시뮬레이션 상단 천장 제한 및 정상 기립 시 빠른 낙하 가속도 보정
    ========================================================================== */
 
 // 🌟 [안전장치]: 전역 텍스처 변수 선언 보장 (ReferenceError 방지)
@@ -476,6 +478,12 @@ document.addEventListener('click', function(e) {
         return;
       }
     } else if (curId === 'screen-survey-core-concern') { 
+      // 🌟 [개선 1]: 사용자가 직접 입력한 키워드 완전 초기화
+      if (userSelections.q2_custom) {
+        var customIdx = userSelections.q2.indexOf(userSelections.q2_custom);
+        if (customIdx > -1) userSelections.q2.splice(customIdx, 1);
+        userSelections.q2_custom = "";
+      }
       currentStepIdx = 1;
       showScreen('screen-survey'); 
       return; 
@@ -771,7 +779,6 @@ var surveyQuestions = [
       "월세·생활비 압박", "도파민 중독", "좁아진 시야", "낮은 자존감", "겉만 번지르르함", "감정 쓰레기통 역할", "무리한 부탁", "고립된 혼밥", "흐려진 목표", "그냥 온갖 귀찮음"
     ]
   },
-  // 🌟 [3번 사진 수정]: '다정한 한마디를'이 두 번째 줄로 내려가도록 줄바꿈 반영
   { title: "나에게, 그리고 우리에게 건넬<br>다정한 한마디를 적어주세요.", desc: "" }
 ];
 
@@ -941,7 +948,6 @@ if (btnCustomKeywordClear) {
   };
 }
 
-// 🌟 [유효성 검사 강화]: 1/2/3단계 모두 조건 충족 시에만 다음 버튼 활성화
 function validateSurveyStep() {
   if (!btnSurveyNext) return;
   var isValid = false;
@@ -950,7 +956,6 @@ function validateSurveyStep() {
   } else if (currentStepIdx === 1) {
     isValid = (userSelections.q2 && userSelections.q2.length > 0) || (userSelections.q2_custom && userSelections.q2_custom.trim().length > 0);
   } else if (currentStepIdx === 2) {
-    // 🌟 3단계 다정한 한마디: 공백 제외 1글자 이상 작성 필수
     isValid = !!(userSelections.q6_memo && userSelections.q6_memo.trim().length > 0);
   }
   btnSurveyNext.disabled = !isValid;
@@ -983,7 +988,6 @@ if (btnSurveyNext) {
         var c = userSelections.q2_custom.trim();
         if (userSelections.q2.indexOf(c) === -1) userSelections.q2.unshift(c);
       }
-      // 🌟 [자동 채우기 제거]: 사용자가 선택한 목록 그대로 넘김
       showScreen('screen-survey-core-concern');
     } else if (currentStepIdx === 2) {
       showScreen('screen-post-concern-bridge');
@@ -1028,19 +1032,16 @@ function initCoreConcernScreen() {
   if (elCoreConcernTitle) elCoreConcernTitle.innerHTML = "";
   if (elCoreConcernContainer) elCoreConcernContainer.classList.remove('revealed');
 
-  // 🌟 [자동 채우기 제거]: 사용자가 이전 단계에서 실제로 선택한 항목만 가져옴
   var selectedItems = [].concat(userSelections.q2 || []);
   if (userSelections.q2_custom && userSelections.q2_custom.trim()) {
     var cCustom = userSelections.q2_custom.trim();
     if (selectedItems.indexOf(cCustom) === -1) selectedItems.unshift(cCustom);
   }
 
-  // 이전에 고른 게 기존 목록에 없다면 초기화
   if (selectedItems.indexOf(userSelections.core_concern) === -1) {
     userSelections.core_concern = "";
   }
   
-  // 🌟 [유효성 검사]: 사용자가 실제로 누르기 전까지는 비활성화 유지
   if (btnCoreConcernNext) {
     btnCoreConcernNext.innerText = "다음으로";
     btnCoreConcernNext.disabled = !userSelections.core_concern;
@@ -1114,6 +1115,15 @@ function initCoreConcernScreen() {
 
 if (btnCoreConcernNext) btnCoreConcernNext.onclick = function() { if (userSelections.core_concern) showScreen('screen-survey-concern-reason'); };
 if (btnCoreConcernPrev) btnCoreConcernPrev.onclick = function() { 
+  // 🌟 [1번 사진 개선]: 이전 질문으로 돌아갈 시 사용자가 직접 쓴 키워드 삭제 및 초기화
+  if (userSelections.q2_custom) {
+    var customIdx = userSelections.q2.indexOf(userSelections.q2_custom);
+    if (customIdx > -1) userSelections.q2.splice(customIdx, 1);
+    userSelections.q2_custom = "";
+  }
+  if (inputCustomKeyword) inputCustomKeyword.value = "";
+  if (btnCustomKeywordClear) btnCustomKeywordClear.classList.add('hidden');
+  
   currentStepIdx = 1;
   showScreen('screen-survey'); 
 };
@@ -1128,7 +1138,6 @@ var btnConcernReasonNext = document.getElementById('btn-concern-reason-next');
 var btnConcernReasonPrev = document.getElementById('btn-concern-reason-prev');
 var elConcernReasonKeywordDisplay = document.getElementById('concern-reason-picked-keyword-display');
 
-// 🌟 [유효성 검사]: 고민 이유 작성 검증 함수
 function validateConcernReasonStep() {
   if (!btnConcernReasonNext) return;
   var isValid = !!(userSelections.concern_reason && userSelections.concern_reason.trim().length > 0);
@@ -1183,8 +1192,9 @@ if (btnConcernReasonPrev) {
 }
 
 // --------------------------------------------------------------------------
-// 🌟 [2번 사진 수정]: 가장 많이 고른 고민 키워드 Top 7 2D 물리 공 시뮬레이션
-// 전체적으로 조금 줄이고, 4~7위 공은 더욱 작게 축소 반영
+// 🌟 [2번 사진 개선]: Top 7 물리 공 시뮬레이션
+//  - 상단 천장 경계로 화면 이탈 제한 (거꾸로 뒤집어도 상단에 모이게 함)
+//  - 폰을 다시 정상으로 들었을 때 신속하게 아래로 쏟아지도록 중력 가속도 및 반응성 최적화
 // --------------------------------------------------------------------------
 var top7Engine = null;
 var top7RenderLoop = null;
@@ -1234,21 +1244,25 @@ function initTop7PhysicsScene() {
   top7Engine = Engine.create({
     positionIterations: 10,
     velocityIterations: 10,
-    gravity: { x: 0, y: 0.95, scale: 0.001 }
+    gravity: { x: 0, y: 1.4, scale: 0.0012 }
   });
 
-  var wallThick = 500;
-  var floor = Bodies.rectangle(width / 2, height + wallThick / 2, width * 4, wallThick, { 
-    isStatic: true, restitution: 0.3, friction: 0.25 
+  var wallThick = 200;
+  // 바닥 경계
+  var floor = Bodies.rectangle(width / 2, height + wallThick / 2, width * 2, wallThick, { 
+    isStatic: true, restitution: 0.3, friction: 0.2 
   });
+  // 좌측 벽
   var leftWall = Bodies.rectangle(-wallThick / 2, height / 2, wallThick, height * 4, { 
-    isStatic: true, restitution: 0.3, friction: 0.25 
+    isStatic: true, restitution: 0.3, friction: 0.2 
   });
+  // 우측 벽
   var rightWall = Bodies.rectangle(width + wallThick / 2, height / 2, wallThick, height * 4, { 
-    isStatic: true, restitution: 0.3, friction: 0.25 
+    isStatic: true, restitution: 0.3, friction: 0.2 
   });
-  var ceiling = Bodies.rectangle(width / 2, -wallThick / 2 - 1500, width * 4, wallThick, { 
-    isStatic: true 
+  // 🌟 천장 경계를 화면 상단(-20px) 바로 위에 배치하여 거꾸로 뒤집어도 멀리 날아가지 않고 화면 상단에 옹기종기 모이도록 제한
+  var ceiling = Bodies.rectangle(width / 2, -wallThick / 2 - 20, width * 2, wallThick, { 
+    isStatic: true, restitution: 0.2, friction: 0.2 
   });
 
   top7Boundaries = [floor, leftWall, rightWall, ceiling];
@@ -1266,14 +1280,14 @@ function initTop7PhysicsScene() {
       var actualRadius = item.radius * scaleRatio;
       var margin = actualRadius + 15;
       var spawnX = margin + Math.random() * (width - margin * 2);
-      var spawnY = -actualRadius - 30 - (Math.random() * 40);
+      var spawnY = -actualRadius - 10;
 
       var ballBody = Bodies.circle(spawnX, spawnY, actualRadius, {
         restitution: 0.32,
-        friction: 0.08,
-        frictionAir: 0.008,
-        density: 0.0025,
-        angularDamping: 0.1
+        friction: 0.05,
+        frictionAir: 0.003, // 공기저항을 줄여 낙하 속도 증가
+        density: 0.003,
+        angularDamping: 0.08
       });
 
       ballBody.customData = {
@@ -1286,12 +1300,12 @@ function initTop7PhysicsScene() {
         subColor: item.subColor
       };
 
-      Matter.Body.setVelocity(ballBody, { x: (Math.random() - 0.5) * 2.2, y: 1.5 + Math.random() * 2 });
+      Matter.Body.setVelocity(ballBody, { x: (Math.random() - 0.5) * 2.0, y: 3.0 + Math.random() * 2 });
       Matter.Body.setAngularVelocity(ballBody, (Math.random() - 0.5) * 0.06);
 
       Composite.add(top7Engine.world, ballBody);
       top7Balls.push(ballBody);
-    }, idx * 140);
+    }, idx * 120);
 
     top7SpawnTimeouts.push(timer);
   });
@@ -1311,11 +1325,18 @@ function initTop7PhysicsScene() {
     var gamma = e.gamma || 0;
     var beta = e.beta || 0;
 
-    var gravityX = Math.max(-1.8, Math.min(1.8, (gamma / 45) * 1.3));
-    var gravityY = Math.max(-1.8, Math.min(1.8, (beta / 45) * 1.3));
+    // 좌우 기울기
+    var gravityX = Math.max(-2.2, Math.min(2.2, (gamma / 35) * 1.5));
+    var gravityY = 1.4;
 
-    if (Math.abs(gravityX) < 0.08 && Math.abs(gravityY) < 0.08) {
-      gravityY = 0.95;
+    // 🌟 거꾸로 든 경우 (beta < -15도 이거나 뒤집혔을 때)
+    if (beta < -15) {
+      // 상단으로 부드럽게 상승하도록 음수 중력 적용 (최대 -1.6)
+      gravityY = Math.max(-1.8, (beta / 45) * 1.4);
+    } else {
+      // 정상 상태(스마트폰을 세워 들거나 원래대로 돌렸을 때): 빠른 낙하를 위해 아래 방향 중력을 대폭 강화
+      var downwardFactor = Math.max(1.4, (beta / 30) * 2.2);
+      gravityY = Math.min(3.2, downwardFactor);
     }
 
     top7Engine.gravity.x = gravityX;
