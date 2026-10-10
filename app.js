@@ -6,7 +6,9 @@
      3) 화면 네비게이션, 설문, Supabase 통신: app.js
    - [기능 보존 100%]: 타이핑, 설문, 핵심 고민, 물리 버블, 표본실 DB 연동 유지
    - [안전성 보강]: currentExtractedTexture 참조 에러(ReferenceError) 방지 처리
-   - [수정 사항]: 텍스트 화면 하단 다음 버튼 '다음으로' -> '다음' 변경 및 즉시 표시 적용
+   - [수정 사항]: 
+     1) 텍스트 브릿지 화면(screen-post-survey-intro) 제거 및 고민 선택 -> 핵심 고민 직결
+     2) 핵심 고민 질문 문구 '이 중, 가장 꺼내기 힘든 것은 무엇인가요?' 로 변경
    ========================================================================== */
 
 // 🌟 [안전장치]: 전역 텍스처 변수 선언 보장 (ReferenceError 방지)
@@ -33,7 +35,7 @@ if (typeof createFallbackDummyTexture === 'undefined') {
 
 var ALL_SCREENS = [
   'screen-cover', 'screen-menu', 'screen-gallery', 'screen-intro',
-  'screen-opening', 'screen-survey', 'screen-post-survey-intro', 
+  'screen-opening', 'screen-survey', 
   'screen-survey-core-concern', 'screen-survey-concern-reason', 
   'screen-post-concern-bridge', 'screen-capture-guide', 
   'screen-shape-select', 'screen-survey-bridge',
@@ -49,7 +51,6 @@ var shareTypeTimer = null;
 var autoTransitionTimer = null;
 var reasonTypeTimer = null;
 var postConcernTypeTimer = null;
-var postSurveyIntroTypeTimer = null;
 var flightSafetyTimer = null;
 var typeTimer = null;
 var guideTypeTimer = null;
@@ -68,7 +69,6 @@ function clearAllTimers() {
   clearTimeout(shareTypeTimer);
   clearTimeout(autoTransitionTimer);
   clearTimeout(postConcernTypeTimer);
-  clearTimeout(postSurveyIntroTypeTimer);
   clearTimeout(flightSafetyTimer);
   if (showcaseInterval) { clearInterval(showcaseInterval); showcaseInterval = null; }
 }
@@ -91,8 +91,6 @@ function showScreen(screenId) {
         stopBubblePhysics(); stopLoading3DScene(); stopShare3DScene(); resetOpeningFlow();
       } else if (screenId === 'screen-survey') {
         stopLoading3DScene(); stopShare3DScene(); renderSurveyStep();
-      } else if (screenId === 'screen-post-survey-intro') {
-        stopBubblePhysics(); stopLoading3DScene(); stopShare3DScene(); initPostSurveyIntroScreen();
       } else if (screenId === 'screen-survey-core-concern') {
         stopBubblePhysics(); stopLoading3DScene(); stopShare3DScene(); initCoreConcernScreen();
       } else if (screenId === 'screen-survey-concern-reason') {
@@ -148,8 +146,7 @@ function updateDevScreenBadge() {
     if (currentStepIdx === 0) name += ' (1/3: 이름)';
     else if (currentStepIdx === 1) name += ' (2/3: 고민선택)';
     else if (currentStepIdx === 2) name += ' (3/3: 다정한한마디)';
-  } else if (name === 'screen-post-survey-intro') name += ' (고민직후브릿지)';
-  else if (name === 'screen-survey-core-concern') name += ' (핵심고민)';
+  } else if (name === 'screen-survey-core-concern') name += ' (핵심고민)';
   else if (name === 'screen-survey-concern-reason') name += ' (고민이유)';
   else if (name === 'screen-post-concern-bridge') name += ' (나비전환브릿지)';
   badge.innerText = '화면: ' + name;
@@ -253,7 +250,6 @@ function ensureDevDummyData() {
   if (!userSelections.concern_reason) userSelections.concern_reason = "항상 잘 해내야 한다는 마음이 앞서서요.";
   if (!userSelections.q6_memo) userSelections.q6_memo = "너의 찬란한 날갯짓을 응원해.";
   
-  // 🌟 형태와 텍스처가 어긋나지 않도록 텍스처 추출 보장 (참조 에러 방지)
   var currentTex = window.currentExtractedTexture || currentExtractedTexture;
   if (!currentTex) {
     try {
@@ -311,7 +307,7 @@ document.addEventListener('click', function(e) {
       }
       else if (currentStepIdx === 1) { 
         ensureDevDummyData(); 
-        showScreen('screen-post-survey-intro'); 
+        showScreen('screen-survey-core-concern'); 
         return; 
       }
       else if (currentStepIdx === 2) { 
@@ -319,10 +315,6 @@ document.addEventListener('click', function(e) {
         showScreen('screen-post-concern-bridge'); 
         return; 
       }
-    } else if (curId === 'screen-post-survey-intro') {
-      ensureDevDummyData();
-      showScreen('screen-survey-core-concern');
-      return;
     } else if (curId === 'screen-survey-core-concern') { 
       ensureDevDummyData(); 
       showScreen('screen-survey-concern-reason'); 
@@ -403,12 +395,9 @@ document.addEventListener('click', function(e) {
         });
         updateDevScreenBadge(); return;
       }
-    } else if (curId === 'screen-post-survey-intro') {
-      currentStepIdx = 1;
-      showScreen('screen-survey');
-      return;
     } else if (curId === 'screen-survey-core-concern') { 
-      showScreen('screen-post-survey-intro'); 
+      currentStepIdx = 1;
+      showScreen('screen-survey'); 
       return; 
     } else if (curId === 'screen-survey-concern-reason') { 
       showScreen('screen-survey-core-concern'); 
@@ -534,37 +523,6 @@ if (btnOpeningNext) {
       currentStepIdx = 0;
       showScreen('screen-survey');
     }
-  };
-}
-
-// --------------------------------------------------------------------------
-// 🌟 4번 사진 직후 신규 브릿지 화면 (screen-post-survey-intro) 구동 함수
-// --------------------------------------------------------------------------
-function initPostSurveyIntroScreen() {
-  clearTimeout(postSurveyIntroTypeTimer);
-  var textEl = document.getElementById('post-survey-intro-text');
-  var nextGroup = document.getElementById('post-survey-intro-next-group');
-  var btnNext = document.getElementById('btn-post-survey-intro-next');
-
-  if (!textEl || !nextGroup) return;
-  textEl.innerHTML = "";
-  nextGroup.classList.add('hidden');
-  nextGroup.classList.remove('visible');
-  nextGroup.style.display = 'none';
-
-  typeWriterText(textEl, "마주한 고민 중,<br>가장 꺼내기 힘든 것은 무엇인가요?", function() {
-    if (btnNext) btnNext.innerHTML = "다음";
-    nextGroup.classList.remove('hidden');
-    nextGroup.style.display = 'block';
-    nextGroup.style.opacity = '1';
-    nextGroup.classList.add('visible');
-  });
-}
-
-var btnPostSurveyIntroNext = document.getElementById('btn-post-survey-intro-next');
-if (btnPostSurveyIntroNext) {
-  btnPostSurveyIntroNext.onclick = function() {
-    showScreen('screen-survey-core-concern');
   };
 }
 
@@ -877,7 +835,7 @@ if (inputQ7Name) {
   };
 }
 
-// 🌟 [정석 진행]: 2단계 완료 시 브릿지 화면(screen-post-survey-intro)으로 정상 진입
+// 🌟 [정석 진행]: 2단계 완료 시 브릿지 화면을 건너뛰고 핵심 고민 화면(screen-survey-core-concern)으로 곧바로 진입
 if (btnSurveyNext) {
   btnSurveyNext.onclick = function() {
     if (currentStepIdx === 0) { currentStepIdx = 1; renderSurveyStep(); }
@@ -889,7 +847,7 @@ if (btnSurveyNext) {
       if (!userSelections.q2 || userSelections.q2.length === 0) {
         userSelections.q2 = ["비교중독", "수면 부족", "완벽주의 강박", "거절 공포", "텅 빈 잔고", "미래 막막함"];
       }
-      showScreen('screen-post-survey-intro');
+      showScreen('screen-survey-core-concern');
     } else if (currentStepIdx === 2) {
       showScreen('screen-post-concern-bridge');
     }
@@ -989,7 +947,8 @@ function initCoreConcernScreen() {
     };
   }
 
-  var tokens = "이 중에서 가장 꺼내기 힘든 것은<br>무엇인가요?".match(/(<[^>]+>|[^<])/g) || [];
+  // 🌟 [요청 문구 변경]: '이 중, 가장 꺼내기 힘든 것은 무엇인가요?'
+  var tokens = "이 중, 가장 꺼내기 힘든 것은<br>무엇인가요?".match(/(<[^>]+>|[^<])/g) || [];
   var idx = 0, curText = "";
   (function typeNextCoreChar() {
     if (idx < tokens.length) {
@@ -1007,7 +966,11 @@ function initCoreConcernScreen() {
 }
 
 if (btnCoreConcernNext) btnCoreConcernNext.onclick = function() { if (userSelections.core_concern) showScreen('screen-survey-concern-reason'); };
-if (btnCoreConcernPrev) btnCoreConcernPrev.onclick = function() { showScreen('screen-post-survey-intro'); };
+// 🌟 [이전 복귀 직결]: 핵심 고민 화면에서 이전 버튼을 누르면 설문 2단계(고민 다중 선택)로 바로 복귀
+if (btnCoreConcernPrev) btnCoreConcernPrev.onclick = function() { 
+  currentStepIdx = 1;
+  showScreen('screen-survey'); 
+};
 
 // --------------------------------------------------------------------------
 // 핵심 고민 이유 작성 화면 로직 (서술 작성)
