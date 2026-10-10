@@ -21,6 +21,8 @@
      12) [사이즈 보정]: Top 7 물리 공 크기 재조정 (전체 축소 및 4~7위 대폭 축소)
      13) 1번 사진 이후 텍스트 브릿지(screen-top7-bridge) 추가 및 2번 사진 사용자 선택 키워드 연동
      14) [문구 줄바꿈]: 3번 사진 상단 대사 '다정한 한마디를' 2번째 줄로 줄바꿈 반영
+     15) [신규 기능]: 'D' 키 단축키로 DEV 컨트롤러 온/오프 토글 및 미입력 시 DEV 건너뛰기 테스트 데이터 자동 채우기 연동
+     16) [유효성 검사 강화]: 일반 사용자 모드 자동 기본값 채우기 전면 제거 및 페이지별 조건 만족 시에만 다음 버튼 활성화
    ========================================================================== */
 
 // 🌟 [안전장치]: 전역 텍스처 변수 선언 보장 (ReferenceError 방지)
@@ -261,16 +263,36 @@ var btnActionHome = document.getElementById('btn-action-home');
 if (btnActionHome) btnActionHome.onclick = function() { location.reload(); };
 
 // --------------------------------------------------------------------------
-// 🌟 DEV 전역 건너뛰기 이벤트 (먹통 및 프리징 완전 방지)
+// 🌟 DEV 전역 건너뛰기 이벤트 (오직 DEV 버튼을 눌렀을 때만 더미 데이터 주입)
 // --------------------------------------------------------------------------
 function ensureDevDummyData() {
-  if (!userSelections.q7_name) userSelections.q7_name = "테스트나비";
+  if (!userSelections.q7_name || userSelections.q7_name.trim().length === 0) {
+    userSelections.q7_name = "테스트나비";
+    if (inputQ7Name) {
+      inputQ7Name.value = "테스트나비";
+      if (charCounter) charCounter.innerText = '5/10';
+    }
+  }
   if (!userSelections.q2 || userSelections.q2.length === 0) {
     userSelections.q2 = ["완벽주의 강박", "비교중독", "수면 부족", "거절 공포", "텅 빈 잔고", "미래 막막함"];
   }
-  if (!userSelections.core_concern) userSelections.core_concern = userSelections.q2[0];
-  if (!userSelections.concern_reason) userSelections.concern_reason = "항상 잘 해내야 한다는 마음이 앞서서요.";
-  if (!userSelections.q6_memo) userSelections.q6_memo = "너의 찬란한 날갯짓을 응원해.";
+  if (!userSelections.core_concern) {
+    userSelections.core_concern = userSelections.q2[0];
+  }
+  if (!userSelections.concern_reason || userSelections.concern_reason.trim().length === 0) {
+    userSelections.concern_reason = "항상 잘 해내야 한다는 마음이 앞서서요.";
+    if (inputConcernReason) {
+      inputConcernReason.value = userSelections.concern_reason;
+      if (concernReasonCounter) concernReasonCounter.innerText = userSelections.concern_reason.length + '/100';
+    }
+  }
+  if (!userSelections.q6_memo || userSelections.q6_memo.trim().length === 0) {
+    userSelections.q6_memo = "너의 찬란한 날갯짓을 응원해.";
+    if (inputQ6Memo) {
+      inputQ6Memo.value = userSelections.q6_memo;
+      if (memoCounter) memoCounter.innerText = userSelections.q6_memo.length + '/50';
+    }
+  }
   
   var currentTex = window.currentExtractedTexture || currentExtractedTexture;
   if (!currentTex) {
@@ -332,7 +354,7 @@ document.addEventListener('click', function(e) {
     }
     if (curId === 'screen-survey') {
       if (currentStepIdx === 0) { 
-        if (!userSelections.q7_name) userSelections.q7_name = "테스트나비"; 
+        ensureDevDummyData(); 
         currentStepIdx = 1; 
         renderSurveyStep(); 
         return; 
@@ -919,12 +941,18 @@ if (btnCustomKeywordClear) {
   };
 }
 
+// 🌟 [유효성 검사 강화]: 1/2/3단계 모두 조건 충족 시에만 다음 버튼 활성화
 function validateSurveyStep() {
   if (!btnSurveyNext) return;
   var isValid = false;
-  if (currentStepIdx === 0) isValid = userSelections.q7_name && userSelections.q7_name.trim().length > 0;
-  else if (currentStepIdx === 1) isValid = (userSelections.q2 && userSelections.q2.length > 0) || (userSelections.q2_custom && userSelections.q2_custom.trim().length > 0);
-  else if (currentStepIdx === 2) isValid = true;
+  if (currentStepIdx === 0) {
+    isValid = !!(userSelections.q7_name && userSelections.q7_name.trim().length > 0);
+  } else if (currentStepIdx === 1) {
+    isValid = (userSelections.q2 && userSelections.q2.length > 0) || (userSelections.q2_custom && userSelections.q2_custom.trim().length > 0);
+  } else if (currentStepIdx === 2) {
+    // 🌟 3단계 다정한 한마디: 공백 제외 1글자 이상 작성 필수
+    isValid = !!(userSelections.q6_memo && userSelections.q6_memo.trim().length > 0);
+  }
   btnSurveyNext.disabled = !isValid;
   btnSurveyNext.style.pointerEvents = isValid ? 'auto' : 'none';
 }
@@ -947,15 +975,15 @@ if (inputQ7Name) {
 
 if (btnSurveyNext) {
   btnSurveyNext.onclick = function() {
-    if (currentStepIdx === 0) { currentStepIdx = 1; renderSurveyStep(); }
-    else if (currentStepIdx === 1) {
+    if (currentStepIdx === 0) { 
+      currentStepIdx = 1; 
+      renderSurveyStep(); 
+    } else if (currentStepIdx === 1) {
       if (userSelections.q2_custom && userSelections.q2_custom.trim()) {
         var c = userSelections.q2_custom.trim();
         if (userSelections.q2.indexOf(c) === -1) userSelections.q2.unshift(c);
       }
-      if (!userSelections.q2 || userSelections.q2.length === 0) {
-        userSelections.q2 = ["비교중독", "수면 부족", "완벽주의 강박", "거절 공포", "텅 빈 잔고", "미래 막막함"];
-      }
+      // 🌟 [자동 채우기 제거]: 사용자가 선택한 목록 그대로 넘김
       showScreen('screen-survey-core-concern');
     } else if (currentStepIdx === 2) {
       showScreen('screen-post-concern-bridge');
@@ -1000,20 +1028,23 @@ function initCoreConcernScreen() {
   if (elCoreConcernTitle) elCoreConcernTitle.innerHTML = "";
   if (elCoreConcernContainer) elCoreConcernContainer.classList.remove('revealed');
 
+  // 🌟 [자동 채우기 제거]: 사용자가 이전 단계에서 실제로 선택한 항목만 가져옴
   var selectedItems = [].concat(userSelections.q2 || []);
   if (userSelections.q2_custom && userSelections.q2_custom.trim()) {
     var cCustom = userSelections.q2_custom.trim();
     if (selectedItems.indexOf(cCustom) === -1) selectedItems.unshift(cCustom);
   }
-  if (selectedItems.length === 0) {
-    selectedItems = ["완벽주의 강박", "비교중독", "수면 부족", "거절 공포", "텅 빈 잔고", "미래 막막함"];
-    userSelections.q2 = [].concat(selectedItems);
+
+  // 이전에 고른 게 기존 목록에 없다면 초기화
+  if (selectedItems.indexOf(userSelections.core_concern) === -1) {
+    userSelections.core_concern = "";
   }
-  if (!userSelections.core_concern && selectedItems.length > 0) userSelections.core_concern = selectedItems[0];
   
+  // 🌟 [유효성 검사]: 사용자가 실제로 누르기 전까지는 비활성화 유지
   if (btnCoreConcernNext) {
     btnCoreConcernNext.innerText = "다음으로";
     btnCoreConcernNext.disabled = !userSelections.core_concern;
+    btnCoreConcernNext.style.pointerEvents = userSelections.core_concern ? 'auto' : 'none';
   }
   if (elCoreConcernGrid) elCoreConcernGrid.innerHTML = '';
 
@@ -1037,6 +1068,7 @@ function initCoreConcernScreen() {
           if (btnCoreConcernNext) {
             btnCoreConcernNext.innerText = "다음으로";
             btnCoreConcernNext.disabled = false;
+            btnCoreConcernNext.style.pointerEvents = 'auto';
           }
         };
         rowDiv.appendChild(btn); itemCursor++;
@@ -1096,6 +1128,14 @@ var btnConcernReasonNext = document.getElementById('btn-concern-reason-next');
 var btnConcernReasonPrev = document.getElementById('btn-concern-reason-prev');
 var elConcernReasonKeywordDisplay = document.getElementById('concern-reason-picked-keyword-display');
 
+// 🌟 [유효성 검사]: 고민 이유 작성 검증 함수
+function validateConcernReasonStep() {
+  if (!btnConcernReasonNext) return;
+  var isValid = !!(userSelections.concern_reason && userSelections.concern_reason.trim().length > 0);
+  btnConcernReasonNext.disabled = !isValid;
+  btnConcernReasonNext.style.pointerEvents = isValid ? 'auto' : 'none';
+}
+
 function initConcernReasonScreen() {
   clearTimeout(reasonTypeTimer);
   if (elConcernReasonKeywordDisplay) elConcernReasonKeywordDisplay.innerText = userSelections.core_concern || "고민";
@@ -1120,17 +1160,23 @@ function initConcernReasonScreen() {
     inputConcernReason.value = userSelections.concern_reason || "";
     if (concernReasonCounter) concernReasonCounter.innerText = (userSelections.concern_reason ? userSelections.concern_reason.length : 0) + '/100';
   }
+  validateConcernReasonStep();
 }
 
 if (inputConcernReason) {
   inputConcernReason.oninput = function(e) {
     userSelections.concern_reason = e.target.value;
     if (concernReasonCounter) concernReasonCounter.innerText = e.target.value.length + '/100';
+    validateConcernReasonStep();
   };
 }
 
 if (btnConcernReasonNext) {
-  btnConcernReasonNext.onclick = function() { showScreen('screen-top7-bridge'); };
+  btnConcernReasonNext.onclick = function() { 
+    if (userSelections.concern_reason && userSelections.concern_reason.trim().length > 0) {
+      showScreen('screen-top7-bridge'); 
+    }
+  };
 }
 if (btnConcernReasonPrev) {
   btnConcernReasonPrev.onclick = function() { showScreen('screen-survey-core-concern'); };
@@ -1151,7 +1197,6 @@ var top7KeywordData = [
   { rank: 1, keyword: "완벽주의 강박", percent: "28.4%", radius: 108, fill: "#f8f8f8", textColor: "#111111", subColor: "#555555" },
   { rank: 2, keyword: "비교중독", percent: "19.2%", radius: 88, fill: "#1c1c1c", textColor: "#ffffff", subColor: "#a3a3a3" },
   { rank: 3, keyword: "미래 막막함", percent: "16.5%", radius: 82, fill: "#1c1c1c", textColor: "#ffffff", subColor: "#a3a3a3" },
-  // 🌟 1,2,3위를 제외한 4~7위 원 크기 추가 축소 (기존 92~84 -> 66~58)
   { rank: 4, keyword: "수면 부족", percent: "12.1%", radius: 66, fill: "#1c1c1c", textColor: "#ffffff", subColor: "#a3a3a3" },
   { rank: 5, keyword: "텅 빈 잔고", percent: "9.8%", radius: 62, fill: "#1c1c1c", textColor: "#ffffff", subColor: "#a3a3a3" },
   { rank: 6, keyword: "거절 공포", percent: "7.6%", radius: 60, fill: "#1c1c1c", textColor: "#ffffff", subColor: "#a3a3a3" },
@@ -1212,7 +1257,6 @@ function initTop7PhysicsScene() {
   top7Balls = [];
   top7SpawnTimeouts = [];
 
-  // 🌟 스케일 비율 조정: 너무 커져 화면을 넘치지 않도록 적정 비율 제한
   var scaleRatio = Math.min(1.05, Math.max(0.85, width / 390));
 
   top7KeywordData.forEach(function(item, idx) {
@@ -1314,7 +1358,6 @@ function initTop7PhysicsScene() {
 
       ctx.rotate(-angle);
 
-      // 크기 축소에 맞춘 가독성 폰트 크기 계산
       var titleFontSize = Math.max(12, Math.min(18, data.radius * 0.28));
       var percentFontSize = Math.max(10, Math.min(15, data.radius * 0.20));
 
@@ -1513,6 +1556,26 @@ if (btnCloseSpecimenModal) {
     if (modalAnimFrameId) { cancelAnimationFrame(modalAnimFrameId); modalAnimFrameId = null; }
   };
 }
+
+// --------------------------------------------------------------------------
+// 🌟 [키보드 단축키]: 'D' 키 누를 시 우측 상단 DEV 컨트롤러 온/오프 토글
+// --------------------------------------------------------------------------
+window.addEventListener('keydown', function(e) {
+  var activeTag = (document.activeElement && document.activeElement.tagName) ? document.activeElement.tagName.toLowerCase() : '';
+  if (activeTag === 'input' || activeTag === 'textarea') return;
+
+  if (e.key === 'd' || e.key === 'D') {
+    var devNav = document.getElementById('dev-quick-navigator');
+    if (devNav) {
+      var isHidden = devNav.style.getPropertyValue('display') === 'none' || getComputedStyle(devNav).display === 'none';
+      if (isHidden) {
+        devNav.style.setProperty('display', 'flex', 'important');
+      } else {
+        devNav.style.setProperty('display', 'none', 'important');
+      }
+    }
+  }
+});
 
 // 앱 시작
 updateDevScreenBadge();
