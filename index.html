@@ -202,9 +202,13 @@
     <!-- 0.8 오프닝 화면 -->
     <section id="screen-opening" class="screen flex-col flex-1 justify-between py-6 px-4 text-center relative z-20 w-full bg-black overflow-hidden">
       <div class="opening-stage">
-        <!-- 1번 사진 페이지 상단 고치 png 이미지 배치 -->
+        <!-- 1번 사진 페이지 상단 고치 png 이미지 배치: image 폴더 경로 지정 -->
         <div id="opening-cocoon-group" class="hidden flex items-center justify-center w-full">
-          <img id="opening-cocoon-img" src="cocoon.png" alt="고치" class="max-w-none select-none pointer-events-none" />
+          <img id="opening-cocoon-img" 
+               src="image/cocoon.png" 
+               onerror="if(!this.dataset.retry){this.dataset.retry='1';this.src='image/coccon.png';}" 
+               alt="고치" 
+               class="max-w-none select-none pointer-events-none" />
         </div>
 
         <div class="opening-text-box">
