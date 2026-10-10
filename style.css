@@ -9,6 +9,7 @@
    - [추가] 로딩 화면 3D 캔버스 블러 및 완성/공유 페이지 스타일
    - [추가 5번] 작성 박스 중앙 배치 및 키워드 알약틀 제거 & 흰색 글로우 단독 표시
    - [추가 6번] 날개 무늬(패턴) 캐러셀 썸네일 & 탭 스타일 확장
+   - [수정 사항]: 텍스트 화면 하단 다음 버튼의 부드럽게 위로 올라오는 효과 제거 (즉시 표시)
    ========================================================================== */
 
 * {
@@ -277,14 +278,17 @@ html, body {
   transform: scale(0.96);
 }
 
+/* 🌟 버튼이 위로 부드럽게 올라오던 transition 제거 및 즉시 표시 설정 */
 .button-group-fade {
+  display: none;
   opacity: 0;
-  transform: translateY(12px);
-  transition: opacity 0.5s cubic-bezier(0.16, 1, 0.3, 1), transform 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+  transform: none;
+  transition: none;
 }
 .button-group-fade.visible {
+  display: flex;
   opacity: 1;
-  transform: translateY(0);
+  transform: none;
 }
 
 /* 촬영 안내 화면 */
