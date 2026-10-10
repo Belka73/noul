@@ -10,7 +10,7 @@
      5) 더듬이, 몸통(흰색 재질), 비행, 기 모으기, 표본실 모달 등 기존 3D 기능 100% 보존
      6) [날개짓 개선]: 등장 시 빠른 날개짓 후 부드러운 감속 및 끊김 없는(Seamless) 대기 날개짓 연결
      7) [공유 화면 크기 조절]: screen-share 내 3D 나비 스케일 축소 (0.68 -> 0.48)
-     8) [로딩 화면 크기 및 위치 조절]: 로딩 화면 3D 나비 크기 추가 축소 (0.62 -> 0.45) 및 오른쪽 이동 배치
+     8) [로딩 화면 위치 조절]: 로딩 화면 3D 나비 위치를 살짝 왼쪽으로 이동 보정 (0.28 -> 0.08)
    ========================================================================== */
 
 // --------------------------------------------------------------------------
@@ -91,7 +91,7 @@ function loadButterflyModel(group, shapeId, antId, wingMaterials, whiteMat, scal
 }
 
 // --------------------------------------------------------------------------
-// 🌟 로딩 화면용 3D 블러 나비 씬 (크기 축소 & 오른쪽 배치 반영)
+// 🌟 로딩 화면용 3D 블러 나비 씬 (살짝 왼쪽 이동 보정)
 // --------------------------------------------------------------------------
 var loadingScene, loadingCamera, loadingRenderer, loadingGroup, loadingWingL, loadingWingR;
 var loadingAnimFrameId = null;
@@ -106,10 +106,9 @@ function initLoading3DScene() {
   loadingGroup = new THREE.Group();
   loadingGroup.rotation.set(0.25, -0.8, 0.35);
 
-  // 🌟 [수정 완료]: 위치를 오른쪽으로 이동 (-0.28 -> 0.28)
-  loadingGroup.position.set(0.28, -0.22, 0);
+  // 🌟 [수정 완료]: 나비 위치를 살짝 왼쪽으로 이동 (0.28 -> 0.08)
+  loadingGroup.position.set(0.08, -0.22, 0);
 
-  // 🌟 [수정 완료]: 로딩 화면 나비 크기 추가 축소 (0.62 -> 0.45)
   loadButterflyModel(loadingGroup, selectedButterflyShape, selectedAntennaType, { matL: whiteMat, matR: whiteMat }, whiteMat, 0.45, function(l, r) {
     loadingWingL = l; loadingWingR = r;
   });
@@ -123,8 +122,8 @@ function initLoading3DScene() {
       loadingWingL.rotation.y = (loadingWingL.userData.baseRotY || 0) + flap; 
       loadingWingR.rotation.y = (loadingWingR.userData.baseRotY || 0) - flap; 
     }
-    // 🌟 오른쪽 위치 유지하면서 은은한 부유 애니메이션
-    loadingGroup.position.x = 0.28;
+    // 🌟 살짝 왼쪽으로 이동한 위치(0.08) 유지하며 은은한 부유 애니메이션
+    loadingGroup.position.x = 0.08;
     loadingGroup.position.y = -0.22 + Math.sin(t * 2.2) * 0.08;
     loadingGroup.rotation.z = 0.35 + Math.sin(t * 1.5) * 0.04;
     loadingRenderer.render(loadingScene, loadingCamera);
@@ -350,7 +349,7 @@ function initFullButterflyViewer(textureURL) {
   initEnergyParticleSystem();
   var clock = new THREE.Clock();
 
-  // 🌟 [핵심 개선]: 속도 변경 시에도 날개짓 각도가 절대 끊기지 않는 누적 위상 변수
+  // 🌟 속도 변경 시에도 날개짓 각도가 절대 끊기지 않는 누적 위상 변수
   var flapPhase = 0;
 
   (function animate() {
