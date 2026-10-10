@@ -14,6 +14,7 @@
    - [요청 반영]: 선택된 키워드(완벽주의 강박) 상단으로 추가 상향 이동
    - [시스템 UI 제거]: 프리뷰 및 3D 상호작용 영역 파란색 화살표/하이라이트/선택 박스 완전 방지
    - [신규 추가]: 2번 사진 다음 페이지 - 가장 많이 고른 고민 탑7 물리 공 화면 레이아웃
+   - [신규 추가]: 메뉴 내 정사각형 카드 및 2번/3번 레퍼런스 관람 안내 타임라인 스텝 UI
    ========================================================================== */
 
 * {
@@ -232,20 +233,112 @@ html, body {
   transition: transform 0.25s ease, background 0.25s ease, border-color 0.25s ease;
 }
 
+/* 🌟 정사각형 메뉴 카드 (전시 소개 / 관람 안내) */
+.menu-glass-square {
+  aspect-ratio: 1 / 1;
+  justify-content: center;
+  padding: 1.25rem 0.75rem !important;
+}
+
 #screen-menu.active .menu-glass-card:nth-child(1) {
   animation: menuItemFadeIn 0.5s cubic-bezier(0.16, 1, 0.3, 1) 0.08s both;
 }
 #screen-menu.active .menu-glass-card:nth-child(2) {
   animation: menuItemFadeIn 0.5s cubic-bezier(0.16, 1, 0.3, 1) 0.18s both;
 }
-#screen-menu.active .menu-glass-card:nth-child(3) {
-  animation: menuItemFadeIn 0.5s cubic-bezier(0.16, 1, 0.3, 1) 0.28s both;
+#screen-menu.active .grid > .menu-glass-card:nth-child(1) {
+  animation: menuItemFadeIn 0.5s cubic-bezier(0.16, 1, 0.3, 1) 0.26s both;
+}
+#screen-menu.active .grid > .menu-glass-card:nth-child(2) {
+  animation: menuItemFadeIn 0.5s cubic-bezier(0.16, 1, 0.3, 1) 0.32s both;
 }
 
 .menu-glass-card:active {
   transform: scale(0.97);
   background: rgba(255, 255, 255, 0.08);
   border-color: rgba(255, 255, 255, 0.25);
+}
+
+/* ==========================================================================
+   🌟 [신규 추가]: 관람 안내 화면 (screen-guide) 타임라인 스텝 스타일
+   ========================================================================== */
+#screen-guide {
+  background-color: #000000;
+}
+
+.guide-timeline-container {
+  position: relative;
+  width: 100%;
+}
+
+.guide-step-item {
+  display: flex;
+  position: relative;
+  min-height: 94px;
+}
+
+.guide-step-left {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 38px;
+  flex-shrink: 0;
+  position: relative;
+}
+
+/* 어두운 무채색 회색 원 & 흰색 숫자 */
+.guide-step-circle {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background-color: #242426;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  color: #ffffff;
+  font-size: 14px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 2;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.5);
+}
+
+/* 단계 간 세로 연결선 (2번 사진 레퍼런스 스타일) */
+.guide-step-line {
+  position: absolute;
+  top: 36px;
+  bottom: 0px;
+  width: 1.5px;
+  background-color: rgba(255, 255, 255, 0.16);
+  z-index: 1;
+}
+
+.guide-step-right {
+  flex: 1;
+  padding-left: 14px;
+  padding-bottom: 30px;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+}
+
+.guide-step-title {
+  color: #ffffff;
+  font-size: 1.05rem;
+  font-weight: 800;
+  letter-spacing: -0.2px;
+  line-height: 1.25;
+  margin-top: 5px;
+  margin-bottom: 6px;
+}
+
+.guide-step-desc {
+  color: #e5e5e5;
+  font-size: 0.85rem;
+  font-weight: 400;
+  line-height: 1.6;
+  letter-spacing: -0.2px;
+  word-break: keep-all;
 }
 
 /* 오프닝 & 브릿지 화면 */
@@ -958,7 +1051,7 @@ html, body {
 }
 
 /* ==========================================================================
-   🌟 [신규 스타일]: 탑 7 물리 공 화면 레이아웃 및 캔버스
+   탑 7 물리 공 화면 레이아웃 및 캔버스
    ========================================================================== */
 .top7-physics-container {
   width: 100%;

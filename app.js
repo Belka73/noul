@@ -19,6 +19,7 @@
      10) [수정 완료]: 
          - 1위 외 나머지 공 색상을 사진 속 공(번아웃 무기력)과 동일한 진한 차콜 블랙(#1c1c1c)으로 통일
          - 찌그러짐 현상 원인 제거 및 하늘에서 우수수 떨어지는 진짜 중력 낙하/롤링 물리 연출 구현
+     11) [신규 추가]: 관람 안내 화면(screen-guide) 네비게이션 바인딩 추가
    ========================================================================== */
 
 // 🌟 [안전장치]: 전역 텍스처 변수 선언 보장 (ReferenceError 방지)
@@ -44,7 +45,7 @@ if (typeof createFallbackDummyTexture === 'undefined') {
 }
 
 var ALL_SCREENS = [
-  'screen-cover', 'screen-menu', 'screen-gallery', 'screen-intro',
+  'screen-cover', 'screen-menu', 'screen-gallery', 'screen-intro', 'screen-guide',
   'screen-opening', 'screen-survey', 
   'screen-survey-core-concern', 'screen-survey-concern-reason', 
   'screen-survey-concern-top7',
@@ -292,7 +293,7 @@ document.addEventListener('click', function(e) {
     var curId = (document.querySelector('.screen.active') || {}).id || 'screen-cover';
 
     if (curId === 'screen-cover' || curId === 'screen-menu') { showScreen('screen-opening'); return; }
-    if (curId === 'screen-gallery' || curId === 'screen-intro') { showScreen('screen-menu'); return; }
+    if (curId === 'screen-gallery' || curId === 'screen-intro' || curId === 'screen-guide') { showScreen('screen-menu'); return; }
     if (curId === 'screen-opening') {
       if (openingCurrentStep === 1) {
         openingCurrentStep = 2;
@@ -397,7 +398,7 @@ document.addEventListener('click', function(e) {
 
     if (curId === 'screen-cover') { showScreen('screen-share'); return; }
     if (curId === 'screen-menu') { showScreen('screen-cover'); return; }
-    if (curId === 'screen-gallery' || curId === 'screen-intro') { showScreen('screen-menu'); return; }
+    if (curId === 'screen-gallery' || curId === 'screen-intro' || curId === 'screen-guide') { showScreen('screen-menu'); return; }
     if (curId === 'screen-opening') {
       if (openingCurrentStep === 3) {
         openingCurrentStep = 2;
@@ -482,7 +483,7 @@ document.addEventListener('click', function(e) {
 }, true);
 
 // --------------------------------------------------------------------------
-// 기본 네비게이션 버튼 바인딩
+// 기본 네비게이션 버튼 바인딩 (관람 안내 포함)
 // --------------------------------------------------------------------------
 function bindAppNavEvents() {
   var binds = [
@@ -493,7 +494,10 @@ function bindAppNavEvents() {
     ['btn-gallery-back', function() { showScreen('screen-menu'); }],
     ['menu-btn-intro', function() { transitionToScreenWithFade('screen-intro'); }],
     ['btn-intro-back', function() { showScreen('screen-menu'); }],
-    ['btn-intro-bottom-back', function() { showScreen('screen-menu'); }]
+    ['btn-intro-bottom-back', function() { showScreen('screen-menu'); }],
+    ['menu-btn-guide', function() { transitionToScreenWithFade('screen-guide'); }],
+    ['btn-guide-back', function() { showScreen('screen-menu'); }],
+    ['btn-guide-bottom-back', function() { showScreen('screen-menu'); }]
   ];
   binds.forEach(function(item) {
     var el = document.getElementById(item[0]);
@@ -1040,7 +1044,7 @@ if (btnCoreConcernPrev) btnCoreConcernPrev.onclick = function() {
 };
 
 // --------------------------------------------------------------------------
-// 핵심 고민 이유 작성 화면 로직 (서술 작성 - 2번 사진)
+// 핵심 고민 이유 작성 화면 로직
 // --------------------------------------------------------------------------
 var elConcernReasonTitle = document.getElementById('concern-reason-title');
 var inputConcernReason = document.getElementById('input-concern-reason');
@@ -1090,7 +1094,7 @@ if (btnConcernReasonPrev) {
 }
 
 // --------------------------------------------------------------------------
-// 🌟 [신규 기능]: 가장 많이 고른 고민 키워드 Top 7 2D 물리 공 시뮬레이션
+// 가장 많이 고른 고민 키워드 Top 7 2D 물리 공 시뮬레이션
 // --------------------------------------------------------------------------
 var top7Engine = null;
 var top7RenderLoop = null;
@@ -1099,10 +1103,6 @@ var top7Boundaries = [];
 var top7GyroHandler = null;
 var top7SpawnTimeouts = [];
 
-// 🌟 [요청 사항 100% 반영]:
-// 1) 1위 제외 나머지 공 색상을 첨부 사진속 공(번아웃 무기력: #1c1c1c)과 동일한 진한 차콜 블랙으로 통일
-// 2) 7개 공으로 고정
-// 3) 1위: 가장 큼(radius: 88), 2~3위: 중간(radius: 72, 68), 4~7위: 나머지(radius: 54~58)
 var top7KeywordData = [
   { rank: 1, keyword: "완벽주의 강박", percent: "28.4%", radius: 88, fill: "#f8f8f8", textColor: "#111111", subColor: "#555555" },
   { rank: 2, keyword: "비교중독", percent: "19.2%", radius: 72, fill: "#1c1c1c", textColor: "#ffffff", subColor: "#a3a3a3" },
@@ -1133,14 +1133,12 @@ function initTop7PhysicsScene() {
       Mouse = Matter.Mouse,
       MouseConstraint = Matter.MouseConstraint;
 
-  // 🌟 현실과 같은 자연스러운 중력 가속도 및 충돌 안정화 세팅
   top7Engine = Engine.create({
     positionIterations: 10,
     velocityIterations: 10,
     gravity: { x: 0, y: 0.95, scale: 0.001 }
   });
 
-  // 🌟 화면 프레임 절대 이탈 방지 4방향 대형 물리벽 (버튼 윗선에 완벽 일착)
   var wallThick = 500;
   var floor = Bodies.rectangle(width / 2, height + wallThick / 2, width * 4, wallThick, { 
     isStatic: true, restitution: 0.3, friction: 0.25 
@@ -1163,22 +1161,19 @@ function initTop7PhysicsScene() {
 
   var scaleRatio = Math.min(1.05, Math.max(0.85, width / 390));
 
-  // 🌟 [하늘에서 진짜 떨어지는 우수수 낙하 연출]:
-  // 화면 훨씬 위쪽(-120px ~ -380px)에서 공들이 서로 겹치지 않게 자연스러운 고도차를 두고 순차 스폰
   top7KeywordData.forEach(function(item, idx) {
     var timer = setTimeout(function() {
       if (!top7Engine) return;
 
       var actualRadius = item.radius * scaleRatio;
       var margin = actualRadius + 15;
-      // 좌우 고른 분산 스폰
       var spawnX = margin + Math.random() * (width - margin * 2);
       var spawnY = -actualRadius - 30 - (Math.random() * 40);
 
       var ballBody = Bodies.circle(spawnX, spawnY, actualRadius, {
-        restitution: 0.32,  // 탄력 있게 퐁퐁 튀는 자연스러운 반발력
-        friction: 0.08,     // 부드럽게 데굴데굴 굴러가는 마찰력
-        frictionAir: 0.008, // 공기 중을 시원하게 낙하
+        restitution: 0.32,
+        friction: 0.08,
+        frictionAir: 0.008,
         density: 0.0025,
         angularDamping: 0.1
       });
@@ -1193,18 +1188,16 @@ function initTop7PhysicsScene() {
         subColor: item.subColor
       };
 
-      // 떨어질 때 미세한 좌우 회전력과 수평 속도를 주어 진짜 하늘에서 쏟아지는 듯한 역동성 부여
       Matter.Body.setVelocity(ballBody, { x: (Math.random() - 0.5) * 2.2, y: 1.5 + Math.random() * 2 });
       Matter.Body.setAngularVelocity(ballBody, (Math.random() - 0.5) * 0.06);
 
       Composite.add(top7Engine.world, ballBody);
       top7Balls.push(ballBody);
-    }, idx * 140); // 140ms 시차로 리드미컬하게 우수수 떨어짐
+    }, idx * 140);
 
     top7SpawnTimeouts.push(timer);
   });
 
-  // 🌟 모바일 터치 및 마우스 드래그로 공 굴리기
   var mouse = Mouse.create(canvas);
   var mouseConstraint = MouseConstraint.create(top7Engine, {
     mouse: mouse,
@@ -1215,11 +1208,10 @@ function initTop7PhysicsScene() {
   });
   Composite.add(top7Engine.world, mouseConstraint);
 
-  // 🌟 스마트폰 자이로스코프 기울기 감지 (핸드폰을 돌리면 중력이 바뀌어 공이 굴러감)
   top7GyroHandler = function(e) {
     if (!top7Engine) return;
-    var gamma = e.gamma || 0; // 좌우 기울기
-    var beta = e.beta || 0;   // 앞뒤 기울기
+    var gamma = e.gamma || 0;
+    var beta = e.beta || 0;
 
     var gravityX = Math.max(-1.8, Math.min(1.8, (gamma / 45) * 1.3));
     var gravityY = Math.max(-1.8, Math.min(1.8, (beta / 45) * 1.3));
@@ -1236,7 +1228,6 @@ function initTop7PhysicsScene() {
     window.addEventListener('deviceorientation', top7GyroHandler, true);
   }
 
-  // 🌟 2D 캔버스 드로잉 렌더 루프
   (function renderTop7Frame() {
     top7RenderLoop = requestAnimationFrame(renderTop7Frame);
     Engine.update(top7Engine, 1000 / 60);
@@ -1252,13 +1243,11 @@ function initTop7PhysicsScene() {
       ctx.translate(pos.x, pos.y);
       ctx.rotate(angle);
 
-      // 1. 공 원형 본체 드로잉 (찌그러짐 없이 순수 완벽한 원형 보장)
       ctx.beginPath();
       ctx.arc(0, 0, data.radius, 0, Math.PI * 2);
       ctx.fillStyle = data.fill;
       ctx.fill();
 
-      // 테두리 드로잉 (사진처럼 매트하고 깔끔한 미세 경계선)
       if (data.rank === 1) {
         ctx.lineWidth = 1.8;
         ctx.strokeStyle = "rgba(255, 255, 255, 0.8)";
@@ -1269,7 +1258,6 @@ function initTop7PhysicsScene() {
         ctx.stroke();
       }
 
-      // 2. 글씨는 회전하지 않고 똑바로 보이도록 역회전 보정
       ctx.rotate(-angle);
 
       var titleFontSize = Math.max(13, Math.min(17, data.radius * 0.28));
@@ -1278,12 +1266,10 @@ function initTop7PhysicsScene() {
       ctx.textAlign = "center";
       ctx.textBaseline = "middle";
 
-      // 키워드명 드로잉 (사진과 동일한 볼드 폰트와 화이트)
       ctx.font = "bold " + titleFontSize + "px -apple-system, BlinkMacSystemFont, Pretendard, sans-serif";
       ctx.fillStyle = data.textColor;
       ctx.fillText(data.keyword, 0, -percentFontSize * 0.65);
 
-      // 퍼센트 드로잉 (사진과 동일한 폰트/색감)
       ctx.font = "500 " + percentFontSize + "px -apple-system, BlinkMacSystemFont, Pretendard, sans-serif";
       ctx.fillStyle = data.subColor;
       ctx.fillText(data.percent, 0, percentFontSize * 0.85);
@@ -1320,11 +1306,10 @@ function stopTop7PhysicsScene() {
   }
 }
 
-// 🌟 신규 탑 7 화면 하단 버튼 바인딩
 var btnConcernTop7Next = document.getElementById('btn-concern-top7-next');
 if (btnConcernTop7Next) {
   btnConcernTop7Next.onclick = function() {
-    currentStepIdx = 2; // 설문 3단계(다정한 한마디 작성)로 직결
+    currentStepIdx = 2;
     showScreen('screen-survey');
   };
 }
@@ -1363,7 +1348,7 @@ function stopBubblePhysics() {
 }
 
 // --------------------------------------------------------------------------
-// 🌟 Supabase 나비 저장 로직 (3D 비행 완료 시 트리거)
+// Supabase 나비 저장 로직
 // --------------------------------------------------------------------------
 async function saveButterflyToSupabase() {
   try {

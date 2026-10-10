@@ -86,14 +86,26 @@
           <p class="text-xs text-neutral-400 mt-1 font-normal tracking-tight">사람들이 날려보낸 나비를 둘러봐요</p>
         </button>
 
-        <button id="menu-btn-intro" type="button" class="menu-glass-card w-full py-6 px-4">
-          <div class="w-8 h-8 mb-2 flex items-center justify-center text-white">
-            <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 24 24">
-              <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
-            </svg>
-          </div>
-          <h3 class="text-base font-bold text-white tracking-tight">전시 소개</h3>
-        </button>
+        <!-- 전시 소개 & 관람 안내 2분할 정사각형 그리드 배치 -->
+        <div class="w-full grid grid-cols-2 gap-3.5">
+          <button id="menu-btn-intro" type="button" class="menu-glass-card menu-glass-square w-full">
+            <div class="w-8 h-8 mb-2 flex items-center justify-center text-white">
+              <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 24 24">
+                <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
+              </svg>
+            </div>
+            <h3 class="text-base font-bold text-white tracking-tight">전시 소개</h3>
+          </button>
+
+          <button id="menu-btn-guide" type="button" class="menu-glass-card menu-glass-square w-full">
+            <div class="w-8 h-8 mb-2 flex items-center justify-center text-white">
+              <svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+            </div>
+            <h3 class="text-base font-bold text-white tracking-tight">관람 안내</h3>
+          </button>
+        </div>
       </div>
 
       <div class="pb-3 text-[11px] text-neutral-500 font-mono"></div>
@@ -194,6 +206,93 @@
 
       <footer class="bottom-dock-unified w-full flex justify-center z-20">
         <button id="btn-intro-bottom-back" type="button" 
+                class="w-[84%] py-3.5 rounded-2xl bg-white/10 border border-white/15 text-neutral-200 font-bold text-sm tracking-wide active:scale-[0.98] transition-all hover:bg-white/15 hover:text-white">
+          이전으로
+        </button>
+      </footer>
+    </section>
+
+    <!-- 0.65 관람 안내 화면 (신규 추가: 2번 사진 레이아웃 + 3번 사진 4단계 내용 완벽 구현) -->
+    <section id="screen-guide" class="screen flex-col flex-1 justify-between py-6 px-5 text-left relative z-20 w-full bg-black overflow-hidden select-none">
+      <button id="btn-guide-back" type="button" class="app-back-btn">
+        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
+        </svg>
+      </button>
+
+      <div class="w-full max-w-[360px] mx-auto flex-1 flex flex-col justify-start pt-12 pb-4 overflow-y-auto vertical-scroll-chips">
+        <!-- 대제목 영역: 너울 (줄바꿈) 관람 순서 -->
+        <div class="pt-4 pb-8 pl-1">
+          <h2 class="text-[1.85rem] font-black text-white leading-[1.3] tracking-tight">
+            너울<br>관람 순서
+          </h2>
+        </div>
+
+        <!-- 4단계 타임라인 리스트 (2번 사진 세로선 & 원형 배지 구조) -->
+        <div class="guide-timeline-container flex flex-col w-full pl-1">
+          
+          <!-- 1단계: COLORING -->
+          <div class="guide-step-item">
+            <div class="guide-step-left">
+              <div class="guide-step-circle">1</div>
+              <div class="guide-step-line"></div>
+            </div>
+            <div class="guide-step-right">
+              <h3 class="guide-step-title">COLORING</h3>
+              <p class="guide-step-desc">
+                도안을 고르고 채색하여 QR 코드를 스캔해 사이트로 입장합니다.
+              </p>
+            </div>
+          </div>
+
+          <!-- 2단계: INTERACTION -->
+          <div class="guide-step-item">
+            <div class="guide-step-left">
+              <div class="guide-step-circle">2</div>
+              <div class="guide-step-line"></div>
+            </div>
+            <div class="guide-step-right">
+              <h3 class="guide-step-title">INTERACTION</h3>
+              <p class="guide-step-desc">
+                속마음 고민을 나눈 뒤, 도안을 촬영합니다.<br>
+                다정한 한마디와 함께 나비를 띄웁니다.
+              </p>
+            </div>
+          </div>
+
+          <!-- 3단계: CONNECTION -->
+          <div class="guide-step-item">
+            <div class="guide-step-left">
+              <div class="guide-step-circle">3</div>
+              <div class="guide-step-line"></div>
+            </div>
+            <div class="guide-step-right">
+              <h3 class="guide-step-title">CONNECTION</h3>
+              <p class="guide-step-desc">
+                미디어월 속으로 날아오른 나비에게 손을 뻗어<br>
+                날갯짓을 느끼며 교감합니다.
+              </p>
+            </div>
+          </div>
+
+          <!-- 4단계: GIFT (마지막 단계는 세로선 없음) -->
+          <div class="guide-step-item">
+            <div class="guide-step-left">
+              <div class="guide-step-circle">4</div>
+            </div>
+            <div class="guide-step-right">
+              <h3 class="guide-step-title">GIFT</h3>
+              <p class="guide-step-desc">
+                준비된 전시 굿즈를 챙겨가세요.
+              </p>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+      <footer class="bottom-dock-unified w-full flex justify-center z-20">
+        <button id="btn-guide-bottom-back" type="button" 
                 class="w-[84%] py-3.5 rounded-2xl bg-white/10 border border-white/15 text-neutral-200 font-bold text-sm tracking-wide active:scale-[0.98] transition-all hover:bg-white/15 hover:text-white">
           이전으로
         </button>
@@ -318,7 +417,7 @@
       </footer>
     </section>
 
-    <!-- 3.5 핵심 고민 선택 화면 (1번 사진 화면이 제거되고 설문 2단계에서 곧바로 진입) -->
+    <!-- 3.5 핵심 고민 선택 화면 -->
     <section id="screen-survey-core-concern" class="screen flex-col flex-1 justify-between text-center relative z-20 w-full bg-black overflow-hidden select-none">
       <header class="w-full pt-3 pb-0 flex-shrink-0 flex justify-center">
         <div class="w-[84%] h-1 bg-white/10 rounded-full overflow-hidden">
@@ -347,7 +446,7 @@
       </footer>
     </section>
 
-    <!-- 2번 사진: 핵심 고민 이유 작성 화면 (2번 사진 페이지와 완전히 동일한 195px 높이 적용) -->
+    <!-- 핵심 고민 이유 작성 화면 -->
     <section id="screen-survey-concern-reason" class="screen flex-col flex-1 justify-between text-center relative z-20 w-full bg-black overflow-hidden select-none">
       <header class="w-full pt-3 pb-0 flex-shrink-0 flex justify-center">
         <div class="w-[84%] h-1 bg-white/10 rounded-full overflow-hidden">
@@ -387,7 +486,7 @@
       </footer>
     </section>
 
-    <!-- 🌟 [신규 추가]: 2번 사진 다음 페이지 - 가장 많이 고른 고민 키워드 탑7 물리 공 화면 -->
+    <!-- 탑7 고민 물리 공 화면 -->
     <section id="screen-survey-concern-top7" class="screen flex-col flex-1 justify-between text-center relative z-20 w-full bg-black overflow-hidden select-none">
       <header class="w-full pt-3 pb-0 flex-shrink-0 flex justify-center">
         <div class="w-[84%] h-1 bg-white/10 rounded-full overflow-hidden">
@@ -401,7 +500,6 @@
         </h1>
       </div>
 
-      <!-- 공이 화면 프레임 밖으로 삐져나가지 않는 바운딩 영역 -->
       <div id="top7-physics-container" class="top7-physics-container flex-1 w-full relative min-h-0 overflow-hidden">
         <canvas id="top7-physics-canvas" class="top7-physics-canvas"></canvas>
       </div>
@@ -417,14 +515,12 @@
       </footer>
     </section>
 
-    <!-- 1번 사진 직후 글만 나오는 브릿지 화면 (2번 사진과 동일한 크기/위치로 butterfly_sit.png 추가) -->
+    <!-- 나비 전환 브릿지 화면 -->
     <section id="screen-post-concern-bridge" class="screen flex-col flex-1 justify-between py-6 px-4 text-center relative z-20 w-full bg-black overflow-hidden select-none">
       <div class="opening-stage flex-1 flex flex-col justify-center items-center gap-6 px-4">
         
-        <!-- 중앙 메인 묶음: 2번 사진과 동일한 구조, 크기, 위치 -->
         <div class="flex flex-col items-center justify-center w-full max-w-[360px] mx-auto">
           
-          <!-- 3번 나비 png 사진 (image/butterfly_sit.png) -->
           <div id="post-concern-butterfly-group" class="flex items-center justify-center w-full mb-8 -mt-6 pointer-events-none">
             <img id="post-concern-butterfly-img" 
                  src="image/butterfly_sit.png" 
