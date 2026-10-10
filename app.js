@@ -12,6 +12,7 @@
      3) 핵심 고민 화면 하단 버튼 '다음 질문으로' -> '다음으로' 변경
      4) 오프닝 2단계 문장 위 고치 png 이미지 즉시 노출 제어 추가
      5) [DEV] 이전/다음 건너뛰기 프리징 및 타이머 충돌 버그 완벽 수정
+     6) 오프닝 3단계 대사: '이야기를' -> '고치를' 로 문구 수정
    ========================================================================== */
 
 // 🌟 [안전장치]: 전역 텍스처 변수 선언 보장 (ReferenceError 방지)
@@ -297,7 +298,7 @@ document.addEventListener('click', function(e) {
         openingCurrentStep = 3;
         if (elOpeningCocoonGroup) elOpeningCocoonGroup.classList.add('hidden');
         if (elOpeningNextGroup) { elOpeningNextGroup.classList.remove('visible'); elOpeningNextGroup.classList.add('hidden'); }
-        typeWriterText(elOpeningText, "오늘 이곳에서,<br>당신의 마음 깊은 곳에 묻어둔 이야기를<br>조심스레 꺼내어보려 합니다.", function() {
+        typeWriterText(elOpeningText, "오늘 이곳에서,<br>당신의 마음 깊은 곳에 묻어둔 고치를<br>조심스레 꺼내어보려 합니다.", function() {
           if (btnOpeningNext) btnOpeningNext.innerHTML = "다음";
           if (elOpeningNextGroup) { elOpeningNextGroup.classList.remove('hidden'); elOpeningNextGroup.classList.add('visible'); }
         });
@@ -413,7 +414,7 @@ document.addEventListener('click', function(e) {
         showScreen('screen-opening'); 
         openingCurrentStep = 3;
         if (elOpeningCocoonGroup) elOpeningCocoonGroup.classList.add('hidden');
-        typeWriterText(elOpeningText, "오늘 이곳에서,<br>당신의 마음 깊은 곳에 묻어둔 이야기를<br>조심스레 꺼내어보려 합니다.", function() {
+        typeWriterText(elOpeningText, "오늘 이곳에서,<br>당신의 마음 깊은 곳에 묻어둔 고치를<br>조심스레 꺼내어보려 합니다.", function() {
           if (btnOpeningNext) btnOpeningNext.innerHTML = "다음";
           if (elOpeningNextGroup) { elOpeningNextGroup.classList.remove('hidden'); elOpeningNextGroup.classList.add('visible'); }
         });
@@ -542,10 +543,10 @@ if (btnOpeningNext) {
       updateDevScreenBadge();
     } else if (openingCurrentStep === 2) {
       openingCurrentStep = 3;
-      // 🌟 3단계에서는 고치 숨김
+      // 🌟 3단계에서는 고치 숨김 및 요청 문구 반영 ("고치를")
       if (elOpeningCocoonGroup) { elOpeningCocoonGroup.classList.add('hidden'); }
       if (elOpeningNextGroup) { elOpeningNextGroup.classList.remove('visible'); elOpeningNextGroup.classList.add('hidden'); }
-      typeWriterText(elOpeningText, "오늘 이곳에서,<br>당신의 마음 깊은 곳에 묻어둔 이야기를<br>조심스레 꺼내어보려 합니다.", function() {
+      typeWriterText(elOpeningText, "오늘 이곳에서,<br>당신의 마음 깊은 곳에 묻어둔 고치를<br>조심스레 꺼내어보려 합니다.", function() {
         btnOpeningNext.innerHTML = "다음";
         if (elOpeningNextGroup) { elOpeningNextGroup.classList.remove('hidden'); elOpeningNextGroup.classList.add('visible'); }
       });
