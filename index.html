@@ -203,15 +203,15 @@
     <section id="screen-opening" class="screen flex-col flex-1 justify-between py-6 px-4 text-center relative z-20 w-full bg-black overflow-hidden">
       <div class="opening-stage flex-1 flex flex-col justify-center items-center gap-6 px-4">
         
-        <!-- 중앙 메인 묶음: 문장 바로 위에 고치 이미지 배치 -->
+        <!-- 중앙 메인 묶음: 문장 바로 위에 빨간 동그라미 크기로 정밀 맞춤된 고치 이미지 배치 -->
         <div class="flex flex-col items-center justify-center w-full max-w-[360px] mx-auto">
-          <!-- 1번 사진 페이지 상단 고치 png 이미지 (정확한 비율 및 높이 지정) -->
-          <div id="opening-cocoon-group" class="hidden flex items-center justify-center w-full mb-5">
+          <!-- 1번 사진 페이지 상단 고치 png 이미지: 높이 50px로 지정하여 빨간 동그라미 크기와 1:1 일치 -->
+          <div id="opening-cocoon-group" class="hidden flex items-center justify-center w-full mb-4 pointer-events-none">
             <img id="opening-cocoon-img" 
                  src="image/cocoon.png" 
                  onerror="if(!this.dataset.retry){this.dataset.retry='1';this.src='image/coccon.png';}" 
                  alt="고치" 
-                 style="height: 140px; width: auto; object-fit: contain;"
+                 style="height: 50px; width: auto; max-width: 90px; object-fit: contain;"
                  class="select-none pointer-events-none block" />
           </div>
 
@@ -554,7 +554,7 @@
       <footer id="preview-footer-ui" class="w-full pb-6 flex flex-col items-center gap-2 z-10 pointer-events-none transition-opacity duration-300">
         <div class="bounce-guide flex flex-col items-center opacity-60">
           <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" d="M5 15l7-7 7 7"></path>
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" d="M5 15l7-7 7-7"></path>
           </svg>
           <span id="preview-fly-label" class="text-[11.5px] font-semibold text-neutral-300 tracking-tight mt-1">화면을 길게 눌러주세요.</span>
         </div>

@@ -11,6 +11,7 @@
      2) 핵심 고민 질문 문구 '이 중, 가장 꺼내기 힘든 것은 무엇인가요?' 로 변경
      3) 핵심 고민 화면 하단 버튼 '다음 질문으로' -> '다음으로' 변경
      4) 오프닝 2단계 문장 위 고치 png 이미지 즉시 노출 제어 추가
+     5) [DEV] 이전/다음 건너뛰기 프리징 및 타이머 충돌 버그 완벽 수정
    ========================================================================== */
 
 // 🌟 [안전장치]: 전역 텍스처 변수 선언 보장 (ReferenceError 방지)
@@ -241,7 +242,7 @@ var btnActionHome = document.getElementById('btn-action-home');
 if (btnActionHome) btnActionHome.onclick = function() { location.reload(); };
 
 // --------------------------------------------------------------------------
-// 🌟 DEV 전역 건너뛰기 이벤트
+// 🌟 DEV 전역 건너뛰기 이벤트 (먹통 및 프리징 완전 방지)
 // --------------------------------------------------------------------------
 function ensureDevDummyData() {
   if (!userSelections.q7_name) userSelections.q7_name = "테스트나비";
@@ -284,25 +285,29 @@ document.addEventListener('click', function(e) {
     if (curId === 'screen-opening') {
       if (openingCurrentStep === 1) {
         openingCurrentStep = 2;
-        // 2단계 진입 즉시 고치 png 표시
-        if (elOpeningCocoonGroup) { elOpeningCocoonGroup.classList.remove('hidden'); }
+        if (elOpeningCocoonGroup) elOpeningCocoonGroup.classList.remove('hidden');
         if (elOpeningNextGroup) { elOpeningNextGroup.classList.remove('visible'); elOpeningNextGroup.classList.add('hidden'); }
         typeWriterText(elOpeningText, "꺼내어 보이지 못한 채,<br>응어리진 무언가... 쉽게 털어놓지 못할 것도 있겠지요.", function() {
           if (btnOpeningNext) btnOpeningNext.innerHTML = "다음";
           if (elOpeningNextGroup) { elOpeningNextGroup.classList.remove('hidden'); elOpeningNextGroup.classList.add('visible'); }
         });
-        updateDevScreenBadge(); return;
+        updateDevScreenBadge(); 
+        return;
       } else if (openingCurrentStep === 2) {
         openingCurrentStep = 3;
-        // 3단계에서는 고치 숨김
-        if (elOpeningCocoonGroup) { elOpeningCocoonGroup.classList.add('hidden'); }
+        if (elOpeningCocoonGroup) elOpeningCocoonGroup.classList.add('hidden');
         if (elOpeningNextGroup) { elOpeningNextGroup.classList.remove('visible'); elOpeningNextGroup.classList.add('hidden'); }
         typeWriterText(elOpeningText, "오늘 이곳에서,<br>당신의 마음 깊은 곳에 묻어둔 이야기를<br>조심스레 꺼내어보려 합니다.", function() {
           if (btnOpeningNext) btnOpeningNext.innerHTML = "다음";
           if (elOpeningNextGroup) { elOpeningNextGroup.classList.remove('hidden'); elOpeningNextGroup.classList.add('visible'); }
         });
-        updateDevScreenBadge(); return;
-      } else if (openingCurrentStep === 3) { currentStepIdx = 0; showScreen('screen-survey'); return; }
+        updateDevScreenBadge(); 
+        return;
+      } else if (openingCurrentStep === 3) { 
+        currentStepIdx = 0; 
+        showScreen('screen-survey'); 
+        return; 
+      }
     }
     if (curId === 'screen-survey') {
       if (currentStepIdx === 0) { 
@@ -378,33 +383,42 @@ document.addEventListener('click', function(e) {
     if (curId === 'screen-opening') {
       if (openingCurrentStep === 3) {
         openingCurrentStep = 2;
-        // 2단계로 되돌아올 때 즉시 고치 표시
-        if (elOpeningCocoonGroup) { elOpeningCocoonGroup.classList.remove('hidden'); }
+        if (elOpeningCocoonGroup) elOpeningCocoonGroup.classList.remove('hidden');
+        if (elOpeningNextGroup) { elOpeningNextGroup.classList.remove('visible'); elOpeningNextGroup.classList.add('hidden'); }
         typeWriterText(elOpeningText, "꺼내어 보이지 못한 채,<br>응어리진 무언가... 쉽게 털어놓지 못할 것도 있겠지요.", function() {
           if (btnOpeningNext) btnOpeningNext.innerHTML = "다음";
+          if (elOpeningNextGroup) { elOpeningNextGroup.classList.remove('hidden'); elOpeningNextGroup.classList.add('visible'); }
         });
-        updateDevScreenBadge(); return;
+        updateDevScreenBadge(); 
+        return;
       } else if (openingCurrentStep === 2) {
         openingCurrentStep = 1;
-        // 1단계로 되돌아올 때는 고치 숨김
-        if (elOpeningCocoonGroup) { elOpeningCocoonGroup.classList.add('hidden'); }
+        if (elOpeningCocoonGroup) elOpeningCocoonGroup.classList.add('hidden');
+        if (elOpeningNextGroup) { elOpeningNextGroup.classList.remove('visible'); elOpeningNextGroup.classList.add('hidden'); }
         typeWriterText(elOpeningText, "안녕하세요?<br>지금, 걱정 없는 삶을 살아가고 있나요?", function() {
           if (btnOpeningNext) btnOpeningNext.innerHTML = "다음";
+          if (elOpeningNextGroup) { elOpeningNextGroup.classList.remove('hidden'); elOpeningNextGroup.classList.add('visible'); }
         });
-        updateDevScreenBadge(); return;
-      } else if (openingCurrentStep === 1) { showScreen('screen-cover'); return; }
+        updateDevScreenBadge(); 
+        return;
+      } else if (openingCurrentStep === 1) { 
+        showScreen('screen-cover'); 
+        return; 
+      }
     }
     if (curId === 'screen-survey') {
       if (currentStepIdx === 2) { showScreen('screen-survey-concern-reason'); return; }
       else if (currentStepIdx === 1) { currentStepIdx = 0; renderSurveyStep(); return; }
       else if (currentStepIdx === 0) {
-        showScreen('screen-opening'); openingCurrentStep = 3;
-        if (elOpeningCocoonGroup) { elOpeningCocoonGroup.classList.add('hidden'); }
+        showScreen('screen-opening'); 
+        openingCurrentStep = 3;
+        if (elOpeningCocoonGroup) elOpeningCocoonGroup.classList.add('hidden');
         typeWriterText(elOpeningText, "오늘 이곳에서,<br>당신의 마음 깊은 곳에 묻어둔 이야기를<br>조심스레 꺼내어보려 합니다.", function() {
           if (btnOpeningNext) btnOpeningNext.innerHTML = "다음";
           if (elOpeningNextGroup) { elOpeningNextGroup.classList.remove('hidden'); elOpeningNextGroup.classList.add('visible'); }
         });
-        updateDevScreenBadge(); return;
+        updateDevScreenBadge(); 
+        return;
       }
     } else if (curId === 'screen-survey-core-concern') { 
       currentStepIdx = 1;
@@ -518,7 +532,7 @@ if (btnOpeningNext) {
   btnOpeningNext.onclick = function() {
     if (openingCurrentStep === 1) {
       openingCurrentStep = 2;
-      // 🌟 [요청사항]: 2단계 진입 즉시 고치 png 표시
+      // 🌟 2단계 진입 즉시 고치 png 표시
       if (elOpeningCocoonGroup) { elOpeningCocoonGroup.classList.remove('hidden'); }
       if (elOpeningNextGroup) { elOpeningNextGroup.classList.remove('visible'); elOpeningNextGroup.classList.add('hidden'); }
       typeWriterText(elOpeningText, "꺼내어 보이지 못한 채,<br>응어리진 무언가... 쉽게 털어놓지 못할 것도 있겠지요.", function() {
