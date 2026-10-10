@@ -1,20 +1,6 @@
-/* ==========================================================================
-   🌟 너울(Noul) - 도안 맞추기 및 나비 커스텀 로직 (shape-select.js)
-   - [2D/3D 패턴 완벽 분리]: 
-     1) 1번 화면(날개 형태/무늬 고르기): 2DButterfly_pattern/ 의 2D png 사용
-     2) 2번 화면(3D 나비 프리뷰/비행): 3DButterfly_pattern/ 의 3D png 1:1 매칭 구움
-   - [핵심 수정 사항]:
-     1) 나비 꾸미기 페이지의 SVG 나비틀 기준(1000x1000)과 3D 나비 날개 텍스처 1:1 완벽 정렬
-     2) 사진 비율을 정비율로 엄격히 유지
-     3) 사용자가 대칭 버튼을 직접 눌렀을 때만 대칭 적용 (미선택 시 원본 사진 그대로 비대칭 유지)
-     4) 핀치 줌, 드래그 이동, 블러 조절, 캐러셀 등 기존 기능 100% 보존
-   ========================================================================== */
-
-// 🌟 전역 텍스처 변수 안전 선언 (ReferenceError 방지)
 window.currentExtractedTexture = null;
 var currentExtractedTexture = null;
 
-// 🌟 기본 대체 텍스처 생성 함수
 function createFallbackDummyTexture(color1, color2) {
   var c = document.createElement('canvas');
   c.width = 1000;
@@ -33,13 +19,11 @@ var selectedButterflyShape = 'crescent';
 var selectedAntennaType = 'ball';
 var selectedPatternId = 'crescent_none';
 
-// 🌟 3D 씬으로 전달할 순수 3D 패턴 경로 전역 변수
 window.currentSelected3DPatternPath = null;
 var currentSelected3DPatternPath = null;
 
 var patternImageCache = {};
 
-// 🌟 [503 방어형 프리로드]: 전체를 무차별 요청하지 않고 현재 형태 위주로 안전하게 프리로드
 function preloadAllPatternThumbnails() {
   if (typeof wingPatternDataset === 'undefined') return;
   
@@ -80,7 +64,6 @@ function preloadPatternImage(path) {
   }
 }
 
-// 🌟 [3D 패턴 전용 매핑 함수]: 404 방지 및 실제 파일명 완벽 일치화
 function get3DPatternPath(shape, patternId) {
   if (!patternId || patternId.indexOf('none') > -1) return null;
 
@@ -111,9 +94,6 @@ if (typeof wingDataset !== 'undefined') {
   wingDataset.forEach(function(w) { butterflyPathData[w.id] = w; });
 }
 
-// --------------------------------------------------------------------------
-// 🌟 1번 화면: 2D 나비 외곽선 및 2D 무늬(2DButterfly_pattern/) 1:1 정밀 렌더러
-// --------------------------------------------------------------------------
 function updateHeroPreview() {
   var heroSvg = document.getElementById('hero-butterfly-svg');
   var heroPathContainer = document.getElementById('hero-path-container');
@@ -160,7 +140,6 @@ function updateHeroPreview() {
 
 var carouselContainer = document.getElementById('arch-carousel-container');
 
-// 🌟 [하단 캐러셀 렌더러]: 2D 썸네일 표시
 function renderCarouselItems() {
   if (!carouselContainer || typeof wingDataset === 'undefined') return;
   carouselContainer.innerHTML = '';
@@ -397,9 +376,6 @@ if (btnConfirmShape) {
   };
 }
 
-// --------------------------------------------------------------------------
-// 캔버스 드로잉 및 블러
-// --------------------------------------------------------------------------
 function executeReliableFastBlur(canvas, radius) {
   if (radius <= 0.2) return;
   var ctx = canvas.getContext('2d', { willReadFrequently: true });
@@ -529,7 +505,6 @@ function drawAlignCanvas() {
 
   if (currentBlurPx > 0) executeReliableFastBlur(tempCanvas, currentBlurPx * 0.9);
 
-  // 🌟 사용자가 버튼을 눌렀을 때만 대칭 적용 (미선택 시 원본 온전 드로잉)
   if (!isSymmetryEnabled) {
     actx.drawImage(tempCanvas, 0, 0);
   } else {
@@ -589,9 +564,6 @@ if (interactiveFrame && alignCanvas) {
   window.addEventListener('touchend', function() { isDragging = false; startPinchDist = 0; });
 }
 
-// --------------------------------------------------------------------------
-// 🌟 텍스처 추출 함수 (SVG 나비틀 1:1 완벽 정렬 & 정비율 추출)
-// --------------------------------------------------------------------------
 function exportAlignedTexture() {
   return new Promise(function(resolve) {
     currentSelected3DPatternPath = get3DPatternPath(selectedButterflyShape, selectedPatternId);
@@ -604,7 +576,6 @@ function exportAlignedTexture() {
       return;
     }
 
-    // 1. alignCanvas 크기(600x600)와 3D 기준 고해상도 캔버스(1000x1000) 사이의 배율 산출
     var scaleRatio = 1000 / alignCanvas.width;
 
     var finalCanvas = document.createElement('canvas');
@@ -612,7 +583,6 @@ function exportAlignedTexture() {
     finalCanvas.height = 1000;
     var fctx = finalCanvas.getContext('2d', { willReadFrequently: true });
 
-    // 2. 사용자가 조정한 사진 위치(imgX, imgY)와 크기를 1000x1000 해상도로 정확히 1:1 환산 (정비율 엄격 유지)
     var scaledImgX = imgX * scaleRatio;
     var scaledImgY = imgY * scaleRatio;
     var scaledImgW = (rawImage.width * imgScale) * scaleRatio;
@@ -620,12 +590,10 @@ function exportAlignedTexture() {
 
     fctx.drawImage(rawImage, scaledImgX, scaledImgY, scaledImgW, scaledImgH);
 
-    // 3. 블러 적용 (1000x1000 해상도 배율에 맞게 반경 비례 보정)
     if (currentBlurPx > 0) {
       executeReliableFastBlur(finalCanvas, (currentBlurPx * 0.9) * scaleRatio);
     }
 
-    // 4. 🌟 [절대 규칙] 사용자가 대칭 버튼을 켰을 때만 대칭 수행 (미선택 시 비대칭 원본 온전 보존)
     if (isSymmetryEnabled) {
       var midX = 500;
       var symCanvas = document.createElement('canvas');
@@ -633,9 +601,7 @@ function exportAlignedTexture() {
       symCanvas.height = 1000;
       var sctx = symCanvas.getContext('2d');
 
-      // 좌측 절반(0~500)을 그대로 그림
       sctx.drawImage(finalCanvas, 0, 0, midX, 1000, 0, 0, midX, 1000);
-      // 우측 절반(500~1000)에 좌측을 거울 반전 복사
       sctx.save();
       sctx.translate(1000, 0);
       sctx.scale(-1, 1);

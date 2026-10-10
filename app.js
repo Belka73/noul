@@ -1,43 +1,8 @@
-/* ==========================================================================
-   🌟 너울(Noul) 메인 애플리케이션 UI & 데이터 로직 (app.js)
-   - [역할 분리 완료]: 
-     1) 도안 정렬 및 하단 캐러셀: shape-select.js
-     2) Three.js 그래픽 및 3D 물리 뷰어: scene3d.js
-     3) 화면 네비게이션, 설문, Supabase 통신: app.js
-   - [기능 보존 100%]: 타이핑, 설문, 핵심 고민, 물리 버블, 표본실 DB 연동 유지
-   - [안전성 보강]: currentExtractedTexture 참조 에러(ReferenceError) 방지 처리
-   - [수정 사항]: 
-     1) 텍스트 브릿지 화면(screen-post-survey-intro) 제거 및 고민 선택 -> 핵심 고민 직결
-     2) 핵심 고민 질문 문구 '가장 꺼내기 힘든 것은 무엇인가요?' 로 변경 ('이 중,' 제거 완료)
-     3) 핵심 고민 화면 하단 버튼 '다음 질문으로' -> '다음으로' 변경
-     4) 오프닝 2단계 문장 위 사람(person) 이미지 노출 제어
-     5) 오프닝 3단계 문장 위 고치(cocoon) 이미지 즉시 노출 제어 추가 (동일 크기/위치)
-     6) [DEV] 이전/다음 건너뛰기 프리징 및 타이머 충돌 버그 완벽 수정
-     7) 오프닝 3단계 대사: '이야기를' -> '고치를' 로 문구 수정
-     8) 나비전환 브릿지 대사: '당신에 대해 잘 알게 됐어요.<br>이제 그 마음을 나비로 만들어볼게요.' 로 수정
-     9) 나비전환 브릿지 대사 상단 나비 이미지(butterfly_sit) 표시 연동
-     10) 1위 외 나머지 공 색상 통일 및 하늘 낙하 물리 연출
-     11) 관람 안내 화면(screen-guide) 네비게이션 바인딩 추가
-     12) [사이즈 보정]: Top 7 물리 공 크기 재조정 (전체 축소 및 4~7위 대폭 축소)
-     13) 1번 사진 이후 텍스트 브릿지(screen-top7-bridge) 추가 및 2번 사진 사용자 선택 키워드 연동
-     14) [문구 줄바꿈]: 3번 사진 상단 대사 '다정한 한마디를' 2번째 줄로 줄바꿈 반영
-     15) [신규 기능]: 'D' 키 단축키로 DEV 컨트롤러 온/오프 토글 및 미입력 시 DEV 건너뛰기 테스트 데이터 자동 채우기 연동
-     16) [유효성 검사 강화]: 일반 사용자 모드 자동 기본값 채우기 전면 제거 및 페이지별 조건 만족 시에만 다음 버튼 활성화
-     17) [신규 수정]: 핵심 고민에서 뒤로 돌아갈 때 사용자가 직접 입력한 키워드 완전 삭제 및 초기화
-     18) [물리 원상복구]: Top 7 물리 공의 천장 제거 및 원래의 자연스러운 낙하 속도/중력/마찰계수로 완벽 복원
-     19) [요청 수정 1]: 핵심 고민 안내 가이드 '(단일선택) [좌우 스크롤]' 등장 연동
-     20) [요청 수정 2]: 로딩 화면 프로그레스바 시간 30초 -> 10초로 단축
-     21) [요청 수정 3]: 프리뷰 하단 안내 라벨 문구 수정
-     22) [요청 수정 4]: 흰색 화면 전환 후 나비가 늦게 날아오르도록 시네마틱 타이밍 분리
-   ========================================================================== */
-
-// 🌟 [안전장치]: 전역 텍스처 변수 선언 보장 (ReferenceError 방지)
 if (typeof window.currentExtractedTexture === 'undefined') {
   window.currentExtractedTexture = null;
 }
 var currentExtractedTexture = window.currentExtractedTexture;
 
-// 🌟 [안전장치]: shape-select.js 로드 순서와 무관하게 app.js 자체에서도 에러가 안 나도록 보장
 if (typeof createFallbackDummyTexture === 'undefined') {
   window.createFallbackDummyTexture = function(color1, color2) {
     var c = document.createElement('canvas');
@@ -65,7 +30,7 @@ var ALL_SCREENS = [
 ];
 
 var showcaseInterval = null;
-var currentStepIdx = 0; // 0: 이름, 1: 고민다중, 2: 다정한한마디
+var currentStepIdx = 0;
 var userSelections = { q1: [], q2: [], q1_custom: "", q2_custom: "", core_concern: "", concern_reason: "", q6_memo: "", q7_name: "" };
 
 var completeTypeTimer = null;
@@ -182,12 +147,6 @@ function updateDevScreenBadge() {
   badge.innerText = '화면: ' + name;
 }
 
-// --------------------------------------------------------------------------
-// 🌟 [2번 사진 & 나비 등장 타이밍 지연 수정]: 로딩 진행바 시퀀스
-//  - 10초 동안 프로그레스바 증가
-//  - 흰색 화면으로 꽉 찬 뒤 프리뷰 페이지로 먼저 전환
-//  - 흰색이 걷히기 시작할 때 나비가 날아오르도록 실행 지연
-// --------------------------------------------------------------------------
 function startAnswerShowcaseSequence() {
   if (showcaseInterval) { clearInterval(showcaseInterval); showcaseInterval = null; }
   initLoading3DScene();
@@ -195,7 +154,6 @@ function startAnswerShowcaseSequence() {
   var pBar = document.getElementById('generation-progress-bar'), progress = 0;
   if (pBar) pBar.style.width = '0%';
   
-  // 10초(10000ms) 동안 매 100ms마다 균등하게 100%에 도달하도록 계산
   var intervalDelay = 100;
   var stepIncrease = 100 / (10000 / intervalDelay);
 
@@ -208,7 +166,6 @@ function startAnswerShowcaseSequence() {
         var whiteFlash = document.getElementById('cinematic-white-flash');
         if (whiteFlash) whiteFlash.classList.add('flash-active');
         
-        // 1. 흰색이 화면에 꽉 찬 상태에서 프리뷰 UI 준비 및 화면 전환
         setTimeout(function() {
           stopLoading3DScene();
           var butterflyName = userSelections.q7_name ? userSelections.q7_name.trim() : "나비";
@@ -226,10 +183,8 @@ function startAnswerShowcaseSequence() {
             flyLabel.innerHTML = "화면 아무 곳을<br>2초간 길게 눌러 기를 모아주세요.";
           }
 
-          // 화면을 먼저 preview로 전환 (아직 흰색 플래시가 덮여 있음)
           showScreen('screen-preview');
 
-          // 2. 화면 전환 완료 후, 흰색 빛이 서서히 걷히면서 나비가 날아오르기 시작하도록 연출 지연
           setTimeout(function() {
             var currentTex = window.currentExtractedTexture || currentExtractedTexture || createFallbackDummyTexture();
             initFullButterflyViewer(currentTex);
@@ -242,9 +197,6 @@ function startAnswerShowcaseSequence() {
   }, intervalDelay);
 }
 
-// --------------------------------------------------------------------------
-// 완료 및 공유 화면 텍스트 타이핑
-// --------------------------------------------------------------------------
 function playCompleteScreenSequence() {
   clearTimeout(completeTypeTimer); clearTimeout(autoTransitionTimer);
   var titleEl = document.getElementById('complete-typing-title');
@@ -288,9 +240,6 @@ if (btnActionShare) {
 var btnActionHome = document.getElementById('btn-action-home');
 if (btnActionHome) btnActionHome.onclick = function() { location.reload(); };
 
-// --------------------------------------------------------------------------
-// 🌟 DEV 전역 건너뛰기 이벤트 (오직 DEV 버튼을 눌렀을 때만 더미 데이터 주입)
-// --------------------------------------------------------------------------
 function ensureDevDummyData() {
   if (!userSelections.q7_name || userSelections.q7_name.trim().length === 0) {
     userSelections.q7_name = "테스트나비";
@@ -555,9 +504,6 @@ document.addEventListener('click', function(e) {
   }
 }, true);
 
-// --------------------------------------------------------------------------
-// 기본 네비게이션 버튼 바인딩 (관람 안내 포함)
-// --------------------------------------------------------------------------
 function bindAppNavEvents() {
   var binds = [
     ['btn-start-cover', function() { showScreen('screen-menu'); }],
@@ -579,9 +525,6 @@ function bindAppNavEvents() {
 }
 bindAppNavEvents();
 
-// --------------------------------------------------------------------------
-// 타이핑 플로우 유틸리티 및 오프닝
-// --------------------------------------------------------------------------
 var openingCurrentStep = 1;
 var elOpeningText = document.getElementById('opening-text');
 var elOpeningChoiceGroup = document.getElementById('opening-choice-group');
@@ -660,9 +603,6 @@ if (btnOpeningNext) {
   };
 }
 
-// --------------------------------------------------------------------------
-// 1번 사진 직후 텍스트 브릿지 화면 로직 (screen-top7-bridge)
-// --------------------------------------------------------------------------
 function initTop7BridgeScreen() {
   clearTimeout(top7BridgeTypeTimer);
   var textEl = document.getElementById('top7-bridge-text');
@@ -688,9 +628,6 @@ if (btnTop7BridgeNext) {
   };
 }
 
-// --------------------------------------------------------------------------
-// 나비 전환 브릿지 화면 로직 (screen-post-concern-bridge)
-// --------------------------------------------------------------------------
 function initPostConcernBridgeScreen() {
   clearTimeout(postConcernTypeTimer);
   var textEl = document.getElementById('post-concern-bridge-text');
@@ -720,9 +657,6 @@ if (btnPostConcernBridgeNext) {
   btnPostConcernBridgeNext.onclick = function() { showScreen('screen-capture-guide'); };
 }
 
-// --------------------------------------------------------------------------
-// 온기 충전 브릿지 화면 로직 (screen-survey-bridge)
-// --------------------------------------------------------------------------
 function playBridgeTypingSequence() {
   var textEl = document.getElementById('bridge-typing-text');
   var nextGroup = document.getElementById('bridge-next-group');
@@ -744,9 +678,6 @@ if (btnGotoStats) {
   btnGotoStats.onclick = function() { showScreen('screen-loading'); };
 }
 
-// --------------------------------------------------------------------------
-// 촬영 가이드 화면 로직
-// --------------------------------------------------------------------------
 var guideTitleWrap = document.querySelector('.guide-title-wrapper');
 var guideAnimatedTitle = document.getElementById('guide-animated-title');
 var guideCenterCard = document.getElementById('guide-center-card');
@@ -783,17 +714,11 @@ function startCaptureGuideCinematicFlow() {
   })();
 }
 
-// --------------------------------------------------------------------------
-// Supabase 클라이언트
-// --------------------------------------------------------------------------
 var SUPABASE_URL = 'https://djmdzsbfsobsutphragw.supabase.co';
 var SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRqbWR6c2Jmc29ic3V0cGhyYWd3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODk4ODQ3NTgsImV4cCI6MjEwNTQ2MDc1OH0.BC7llaSjbq6cYhDlRqrwJaycpQ6gSNcp5LgYBeM6WEM';
 var supabase = null;
 try { if (window.supabase) supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY); } catch (err) {}
 
-// --------------------------------------------------------------------------
-// 설문조사 로직
-// --------------------------------------------------------------------------
 var surveyQuestions = [
   { title: "당신의 이름은 무엇인가요?", desc: "" },
   {
@@ -1031,9 +956,6 @@ if (btnSurveyPrev) {
   };
 }
 
-// --------------------------------------------------------------------------
-// 🌟 [1번 사진 수정]: 핵심 고민 화면 시네마틱 플로우 ((단일선택) [좌우 스크롤] 연동)
-// --------------------------------------------------------------------------
 var elCoreConcernTitleWrap = document.getElementById('core-concern-title-wrapper');
 var elCoreConcernTitle = document.getElementById('core-concern-title');
 var elCoreConcernSubGuide = document.getElementById('core-concern-sub-guide');
@@ -1161,9 +1083,6 @@ if (btnCoreConcernPrev) btnCoreConcernPrev.onclick = function() {
   showScreen('screen-survey'); 
 };
 
-// --------------------------------------------------------------------------
-// 1번 사진: 핵심 고민 이유 작성 화면 로직
-// --------------------------------------------------------------------------
 var elConcernReasonTitle = document.getElementById('concern-reason-title');
 var inputConcernReason = document.getElementById('input-concern-reason');
 var concernReasonCounter = document.getElementById('concern-reason-counter');
@@ -1224,9 +1143,6 @@ if (btnConcernReasonPrev) {
   btnConcernReasonPrev.onclick = function() { showScreen('screen-survey-core-concern'); };
 }
 
-// --------------------------------------------------------------------------
-// Top 7 물리 공 시뮬레이션
-// --------------------------------------------------------------------------
 var top7Engine = null;
 var top7RenderLoop = null;
 var top7Balls = [];
@@ -1260,7 +1176,7 @@ function initTop7PhysicsScene() {
 
   var rect = container.getBoundingClientRect();
   var width = rect.width || window.innerWidth;
-  var height = rect.height || (window.innerHeight - 240);
+  var height = container.clientHeight || rect.height || (window.innerHeight - 240);
 
   canvas.width = width;
   canvas.height = height;
@@ -1457,9 +1373,6 @@ if (btnConcernTop7Prev) {
   };
 }
 
-// --------------------------------------------------------------------------
-// 말풍선 물리 레이어
-// --------------------------------------------------------------------------
 var bubbleCanvas = null, bctx = null, bubbleAnimFrameId = null;
 
 function resizeBubblePhysicsCanvas() {
@@ -1483,9 +1396,6 @@ function stopBubblePhysics() {
   if (bubbleCanvas && bctx) bctx.clearRect(0, 0, bubbleCanvas.width, bubbleCanvas.height);
 }
 
-// --------------------------------------------------------------------------
-// Supabase 나비 저장 로직
-// --------------------------------------------------------------------------
 async function saveButterflyToSupabase() {
   try {
     var finalTex = window.currentExtractedTexture || currentExtractedTexture;
@@ -1497,18 +1407,26 @@ async function saveButterflyToSupabase() {
       date: new Date().toISOString().slice(0, 10).replace(/-/g, '. ')
     });
 
-    if (!supabase) return;
-    await supabase.from('butterflies').insert([{
+    if (!supabase) {
+      console.warn("⚠️ Supabase 클라이언트가 초기화되지 않았습니다.");
+      return;
+    }
+    var { data, error } = await supabase.from('butterflies').insert([{
       name: userSelections.q7_name || '이름없는 나비', wing_shape: selectedButterflyShape, antenna_type: selectedAntennaType,
       q1: [], q2: userSelections.q2, core_concern: userSelections.core_concern, q3: [], q4: [], q5: [],
       memo: userSelections.q6_memo || '', revisit_date: null, email: null, texture_url: finalTex
     }]);
-  } catch (err) { console.error("Supabase 나비 저장 에러:", err); }
+
+    if (error) {
+      console.error("❌ Supabase 저장 실패:", error);
+    } else {
+      console.log("✅ Supabase 저장 성공:", data);
+    }
+  } catch (err) { 
+    console.error("Supabase 나비 저장 에러:", err); 
+  }
 }
 
-// --------------------------------------------------------------------------
-// 나비 둘러보기 표본실 갤러리 및 검색 필터 로직
-// --------------------------------------------------------------------------
 var specimenButterfliesData = [];
 var specimenContainer = document.getElementById('specimen-items-container');
 var gallerySpawnTimers = [];
@@ -1595,9 +1513,6 @@ if (btnCloseSpecimenModal) {
   };
 }
 
-// --------------------------------------------------------------------------
-// 🌟 [키보드 단축키]: 'D' 키 누를 시 우측 상단 DEV 컨트롤러 온/오프 토글
-// --------------------------------------------------------------------------
 window.addEventListener('keydown', function(e) {
   var activeTag = (document.activeElement && document.activeElement.tagName) ? document.activeElement.tagName.toLowerCase() : '';
   if (activeTag === 'input' || activeTag === 'textarea') return;
@@ -1615,5 +1530,29 @@ window.addEventListener('keydown', function(e) {
   }
 });
 
-// 앱 시작
+window.addEventListener('resize', function() {
+  var activeScreen = document.querySelector('.screen.active');
+  if (activeScreen) {
+    if (activeScreen.id === 'screen-survey-concern-top7' && top7Engine) {
+      var container = document.getElementById('top7-physics-container');
+      var canvas = document.getElementById('top7-physics-canvas');
+      if (container && canvas) {
+        var rect = container.getBoundingClientRect();
+        var width = rect.width || window.innerWidth;
+        var height = container.clientHeight || rect.height || (window.innerHeight - 240);
+        canvas.width = width;
+        canvas.height = height;
+        if (top7Boundaries && top7Boundaries.length === 3) {
+          var wallThick = 500;
+          Matter.Body.setPosition(top7Boundaries[0], { x: width / 2, y: height + wallThick / 2 });
+          Matter.Body.setPosition(top7Boundaries[1], { x: -wallThick / 2, y: height / 2 });
+          Matter.Body.setPosition(top7Boundaries[2], { x: width + wallThick / 2, y: height / 2 });
+        }
+      }
+    } else if (activeScreen.id === 'screen-survey' && currentStepIdx === 2) {
+      resizeBubblePhysicsCanvas();
+    }
+  }
+});
+
 updateDevScreenBadge();

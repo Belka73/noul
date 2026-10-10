@@ -1,22 +1,3 @@
-/* ==========================================================================
-   🌟 너울(Noul) 3D 그래픽 및 Three.js 씬 관리 모듈 (scene3d.js)
-   - Three.js 공통 씬/조명/카메라 설정
-   - GLB 3D 나비 모델 로딩 및 텍스처 매핑
-   - [핵심 수정 사항]:
-     1) 사진: 정면 평면 투영(Planar Projection)으로 2D 나비틀 사진 1:1 도장 찍듯 안착 (비대칭·정비율 100% 보장)
-     2) 패턴: 3D 모델 고유의 UV(attribute vec2 uv)를 그대로 사용하여 날개 맥/외곽선에 완벽 안착
-     3) 셰이더 내부에서 사진(투영)과 패턴(고유 UV)의 좌표계를 완전히 분리하여 Multiply 합성
-     4) 사용자가 대칭 버튼을 켰을 때만 대칭 반영 (미선택 시 원본 사진 비대칭 유지)
-     5) 더듬이, 몸통(흰색 재질), 비행, 기 모으기, 표본실 모달 등 기존 3D 기능 100% 보존
-     6) [날개짓 개선]: 등장 시 빠른 날개짓 후 부드러운 감속 및 끊김 없는(Seamless) 대기 날개짓 연결
-     7) [공유 화면 크기 조절]: screen-share 내 3D 나비 스케일 축소 (0.68 -> 0.48)
-     8) [로딩 화면 위치 조절]: 로딩 화면 3D 나비 위치를 살짝 왼쪽으로 이동 보정 (0.28 -> 0.08)
-     9) [하단 문구 수정]: 안내 라벨을 '화면 아무 곳을<br>2초간 가만히 길게 눌러주세요.' 로 수정 반영
-   ========================================================================== */
-
-// --------------------------------------------------------------------------
-// 3D 나비 공통 생성 헬퍼 함수
-// --------------------------------------------------------------------------
 function setupCommon3DScene(container, camZ, lookY) {
   if (!container || !window.THREE) return null;
   container.innerHTML = '';
@@ -44,7 +25,6 @@ function setupCommon3DScene(container, camZ, lookY) {
   return { scene: scene, camera: camera, renderer: renderer };
 }
 
-// 🌟 좌/우 날개에 머티리얼 바인딩
 function loadButterflyModel(group, shapeId, antId, wingMaterials, whiteMat, scale, onLoaded) {
   if (!window.THREE || !THREE.GLTFLoader) return;
   var modelPath = '3DButterfly/' + (shapeId || 'crescent') + '.glb';
@@ -91,9 +71,6 @@ function loadButterflyModel(group, shapeId, antId, wingMaterials, whiteMat, scal
   });
 }
 
-// --------------------------------------------------------------------------
-// 🌟 로딩 화면용 3D 블러 나비 씬 (살짝 왼쪽 이동 보정)
-// --------------------------------------------------------------------------
 var loadingScene, loadingCamera, loadingRenderer, loadingGroup, loadingWingL, loadingWingR;
 var loadingAnimFrameId = null;
 
@@ -107,7 +84,6 @@ function initLoading3DScene() {
   loadingGroup = new THREE.Group();
   loadingGroup.rotation.set(0.25, -0.8, 0.35);
 
-  // 🌟 [수정 완료]: 나비 위치를 살짝 왼쪽으로 이동 (0.28 -> 0.08)
   loadingGroup.position.set(0.08, -0.22, 0);
 
   loadButterflyModel(loadingGroup, selectedButterflyShape, selectedAntennaType, { matL: whiteMat, matR: whiteMat }, whiteMat, 0.45, function(l, r) {
@@ -123,7 +99,6 @@ function initLoading3DScene() {
       loadingWingL.rotation.y = (loadingWingL.userData.baseRotY || 0) + flap; 
       loadingWingR.rotation.y = (loadingWingR.userData.baseRotY || 0) - flap; 
     }
-    // 🌟 살짝 왼쪽으로 이동한 위치(0.08) 유지하며 은은한 부유 애니메이션
     loadingGroup.position.x = 0.08;
     loadingGroup.position.y = -0.22 + Math.sin(t * 2.2) * 0.08;
     loadingGroup.rotation.z = 0.35 + Math.sin(t * 1.5) * 0.04;
@@ -137,18 +112,13 @@ function stopLoading3DScene() {
   if (c) c.innerHTML = '';
 }
 
-// --------------------------------------------------------------------------
-// 🌟 날개용 머티리얼 생성 함수 (사진: 평면 투영 / 패턴: 고유 UV 완전 분리)
-// --------------------------------------------------------------------------
 function createWingMaterials(textureURL, patternPath3D) {
   var patPath = patternPath3D || (typeof currentSelected3DPatternPath !== 'undefined' ? currentSelected3DPatternPath : null);
 
-  // 1. 사진 텍스처 (2D SVG 틀에서 추출된 1000x1000 원본)
   var photoTex = new THREE.TextureLoader().load(textureURL);
   photoTex.flipY = false;
   if (THREE.sRGBEncoding) photoTex.encoding = THREE.sRGBEncoding;
 
-  // 2. 3D 패턴 텍스처 (모델 고유 UV용)
   var patTex = null;
   var hasPat = false;
   if (patPath) {
@@ -158,7 +128,6 @@ function createWingMaterials(textureURL, patternPath3D) {
     hasPat = true;
   }
 
-  // 🌟 사진은 정면 평면 투영(도장 찍기) 수식, 패턴은 모델 고유 UV(uv) 수식으로 분리하는 셰이더
   function createCustomWingShader() {
     return new THREE.ShaderMaterial({
       uniforms: {
@@ -170,9 +139,7 @@ function createWingMaterials(textureURL, patternPath3D) {
         'varying vec2 vProjectedUv;',
         'varying vec2 vModelUv;',
         'void main() {',
-        // [패턴용]: 3D 모델 고유의 UV를 그대로 보존
         '  vModelUv = uv;',
-        // [사진용]: 정면 로컬 바운딩(-2.4 ~ +2.4) 기준 1:1 도장 찍기 평면 투영
         '  float u = (position.x + 2.4) / 4.8;',
         '  float v = (position.y + 2.4) / 4.8;',
         '  vProjectedUv = vec2(clamp(u, 0.0, 1.0), clamp(1.0 - v, 0.0, 1.0));',
@@ -186,10 +153,8 @@ function createWingMaterials(textureURL, patternPath3D) {
         'varying vec2 vProjectedUv;',
         'varying vec2 vModelUv;',
         'void main() {',
-        // 1. 도장 찍듯 투영된 정비율 비대칭 사진 색상 추출
         '  vec4 photoCol = texture2D(photoMap, vProjectedUv);',
         '  vec4 finalCol = photoCol;',
-        // 2. 3D 패턴이 있는 경우, 모델 고유 UV로 추출하여 Multiply 합성
         '  if (hasPattern > 0.5) {',
         '    vec4 patCol = texture2D(patMap, vModelUv);',
         '    finalCol.rgb = mix(finalCol.rgb, finalCol.rgb * patCol.rgb, patCol.a * 0.95);',
@@ -207,9 +172,6 @@ function createWingMaterials(textureURL, patternPath3D) {
   return { matL: matL, matR: matR };
 }
 
-// --------------------------------------------------------------------------
-// 🌟 공유 화면용 선명한 3D 나비 씬
-// --------------------------------------------------------------------------
 var shareScene, shareCamera, shareRenderer, shareGroup, shareWingL, shareWingR;
 var shareAnimFrameId = null;
 
@@ -252,9 +214,6 @@ function stopShare3DScene() {
   if (c) c.innerHTML = '';
 }
 
-// --------------------------------------------------------------------------
-// 🌟 나비 뷰어 및 인터랙션 로직 (screen-preview)
-// --------------------------------------------------------------------------
 var fullScene, fullCamera, fullRenderer, fullGroup, leftWingMesh, rightWingMesh, antennaMesh;
 var isFlyingAway = false, animFrameId = null;
 var initialRotL = { x: 0, y: 0, z: 0 }, initialRotR = { x: 0, y: 0, z: 0 };
@@ -350,7 +309,6 @@ function initFullButterflyViewer(textureURL) {
   initEnergyParticleSystem();
   var clock = new THREE.Clock();
 
-  // 🌟 속도 변경 시에도 날개짓 각도가 절대 끊기지 않는 누적 위상 변수
   var flapPhase = 0;
 
   (function animate() {
@@ -500,7 +458,6 @@ function updateChargeUIAndCamera(progress, currentChargeSec) {
   if (footerUI) { footerUI.style.display = 'flex'; footerUI.style.opacity = '1'; }
 
   var flyLabel = document.getElementById('preview-fly-label');
-  // 🌟 [안내 문구 수정]: 2줄 개행 텍스트 적용
   if (flyLabel) {
     flyLabel.innerHTML = progress >= 1.0 ? "위로 쓸어 올려주세요" : "화면 아무 곳을<br>2초간 가만히 길게 눌러주세요.";
   }
@@ -533,7 +490,6 @@ function resetChargeState() {
   if (footerUI && !isFlyingAway) { footerUI.style.display = 'flex'; footerUI.style.opacity = 1.0; footerUI.style.pointerEvents = 'none'; }
 
   var flyLabel = document.getElementById('preview-fly-label');
-  // 🌟 [안내 문구 수정]: 초기화 시에도 2줄 개행 텍스트 적용
   if (flyLabel) {
     flyLabel.innerHTML = "화면 아무 곳을<br>2초간 가만히 길게 눌러주세요.";
   }
@@ -590,9 +546,6 @@ function bindInteractiveEvents(targetEl) {
   window.addEventListener('mouseup', function(e) { handlePointerEnd(e.clientX, e.clientY); });
 }
 
-// --------------------------------------------------------------------------
-// 🌟 3D 표본실 모달 (screen-gallery 내 상세 뷰어)
-// --------------------------------------------------------------------------
 var modalThreeScene, modalThreeCamera, modalThreeRenderer, modalGroup, modalWingL, modalWingR, modalAnimFrameId = null;
 
 function openSpecimen3DModal(item, textureUrl) {
@@ -639,3 +592,48 @@ function openSpecimen3DModal(item, textureUrl) {
     modalThreeRenderer.render(modalThreeScene, modalThreeCamera);
   })();
 }
+
+window.addEventListener('resize', function() {
+  var activeScreen = document.querySelector('.screen.active');
+  if (activeScreen) {
+    if (activeScreen.id === 'screen-preview' && fullCamera && fullRenderer) {
+      var w = window.innerWidth;
+      var h = window.innerHeight;
+      fullCamera.aspect = w / h;
+      fullCamera.updateProjectionMatrix();
+      fullRenderer.setSize(w, h);
+      fullRenderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+      if (particleCanvas) {
+        particleCanvas.width = w;
+        particleCanvas.height = h;
+      }
+    } else if (activeScreen.id === 'screen-loading' && loadingCamera && loadingRenderer) {
+      var loadingCont = document.getElementById('loading-three-container');
+      if (loadingCont) {
+        var lw = loadingCont.clientWidth || window.innerWidth;
+        var lh = loadingCont.clientHeight || window.innerHeight;
+        loadingCamera.aspect = lw / lh;
+        loadingCamera.updateProjectionMatrix();
+        loadingRenderer.setSize(lw, lh);
+      }
+    } else if (activeScreen.id === 'screen-share' && shareCamera && shareRenderer) {
+      var shareCont = document.getElementById('share-three-container');
+      if (shareCont) {
+        var sw = shareCont.clientWidth || window.innerWidth;
+        var sh = shareCont.clientHeight || window.innerHeight;
+        shareCamera.aspect = sw / sh;
+        shareCamera.updateProjectionMatrix();
+        shareRenderer.setSize(sw, sh);
+      }
+    } else if (activeScreen.id === 'screen-gallery' && modalThreeCamera && modalThreeRenderer) {
+      var modalCont = document.getElementById('specimen-three-container');
+      if (modalCont) {
+        var mw = modalCont.clientWidth || window.innerWidth;
+        var mh = modalCont.clientHeight || window.innerHeight;
+        modalThreeCamera.aspect = mw / mh;
+        modalThreeCamera.updateProjectionMatrix();
+        modalThreeRenderer.setSize(mw, mh);
+      }
+    }
+  }
+});
