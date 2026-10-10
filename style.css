@@ -10,7 +10,7 @@
    - [추가 5번] 작성 박스 중앙 배치 및 키워드 알약틀 제거 & 흰색 글로우 단독 표시
    - [추가 6번] 날개 무늬(패턴) 캐러셀 썸네일 & 탭 스타일 확장
    - [수정 사항]: 텍스트 화면 하단 다음 버튼의 부드럽게 위로 올라오는 효과 제거 (즉시 표시)
-   - [수정 사항 2]: 1번 사진(고민이유) 작성 박스 위치를 2번 사진(다정한한마디)과 100% 완벽 동일 정렬 및 키워드 상향 이동
+   - [수정 사항 2]: 1번 사진(고민이유) 박스 위치 기준으로 2번 사진(다정한한마디) 박스 위치 완벽 일치화
    ========================================================================== */
 
 * {
@@ -609,7 +609,7 @@ html, body {
   transform: scale(0.95);
 }
 
-/* 말풍선 물리 레이어 & 2번 사진 입력 폼 */
+/* 🌟 말풍선 물리 레이어 & 2번 사진 입력 폼 (1번 사진 박스 위치와 완벽 일치하도록 Y오프셋 정렬) */
 #field-step-6 {
   flex: 1;
   width: 100%;
@@ -622,7 +622,7 @@ html, body {
   min-height: 0;
   z-index: 10;
   overflow: hidden;
-  transform: translateY(-40px);
+  transform: none !important;
 }
 #field-step-6.hidden {
   display: none !important;
@@ -809,9 +809,9 @@ html, body {
   text-shadow: 0 0 16px rgba(255, 255, 255, 0.85), 0 0 32px rgba(255, 255, 255, 0.45);
 }
 
-/* 🌟 [1번 사진 vs 2번 사진 완벽 일치]: 작성 박스를 2번 사진과 동일한 수직 위치로 일치시키고 선택된 키워드를 더 위로 이동 */
+/* 🌟 [1번 사진 vs 2번 사진 완벽 일치]: 1번 사진의 Y축 오프셋을 자연스럽게 일치화 */
 #screen-survey-concern-reason .flex-1.w-full {
-  transform: translateY(-40px) !important;
+  transform: none !important;
 }
 
 .concern-reason-highlight-word {
