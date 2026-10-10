@@ -16,7 +16,9 @@
      7) 오프닝 3단계 대사: '이야기를' -> '고치를' 로 문구 수정
      8) 나비전환 브릿지 대사: '당신에 대해 잘 알게 됐어요.<br>이제 그 마음을 나비로 만들어볼게요.' 로 수정
      9) 나비전환 브릿지 대사 상단 나비 이미지(butterfly_sit) 표시 연동
-     10) [수정 반영]: 고민 물리 공 - 7개 고정, 크기 대폭 확대, 순차 드롭으로 겹침/떨림 0% 제거 및 자연스러운 적재 구현
+     10) [수정 완료]: 
+         - 1위 외 나머지 공 색상을 사진 속 공(번아웃 무기력)과 동일한 진한 차콜 블랙(#1c1c1c)으로 통일
+         - 찌그러짐 현상 원인 제거 및 하늘에서 우수수 떨어지는 진짜 중력 낙하/롤링 물리 연출 구현
    ========================================================================== */
 
 // 🌟 [안전장치]: 전역 텍스처 변수 선언 보장 (ReferenceError 방지)
@@ -1088,27 +1090,27 @@ if (btnConcernReasonPrev) {
 }
 
 // --------------------------------------------------------------------------
-// 🌟 [신규 기능]: 가장 많이 고른 고민 키워드 Top 7 물리 공 시뮬레이션
+// 🌟 [신규 기능]: 가장 많이 고른 고민 키워드 Top 7 2D 물리 공 시뮬레이션
 // --------------------------------------------------------------------------
 var top7Engine = null;
 var top7RenderLoop = null;
 var top7Balls = [];
 var top7Boundaries = [];
 var top7GyroHandler = null;
-var top7SpawnInterval = null;
+var top7SpawnTimeouts = [];
 
-// 🌟 [요청 엄격 반영 데이터]:
-// 1) 3개 빼고 정확히 7개로 고정
-// 2) 크기 대폭 확대 (1위: 92px, 2~3위: 78/74px, 나머지: 54~60px)
-// 3) 1위 가장 밝은 화이트, 2/3위 더 어두운 중간 회색, 나머지는 확연히 더 어두운 딥그레이
+// 🌟 [요청 사항 100% 반영]:
+// 1) 1위 제외 나머지 공 색상을 첨부 사진속 공(번아웃 무기력: #1c1c1c)과 동일한 진한 차콜 블랙으로 통일
+// 2) 7개 공으로 고정
+// 3) 1위: 가장 큼(radius: 88), 2~3위: 중간(radius: 72, 68), 4~7위: 나머지(radius: 54~58)
 var top7KeywordData = [
-  { rank: 1, keyword: "완벽주의 강박", percent: "28.4%", radius: 92, fill: "#f8f8f8", textColor: "#111111", subColor: "#555555" },
-  { rank: 2, keyword: "비교중독", percent: "19.2%", radius: 78, fill: "#6e6e6e", textColor: "#ffffff", subColor: "#d2d2d2" },
-  { rank: 3, keyword: "미래 막막함", percent: "16.5%", radius: 74, fill: "#5e5e5e", textColor: "#ffffff", subColor: "#c2c2c2" },
-  { rank: 4, keyword: "수면 부족", percent: "12.1%", radius: 60, fill: "#282828", textColor: "#ffffff", subColor: "#9a9a9a" },
-  { rank: 5, keyword: "텅 빈 잔고", percent: "9.8%", radius: 58, fill: "#202020", textColor: "#ffffff", subColor: "#929292" },
-  { rank: 6, keyword: "거절 공포", percent: "7.6%", radius: 56, fill: "#1a1a1a", textColor: "#ffffff", subColor: "#8a8a8a" },
-  { rank: 7, keyword: "번아웃 무기력", percent: "6.4%", radius: 54, fill: "#141414", textColor: "#ffffff", subColor: "#828282" }
+  { rank: 1, keyword: "완벽주의 강박", percent: "28.4%", radius: 88, fill: "#f8f8f8", textColor: "#111111", subColor: "#555555" },
+  { rank: 2, keyword: "비교중독", percent: "19.2%", radius: 72, fill: "#1c1c1c", textColor: "#ffffff", subColor: "#a3a3a3" },
+  { rank: 3, keyword: "미래 막막함", percent: "16.5%", radius: 68, fill: "#1c1c1c", textColor: "#ffffff", subColor: "#a3a3a3" },
+  { rank: 4, keyword: "수면 부족", percent: "12.1%", radius: 58, fill: "#1c1c1c", textColor: "#ffffff", subColor: "#a3a3a3" },
+  { rank: 5, keyword: "텅 빈 잔고", percent: "9.8%", radius: 56, fill: "#1c1c1c", textColor: "#ffffff", subColor: "#a3a3a3" },
+  { rank: 6, keyword: "거절 공포", percent: "7.6%", radius: 55, fill: "#1c1c1c", textColor: "#ffffff", subColor: "#a3a3a3" },
+  { rank: 7, keyword: "번아웃 무기력", percent: "6.4%", radius: 54, fill: "#1c1c1c", textColor: "#ffffff", subColor: "#a3a3a3" }
 ];
 
 function initTop7PhysicsScene() {
@@ -1131,100 +1133,99 @@ function initTop7PhysicsScene() {
       Mouse = Matter.Mouse,
       MouseConstraint = Matter.MouseConstraint;
 
-  // 🌟 [떨림 및 겹침 0% 차단 엔진 세팅]:
-  // positionIterations: 20으로 초정밀 충돌 연산 적용, 충돌 반경 슬롭(slop) 0 고정
+  // 🌟 현실과 같은 자연스러운 중력 가속도 및 충돌 안정화 세팅
   top7Engine = Engine.create({
-    positionIterations: 20,
-    velocityIterations: 16,
-    gravity: { x: 0, y: 1.35, scale: 0.001 }
+    positionIterations: 10,
+    velocityIterations: 10,
+    gravity: { x: 0, y: 0.95, scale: 0.001 }
   });
 
-  // 🌟 [화면 밖 탈출 100% 차단]: 4방향 두께 400px 방벽 설치
-  var wallThick = 400;
+  // 🌟 화면 프레임 절대 이탈 방지 4방향 대형 물리벽 (버튼 윗선에 완벽 일착)
+  var wallThick = 500;
   var floor = Bodies.rectangle(width / 2, height + wallThick / 2, width * 4, wallThick, { 
-    isStatic: true, restitution: 0.15, friction: 0.35, slop: 0 
+    isStatic: true, restitution: 0.3, friction: 0.25 
   });
   var leftWall = Bodies.rectangle(-wallThick / 2, height / 2, wallThick, height * 4, { 
-    isStatic: true, restitution: 0.15, friction: 0.35, slop: 0 
+    isStatic: true, restitution: 0.3, friction: 0.25 
   });
   var rightWall = Bodies.rectangle(width + wallThick / 2, height / 2, wallThick, height * 4, { 
-    isStatic: true, restitution: 0.15, friction: 0.35, slop: 0 
+    isStatic: true, restitution: 0.3, friction: 0.25 
   });
-  var ceiling = Bodies.rectangle(width / 2, -wallThick / 2 - 1200, width * 4, wallThick, { 
-    isStatic: true, slop: 0 
+  var ceiling = Bodies.rectangle(width / 2, -wallThick / 2 - 1500, width * 4, wallThick, { 
+    isStatic: true 
   });
 
   top7Boundaries = [floor, leftWall, rightWall, ceiling];
   Composite.add(top7Engine.world, top7Boundaries);
 
   top7Balls = [];
+  top7SpawnTimeouts = [];
 
-  // 🌟 [겹침 및 부들부들 떨림 해결]:
-  // 한꺼번에 생성하면 좁은 공간에서 초기 겹침이 발생하므로, 시차(Interval)를 두고 하나씩 드롭
-  var spawnIndex = 0;
-  var scaleRatio = Math.min(1.08, Math.max(0.88, width / 390));
+  var scaleRatio = Math.min(1.05, Math.max(0.85, width / 390));
 
-  top7SpawnInterval = setInterval(function() {
-    if (spawnIndex >= top7KeywordData.length || !top7Engine) {
-      clearInterval(top7SpawnInterval);
-      top7SpawnInterval = null;
-      return;
-    }
+  // 🌟 [하늘에서 진짜 떨어지는 우수수 낙하 연출]:
+  // 화면 훨씬 위쪽(-120px ~ -380px)에서 공들이 서로 겹치지 않게 자연스러운 고도차를 두고 순차 스폰
+  top7KeywordData.forEach(function(item, idx) {
+    var timer = setTimeout(function() {
+      if (!top7Engine) return;
 
-    var item = top7KeywordData[spawnIndex];
-    var actualRadius = item.radius * scaleRatio;
+      var actualRadius = item.radius * scaleRatio;
+      var margin = actualRadius + 15;
+      // 좌우 고른 분산 스폰
+      var spawnX = margin + Math.random() * (width - margin * 2);
+      var spawnY = -actualRadius - 30 - (Math.random() * 40);
 
-    // x축 위치를 서로 분산시키고 상단 화면 밖에서 부드럽게 낙하
-    var minX = actualRadius + 20;
-    var maxX = width - actualRadius - 20;
-    var spawnX = minX + Math.random() * (maxX - minX);
-    var spawnY = -actualRadius - 20;
+      var ballBody = Bodies.circle(spawnX, spawnY, actualRadius, {
+        restitution: 0.32,  // 탄력 있게 퐁퐁 튀는 자연스러운 반발력
+        friction: 0.08,     // 부드럽게 데굴데굴 굴러가는 마찰력
+        frictionAir: 0.008, // 공기 중을 시원하게 낙하
+        density: 0.0025,
+        angularDamping: 0.1
+      });
 
-    var ballBody = Bodies.circle(spawnX, spawnY, actualRadius, {
-      restitution: 0.18,      // 튕겨서 겹치지 않고 차분히 안착
-      friction: 0.28,         // 미끄러지지 않고 착 안착
-      frictionAir: 0.02,      // 안정적인 착지 속도
-      density: 0.004,         // 묵직한 물리 질량
-      slop: 0                 // 충돌 침범 허용치 0
-    });
+      ballBody.customData = {
+        rank: item.rank,
+        keyword: item.keyword,
+        percent: item.percent,
+        radius: actualRadius,
+        fill: item.fill,
+        textColor: item.textColor,
+        subColor: item.subColor
+      };
 
-    ballBody.customData = {
-      rank: item.rank,
-      keyword: item.keyword,
-      percent: item.percent,
-      radius: actualRadius,
-      fill: item.fill,
-      textColor: item.textColor,
-      subColor: item.subColor
-    };
+      // 떨어질 때 미세한 좌우 회전력과 수평 속도를 주어 진짜 하늘에서 쏟아지는 듯한 역동성 부여
+      Matter.Body.setVelocity(ballBody, { x: (Math.random() - 0.5) * 2.2, y: 1.5 + Math.random() * 2 });
+      Matter.Body.setAngularVelocity(ballBody, (Math.random() - 0.5) * 0.06);
 
-    Composite.add(top7Engine.world, ballBody);
-    top7Balls.push(ballBody);
-    spawnIndex++;
-  }, 170);
+      Composite.add(top7Engine.world, ballBody);
+      top7Balls.push(ballBody);
+    }, idx * 140); // 140ms 시차로 리드미컬하게 우수수 떨어짐
 
-  // 🌟 터치 및 드래그 바인딩
+    top7SpawnTimeouts.push(timer);
+  });
+
+  // 🌟 모바일 터치 및 마우스 드래그로 공 굴리기
   var mouse = Mouse.create(canvas);
   var mouseConstraint = MouseConstraint.create(top7Engine, {
     mouse: mouse,
     constraint: {
-      stiffness: 0.2,
+      stiffness: 0.18,
       render: { visible: false }
     }
   });
   Composite.add(top7Engine.world, mouseConstraint);
 
-  // 🌟 스마트폰 자이로스코프 기울기 감지
+  // 🌟 스마트폰 자이로스코프 기울기 감지 (핸드폰을 돌리면 중력이 바뀌어 공이 굴러감)
   top7GyroHandler = function(e) {
     if (!top7Engine) return;
-    var gamma = e.gamma || 0;
-    var beta = e.beta || 0;
+    var gamma = e.gamma || 0; // 좌우 기울기
+    var beta = e.beta || 0;   // 앞뒤 기울기
 
-    var gravityX = Math.max(-2.0, Math.min(2.0, (gamma / 45) * 1.5));
-    var gravityY = Math.max(-2.0, Math.min(2.0, (beta / 45) * 1.5));
+    var gravityX = Math.max(-1.8, Math.min(1.8, (gamma / 45) * 1.3));
+    var gravityY = Math.max(-1.8, Math.min(1.8, (beta / 45) * 1.3));
 
     if (Math.abs(gravityX) < 0.08 && Math.abs(gravityY) < 0.08) {
-      gravityY = 1.35;
+      gravityY = 0.95;
     }
 
     top7Engine.gravity.x = gravityX;
@@ -1235,7 +1236,7 @@ function initTop7PhysicsScene() {
     window.addEventListener('deviceorientation', top7GyroHandler, true);
   }
 
-  // 🌟 2D 캔버스 드로잉 루프
+  // 🌟 2D 캔버스 드로잉 렌더 루프
   (function renderTop7Frame() {
     top7RenderLoop = requestAnimationFrame(renderTop7Frame);
     Engine.update(top7Engine, 1000 / 60);
@@ -1247,52 +1248,43 @@ function initTop7PhysicsScene() {
       var angle = ball.angle;
       var data = ball.customData;
 
-      // 🌟 [이중 프레임 강제 가둠]: 어떠한 경우에도 캔버스 바깥으로 1px도 안 나감
-      if (pos.x < data.radius) Matter.Body.setPosition(ball, { x: data.radius, y: pos.y });
-      if (pos.x > width - data.radius) Matter.Body.setPosition(ball, { x: width - data.radius, y: pos.y });
-      if (pos.y > height - data.radius) Matter.Body.setPosition(ball, { x: pos.x, y: height - data.radius });
-
       ctx.save();
       ctx.translate(pos.x, pos.y);
       ctx.rotate(angle);
 
-      // 1. 공 원형 본체
+      // 1. 공 원형 본체 드로잉 (찌그러짐 없이 순수 완벽한 원형 보장)
       ctx.beginPath();
       ctx.arc(0, 0, data.radius, 0, Math.PI * 2);
       ctx.fillStyle = data.fill;
       ctx.fill();
 
-      // 외곽선
+      // 테두리 드로잉 (사진처럼 매트하고 깔끔한 미세 경계선)
       if (data.rank === 1) {
-        ctx.lineWidth = 2.2;
-        ctx.strokeStyle = "rgba(255, 255, 255, 0.9)";
-        ctx.stroke();
-      } else if (data.rank <= 3) {
-        ctx.lineWidth = 1.4;
-        ctx.strokeStyle = "rgba(255, 255, 255, 0.28)";
+        ctx.lineWidth = 1.8;
+        ctx.strokeStyle = "rgba(255, 255, 255, 0.8)";
         ctx.stroke();
       } else {
         ctx.lineWidth = 1.0;
-        ctx.strokeStyle = "rgba(255, 255, 255, 0.12)";
+        ctx.strokeStyle = "rgba(255, 255, 255, 0.08)";
         ctx.stroke();
       }
 
-      // 2. 글씨 역회전 보정
+      // 2. 글씨는 회전하지 않고 똑바로 보이도록 역회전 보정
       ctx.rotate(-angle);
 
-      var titleFontSize = Math.max(13, Math.min(18, data.radius * 0.28));
-      var percentFontSize = Math.max(11, Math.min(15, data.radius * 0.21));
+      var titleFontSize = Math.max(13, Math.min(17, data.radius * 0.28));
+      var percentFontSize = Math.max(11, Math.min(14, data.radius * 0.21));
 
       ctx.textAlign = "center";
       ctx.textBaseline = "middle";
 
-      // 키워드명
-      ctx.font = "bold " + titleFontSize + "px -apple-system, Pretendard, sans-serif";
+      // 키워드명 드로잉 (사진과 동일한 볼드 폰트와 화이트)
+      ctx.font = "bold " + titleFontSize + "px -apple-system, BlinkMacSystemFont, Pretendard, sans-serif";
       ctx.fillStyle = data.textColor;
       ctx.fillText(data.keyword, 0, -percentFontSize * 0.65);
 
-      // 퍼센트
-      ctx.font = "600 " + percentFontSize + "px -apple-system, Pretendard, sans-serif";
+      // 퍼센트 드로잉 (사진과 동일한 폰트/색감)
+      ctx.font = "500 " + percentFontSize + "px -apple-system, BlinkMacSystemFont, Pretendard, sans-serif";
       ctx.fillStyle = data.subColor;
       ctx.fillText(data.percent, 0, percentFontSize * 0.85);
 
@@ -1302,9 +1294,9 @@ function initTop7PhysicsScene() {
 }
 
 function stopTop7PhysicsScene() {
-  if (top7SpawnInterval) {
-    clearInterval(top7SpawnInterval);
-    top7SpawnInterval = null;
+  if (top7SpawnTimeouts && top7SpawnTimeouts.length > 0) {
+    top7SpawnTimeouts.forEach(function(t) { clearTimeout(t); });
+    top7SpawnTimeouts = [];
   }
   if (top7RenderLoop) { 
     cancelAnimationFrame(top7RenderLoop); 
