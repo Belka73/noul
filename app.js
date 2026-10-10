@@ -9,6 +9,7 @@
    - [수정 사항]: 
      1) 텍스트 브릿지 화면(screen-post-survey-intro) 제거 및 고민 선택 -> 핵심 고민 직결
      2) 핵심 고민 질문 문구 '이 중, 가장 꺼내기 힘든 것은 무엇인가요?' 로 변경
+     3) 핵심 고민 화면 하단 버튼 '다음 질문으로' -> '다음으로' 변경
    ========================================================================== */
 
 // 🌟 [안전장치]: 전역 텍스처 변수 선언 보장 (ReferenceError 방지)
@@ -901,7 +902,12 @@ function initCoreConcernScreen() {
     userSelections.q2 = [].concat(selectedItems);
   }
   if (!userSelections.core_concern && selectedItems.length > 0) userSelections.core_concern = selectedItems[0];
-  if (btnCoreConcernNext) btnCoreConcernNext.disabled = !userSelections.core_concern;
+  
+  // 🌟 [3번 사진 수정]: 버튼 텍스트를 '다음으로'로 보장
+  if (btnCoreConcernNext) {
+    btnCoreConcernNext.innerText = "다음으로";
+    btnCoreConcernNext.disabled = !userSelections.core_concern;
+  }
   if (elCoreConcernGrid) elCoreConcernGrid.innerHTML = '';
 
   var distribution = calculateRowDistribution(selectedItems.length), itemCursor = 0;
@@ -921,7 +927,10 @@ function initCoreConcernScreen() {
             b.classList.remove('core-concern-selected'); b.classList.add('core-concern-unselected');
           });
           btn.classList.remove('core-concern-unselected'); btn.classList.add('core-concern-selected');
-          if (btnCoreConcernNext) btnCoreConcernNext.disabled = false;
+          if (btnCoreConcernNext) {
+            btnCoreConcernNext.innerText = "다음으로";
+            btnCoreConcernNext.disabled = false;
+          }
         };
         rowDiv.appendChild(btn); itemCursor++;
       })();
