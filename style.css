@@ -17,6 +17,7 @@
    - [신규 추가]: 메뉴 내 정사각형 카드 및 2번/3번 레퍼런스 관람 안내 타임라인 스텝 UI
    - [중앙 정렬 보정]: 관람 안내 원 속 숫자 광학적 수직/수평 정중앙 정렬 완벽 보정
    - [타임라인 연장]: 1단계 내용 길이에 맞춰 1번 원 세로선이 2단계 직전까지 유기적으로 연장되는 구조 반영
+   - [디자인 개선]: 세로선 두께 축소(1px), 번호원과 본문 간격 확장, 7종 나비 좌측 정렬 보정
    ========================================================================== */
 
 * {
@@ -287,7 +288,7 @@ html, body {
   display: flex;
   flex-direction: column;
   align-items: center;
-  width: 38px;
+  width: 32px;
   flex-shrink: 0;
   position: relative;
 }
@@ -315,21 +316,21 @@ html, body {
   flex-shrink: 0;
 }
 
-/* 🌟 세로선: 우측 내용이 길어져도 다음 단계 바로 직전까지 자동으로 연장되는 절대 좌표 연결선 */
+/* 🌟 세로선: 요청에 따라 더 얇게(1px) 처리하고 다음 단계 직전까지 자동 연장 */
 .guide-step-line {
   position: absolute;
   top: 36px;
   bottom: 0px;
-  width: 1.5px;
-  background-color: rgba(255, 255, 255, 0.16);
+  width: 1px;
+  background-color: rgba(255, 255, 255, 0.14);
   z-index: 1;
 }
 
-/* 우측 내용 영역 */
+/* 🌟 우측 내용 영역: 번호 원과 간격을 더 벌리도록 padding-left 확대 (14px -> 22px) */
 .guide-step-right {
   flex: 1;
   min-width: 0;
-  padding-left: 14px;
+  padding-left: 22px;
   display: flex;
   flex-direction: column;
   justify-content: flex-start;
@@ -352,6 +353,25 @@ html, body {
   line-height: 1.6;
   letter-spacing: -0.2px;
   word-break: keep-all;
+}
+
+/* 🌟 7종 나비 도안 좌측 정렬 전용 컨테이너 */
+.guide-butterfly-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  column-gap: 1.25rem;
+  row-gap: 0.75rem;
+  width: 100%;
+  max-width: 220px;
+  margin-left: 0;
+  margin-right: auto;
+  padding: 0.5rem 0;
+}
+
+.guide-butterfly-item {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
 }
 
 /* 오프닝 & 브릿지 화면 */
