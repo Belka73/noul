@@ -24,7 +24,7 @@
      15) [신규 기능]: 'D' 키 단축키로 DEV 컨트롤러 온/오프 토글 및 미입력 시 DEV 건너뛰기 테스트 데이터 자동 채우기 연동
      16) [유효성 검사 강화]: 일반 사용자 모드 자동 기본값 채우기 전면 제거 및 페이지별 조건 만족 시에만 다음 버튼 활성화
      17) [신규 수정]: 핵심 고민에서 뒤로 돌아갈 때 사용자가 직접 입력한 키워드 완전 삭제 및 초기화
-     18) [물리 개선]: Top 7 공 시뮬레이션 상단 천장 제한 및 정상 기립 시 빠른 낙하 가속도 보정
+     18) [물리 원상복구]: Top 7 물리 공의 천장 제거 및 원래의 자연스러운 낙하 속도/중력/마찰계수로 완벽 복원
    ========================================================================== */
 
 // 🌟 [안전장치]: 전역 텍스처 변수 선언 보장 (ReferenceError 방지)
@@ -478,7 +478,6 @@ document.addEventListener('click', function(e) {
         return;
       }
     } else if (curId === 'screen-survey-core-concern') { 
-      // 🌟 [개선 1]: 사용자가 직접 입력한 키워드 완전 초기화
       if (userSelections.q2_custom) {
         var customIdx = userSelections.q2.indexOf(userSelections.q2_custom);
         if (customIdx > -1) userSelections.q2.splice(customIdx, 1);
@@ -1115,7 +1114,6 @@ function initCoreConcernScreen() {
 
 if (btnCoreConcernNext) btnCoreConcernNext.onclick = function() { if (userSelections.core_concern) showScreen('screen-survey-concern-reason'); };
 if (btnCoreConcernPrev) btnCoreConcernPrev.onclick = function() { 
-  // 🌟 [1번 사진 개선]: 이전 질문으로 돌아갈 시 사용자가 직접 쓴 키워드 삭제 및 초기화
   if (userSelections.q2_custom) {
     var customIdx = userSelections.q2.indexOf(userSelections.q2_custom);
     if (customIdx > -1) userSelections.q2.splice(customIdx, 1);
@@ -1192,9 +1190,9 @@ if (btnConcernReasonPrev) {
 }
 
 // --------------------------------------------------------------------------
-// 🌟 [2번 사진 개선]: Top 7 물리 공 시뮬레이션
-//  - 상단 천장 경계로 화면 이탈 제한 (거꾸로 뒤집어도 상단에 모이게 함)
-//  - 폰을 다시 정상으로 들었을 때 신속하게 아래로 쏟아지도록 중력 가속도 및 반응성 최적화
+// 🌟 [1번 사진 수정]: Top 7 물리 공 시뮬레이션
+//  - 천장(ceiling) 제거: 거꾸로 들었을 때 위로 유기적으로 상승[cite: 10]
+//  - 낙하 속도 및 중력/마찰계수 원상복구: 정상 속도로 자연스럽게 낙하[cite: 10]
 // --------------------------------------------------------------------------
 var top7Engine = null;
 var top7RenderLoop = null;
@@ -1241,31 +1239,26 @@ function initTop7PhysicsScene() {
       Mouse = Matter.Mouse,
       MouseConstraint = Matter.MouseConstraint;
 
+  // 🌟 원래의 중력 스케일로 복원
   top7Engine = Engine.create({
     positionIterations: 10,
     velocityIterations: 10,
-    gravity: { x: 0, y: 1.4, scale: 0.0012 }
+    gravity: { x: 0, y: 0.95, scale: 0.001 }
   });
 
-  var wallThick = 200;
-  // 바닥 경계
-  var floor = Bodies.rectangle(width / 2, height + wallThick / 2, width * 2, wallThick, { 
-    isStatic: true, restitution: 0.3, friction: 0.2 
+  var wallThick = 500;
+  var floor = Bodies.rectangle(width / 2, height + wallThick / 2, width * 4, wallThick, { 
+    isStatic: true, restitution: 0.3, friction: 0.25 
   });
-  // 좌측 벽
   var leftWall = Bodies.rectangle(-wallThick / 2, height / 2, wallThick, height * 4, { 
-    isStatic: true, restitution: 0.3, friction: 0.2 
+    isStatic: true, restitution: 0.3, friction: 0.25 
   });
-  // 우측 벽
   var rightWall = Bodies.rectangle(width + wallThick / 2, height / 2, wallThick, height * 4, { 
-    isStatic: true, restitution: 0.3, friction: 0.2 
-  });
-  // 🌟 천장 경계를 화면 상단(-20px) 바로 위에 배치하여 거꾸로 뒤집어도 멀리 날아가지 않고 화면 상단에 옹기종기 모이도록 제한
-  var ceiling = Bodies.rectangle(width / 2, -wallThick / 2 - 20, width * 2, wallThick, { 
-    isStatic: true, restitution: 0.2, friction: 0.2 
+    isStatic: true, restitution: 0.3, friction: 0.25 
   });
 
-  top7Boundaries = [floor, leftWall, rightWall, ceiling];
+  // 🌟 [요청 사항 반영]: 천장을 완전히 없앰 (상단 개방)[cite: 10]
+  top7Boundaries = [floor, leftWall, rightWall];
   Composite.add(top7Engine.world, top7Boundaries);
 
   top7Balls = [];
@@ -1280,14 +1273,15 @@ function initTop7PhysicsScene() {
       var actualRadius = item.radius * scaleRatio;
       var margin = actualRadius + 15;
       var spawnX = margin + Math.random() * (width - margin * 2);
-      var spawnY = -actualRadius - 10;
+      var spawnY = -actualRadius - 30 - (Math.random() * 40);
 
+      // 🌟 공기저항 및 마찰력 원래 속도로 완벽 복원
       var ballBody = Bodies.circle(spawnX, spawnY, actualRadius, {
         restitution: 0.32,
-        friction: 0.05,
-        frictionAir: 0.003, // 공기저항을 줄여 낙하 속도 증가
-        density: 0.003,
-        angularDamping: 0.08
+        friction: 0.08,
+        frictionAir: 0.008,
+        density: 0.0025,
+        angularDamping: 0.1
       });
 
       ballBody.customData = {
@@ -1300,12 +1294,12 @@ function initTop7PhysicsScene() {
         subColor: item.subColor
       };
 
-      Matter.Body.setVelocity(ballBody, { x: (Math.random() - 0.5) * 2.0, y: 3.0 + Math.random() * 2 });
+      Matter.Body.setVelocity(ballBody, { x: (Math.random() - 0.5) * 2.2, y: 1.5 + Math.random() * 2 });
       Matter.Body.setAngularVelocity(ballBody, (Math.random() - 0.5) * 0.06);
 
       Composite.add(top7Engine.world, ballBody);
       top7Balls.push(ballBody);
-    }, idx * 120);
+    }, idx * 140);
 
     top7SpawnTimeouts.push(timer);
   });
@@ -1320,23 +1314,17 @@ function initTop7PhysicsScene() {
   });
   Composite.add(top7Engine.world, mouseConstraint);
 
+  // 🌟 원래의 자이로스코프 중력 계산식으로 복구
   top7GyroHandler = function(e) {
     if (!top7Engine) return;
     var gamma = e.gamma || 0;
     var beta = e.beta || 0;
 
-    // 좌우 기울기
-    var gravityX = Math.max(-2.2, Math.min(2.2, (gamma / 35) * 1.5));
-    var gravityY = 1.4;
+    var gravityX = Math.max(-1.8, Math.min(1.8, (gamma / 45) * 1.3));
+    var gravityY = Math.max(-1.8, Math.min(1.8, (beta / 45) * 1.3));
 
-    // 🌟 거꾸로 든 경우 (beta < -15도 이거나 뒤집혔을 때)
-    if (beta < -15) {
-      // 상단으로 부드럽게 상승하도록 음수 중력 적용 (최대 -1.6)
-      gravityY = Math.max(-1.8, (beta / 45) * 1.4);
-    } else {
-      // 정상 상태(스마트폰을 세워 들거나 원래대로 돌렸을 때): 빠른 낙하를 위해 아래 방향 중력을 대폭 강화
-      var downwardFactor = Math.max(1.4, (beta / 30) * 2.2);
-      gravityY = Math.min(3.2, downwardFactor);
+    if (Math.abs(gravityX) < 0.08 && Math.abs(gravityY) < 0.08) {
+      gravityY = 0.95;
     }
 
     top7Engine.gravity.x = gravityX;
