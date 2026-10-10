@@ -14,6 +14,7 @@
      5) 오프닝 3단계 문장 위 고치(cocoon) 이미지 즉시 노출 제어 추가 (동일 크기/위치)
      6) [DEV] 이전/다음 건너뛰기 프리징 및 타이머 충돌 버그 완벽 수정
      7) 오프닝 3단계 대사: '이야기를' -> '고치를' 로 문구 수정
+     8) 나비전환 브릿지 대사: '당신에 대해 잘 알게 됐어요.<br>이제 그 마음을 나비로 만들어볼게요.' 로 수정
    ========================================================================== */
 
 // 🌟 [안전장치]: 전역 텍스처 변수 선언 보장 (ReferenceError 방지)
@@ -574,7 +575,7 @@ if (btnOpeningNext) {
 }
 
 // --------------------------------------------------------------------------
-// 나비 전환 브릿지 화면 로직
+// 나비 전환 브릿지 화면 로직 (screen-post-concern-bridge)
 // --------------------------------------------------------------------------
 function initPostConcernBridgeScreen() {
   clearTimeout(postConcernTypeTimer);
@@ -587,7 +588,8 @@ function initPostConcernBridgeScreen() {
   nextGroup.classList.add('hidden');
   nextGroup.classList.remove('visible');
 
-  typeWriterText(textEl, "마음속 담아두었던 고민들을 모았어요.<br>이제 그 마음을 날려 보낼 나비를 빚어볼 차례입니다.", function() {
+  // 🌟 [문구 수정 완료]: 요청하신 문구로 줄바꿈(<br>) 적용하여 타이핑
+  typeWriterText(textEl, "당신에 대해 잘 알게 됐어요.<br>이제 그 마음을 나비로 만들어볼게요.", function() {
     if (btnNext) btnNext.innerHTML = "다음";
     nextGroup.classList.remove('hidden');
     nextGroup.classList.add('visible');
