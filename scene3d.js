@@ -10,6 +10,7 @@
      5) 더듬이, 몸통(흰색 재질), 비행, 기 모으기, 표본실 모달 등 기존 3D 기능 100% 보존
      6) [날개짓 개선]: 등장 시 빠른 날개짓 후 부드러운 감속 및 끊김 없는(Seamless) 대기 날개짓 연결
      7) [공유 화면 크기 조절]: screen-share 내 3D 나비 스케일 축소 (0.68 -> 0.48)
+     8) [로딩 화면 크기 조절]: screen-loading 내 3D 나비 스케일 축소 (0.95 -> 0.62)
    ========================================================================== */
 
 // --------------------------------------------------------------------------
@@ -106,7 +107,8 @@ function initLoading3DScene() {
   loadingGroup.rotation.set(0.25, -0.8, 0.35);
   loadingGroup.position.set(-0.28, -0.22, 0);
 
-  loadButterflyModel(loadingGroup, selectedButterflyShape, selectedAntennaType, { matL: whiteMat, matR: whiteMat }, whiteMat, 0.95, function(l, r) {
+  // 🌟 [수정 완료]: 로딩 화면 나비 크기 축소 (0.95 -> 0.62)
+  loadButterflyModel(loadingGroup, selectedButterflyShape, selectedAntennaType, { matL: whiteMat, matR: whiteMat }, whiteMat, 0.62, function(l, r) {
     loadingWingL = l; loadingWingR = r;
   });
   loadingScene.add(loadingGroup);
@@ -233,7 +235,7 @@ function initShare3DScene() {
     var t = clock.getElapsedTime(), flap = Math.sin(t * 7.5) * 0.42;
     if (shareWingL && shareWingR) { 
       shareWingL.rotation.y = (shareWingL.userData.baseRotY || 0) + flap; 
-      shareWingR.rotation.y = (shareWingR.userData.baseRotY || 0) - flap; 
+      shareWingR.userData && (shareWingR.rotation.y = (shareWingR.userData.baseRotY || 0) - flap); 
     }
     shareGroup.position.y = 0.45 + Math.sin(t * 2.2) * 0.08;
     shareGroup.rotation.z = 0.35 + Math.sin(t * 1.5) * 0.04;
