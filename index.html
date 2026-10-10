@@ -203,14 +203,25 @@
     <section id="screen-opening" class="screen flex-col flex-1 justify-between py-6 px-4 text-center relative z-20 w-full bg-black overflow-hidden">
       <div class="opening-stage flex-1 flex flex-col justify-center items-center gap-6 px-4">
         
-        <!-- 중앙 메인 묶음: 문장 위 빨간 동그라미 위치 및 크기로 정밀 맞춤 -->
+        <!-- 중앙 메인 묶음: 문장 위 동일한 크기와 위치로 이미지 노출 제어 -->
         <div class="flex flex-col items-center justify-center w-full max-w-[360px] mx-auto">
-          <!-- 1번 사진 페이지 상단 고치/사람 png 이미지 (파일명 person.png 반영, 폴더 image/ 기준) -->
+          
+          <!-- [2단계 전용]: 사람 png 이미지 (image/person.png) -->
           <div id="opening-cocoon-group" class="hidden flex items-center justify-center w-full mb-8 -mt-6 pointer-events-none">
             <img id="opening-cocoon-img" 
                  src="image/person.png" 
                  onerror="if(!this.dataset.retry1){this.dataset.retry1='1';this.src='image/person.jpg';}else if(!this.dataset.retry2){this.dataset.retry2='1';this.src='person.png';}else if(!this.dataset.retry3){this.dataset.retry3='1';this.src='person.jpg';}" 
                  alt="인물" 
+                 style="height: 38px; width: auto; max-width: 65px; object-fit: contain;"
+                 class="select-none pointer-events-none block" />
+          </div>
+
+          <!-- [3단계 전용]: 고치 png 이미지 (image/cocoon.png) - 2단계와 완전히 동일한 높이 38px, 동일한 간격 -->
+          <div id="opening-step3-cocoon-group" class="hidden flex items-center justify-center w-full mb-8 -mt-6 pointer-events-none">
+            <img id="opening-step3-cocoon-img" 
+                 src="image/cocoon.png" 
+                 onerror="if(!this.dataset.retry1){this.dataset.retry1='1';this.src='image/coccon.png';}else if(!this.dataset.retry2){this.dataset.retry2='1';this.src='cocoon.png';}" 
+                 alt="고치" 
                  style="height: 38px; width: auto; max-width: 65px; object-fit: contain;"
                  class="select-none pointer-events-none block" />
           </div>
