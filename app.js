@@ -25,6 +25,9 @@
      16) [유효성 검사 강화]: 일반 사용자 모드 자동 기본값 채우기 전면 제거 및 페이지별 조건 만족 시에만 다음 버튼 활성화
      17) [신규 수정]: 핵심 고민에서 뒤로 돌아갈 때 사용자가 직접 입력한 키워드 완전 삭제 및 초기화
      18) [물리 원상복구]: Top 7 물리 공의 천장 제거 및 원래의 자연스러운 낙하 속도/중력/마찰계수로 완벽 복원
+     19) [요청 수정 1]: 핵심 고민 안내 가이드 '(단일선택) [좌우 스크롤]' 등장 연동
+     20) [요청 수정 2]: 로딩 화면 프로그레스바 시간 30초 -> 10초로 단축
+     21) [요청 수정 3]: 프리뷰 하단 안내 라벨 문구 수정
    ========================================================================== */
 
 // 🌟 [안전장치]: 전역 텍스처 변수 선언 보장 (ReferenceError 방지)
@@ -179,7 +182,7 @@ function updateDevScreenBadge() {
 }
 
 // --------------------------------------------------------------------------
-// 로딩 진행바 시퀀스
+// 🌟 [2번 사진 수정]: 로딩 진행바 시퀀스 (30초 -> 10초로 정확히 단축)
 // --------------------------------------------------------------------------
 function startAnswerShowcaseSequence() {
   if (showcaseInterval) { clearInterval(showcaseInterval); showcaseInterval = null; }
@@ -187,7 +190,10 @@ function startAnswerShowcaseSequence() {
 
   var pBar = document.getElementById('generation-progress-bar'), progress = 0;
   if (pBar) pBar.style.width = '0%';
-  var intervalDelay = 100, stepIncrease = 100 / (30000 / intervalDelay);
+  
+  // 10초(10000ms) 동안 매 100ms마다 균등하게 100%에 도달하도록 계산
+  var intervalDelay = 100;
+  var stepIncrease = 100 / (10000 / intervalDelay);
 
   showcaseInterval = setInterval(function() {
     progress += stepIncrease;
@@ -208,6 +214,13 @@ function startAnswerShowcaseSequence() {
             guideText.innerText = userSelections.q6_memo && userSelections.q6_memo.trim().length > 0 
               ? userSelections.q6_memo.trim() : "너의 찬란한 날갯짓을 응원해.";
           }
+          
+          // 3번 사진 안내 문구 확실히 적용
+          var flyLabel = document.getElementById('preview-fly-label');
+          if (flyLabel) {
+            flyLabel.innerHTML = "화면 아무 곳을<br>2초간 길게 눌러 기를 모아주세요.";
+          }
+
           var currentTex = window.currentExtractedTexture || currentExtractedTexture || createFallbackDummyTexture();
           initFullButterflyViewer(currentTex);
           showScreen('screen-preview');
@@ -408,6 +421,12 @@ document.addEventListener('click', function(e) {
       var guideText = document.getElementById('preview-guide-text');
       if (guideText) guideText.innerText = userSelections.q6_memo && userSelections.q6_memo.trim().length > 0 
         ? userSelections.q6_memo.trim() : "너의 찬란한 날갯짓을 응원해.";
+      
+      var flyLabel = document.getElementById('preview-fly-label');
+      if (flyLabel) {
+        flyLabel.innerHTML = "화면 아무 곳을<br>2초간 길게 눌러 기를 모아주세요.";
+      }
+      
       var currentTex = window.currentExtractedTexture || currentExtractedTexture || createFallbackDummyTexture();
       initFullButterflyViewer(currentTex);
       showScreen('screen-preview'); 
@@ -1002,10 +1021,11 @@ if (btnSurveyPrev) {
 }
 
 // --------------------------------------------------------------------------
-// 핵심 고민 화면 시네마틱 플로우
+// 🌟 [1번 사진 수정]: 핵심 고민 화면 시네마틱 플로우 ((단일선택) [좌우 스크롤] 연동)
 // --------------------------------------------------------------------------
 var elCoreConcernTitleWrap = document.getElementById('core-concern-title-wrapper');
 var elCoreConcernTitle = document.getElementById('core-concern-title');
+var elCoreConcernSubGuide = document.getElementById('core-concern-sub-guide');
 var elCoreConcernContainer = document.getElementById('core-concern-scroll-container');
 var elCoreConcernGrid = document.getElementById('core-concern-scroll-grid');
 var btnCoreConcernNext = document.getElementById('btn-core-concern-next');
@@ -1029,6 +1049,7 @@ function initCoreConcernScreen() {
   clearTimeout(coreConcernTypeTimer);
   if (elCoreConcernTitleWrap) elCoreConcernTitleWrap.classList.remove('moved-to-top');
   if (elCoreConcernTitle) elCoreConcernTitle.innerHTML = "";
+  if (elCoreConcernSubGuide) elCoreConcernSubGuide.style.opacity = '0';
   if (elCoreConcernContainer) elCoreConcernContainer.classList.remove('revealed');
 
   var selectedItems = [].concat(userSelections.q2 || []);
@@ -1106,7 +1127,10 @@ function initCoreConcernScreen() {
     } else {
       setTimeout(function() {
         if (elCoreConcernTitleWrap) elCoreConcernTitleWrap.classList.add('moved-to-top');
-        setTimeout(function() { if (elCoreConcernContainer) elCoreConcernContainer.classList.add('revealed'); }, 450);
+        setTimeout(function() { 
+          if (elCoreConcernSubGuide) elCoreConcernSubGuide.style.opacity = '1';
+          if (elCoreConcernContainer) elCoreConcernContainer.classList.add('revealed'); 
+        }, 450);
       }, 350);
     }
   })();
@@ -1190,9 +1214,7 @@ if (btnConcernReasonPrev) {
 }
 
 // --------------------------------------------------------------------------
-// 🌟 [1번 사진 수정]: Top 7 물리 공 시뮬레이션
-//  - 천장(ceiling) 제거: 거꾸로 들었을 때 위로 유기적으로 상승[cite: 10]
-//  - 낙하 속도 및 중력/마찰계수 원상복구: 정상 속도로 자연스럽게 낙하[cite: 10]
+// Top 7 물리 공 시뮬레이션
 // --------------------------------------------------------------------------
 var top7Engine = null;
 var top7RenderLoop = null;
@@ -1239,7 +1261,6 @@ function initTop7PhysicsScene() {
       Mouse = Matter.Mouse,
       MouseConstraint = Matter.MouseConstraint;
 
-  // 🌟 원래의 중력 스케일로 복원
   top7Engine = Engine.create({
     positionIterations: 10,
     velocityIterations: 10,
@@ -1257,7 +1278,6 @@ function initTop7PhysicsScene() {
     isStatic: true, restitution: 0.3, friction: 0.25 
   });
 
-  // 🌟 [요청 사항 반영]: 천장을 완전히 없앰 (상단 개방)[cite: 10]
   top7Boundaries = [floor, leftWall, rightWall];
   Composite.add(top7Engine.world, top7Boundaries);
 
@@ -1275,7 +1295,6 @@ function initTop7PhysicsScene() {
       var spawnX = margin + Math.random() * (width - margin * 2);
       var spawnY = -actualRadius - 30 - (Math.random() * 40);
 
-      // 🌟 공기저항 및 마찰력 원래 속도로 완벽 복원
       var ballBody = Bodies.circle(spawnX, spawnY, actualRadius, {
         restitution: 0.32,
         friction: 0.08,
@@ -1314,7 +1333,6 @@ function initTop7PhysicsScene() {
   });
   Composite.add(top7Engine.world, mouseConstraint);
 
-  // 🌟 원래의 자이로스코프 중력 계산식으로 복구
   top7GyroHandler = function(e) {
     if (!top7Engine) return;
     var gamma = e.gamma || 0;
