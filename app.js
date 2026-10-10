@@ -16,11 +16,10 @@
      7) 오프닝 3단계 대사: '이야기를' -> '고치를' 로 문구 수정
      8) 나비전환 브릿지 대사: '당신에 대해 잘 알게 됐어요.<br>이제 그 마음을 나비로 만들어볼게요.' 로 수정
      9) 나비전환 브릿지 대사 상단 나비 이미지(butterfly_sit) 표시 연동
-     10) [수정 완료]: 
-         - 1위 외 나머지 공 색상을 사진 속 공(번아웃 무기력)과 동일한 진한 차콜 블랙(#1c1c1c)으로 통일
-         - 찌그러짐 현상 원인 제거 및 하늘에서 우수수 떨어지는 진짜 중력 낙하/롤링 물리 연출 구현
-     11) [신규 추가]: 관람 안내 화면(screen-guide) 네비게이션 바인딩 추가
-     12) [사이즈 개선]: 화면에 꽉 차도록 Top 7 물리 공 크기 및 스케일 대폭 확대
+     10) 1위 외 나머지 공 색상 통일 및 하늘 낙하 물리 연출
+     11) 관람 안내 화면(screen-guide) 네비게이션 바인딩 추가
+     12) Top 7 물리 공 크기 및 스케일 확대 보정
+     13) [신규 추가]: 1번 사진 이후 텍스트 브릿지(screen-top7-bridge) 추가 및 2번 사진 사용자 선택 키워드 연동
    ========================================================================== */
 
 // 🌟 [안전장치]: 전역 텍스처 변수 선언 보장 (ReferenceError 방지)
@@ -49,6 +48,7 @@ var ALL_SCREENS = [
   'screen-cover', 'screen-menu', 'screen-gallery', 'screen-intro', 'screen-guide',
   'screen-opening', 'screen-survey', 
   'screen-survey-core-concern', 'screen-survey-concern-reason', 
+  'screen-top7-bridge',
   'screen-survey-concern-top7',
   'screen-post-concern-bridge', 'screen-capture-guide', 
   'screen-shape-select', 'screen-survey-bridge',
@@ -63,6 +63,7 @@ var completeTypeTimer = null;
 var shareTypeTimer = null;
 var autoTransitionTimer = null;
 var reasonTypeTimer = null;
+var top7BridgeTypeTimer = null;
 var postConcernTypeTimer = null;
 var flightSafetyTimer = null;
 var typeTimer = null;
@@ -77,6 +78,7 @@ function clearAllTimers() {
   clearTimeout(surveyTitleTypeTimer);
   clearTimeout(coreConcernTypeTimer);
   clearTimeout(reasonTypeTimer);
+  clearTimeout(top7BridgeTypeTimer);
   clearTimeout(openingDelayTimer);
   clearTimeout(completeTypeTimer);
   clearTimeout(shareTypeTimer);
@@ -108,8 +110,10 @@ function showScreen(screenId) {
         stopBubblePhysics(); stopLoading3DScene(); stopShare3DScene(); stopTop7PhysicsScene(); initCoreConcernScreen();
       } else if (screenId === 'screen-survey-concern-reason') {
         stopBubblePhysics(); stopLoading3DScene(); stopShare3DScene(); stopTop7PhysicsScene(); initConcernReasonScreen();
+      } else if (screenId === 'screen-top7-bridge') {
+        stopBubblePhysics(); stopLoading3DScene(); stopShare3DScene(); stopTop7PhysicsScene(); initTop7BridgeScreen();
       } else if (screenId === 'screen-survey-concern-top7') {
-        stopBubblePhysics(); stopLoading3DScene(); stopShare3DScene(); initTop7PhysicsScene();
+        stopBubblePhysics(); stopLoading3DScene(); stopShare3DScene(); updateTop7PickedSubtitle(); initTop7PhysicsScene();
       } else if (screenId === 'screen-post-concern-bridge') {
         stopBubblePhysics(); stopLoading3DScene(); stopShare3DScene(); stopTop7PhysicsScene(); initPostConcernBridgeScreen();
       } else if (screenId === 'screen-capture-guide') {
@@ -163,6 +167,7 @@ function updateDevScreenBadge() {
     else if (currentStepIdx === 2) name += ' (3/3: 다정한한마디)';
   } else if (name === 'screen-survey-core-concern') name += ' (핵심고민)';
   else if (name === 'screen-survey-concern-reason') name += ' (고민이유)';
+  else if (name === 'screen-top7-bridge') name += ' (고민탑7브릿지)';
   else if (name === 'screen-survey-concern-top7') name += ' (고민탑7)';
   else if (name === 'screen-post-concern-bridge') name += ' (나비전환브릿지)';
   badge.innerText = '화면: ' + name;
@@ -347,8 +352,12 @@ document.addEventListener('click', function(e) {
       return; 
     } else if (curId === 'screen-survey-concern-reason') { 
       ensureDevDummyData(); 
-      showScreen('screen-survey-concern-top7'); 
+      showScreen('screen-top7-bridge'); 
       return; 
+    } else if (curId === 'screen-top7-bridge') {
+      ensureDevDummyData();
+      showScreen('screen-survey-concern-top7');
+      return;
     } else if (curId === 'screen-survey-concern-top7') { 
       ensureDevDummyData(); 
       currentStepIdx = 2; 
@@ -450,8 +459,11 @@ document.addEventListener('click', function(e) {
     } else if (curId === 'screen-survey-concern-reason') { 
       showScreen('screen-survey-core-concern'); 
       return; 
+    } else if (curId === 'screen-top7-bridge') {
+      showScreen('screen-survey-concern-reason');
+      return;
     } else if (curId === 'screen-survey-concern-top7') { 
-      showScreen('screen-survey-concern-reason'); 
+      showScreen('screen-top7-bridge'); 
       return; 
     } else if (curId === 'screen-post-concern-bridge') { 
       currentStepIdx = 2; 
@@ -585,6 +597,34 @@ if (btnOpeningNext) {
       currentStepIdx = 0;
       showScreen('screen-survey');
     }
+  };
+}
+
+// --------------------------------------------------------------------------
+// 🌟 [신규 추가]: 1번 사진 직후 텍스트 브릿지 화면 로직 (screen-top7-bridge)
+// --------------------------------------------------------------------------
+function initTop7BridgeScreen() {
+  clearTimeout(top7BridgeTypeTimer);
+  var textEl = document.getElementById('top7-bridge-text');
+  var nextGroup = document.getElementById('top7-bridge-next-group');
+  var btnNext = document.getElementById('btn-top7-bridge-next');
+
+  if (!textEl || !nextGroup) return;
+  textEl.innerHTML = "";
+  nextGroup.classList.add('hidden');
+  nextGroup.classList.remove('visible');
+
+  typeWriterText(textEl, "그렇군요.<br>다른 사람들은 어떤 것을 선택했을까요?", function() {
+    if (btnNext) btnNext.innerHTML = "다음";
+    nextGroup.classList.remove('hidden');
+    nextGroup.classList.add('visible');
+  });
+}
+
+var btnTop7BridgeNext = document.getElementById('btn-top7-bridge-next');
+if (btnTop7BridgeNext) {
+  btnTop7BridgeNext.onclick = function() {
+    showScreen('screen-survey-concern-top7');
   };
 }
 
@@ -1045,7 +1085,7 @@ if (btnCoreConcernPrev) btnCoreConcernPrev.onclick = function() {
 };
 
 // --------------------------------------------------------------------------
-// 핵심 고민 이유 작성 화면 로직
+// 🌟 [1번 사진] 핵심 고민 이유 작성 화면 로직: 상단 타이틀 문구 반영
 // --------------------------------------------------------------------------
 var elConcernReasonTitle = document.getElementById('concern-reason-title');
 var inputConcernReason = document.getElementById('input-concern-reason');
@@ -1059,7 +1099,7 @@ function initConcernReasonScreen() {
   if (elConcernReasonKeywordDisplay) elConcernReasonKeywordDisplay.innerText = userSelections.core_concern || "고민";
   if (elConcernReasonTitle) elConcernReasonTitle.innerHTML = "";
 
-  var tokens = "가장 힘들었던 이유는 무엇인가요?".match(/(<[^>]+>|[^<])/g) || [];
+  var tokens = "이것을 선택한 이유는 무엇인가요?".match(/(<[^>]+>|[^<])/g) || [];
   var idx = 0, cur = "";
   (function typeReasonChar() {
     if (idx < tokens.length) {
@@ -1088,15 +1128,14 @@ if (inputConcernReason) {
 }
 
 if (btnConcernReasonNext) {
-  btnConcernReasonNext.onclick = function() { showScreen('screen-survey-concern-top7'); };
+  btnConcernReasonNext.onclick = function() { showScreen('screen-top7-bridge'); };
 }
 if (btnConcernReasonPrev) {
   btnConcernReasonPrev.onclick = function() { showScreen('screen-survey-core-concern'); };
 }
 
 // --------------------------------------------------------------------------
-// 가장 많이 고른 고민 키워드 Top 7 2D 물리 공 시뮬레이션
-// 🌟 화면이 꽉 차도록 전체 반지름 및 스케일 확대 보정 완료
+// 🌟 [2번 사진] 가장 많이 고른 고민 키워드 Top 7 2D 물리 공 시뮬레이션
 // --------------------------------------------------------------------------
 var top7Engine = null;
 var top7RenderLoop = null;
@@ -1114,6 +1153,14 @@ var top7KeywordData = [
   { rank: 6, keyword: "거절 공포", percent: "7.6%", radius: 86, fill: "#1c1c1c", textColor: "#ffffff", subColor: "#a3a3a3" },
   { rank: 7, keyword: "번아웃 무기력", percent: "6.4%", radius: 84, fill: "#1c1c1c", textColor: "#ffffff", subColor: "#a3a3a3" }
 ];
+
+function updateTop7PickedSubtitle() {
+  var subtitleEl = document.getElementById('top7-user-picked-subtitle');
+  if (subtitleEl) {
+    var pickedKeyword = userSelections.core_concern || "완벽주의 강박";
+    subtitleEl.innerText = "당신이 고른 키워드 : " + pickedKeyword;
+  }
+}
 
 function initTop7PhysicsScene() {
   stopTop7PhysicsScene();
@@ -1161,7 +1208,6 @@ function initTop7PhysicsScene() {
   top7Balls = [];
   top7SpawnTimeouts = [];
 
-  // 화면 너비에 맞게 유동적으로 스케일 조정 (작은 화면에서도 꽉 차도록 하한선 0.92 유지)
   var scaleRatio = Math.min(1.25, Math.max(0.92, width / 390));
 
   top7KeywordData.forEach(function(item, idx) {
@@ -1320,7 +1366,7 @@ if (btnConcernTop7Next) {
 var btnConcernTop7Prev = document.getElementById('btn-concern-top7-prev');
 if (btnConcernTop7Prev) {
   btnConcernTop7Prev.onclick = function() {
-    showScreen('screen-survey-concern-reason');
+    showScreen('screen-top7-bridge');
   };
 }
 

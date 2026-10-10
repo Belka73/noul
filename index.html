@@ -246,7 +246,7 @@
       </footer>
     </section>
 
-    <!-- 0.65 관람 안내 화면 (🌟 1단계 세로선 연장 및 7종 나비 좌측 정렬 반영) -->
+    <!-- 0.65 관람 안내 화면 -->
     <section id="screen-guide" class="screen flex-col flex-1 justify-between py-6 px-5 text-left relative z-20 w-full bg-black overflow-hidden select-none">
       <button id="btn-guide-back" type="button" class="app-back-btn">
         <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -262,14 +262,13 @@
           </h2>
         </div>
 
-        <!-- 4단계 타임라인 리스트 (1단계 내용 전체 길이에 맞춰 세로선이 2단계 직전까지 쭉 이어지는 1:1 결합 구조) -->
+        <!-- 4단계 타임라인 리스트 -->
         <div class="guide-timeline-container flex flex-col w-full pl-1">
           
-          <!-- 🌟 1단계: COLORING (방법 1, 나비 도안 7개, 방법 2, QR코드 전체가 1단계) -->
+          <!-- 1단계: COLORING -->
           <div class="guide-step-item">
             <div class="guide-step-left">
               <div class="guide-step-circle">1</div>
-              <!-- 1단계 내용 전체 길이에 맞춰 2단계 직전까지 쭉 이어지는 세로선 -->
               <div class="guide-step-line"></div>
             </div>
             <div class="guide-step-right pb-10">
@@ -280,7 +279,6 @@
                 <p class="text-[13px] font-bold text-white tracking-tight">방법1. 도안 채색</p>
                 <p class="text-xs text-neutral-300 font-normal leading-relaxed">7가지 도안 중 하나를 고르세요.</p>
                 
-                <!-- 🌟 7가지 나비 SVG: 사각형 틀/이름 없이 좌측 정렬 (.guide-butterfly-grid) -->
                 <div class="guide-butterfly-grid">
                   <!-- 1줄: 초승 나비, 새벽 나비 -->
                   <div class="guide-butterfly-item">
@@ -291,7 +289,7 @@
                   </div>
                   <div class="guide-butterfly-item">
                     <svg class="w-16 h-14 text-white" viewBox="0 0 1000 1000">
-                      <path d="M497.15,571.42c-15.65,14.76-31.3,62.06-31.3,62.06l-39.83,155.07c-12.8,31.3-21.34,65.44-51.22,68.29-29.88,2.85-42.68-38.41-38.41-48.37,4.27-9.96-9.96-19.92-9.96-19.92-35.57-18.49-115.24-72.56-130.88-130.88-15.65-58.33,48.37-85.36,56.91-86.78,8.54-1.42,4.27-4.27,4.27-4.27-44.1-11.38-68.29-14.23-96.74-79.67-28.45-65.44,12.8-152.22,14.23-156.49s14.23-35.57,14.23-39.83-15.65-21.34-8.54-78.25c7.11-56.91,61.17-76.82,73.18-82.51s10.76,0,10.76,0c-27.03,45.53-21.34,59.75-8.54,102.43,12.8,42.68,81.09,105.28,132.31,156.49,51.22,51.22,109.54,162.18,109.54,162.18v20.45Zm5.69,0c15.65,14.76,31.3,62.06,31.3,62.06l39.83,155.07c12.8,31.3,21.34,65.44,51.22,68.29,29.88,2.85,42.68-38.41,38.41-48.37-4.27-9.96,9.96-19.92,9.96-19.92,35.57-18.49,115.24-72.56,130.88-130.88,15.65-58.33-48.37-85.36-56.91-86.78-8.54-1.42-4.27-4.27-4.27-4.27,44.1-11.38,68.29-14.23,96.74-79.67,28.45-65.44-12.8-152.22-14.23-156.49-1.42-4.27-14.23-35.57-14.23-39.83,0-4.27,15.65-21.34,8.54-78.25-7.11-56.91-61.17-76.82-73.18-82.51-12-5.69-10.76,0-10.76,0,27.03,45.53,21.34,59.75,8.54,102.43-12.8,42.68-81.09,105.28-132.31,156.49-51.22,51.22-109.54,162.18-109.54,162.18v20.45Z" fill="currentColor"/>
+                      <path d="M497.15,571.42c-15.65,14.76-31.3,62.06-31.3,62.06l-39.83,155.07c-12.8,31.3-21.34,65.44-51.22,68.29-29.88,2.85-42.68-38.41-38.41-48.37,4.27-9.96-9.96-19.92-9.96-19.92-35.57-18.49-115.24-72.56-130.88-130.88-15.65-58.33,48.37-85.36,56.91-86.78,8.54-1.42,4.27-4.27,4.27-4.27-44.1-11.38-68.29-14.23-96.74-79.67-28.45-65.44,12.8-152.22,14.23-156.49s14.23-35.57,14.23-39.83-15.65-21.34-8.54-78.25c7.11-56.91,61.17-76.82,73.18-82.51s10.76,0,10.76,0c-27.03,45.53-21.34,59.75-8.54,102.43,12.8,42.68,81.09,105.28,132.31,156.49,51.22,51.22,109.54,162.18,109.54,162.18v20.45Zm5.69,0c15.65,14.76,31.3,62.06,31.3,62.06l39.83,155.07c12.8,31.3,21.34,65.44,51.22,68.29,29.88,2.85,42.68-38.41,38.41-48.37-4.27-9.96,9.96-19.92,9.96-19.92,35.57-18.49,115.24-72.56,130.88-130.88,15.65-58.33-48.37-85.36-56.91-86.78-8.54-1.42-4.27-4.27-4.27-4.27,44.1-11.38,68.29-14.23-96.74-79.67-28.45-65.44-12.8-152.22-14.23-156.49-1.42-4.27-14.23-35.57-14.23-39.83,0-4.27,15.65-21.34,8.54-78.25-7.11-56.91-61.17-76.82-73.18-82.51-12-5.69-10.76,0-10.76,0,27.03,45.53,21.34,59.75,8.54,102.43-12.8,42.68-81.09,105.28-132.31,156.49-51.22,51.22-109.54,162.18-109.54,162.18v20.45Z" fill="currentColor"/>
                       <path d="M519.59,527.4c-3.09-2.91-4.27-5.53-4.55-7.67,3.26-4.09,5.26-9.49,5.26-15.44,0-12.72-9.09-23.04-20.3-23.04s-20.3,10.31-20.3,23.04c0,5.95,2,11.35,5.26,15.44-.28,2.14-1.46,4.76-4.55,7.67-8.9,8.39,0,53.72,1.55,56.04,1.55,2.32,1.8,5.41,1.8,7.74s.65,40.65,2.2,56.9c1.55,16.24,2.45,61.88,14.05,61.88s12.5-45.64,14.05-61.88c1.55-16.24,2.2-54.58,2.2-56.9s.25-5.41,1.8-7.74c1.55-2.32,10.45-47.66,1.55-56.04Z" fill="currentColor"/>
                     </svg>
                   </div>
@@ -321,18 +319,18 @@
                   </div>
                   <div class="guide-butterfly-item">
                     <svg class="w-16 h-14 text-white" viewBox="0 0 1000 1000">
-                      <path d="M499.32,520.01s-15.47,95.26-51.06,200.65c-35.59,105.39-80.76,104.02-128.66,112.24-47.91,8.21-12.32-52.01-12.32-52.01,26.01-61.59,8.21-94.44-6.84-125.92-15.06-31.48-53.38-67.07-42.43-86.23,10.95-19.16,43.8-30.11,43.8-30.11-90.34,5.47-112.24-65.7-112.24-65.7-41.06-101.29-4.11-191.62,6.84-229.95,10.95-38.32-21.9-57.49-38.32-73.91-16.42-16.42-2.74-21.9-2.74-21.9,142.35,1.37,212.15,64.33,260.06,121.82s83.91,231.66,83.91,231.66v19.38Zm1.37,0s15.47,95.26,51.06,200.65c35.59,105.39,80.76,104.02,128.66,112.24,47.91,8.21,12.32-52.01,12.32-52.01-26.01-61.59-8.21-94.44,6.84-125.92,15.06-31.48,53.38-67.07,42.43-86.23-10.95-19.16-43.8-30.11-43.8-30.11,90.34,5.47,112.24-65.7,112.24-65.7-41.06-101.29,4.11-191.62-6.84-229.95s21.9-57.49,38.32-73.91c16.42-16.42,2.74-21.9,2.74-21.9-142.35,1.37-212.15,64.33-260.06,121.82-47.91,57.49-83.91,231.66-83.91,231.66v19.38Z" fill="currentColor"/>
+                      <path d="M499.32,520.01s-15.47,95.26-51.06,200.65c-35.59,105.39-80.76,104.02-128.66,112.24-47.91,8.21-12.32-52.01-12.32-52.01,26.01-61.59,8.21-94.44-6.84-125.92-15.06-31.48-53.38-67.07-42.43-86.23,10.95-19.16,43.8-30.11,43.8-30.11-90.34,5.47-112.24-65.7-112.24-65.7-41.06-101.29-4.11-191.62,6.84-229.95,10.95-38.32-21.9-57.49-38.32-73.91-16.42-16.42-2.74-21.9-2.74-21.9,142.35,1.37,212.15,64.33,260.06,121.82s83.91,231.66,83.91,231.66v19.38Zm1.37,0s15.47,95.26,51.06,200.65c35.59,105.39,80.76,104.02,128.66,112.24,47.91,8.21,12.32-52.01,12.32-52.01-26.01-61.59-8.21-94.44,6.84-125.92,15.06-31.48,53.38-67.07,42.43-86.23-10.95-19.16-43.8-30.11-43.8-30.11,90.34,5.47,112.24-65.7,112.24-65.7-41.06-101.29,4.11-191.62-6.84-229.95s21.9-57.49,38.32-73.91c16.42-16.42,2.74-21.9,2.74-21.9-142.35,1.37,212.15,64.33,260.06,121.82-47.91,57.49-83.91,231.66-83.91,231.66v19.38Z" fill="currentColor"/>
                       <path d="M523.45,444.54c-1.61-1.35-2.97-2.82-4.11-4.33-1.91-2.53-2.08-6.03-.36-8.69,3.03-4.65,4.83-10.44,4.83-16.74,0-15.35-10.66-27.79-23.8-27.79s-23.8,12.44-23.8,27.79c0,6.29,1.8,12.08,4.83,16.74,1.73,2.66,1.55,6.16-.36,8.69-1.14,1.51-2.5,2.98-4.11,4.33-9.4,7.84,0,62.95,1.62,64.9,1.62,1.96,4.85,4.57,4.85,6.52s-.81,16.64,.81,30.34c1.62,13.7,4.04,52.19,16.17,52.19s14.55-38.49,16.17-52.19c1.62-13.7,.81-28.38,.81-30.34s3.23-4.57,4.85-6.52,11.02-57.06,1.62-64.9Z" fill="currentColor"/>
                     </svg>
                   </div>
                 </div>
 
-                <!-- 🌟 4줄: 물결 나비 (왼쪽 정렬) -->
+                <!-- 4줄: 물결 나비 (왼쪽 정렬) -->
                 <div class="guide-butterfly-grid">
                   <div class="guide-butterfly-item">
                     <svg class="w-16 h-14 text-white" viewBox="0 0 1000 1000">
                       <path d="M744.63,220.59c-123.96,29.62-244.63,218.3-244.63,218.3,0,0-120.67-188.68-244.63-218.3-123.96-29.62-104.22,32.91-104.22,38.4s5.48,25.23,18.65,36.2,7.68,31.81,5.49,36.2c-2.19,4.39-13.16,37.3,8.78,51.56s19.75,29.62,16.46,35.1c-3.29,5.49-16.46,40.59,26.33,54.85,0,0,40.97,7.55,69.47-3.01,.69-.26,1.41-.45,2.15-.52,1.17-.12,2.55,0,1.88,1.34-1.1,2.19-65.82,35.1-70.21,66.92-4.39,31.81,4.39,43.88,14.26,52.66,9.87,8.78,17.52,19.29,15.36,26.33-3.36,10.93-9.87,26.33-8.78,37.3,.73,7.32,5.49,15.36,30.72,31.81,25.23,16.46,24.13,23.04,24.13,30.72s-4.39,34.01,10.97,42.78c15.36,8.78,64.72,35.1,108.6-59.24,43.88-94.34,74.6-219.26,74.6-219.26,0,0,30.72,124.92,74.6,219.26,43.88,94.34,93.25,68.01,108.6,59.24,15.36-8.78,10.97-35.1,10.97-42.78s-1.1-14.26,24.13-30.72c25.23-16.46,29.98-24.49,30.72-31.81,1.1-10.97-5.42-26.37-8.78-37.3-2.16-7.03,5.49-17.55,15.36-26.33,9.87-8.78,18.65-20.84,14.26-52.66-4.39-31.81-69.11-64.72-70.21-66.92-.67-1.34,.71-1.45,1.88-1.34,.74,.07,1.45,.26,2.15,.52,28.5,10.56,69.47,3.01,69.47,3.01,42.78-14.26,29.62-49.37,26.33-54.85-3.29-5.48-5.48-20.84,16.46-35.1s10.97-47.17,8.78-51.56c-2.19-4.39-7.68-25.23,5.49-36.2s18.65-30.72,18.65-36.2,19.75-68.01-104.22-38.4Z" fill="currentColor"/>
-                      <path d="M521.05,433.27c-3.85-3.42-5.03-6.65-5.11-9.23-.04-1.27,.41-2.51,1.17-3.52,2.86-3.82,4.58-8.61,4.58-13.83,0-12.46-9.71-22.55-21.69-22.55s-21.69,10.1-21.69,22.55c0,4.94,1.47,9.5,3.95,13.21,1.25,1.87,1.3,4.31,.08,6.2-1.06,1.66-2.76,3.48-5.4,5.34-9.88,6.98-4.39,87.06,.43,95.22,1.4,2.36,4.57,5.33,4.57,7.62s-.76,17.55,.76,33.54c1.51,15.85,4.85,60.11,16.02,60.92v.02c.05,0,.1,0,.16,0,.05,0,.1,0,.16,0v-.02c11.18-.81,14.51-45.07,16.02-60.92,1.52-16,.76-31.26,.76-33.54s3.17-5.25,4.57-7.62c4.82-8.15,10.31-88.23,.43-95.22Z" fill="currentColor"/>
+                      <path d="M521.05,433.27c-3.85-3.42-5.03-6.65-5.11-9.23-.04-1.27,.41-2.51,1.17-3.52,2.86-3.82,4.58-8.61,4.58-13.83,0-12.46-9.71-22.55-21.69-22.55s-21.69,10.1-21.69,22.55c0,5.21,1.71,9.99,4.57,13.81,.84,1.13,1.26,2.52,1.16,3.93-.19,2.51-1.43,5.58-5.09,8.84-9.72,8.64-2.4,60.84,.54,69.55,.88,2.61,4.59,5.35,4.59,7.64s-.76,32.92,.76,48.97c1.52,15.93,3.79,60.48,15.04,61.14v.02s.08,0,.13,0c.04,0,.08,0,.13,0v-.02c11.18-.81,14.51-45.07,16.02-60.92,1.52-16,.76-31.26,.76-33.54s3.17-5.25,4.57-7.62c4.82-8.15,10.31-88.23,.43-95.22Z" fill="currentColor"/>
                     </svg>
                   </div>
                 </div>
@@ -363,7 +361,7 @@
             </div>
           </div>
 
-          <!-- 🌟 2단계: INTERACTION (1단계 내용이 완전히 끝난 뒤 위치) -->
+          <!-- 2단계: INTERACTION -->
           <div class="guide-step-item">
             <div class="guide-step-left">
               <div class="guide-step-circle">2</div>
@@ -378,7 +376,7 @@
             </div>
           </div>
 
-          <!-- 🌟 3단계: CONNECTION -->
+          <!-- 3단계: CONNECTION -->
           <div class="guide-step-item">
             <div class="guide-step-left">
               <div class="guide-step-circle">3</div>
@@ -393,7 +391,7 @@
             </div>
           </div>
 
-          <!-- 🌟 4단계: GIFT (마지막 단계는 세로선 없음) -->
+          <!-- 4단계: GIFT -->
           <div class="guide-step-item">
             <div class="guide-step-left">
               <div class="guide-step-circle">4</div>
@@ -421,10 +419,8 @@
     <section id="screen-opening" class="screen flex-col flex-1 justify-between py-6 px-4 text-center relative z-20 w-full bg-black overflow-hidden">
       <div class="opening-stage flex-1 flex flex-col justify-center items-center gap-6 px-4">
         
-        <!-- 중앙 메인 묶음: 문장 위 동일한 크기와 위치로 이미지 노출 제어 -->
         <div class="flex flex-col items-center justify-center w-full max-w-[360px] mx-auto">
           
-          <!-- [2단계 전용]: 사람 png 이미지 (image/person.png) -->
           <div id="opening-cocoon-group" class="hidden flex items-center justify-center w-full mb-8 -mt-6 pointer-events-none">
             <img id="opening-cocoon-img" 
                  src="image/person.png" 
@@ -434,7 +430,6 @@
                  class="select-none pointer-events-none block" />
           </div>
 
-          <!-- [3단계 전용]: 고치 png 이미지 (image/cocoon.png) - 2단계와 완전히 동일한 높이 38px, 동일한 간격 -->
           <div id="opening-step3-cocoon-group" class="hidden flex items-center justify-center w-full mb-8 -mt-6 pointer-events-none">
             <img id="opening-step3-cocoon-img" 
                  src="image/cocoon.png" 
@@ -444,13 +439,11 @@
                  class="select-none pointer-events-none block" />
           </div>
 
-          <!-- 오프닝 대사 텍스트 박스 -->
           <div class="opening-text-box w-full text-center">
             <h2 id="opening-text" class="text-base sm:text-[1.08rem] font-medium text-white tracking-tight leading-relaxed break-keep"></h2>
           </div>
         </div>
 
-        <!-- 하단 버튼 앵커 -->
         <div class="opening-button-anchor w-full flex justify-center">
           <div id="opening-choice-group" class="button-group-fade hidden flex items-center justify-center gap-3">
             <button id="btn-opening-yes" type="button" class="opening-pill-btn">예</button>
@@ -494,7 +487,7 @@
         <div id="organic-chip-container" class="flex flex-col items-center gap-2.5 w-full py-2"></div>
       </div>
 
-      <!-- 3번 사진: 나에게 건넬 한마디 (말풍선 꼬리 역삼각형 추가 반영) -->
+      <!-- 3번 사진: 나에게 건넬 한마디 (말풍선 꼬리 역삼각형 적용) -->
       <div id="field-step-6" class="hidden flex-1 w-full flex-col justify-center items-center px-4 min-h-0">
         <canvas id="bubble-physics-canvas" class="bubble-physics-bg-layer"></canvas>
 
@@ -502,10 +495,8 @@
           <div id="selected-concern-chips" class="selected-concern-chips-wrap"></div>
           <p class="text-xs text-neutral-400 mb-2 font-normal text-left w-full pl-1 tracking-tight">작성한 내용은 전시에 공개됩니다.</p>
           <div class="glass-input-card-v2" style="height: 195px;">
-            <!-- 🌟 좌측 상단 말풍선 작은 역삼각형 꼬리 -->
             <div class="speech-bubble-tail">
               <svg viewBox="0 0 16 10" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <!-- 사각형 상단과 완전히 맞붙는 역삼각형 (위가 넓고 아래로 모이는 형태) -->
                 <polygon points="0,0 16,0 4,10" fill="rgba(255, 255, 255, 0.05)"/>
                 <polyline points="0,0 4,10 16,0" stroke="rgba(255, 255, 255, 0.15)" stroke-width="1" stroke-linecap="round" stroke-linejoin="round"/>
               </svg>
@@ -518,7 +509,7 @@
         </div>
       </div>
 
-      <!-- 1번 사진: 당신의 이름은 무엇인가요? (전시 공개 및 익명 문구) -->
+      <!-- 1번 사진: 당신의 이름은 무엇인가요? -->
       <div id="field-step-7" class="hidden flex-1 w-full flex-col justify-center items-center px-4 min-h-0">
         <div class="w-full max-w-[340px] flex flex-col">
           <p class="text-xs text-neutral-400 mb-2 font-normal text-left w-full pl-1 tracking-tight">작성한 이름은 전시에 공개됩니다. 익명으로 적어주세요.</p>
@@ -564,7 +555,7 @@
       <footer class="bottom-dock-unified w-full flex flex-col items-center gap-2 z-20">
         <button id="btn-core-concern-next" type="button" disabled 
                 class="btn-next-action w-[84%] py-3.5 rounded-2xl font-bold text-sm tracking-wide active:scale-[0.98] transition-all">
-          다음 질문으로
+          다음으로
         </button>
         <button id="btn-core-concern-prev" type="button" class="py-1 text-neutral-400 text-[11px] text-center hover:text-white transition-all font-medium">
           ← 이전 질문으로 돌아가기
@@ -572,7 +563,7 @@
       </footer>
     </section>
 
-    <!-- 핵심 고민 이유 작성 화면 -->
+    <!-- 🌟 [1번 사진] 핵심 고민 이유 작성 화면: 상단 문구 수정 반영 -->
     <section id="screen-survey-concern-reason" class="screen flex-col flex-1 justify-between text-center relative z-20 w-full bg-black overflow-hidden select-none">
       <header class="w-full pt-3 pb-0 flex-shrink-0 flex justify-center">
         <div class="w-[84%] h-1 bg-white/10 rounded-full overflow-hidden">
@@ -582,7 +573,7 @@
 
       <div class="survey-title-box text-center pb-2 flex-shrink-0 px-4" style="padding-top: 20px !important;">
         <h1 id="concern-reason-title" class="text-[1.38rem] font-bold text-white tracking-tight leading-[1.36] break-keep">
-          가장 힘들었던 이유는 무엇인가요?
+          이것을 선택한 이유는 무엇인가요?
         </h1>
       </div>
 
@@ -612,7 +603,25 @@
       </footer>
     </section>
 
-    <!-- 탑7 고민 물리 공 화면 -->
+    <!-- 🌟 [신규 추가] 1번 사진 다음 텍스트 전용 브릿지 페이지 -->
+    <section id="screen-top7-bridge" class="screen flex-col flex-1 justify-between py-6 px-4 text-center relative z-20 w-full bg-black overflow-hidden select-none">
+      <div class="opening-stage flex-1 flex flex-col justify-center items-center gap-6 px-4">
+        <div class="opening-text-box w-full max-w-[360px] mx-auto text-center">
+          <h2 id="top7-bridge-text" class="text-base sm:text-[1.08rem] font-medium text-white tracking-tight leading-relaxed break-keep"></h2>
+        </div>
+
+        <div class="opening-button-anchor w-full flex justify-center">
+          <div id="top7-bridge-next-group" class="button-group-fade hidden">
+            <button id="btn-top7-bridge-next" type="button" class="opening-action-btn">
+              다음
+            </button>
+          </div>
+        </div>
+      </div>
+      <div class="pb-3"></div>
+    </section>
+
+    <!-- 🌟 [2번 사진] 탑7 고민 물리 공 화면: 상단 문구 및 선택 키워드 라벨 변경 반영 -->
     <section id="screen-survey-concern-top7" class="screen flex-col flex-1 justify-between text-center relative z-20 w-full bg-black overflow-hidden select-none">
       <header class="w-full pt-3 pb-0 flex-shrink-0 flex justify-center">
         <div class="w-[84%] h-1 bg-white/10 rounded-full overflow-hidden">
@@ -622,8 +631,11 @@
 
       <div class="survey-title-box text-center pb-2 flex-shrink-0 px-4" style="padding-top: 20px !important;">
         <h1 id="concern-top7-title" class="text-[1.38rem] font-bold text-white tracking-tight leading-[1.36] break-keep">
-          여러분이 가장 많이 선택한 고민
+          가장 많이 선택된 키워드
         </h1>
+        <p id="top7-user-picked-subtitle" class="text-xs text-neutral-400 mt-1.5 font-normal tracking-tight">
+          당신이 고른 키워드 : 완벽주의 강박
+        </p>
       </div>
 
       <div id="top7-physics-container" class="top7-physics-container flex-1 w-full relative min-h-0 overflow-hidden">
