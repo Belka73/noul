@@ -3,7 +3,7 @@
 /* ==========================================================================
    너울(Noul) 전역 스타일시트
    - 아이폰 17 규격 최적화 (402×874 pt / 430×932)
-   - 표지 화면 시네마틱 애니메이션 복원
+   - 표지 화면 시네마틱 애니메이션 복원 (순차 등장 속도 단축)
    - [수정 1] 1번 사진: 표본실 나비 한 줄에 2마리 정렬, 동일 크기, 위아래 스크롤 및 이름표 간격 고정
    - [수정 2] 2번 사진: 등이 보이는 3D 회전값, 유기적인 비행, 안정된 기모으기
    - [추가] 로딩 화면 3D 캔버스 블러 및 완성/공유 페이지 스타일
@@ -85,7 +85,7 @@ html, body {
   z-index: 0;
   pointer-events: none;
   opacity: 0;
-  animation: coverBgFadeIn 1.2s cubic-bezier(0.16, 1, 0.3, 1) 2.3s forwards;
+  animation: coverBgFadeIn 0.8s cubic-bezier(0.16, 1, 0.3, 1) 0.7s forwards;
 }
 
 @keyframes coverBgFadeIn {
@@ -96,19 +96,19 @@ html, body {
 .cover-anim-logo {
   opacity: 0;
   transform: translateY(8px);
-  animation: coverElemFadeInUp 1.0s cubic-bezier(0.16, 1, 0.3, 1) 0.5s forwards;
+  animation: coverElemFadeInUp 0.6s cubic-bezier(0.16, 1, 0.3, 1) 0.15s forwards;
 }
 
 .cover-anim-desc {
   opacity: 0;
   transform: translateY(6px);
-  animation: coverElemFadeInUp 1.0s cubic-bezier(0.16, 1, 0.3, 1) 1.4s forwards;
+  animation: coverElemFadeInUp 0.6s cubic-bezier(0.16, 1, 0.3, 1) 0.5s forwards;
 }
 
 .cover-anim-btn {
   opacity: 0;
   transform: translateY(14px);
-  animation: coverElemFadeInUp 0.9s cubic-bezier(0.16, 1, 0.3, 1) 3.3s forwards;
+  animation: coverElemFadeInUp 0.7s cubic-bezier(0.16, 1, 0.3, 1) 1.0s forwards;
 }
 
 @keyframes coverElemFadeInUp {
