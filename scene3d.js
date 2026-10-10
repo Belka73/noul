@@ -11,6 +11,7 @@
      6) [날개짓 개선]: 등장 시 빠른 날개짓 후 부드러운 감속 및 끊김 없는(Seamless) 대기 날개짓 연결
      7) [공유 화면 크기 조절]: screen-share 내 3D 나비 스케일 축소 (0.68 -> 0.48)
      8) [로딩 화면 위치 조절]: 로딩 화면 3D 나비 위치를 살짝 왼쪽으로 이동 보정 (0.28 -> 0.08)
+     9) [하단 문구 수정]: 안내 라벨을 '화면 아무 곳을<br>2초간 가만히 길게 눌러주세요.' 로 수정 반영
    ========================================================================== */
 
 // --------------------------------------------------------------------------
@@ -499,7 +500,10 @@ function updateChargeUIAndCamera(progress, currentChargeSec) {
   if (footerUI) { footerUI.style.display = 'flex'; footerUI.style.opacity = '1'; }
 
   var flyLabel = document.getElementById('preview-fly-label');
-  if (flyLabel) flyLabel.innerText = progress >= 1.0 ? "위로 쓸어 올려주세요" : "화면을 길게 눌러주세요.";
+  // 🌟 [안내 문구 수정]: 2줄 개행 텍스트 적용
+  if (flyLabel) {
+    flyLabel.innerHTML = progress >= 1.0 ? "위로 쓸어 올려주세요" : "화면 아무 곳을<br>2초간 가만히 길게 눌러주세요.";
+  }
 }
 
 function startChargeVibrationLoop() {
@@ -529,7 +533,10 @@ function resetChargeState() {
   if (footerUI && !isFlyingAway) { footerUI.style.display = 'flex'; footerUI.style.opacity = 1.0; footerUI.style.pointerEvents = 'none'; }
 
   var flyLabel = document.getElementById('preview-fly-label');
-  if (flyLabel) flyLabel.innerText = "화면을 길게 눌러주세요.";
+  // 🌟 [안내 문구 수정]: 초기화 시에도 2줄 개행 텍스트 적용
+  if (flyLabel) {
+    flyLabel.innerHTML = "화면 아무 곳을<br>2초간 가만히 길게 눌러주세요.";
+  }
 }
 
 function bindInteractiveEvents(targetEl) {
