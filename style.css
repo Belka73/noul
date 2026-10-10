@@ -756,6 +756,7 @@ html, body {
   z-index: 20;
 }
 
+/* 🌟 [빨간색 동그라미 전체 상향 이동]: 아래로 치우쳐 있던 요소를 위쪽으로 균형감 있게 끌어올림 */
 #screen-survey-concern-reason .flex-1.w-full {
   display: flex !important;
   flex-direction: column !important;
@@ -763,7 +764,7 @@ html, body {
   justify-content: center !important;
   padding: 0 16px !important;
   min-height: 0 !important;
-  transform: translateY(22px) !important;
+  transform: translateY(-28px) !important;
 }
 
 .concern-reason-highlight-word {
@@ -778,8 +779,8 @@ html, body {
   display: block;
   text-align: center;
   margin-top: 0 !important;
-  margin-bottom: 42px !important;
-  transform: translateY(-24px) !important;
+  margin-bottom: 30px !important;
+  transform: none !important;
 }
 
 #field-step-6 {
