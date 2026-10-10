@@ -16,6 +16,7 @@
      7) 오프닝 3단계 대사: '이야기를' -> '고치를' 로 문구 수정
      8) 나비전환 브릿지 대사: '당신에 대해 잘 알게 됐어요.<br>이제 그 마음을 나비로 만들어볼게요.' 로 수정
      9) 나비전환 브릿지 대사 상단 나비 이미지(butterfly_sit) 표시 연동
+     10) [신규 추가]: 2번 사진 다음 페이지 - 가장 많이 고른 고민 키워드 탑7 Matter.js 2D 물리 공 시뮬레이션
    ========================================================================== */
 
 // 🌟 [안전장치]: 전역 텍스처 변수 선언 보장 (ReferenceError 방지)
@@ -44,6 +45,7 @@ var ALL_SCREENS = [
   'screen-cover', 'screen-menu', 'screen-gallery', 'screen-intro',
   'screen-opening', 'screen-survey', 
   'screen-survey-core-concern', 'screen-survey-concern-reason', 
+  'screen-survey-concern-top7',
   'screen-post-concern-bridge', 'screen-capture-guide', 
   'screen-shape-select', 'screen-survey-bridge',
   'screen-loading', 'screen-preview', 'screen-complete', 'screen-share'
@@ -93,36 +95,38 @@ function showScreen(screenId) {
     target.style.display = 'flex';
     try {
       if (screenId === 'screen-cover') {
-        stopBubblePhysics(); stopLoading3DScene(); stopShare3DScene();
+        stopBubblePhysics(); stopLoading3DScene(); stopShare3DScene(); stopTop7PhysicsScene();
       } else if (screenId === 'screen-opening') {
-        stopBubblePhysics(); stopLoading3DScene(); stopShare3DScene(); resetOpeningFlow();
+        stopBubblePhysics(); stopLoading3DScene(); stopShare3DScene(); stopTop7PhysicsScene(); resetOpeningFlow();
       } else if (screenId === 'screen-survey') {
-        stopLoading3DScene(); stopShare3DScene(); renderSurveyStep();
+        stopLoading3DScene(); stopShare3DScene(); stopTop7PhysicsScene(); renderSurveyStep();
       } else if (screenId === 'screen-survey-core-concern') {
-        stopBubblePhysics(); stopLoading3DScene(); stopShare3DScene(); initCoreConcernScreen();
+        stopBubblePhysics(); stopLoading3DScene(); stopShare3DScene(); stopTop7PhysicsScene(); initCoreConcernScreen();
       } else if (screenId === 'screen-survey-concern-reason') {
-        stopBubblePhysics(); stopLoading3DScene(); stopShare3DScene(); initConcernReasonScreen();
+        stopBubblePhysics(); stopLoading3DScene(); stopShare3DScene(); stopTop7PhysicsScene(); initConcernReasonScreen();
+      } else if (screenId === 'screen-survey-concern-top7') {
+        stopBubblePhysics(); stopLoading3DScene(); stopShare3DScene(); initTop7PhysicsScene();
       } else if (screenId === 'screen-post-concern-bridge') {
-        stopBubblePhysics(); stopLoading3DScene(); stopShare3DScene(); initPostConcernBridgeScreen();
+        stopBubblePhysics(); stopLoading3DScene(); stopShare3DScene(); stopTop7PhysicsScene(); initPostConcernBridgeScreen();
       } else if (screenId === 'screen-capture-guide') {
-        stopBubblePhysics(); stopLoading3DScene(); stopShare3DScene(); startCaptureGuideCinematicFlow();
+        stopBubblePhysics(); stopLoading3DScene(); stopShare3DScene(); stopTop7PhysicsScene(); startCaptureGuideCinematicFlow();
       } else if (screenId === 'screen-shape-select') {
-        stopBubblePhysics(); stopLoading3DScene(); stopShare3DScene();
+        stopBubblePhysics(); stopLoading3DScene(); stopShare3DScene(); stopTop7PhysicsScene();
         if (typeof switchTab === 'function') switchTab('wing');
         if (typeof updateHeroPreview === 'function') updateHeroPreview();
         if (typeof drawAlignCanvas === 'function') drawAlignCanvas();
       } else if (screenId === 'screen-gallery') {
-        stopBubblePhysics(); stopLoading3DScene(); stopShare3DScene(); initSpecimenGallery();
+        stopBubblePhysics(); stopLoading3DScene(); stopShare3DScene(); stopTop7PhysicsScene(); initSpecimenGallery();
       } else if (screenId === 'screen-survey-bridge') {
-        stopBubblePhysics(); stopLoading3DScene(); stopShare3DScene(); playBridgeTypingSequence();
+        stopBubblePhysics(); stopLoading3DScene(); stopShare3DScene(); stopTop7PhysicsScene(); playBridgeTypingSequence();
       } else if (screenId === 'screen-loading') {
-        stopBubblePhysics(); stopShare3DScene();
+        stopBubblePhysics(); stopShare3DScene(); stopTop7PhysicsScene();
       } else if (screenId === 'screen-complete') {
-        stopLoading3DScene(); stopShare3DScene(); playCompleteScreenSequence();
+        stopLoading3DScene(); stopShare3DScene(); stopTop7PhysicsScene(); playCompleteScreenSequence();
       } else if (screenId === 'screen-share') {
-        stopLoading3DScene(); initShare3DScene(); playShareScreenSequence();
+        stopLoading3DScene(); stopTop7PhysicsScene(); initShare3DScene(); playShareScreenSequence();
       } else {
-        stopBubblePhysics(); stopLoading3DScene(); stopShare3DScene();
+        stopBubblePhysics(); stopLoading3DScene(); stopShare3DScene(); stopTop7PhysicsScene();
       }
     } catch(e) {
       console.warn("화면 진입 시각효과 경고:", e);
@@ -155,6 +159,7 @@ function updateDevScreenBadge() {
     else if (currentStepIdx === 2) name += ' (3/3: 다정한한마디)';
   } else if (name === 'screen-survey-core-concern') name += ' (핵심고민)';
   else if (name === 'screen-survey-concern-reason') name += ' (고민이유)';
+  else if (name === 'screen-survey-concern-top7') name += ' (고민탑7)';
   else if (name === 'screen-post-concern-bridge') name += ' (나비전환브릿지)';
   badge.innerText = '화면: ' + name;
 }
@@ -289,7 +294,6 @@ document.addEventListener('click', function(e) {
     if (curId === 'screen-opening') {
       if (openingCurrentStep === 1) {
         openingCurrentStep = 2;
-        // 2단계 진입: 2단계 인물 표시, 3단계 고치 숨김
         if (elOpeningCocoonGroup) elOpeningCocoonGroup.classList.remove('hidden');
         if (elOpeningStep3CocoonGroup) elOpeningStep3CocoonGroup.classList.add('hidden');
         if (elOpeningNextGroup) { elOpeningNextGroup.classList.remove('visible'); elOpeningNextGroup.classList.add('hidden'); }
@@ -301,7 +305,6 @@ document.addEventListener('click', function(e) {
         return;
       } else if (openingCurrentStep === 2) {
         openingCurrentStep = 3;
-        // 3단계 진입: 2단계 인물 숨김, 3단계 고치 즉시 표시
         if (elOpeningCocoonGroup) elOpeningCocoonGroup.classList.add('hidden');
         if (elOpeningStep3CocoonGroup) elOpeningStep3CocoonGroup.classList.remove('hidden');
         if (elOpeningNextGroup) { elOpeningNextGroup.classList.remove('visible'); elOpeningNextGroup.classList.add('hidden'); }
@@ -339,6 +342,10 @@ document.addEventListener('click', function(e) {
       showScreen('screen-survey-concern-reason'); 
       return; 
     } else if (curId === 'screen-survey-concern-reason') { 
+      ensureDevDummyData(); 
+      showScreen('screen-survey-concern-top7'); 
+      return; 
+    } else if (curId === 'screen-survey-concern-top7') { 
       ensureDevDummyData(); 
       currentStepIdx = 2; 
       showScreen('screen-survey'); 
@@ -392,7 +399,6 @@ document.addEventListener('click', function(e) {
     if (curId === 'screen-opening') {
       if (openingCurrentStep === 3) {
         openingCurrentStep = 2;
-        // 2단계로 후퇴: 2단계 인물 표시, 3단계 고치 숨김
         if (elOpeningCocoonGroup) elOpeningCocoonGroup.classList.remove('hidden');
         if (elOpeningStep3CocoonGroup) elOpeningStep3CocoonGroup.classList.add('hidden');
         if (elOpeningNextGroup) { elOpeningNextGroup.classList.remove('visible'); elOpeningNextGroup.classList.add('hidden'); }
@@ -404,7 +410,6 @@ document.addEventListener('click', function(e) {
         return;
       } else if (openingCurrentStep === 2) {
         openingCurrentStep = 1;
-        // 1단계로 후퇴: 2단계 인물 및 3단계 고치 모두 숨김
         if (elOpeningCocoonGroup) elOpeningCocoonGroup.classList.add('hidden');
         if (elOpeningStep3CocoonGroup) elOpeningStep3CocoonGroup.classList.add('hidden');
         if (elOpeningNextGroup) { elOpeningNextGroup.classList.remove('visible'); elOpeningNextGroup.classList.add('hidden'); }
@@ -420,12 +425,11 @@ document.addEventListener('click', function(e) {
       }
     }
     if (curId === 'screen-survey') {
-      if (currentStepIdx === 2) { showScreen('screen-survey-concern-reason'); return; }
+      if (currentStepIdx === 2) { showScreen('screen-survey-concern-top7'); return; }
       else if (currentStepIdx === 1) { currentStepIdx = 0; renderSurveyStep(); return; }
       else if (currentStepIdx === 0) {
         showScreen('screen-opening'); 
         openingCurrentStep = 3;
-        // 오프닝 3단계 복귀: 2단계 인물 숨김, 3단계 고치 표시
         if (elOpeningCocoonGroup) elOpeningCocoonGroup.classList.add('hidden');
         if (elOpeningStep3CocoonGroup) elOpeningStep3CocoonGroup.classList.remove('hidden');
         typeWriterText(elOpeningText, "오늘 이곳에서,<br>당신의 마음 깊은 곳에 묻어둔 고치를<br>조심스레 꺼내어보려 합니다.", function() {
@@ -441,6 +445,9 @@ document.addEventListener('click', function(e) {
       return; 
     } else if (curId === 'screen-survey-concern-reason') { 
       showScreen('screen-survey-core-concern'); 
+      return; 
+    } else if (curId === 'screen-survey-concern-top7') { 
+      showScreen('screen-survey-concern-reason'); 
       return; 
     } else if (curId === 'screen-post-concern-bridge') { 
       currentStepIdx = 2; 
@@ -549,7 +556,6 @@ if (btnOpeningNext) {
   btnOpeningNext.onclick = function() {
     if (openingCurrentStep === 1) {
       openingCurrentStep = 2;
-      // 🌟 2단계: 2단계 인물 표시, 3단계 고치 숨김
       if (elOpeningCocoonGroup) { elOpeningCocoonGroup.classList.remove('hidden'); }
       if (elOpeningStep3CocoonGroup) { elOpeningStep3CocoonGroup.classList.add('hidden'); }
       if (elOpeningNextGroup) { elOpeningNextGroup.classList.remove('visible'); elOpeningNextGroup.classList.add('hidden'); }
@@ -560,7 +566,6 @@ if (btnOpeningNext) {
       updateDevScreenBadge();
     } else if (openingCurrentStep === 2) {
       openingCurrentStep = 3;
-      // 🌟 3단계: 2단계 인물 숨김, 3단계 고치 즉시 노출 제어
       if (elOpeningCocoonGroup) { elOpeningCocoonGroup.classList.add('hidden'); }
       if (elOpeningStep3CocoonGroup) { elOpeningStep3CocoonGroup.classList.remove('hidden'); }
       if (elOpeningNextGroup) { elOpeningNextGroup.classList.remove('visible'); elOpeningNextGroup.classList.add('hidden'); }
@@ -591,13 +596,11 @@ function initPostConcernBridgeScreen() {
   nextGroup.classList.add('hidden');
   nextGroup.classList.remove('visible');
 
-  // 나비 이미지 상시 표시 보장
   if (butterflyImgGroup) {
     butterflyImgGroup.classList.remove('hidden');
     butterflyImgGroup.style.display = 'flex';
   }
 
-  // 🌟 [문구 줄바꿈(<br>) 적용 타이핑]
   typeWriterText(textEl, "당신에 대해 잘 알게 됐어요.<br>이제 그 마음을 나비로 만들어볼게요.", function() {
     if (btnNext) btnNext.innerHTML = "다음";
     nextGroup.classList.remove('hidden');
@@ -893,7 +896,6 @@ if (inputQ7Name) {
   };
 }
 
-// 🌟 [정석 진행]: 2단계 완료 시 브릿지 화면을 건너뛰고 핵심 고민 화면(screen-survey-core-concern)으로 곧바로 진입
 if (btnSurveyNext) {
   btnSurveyNext.onclick = function() {
     if (currentStepIdx === 0) { currentStepIdx = 1; renderSurveyStep(); }
@@ -914,7 +916,7 @@ if (btnSurveyNext) {
 
 if (btnSurveyPrev) {
   btnSurveyPrev.onclick = function() {
-    if (currentStepIdx === 2) showScreen('screen-survey-concern-reason');
+    if (currentStepIdx === 2) showScreen('screen-survey-concern-top7');
     else if (currentStepIdx === 1) { currentStepIdx = 0; renderSurveyStep(); }
   };
 }
@@ -1036,7 +1038,7 @@ if (btnCoreConcernPrev) btnCoreConcernPrev.onclick = function() {
 };
 
 // --------------------------------------------------------------------------
-// 핵심 고민 이유 작성 화면 로직 (서술 작성)
+// 핵심 고민 이유 작성 화면 로직 (서술 작성 - 2번 사진)
 // --------------------------------------------------------------------------
 var elConcernReasonTitle = document.getElementById('concern-reason-title');
 var inputConcernReason = document.getElementById('input-concern-reason');
@@ -1078,11 +1080,227 @@ if (inputConcernReason) {
   };
 }
 
+// 🌟 [수정 연동]: 2번 사진 다음 페이지인 'screen-survey-concern-top7'으로 진입
 if (btnConcernReasonNext) {
-  btnConcernReasonNext.onclick = function() { currentStepIdx = 2; showScreen('screen-survey'); };
+  btnConcernReasonNext.onclick = function() { showScreen('screen-survey-concern-top7'); };
 }
 if (btnConcernReasonPrev) {
   btnConcernReasonPrev.onclick = function() { showScreen('screen-survey-core-concern'); };
+}
+
+// --------------------------------------------------------------------------
+// 🌟 [신규 기능]: 가장 많이 고른 고민 키워드 Top 7 2D 물리 공 시뮬레이션
+// --------------------------------------------------------------------------
+var top7Engine = null;
+var top7Runner = null;
+var top7RenderLoop = null;
+var top7Balls = [];
+var top7Boundaries = [];
+var top7GyroHandler = null;
+
+var top7KeywordData = [
+  { rank: 1, keyword: "완벽주의 강박", percent: "28.4%", radius: 58, fill: "#f0f0f0", textColor: "#111111", subColor: "#444444" },
+  { rank: 2, keyword: "비교중독", percent: "19.2%", radius: 48, fill: "#b8b8b8", textColor: "#111111", subColor: "#333333" },
+  { rank: 3, keyword: "미래 막막함", percent: "16.5%", radius: 46, fill: "#a0a0a0", textColor: "#111111", subColor: "#222222" },
+  { rank: 4, keyword: "수면 부족", percent: "12.1%", radius: 38, fill: "#6a6a6a", textColor: "#ffffff", subColor: "#d1d1d1" },
+  { rank: 5, keyword: "텅 빈 잔고", percent: "9.8%", radius: 37, fill: "#545454", textColor: "#ffffff", subColor: "#c2c2c2" },
+  { rank: 6, keyword: "거절 공포", percent: "7.6%", radius: 35, fill: "#444444", textColor: "#ffffff", subColor: "#bbbbbb" },
+  { rank: 7, keyword: "번아웃 무기력", percent: "6.4%", radius: 34, fill: "#363636", textColor: "#ffffff", subColor: "#aaaaaa" }
+];
+
+function initTop7PhysicsScene() {
+  stopTop7PhysicsScene();
+  var container = document.getElementById('top7-physics-container');
+  var canvas = document.getElementById('top7-physics-canvas');
+  if (!container || !canvas || typeof Matter === 'undefined') return;
+
+  var rect = container.getBoundingClientRect();
+  var width = rect.width || window.innerWidth;
+  var height = rect.height || (window.innerHeight - 240);
+
+  canvas.width = width;
+  canvas.height = height;
+  var ctx = canvas.getContext('2d');
+
+  var Engine = Matter.Engine,
+      Bodies = Matter.Bodies,
+      Composite = Matter.Composite,
+      Mouse = Matter.Mouse,
+      MouseConstraint = Matter.MouseConstraint;
+
+  top7Engine = Engine.create({
+    gravity: { x: 0, y: 1.1, scale: 0.001 }
+  });
+
+  // 🌟 화면 프레임 바깥으로 삐져나가지 않도록 완벽히 가두는 경계벽 4면 생성
+  var wallThick = 80;
+  var floor = Bodies.rectangle(width / 2, height + wallThick / 2, width * 2, wallThick, { isStatic: true, restitution: 0.4, friction: 0.1 });
+  var leftWall = Bodies.rectangle(-wallThick / 2, height / 2, wallThick, height * 2, { isStatic: true, restitution: 0.4, friction: 0.1 });
+  var rightWall = Bodies.rectangle(width + wallThick / 2, height / 2, wallThick, height * 2, { isStatic: true, restitution: 0.4, friction: 0.1 });
+  var ceiling = Bodies.rectangle(width / 2, -wallThick / 2 - 200, width * 2, wallThick, { isStatic: true });
+
+  top7Boundaries = [floor, leftWall, rightWall, ceiling];
+  Composite.add(top7Engine.world, top7Boundaries);
+
+  // 🌟 공 7개 생성: 화면 상단 위에서부터 우수수수 떨어지는 등장 연출 (시차 부여)
+  top7Balls = [];
+  top7KeywordData.forEach(function(item, idx) {
+    // 뷰포트 폭에 맞춰 유기적 크기 보정 (기준폭 390px)
+    var scaleRatio = Math.min(1.15, Math.max(0.85, width / 390));
+    var actualRadius = item.radius * scaleRatio;
+
+    // 상단 화면 위에서 x축 분산 및 y축 높이차를 두어 우수수수 떨어지도록 배치
+    var spawnX = (width * 0.2) + (Math.random() * (width * 0.6));
+    var spawnY = -actualRadius - (idx * 50) - Math.random() * 80;
+
+    var ballBody = Bodies.circle(spawnX, spawnY, actualRadius, {
+      restitution: 0.58, // 통통 튀는 탄성
+      friction: 0.08,    // 구르기 쉽도록 낮은 마찰력
+      frictionAir: 0.012,
+      density: 0.002
+    });
+
+    ballBody.customData = {
+      rank: item.rank,
+      keyword: item.keyword,
+      percent: item.percent,
+      radius: actualRadius,
+      fill: item.fill,
+      textColor: item.textColor,
+      subColor: item.subColor
+    };
+
+    top7Balls.push(ballBody);
+  });
+
+  Composite.add(top7Engine.world, top7Balls);
+
+  // 🌟 마우스 및 모바일 터치 드래그 바인딩 (손으로 공 잡고 굴리기)
+  var mouse = Mouse.create(canvas);
+  var mouseConstraint = MouseConstraint.create(top7Engine, {
+    mouse: mouse,
+    constraint: {
+      stiffness: 0.25,
+      render: { visible: false }
+    }
+  });
+  Composite.add(top7Engine.world, mouseConstraint);
+
+  // 🌟 스마트폰 자이로스코프 기울기 감지 (핸드폰 돌리거나 기울이면 공이 굴러감)
+  top7GyroHandler = function(e) {
+    if (!top7Engine) return;
+    var gamma = e.gamma || 0; // 좌우 기울기 (-90 ~ 90)
+    var beta = e.beta || 0;   // 앞뒤 기울기 (-180 ~ 180)
+
+    var gravityX = Math.max(-1.8, Math.min(1.8, (gamma / 45) * 1.3));
+    var gravityY = Math.max(-1.8, Math.min(1.8, (beta / 45) * 1.3));
+
+    // 기기가 거의 평평하거나 너무 극단적일 때 기본 하강 중력 보정
+    if (Math.abs(gravityX) < 0.05 && Math.abs(gravityY) < 0.05) {
+      gravityY = 1.1;
+    }
+
+    top7Engine.gravity.x = gravityX;
+    top7Engine.gravity.y = gravityY;
+  };
+
+  if (window.DeviceOrientationEvent) {
+    window.addEventListener('deviceorientation', top7GyroHandler, true);
+  }
+
+  // 🌟 커스텀 2D 캔버스 드로잉 렌더 루프
+  (function renderTop7Frame() {
+    top7RenderLoop = requestAnimationFrame(renderTop7Frame);
+    Engine.update(top7Engine, 1000 / 60);
+
+    ctx.clearRect(0, 0, width, height);
+
+    // 공 7개 그리기
+    top7Balls.forEach(function(ball) {
+      var pos = ball.position;
+      var angle = ball.angle;
+      var data = ball.customData;
+
+      ctx.save();
+      ctx.translate(pos.x, pos.y);
+      ctx.rotate(angle);
+
+      // 1. 공 원형 본체 (무채색 그라데이션 및 2D 섀도우)
+      ctx.beginPath();
+      ctx.arc(0, 0, data.radius, 0, Math.PI * 2);
+      ctx.fillStyle = data.fill;
+      ctx.fill();
+
+      // 1위 공에만 은은한 입체 테두리 추가
+      if (data.rank === 1) {
+        ctx.lineWidth = 1.5;
+        ctx.strokeStyle = "rgba(255, 255, 255, 0.6)";
+        ctx.stroke();
+      } else {
+        ctx.lineWidth = 1.0;
+        ctx.strokeStyle = "rgba(255, 255, 255, 0.15)";
+        ctx.stroke();
+      }
+
+      // 2. 글씨는 회전하지 않고 똑바로 보이도록 역회전 보정
+      ctx.rotate(-angle);
+
+      // 키워드 텍스트 크기 계산
+      var titleFontSize = Math.max(10, Math.min(14, data.radius * 0.3));
+      var percentFontSize = Math.max(9, Math.min(12, data.radius * 0.23));
+
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+
+      // 상단: 키워드
+      ctx.font = "bold " + titleFontSize + "px -apple-system, Pretendard, sans-serif";
+      ctx.fillStyle = data.textColor;
+      ctx.fillText(data.keyword, 0, -percentFontSize * 0.65);
+
+      // 하단: 퍼센트
+      ctx.font = "500 " + percentFontSize + "px -apple-system, Pretendard, sans-serif";
+      ctx.fillStyle = data.subColor;
+      ctx.fillText(data.percent, 0, percentFontSize * 0.85);
+
+      ctx.restore();
+    });
+  })();
+}
+
+function stopTop7PhysicsScene() {
+  if (top7RenderLoop) { cancelAnimationFrame(top7RenderLoop); top7RenderLoop = null; }
+  if (top7GyroHandler) {
+    window.removeEventListener('deviceorientation', top7GyroHandler, true);
+    top7GyroHandler = null;
+  }
+  if (top7Engine) {
+    Matter.World.clear(top7Engine.world, false);
+    Matter.Engine.clear(top7Engine);
+    top7Engine = null;
+  }
+  top7Balls = [];
+  top7Boundaries = [];
+  var canvas = document.getElementById('top7-physics-canvas');
+  if (canvas) {
+    var ctx = canvas.getContext('2d');
+    if (ctx) ctx.clearRect(0, 0, canvas.width, canvas.height);
+  }
+}
+
+// 🌟 신규 탑 7 화면 하단 버튼 바인딩
+var btnConcernTop7Next = document.getElementById('btn-concern-top7-next');
+if (btnConcernTop7Next) {
+  btnConcernTop7Next.onclick = function() {
+    currentStepIdx = 2; // 설문 3단계(다정한 한마디 작성)로 직결
+    showScreen('screen-survey');
+  };
+}
+
+var btnConcernTop7Prev = document.getElementById('btn-concern-top7-prev');
+if (btnConcernTop7Prev) {
+  btnConcernTop7Prev.onclick = function() {
+    showScreen('screen-survey-concern-reason');
+  };
 }
 
 // --------------------------------------------------------------------------

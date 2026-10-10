@@ -13,6 +13,7 @@
    - [수정 사항 2]: 1번 사진(고민이유) 박스 위치 기준 2번 사진 박스 위치 완벽 일치화
    - [요청 반영]: 선택된 키워드(완벽주의 강박) 상단으로 추가 상향 이동
    - [시스템 UI 제거]: 프리뷰 및 3D 상호작용 영역 파란색 화살표/하이라이트/선택 박스 완전 방지
+   - [신규 추가]: 2번 사진 다음 페이지 - 가장 많이 고른 고민 탑7 물리 공 화면 레이아웃
    ========================================================================== */
 
 * {
@@ -617,8 +618,6 @@ html, body {
 
 /* ==========================================================================
    🌟 1번 사진(고민이유) & 2번 사진(다정한한마디) 박스 완벽 수직 정렬
-   - 제목 박스와 글씨가 절대 겹치지 않도록 자연스러운 flex 구조 유지
-   - 1번 사진과 2번 사진의 작성 박스 위치 1:1 완벽 일치화
    ========================================================================== */
 
 /* 상단 타이틀 영역 높이 일치 */
@@ -725,7 +724,8 @@ html, body {
 
 /* 핵심 고민 화면 */
 #screen-survey-core-concern,
-#screen-survey-concern-reason {
+#screen-survey-concern-reason,
+#screen-survey-concern-top7 {
   display: none;
   width: 100%;
   height: 100%;
@@ -736,7 +736,8 @@ html, body {
   justify-content: space-between;
 }
 #screen-survey-core-concern.active,
-#screen-survey-concern-reason.active {
+#screen-survey-concern-reason.active,
+#screen-survey-concern-top7.active {
   display: flex;
 }
 
@@ -779,7 +780,8 @@ html, body {
   flex-shrink: 0;
 }
 
-#core-concern-title {
+#core-concern-title,
+#concern-top7-title {
   font-size: 1.38rem;
   font-weight: 700;
   color: #ffffff;
@@ -955,6 +957,26 @@ html, body {
   cursor: not-allowed;
 }
 
+/* ==========================================================================
+   🌟 [신규 스타일]: 탑 7 물리 공 화면 레이아웃 및 캔버스
+   ========================================================================== */
+.top7-physics-container {
+  width: 100%;
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  touch-action: none !important;
+}
+
+.top7-physics-canvas {
+  width: 100%;
+  height: 100%;
+  display: block;
+  touch-action: none !important;
+}
+
 /* 바운스 애니메이션 */
 .bounce-guide {
   animation: bounceUp 1.8s infinite ease-in-out;
@@ -1080,9 +1102,7 @@ html, body {
   pointer-events: none;
 }
 
-/* ==========================================================================
-   4번 사진: 나비 둘러보기 & 검색바
-   ========================================================================== */
+/* 나비 둘러보기 & 검색바 */
 .gallery-header-guide {
   position: absolute;
   top: max(1.2rem, env(safe-area-inset-top));
