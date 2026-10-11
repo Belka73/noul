@@ -309,7 +309,8 @@
       }
 
       let initialVelocity;
-      let targetScale = 0.38 + Math.random() * 0.14;
+      // 🌟 배경 유영 나비 크기 축소: 0.14 ~ 0.22 범위로 설정 (레퍼런스 이미지 반영)
+      let targetScale = 0.14 + Math.random() * 0.08;
 
       if (isDelayedArrival) {
         group.position.set((Math.random() - 0.5) * 5, -8.0, 1.0);
@@ -374,8 +375,10 @@
 
     function updateMotion(b, time) {
       let currentTargetScale = b.targetScale;
-      if (b.isSpecialLanding && b.specialState === 'landed') {
-        currentTargetScale = b.targetScale * handPerspectiveScale;
+      // 🌟 손가락 착석 나비 크기 유지: 유영할 때는 작지만 손끝에 안착할 때는 본래 관람용 크기(기존 0.45 수준)로 확대
+      if (b.isSpecialLanding && (b.specialState === 'approaching' || b.specialState === 'landed')) {
+        const landingBaseScale = 0.45;
+        currentTargetScale = landingBaseScale * handPerspectiveScale;
       }
 
       if (b.isAscendingArrival) {
@@ -722,7 +725,7 @@
                   }
               } else {
                   interactionMode = 'none';
-                  handPointer.style.background = 'radial-gradient(circle, rgba(255, 255, 255, 0.4) 0%, rgba(255, 255, 255, 0.1) 40%, rgba(255, 255, 255, 0) 70%)';
+                  handPointer.style.background = 'radial-gradient(circle, rgba(255, 255, 255, 0.4) 0%, rgba(255, 255, 255, 0) 100%, rgba(255, 255, 255, 0) 70%)';
                   fistButterflies = [];
                   if (floatingInfoCard) floatingInfoCard.classList.remove('visible');
               }
