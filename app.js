@@ -750,28 +750,28 @@ function startCaptureGuideCinematicFlow() {
 
 var SUPABASE_URL = 'https://djmdzsbfsobsutphragw.supabase.co';
 var SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRqbWR6c2Jmc29ic3V0cGhyYWd3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODk4ODQ3NTgsImV4cCI6MjEwNTQ2MDc1OH0.BC7llaSjbq6cYhDlRqrwJaycpQ6gSNcp5LgYBeM6WEM';
-var supabase = null;
+var _supabaseClientInstance = null;
 
 function getSupabaseClient() {
-  if (supabase) return supabase;
+  if (_supabaseClientInstance) return _supabaseClientInstance;
   
   var factory = null;
-  if (window.supabase && typeof window.supabase.createClient === 'function') {
-    factory = window.supabase.createClient;
-  } else if (window.supabaseJs && typeof window.supabaseJs.createClient === 'function') {
-    factory = window.supabaseJs.createClient;
+  var sbLib = window.supabase || window.Supabase || window.supabaseJs;
+
+  if (sbLib && typeof sbLib.createClient === 'function') {
+    factory = sbLib.createClient;
   } else if (typeof window.createClient === 'function') {
     factory = window.createClient;
   }
 
   if (factory) {
     try {
-      supabase = factory(SUPABASE_URL, SUPABASE_ANON_KEY);
+      _supabaseClientInstance = factory(SUPABASE_URL, SUPABASE_ANON_KEY);
     } catch (e) {
       console.warn("Supabase 클라이언트 생성 재시도 실패:", e);
     }
   }
-  return supabase;
+  return _supabaseClientInstance;
 }
 
 var surveyQuestions = [
@@ -1428,9 +1428,9 @@ window.saveButterflyToSupabase = async function() {
   try {
     var client = getSupabaseClient();
     
-    // 클라이언트가 준비될 때까지 최대 10회(약 3초) 대기 시도
+    // 클라이언트가 준비될 때까지 최대 15회(약 4.5초) 대기 시도
     if (!client) {
-      for (var attempt = 0; attempt < 10; attempt++) {
+      for (var attempt = 0; attempt < 15; attempt++) {
         await new Promise(function(resolve) { setTimeout(resolve, 300); });
         client = getSupabaseClient();
         if (client) break;
