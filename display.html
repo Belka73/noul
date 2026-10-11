@@ -677,7 +677,7 @@
 
       let isFollowing = false;
 
-      // 🌟 [수정]: 손가락으로 불려오는 특정 착석 나비만 특별 경로 적용
+      // 🌟 손가락으로 불려오는 특정 착석 나비만 특별 경로 적용
       if (b.isSpecialLanding) {
           isFollowing = true;
 
@@ -690,9 +690,9 @@
                   triggerLandingStorySequence(b);
               } else {
                   b.state = 'flying';
-                  // 손가락으로 날아오는 추진력 및 회전 반응속도를 대폭 완화하여 느리고 부드럽게 조정
-                  _vDir.subVectors(handTarget3D, b.group.position).normalize().multiplyScalar(0.18);
-                  b.velocity.lerp(_vDir, 0.05); 
+                  // 손가락으로 날아오는 추진력(0.18 -> 0.26) 및 회전 반응속도(0.05 -> 0.08)를 소폭 상향
+                  _vDir.subVectors(handTarget3D, b.group.position).normalize().multiplyScalar(0.26);
+                  b.velocity.lerp(_vDir, 0.08); 
                   
                   _vTargetPos.copy(b.group.position).add(b.velocity);
                   dummyObj.position.copy(b.group.position);
@@ -706,7 +706,7 @@
           if (b.specialState === 'landed') {
               b.state = 'landing_rest';
               b.velocity.set(0, 0, 0);
-              // 손끝에 안착할 때 급격하게 붙지 않도록 부드러운 속도로 보간
+              // 손끝에 안착할 때 급격하게 붙지 않도록 부드러운 속도 유지
               b.group.position.lerp(handTarget3D, 0.08); 
               
               dummyObj.position.copy(b.group.position);
@@ -736,7 +736,7 @@
               }
           }
       } 
-      // 🌟 [수정]: 착석 나비가 아닌 주변 일반 나비들은 land_one 모드일 때 완전히 독립된 자유 비행 유지
+      // 🌟 착석 나비가 아닌 주변 일반 나비들은 land_one 모드일 때 완전히 독립된 자유 비행 유지
       else if (isHandDetected) {
           if (interactionMode === 'fist_gather' && fistButterflies.includes(b.id)) {
               isFollowing = true;
@@ -775,7 +775,7 @@
           } 
       }
 
-      // 🌟 [수정]: 자유 비행 나비(주변 나비 포함)는 항상 일정한 유영 속도 유지
+      // 🌟 자유 비행 나비(주변 나비)는 원래의 차분한 유영 속도 유지
       if (!isFollowing && !b.isAscendingArrival) {
           b.state = 'flying';
           const t = time * 0.5 + b.seed;
@@ -790,10 +790,10 @@
           }
       }
 
-      // 🌟 [수정]: 착석 나비는 0.18, 산란 모드는 1.2, 그 외 모든 일반 주변 나비는 0.10으로 엄격히 제한
+      // 🌟 손가락 착석 나비 최대 속도만 0.18에서 0.26으로 소폭 상향 조정
       let maxSpeed = 0.10;
       if (b.isSpecialLanding) {
-          maxSpeed = 0.18;
+          maxSpeed = 0.26;
       } else if (isFollowing && interactionMode === 'scatter') {
           maxSpeed = 1.2;
       } else if (isFollowing && interactionMode === 'fist_gather') {
