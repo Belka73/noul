@@ -628,9 +628,9 @@
     function updateMotion(b, time) {
       let currentTargetScale = b.targetScale;
       
-      // 🌟 [수정]: 손가락 착석 나비 크기를 절반(기존 1.05 -> 0.52)으로 감축
+      // 🌟 손가락 착석 나비 크기 (기존 0.52 비율 유지)
       if (b.isSpecialLanding && (b.specialState === 'approaching' || b.specialState === 'landed')) {
-        const landingBaseScale = 0.52; // 기존 1.05의 딱 반 크기
+        const landingBaseScale = 0.52;
         const effectivePerspective = Math.max(0.85, handPerspectiveScale);
         currentTargetScale = landingBaseScale * effectivePerspective;
       }
@@ -689,8 +689,9 @@
                   triggerLandingStorySequence(b);
               } else {
                   b.state = 'flying';
-                  _vDir.subVectors(handTarget3D, b.group.position).normalize().multiplyScalar(0.48);
-                  b.velocity.lerp(_vDir, 0.14); 
+                  // 손가락으로 날아오는 추진력 및 회전 반응속도를 대폭 완화하여 느리고 부드럽게 조정
+                  _vDir.subVectors(handTarget3D, b.group.position).normalize().multiplyScalar(0.18);
+                  b.velocity.lerp(_vDir, 0.05); 
                   
                   _vTargetPos.copy(b.group.position).add(b.velocity);
                   dummyObj.position.copy(b.group.position);
@@ -704,7 +705,8 @@
           if (b.specialState === 'landed') {
               b.state = 'landing_rest';
               b.velocity.set(0, 0, 0);
-              b.group.position.lerp(handTarget3D, 0.25); 
+              // 손끝에 안착할 때 급격하게 붙지 않도록 부드러운 속도로 보간
+              b.group.position.lerp(handTarget3D, 0.08); 
               
               dummyObj.position.copy(b.group.position);
               dummyObj.lookAt(camera.position); 
@@ -785,7 +787,8 @@
           }
       }
 
-      let maxSpeed = isFollowing ? 0.52 : 0.10;
+      // 손가락 추적 시 최대 허용 속도를 0.52에서 0.18로 축소하여 과속 방지
+      let maxSpeed = isFollowing ? 0.18 : 0.10;
       if (interactionMode === 'scatter') maxSpeed = 1.2;
       if (b.isAscendingArrival) maxSpeed = 0.20;
 
