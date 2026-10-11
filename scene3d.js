@@ -222,6 +222,9 @@ var isUserDragging = false, lastPointerX = 0, lastPointerY = 0, previewStartTime
 var isPressingScreen = false, pressStartTime = 0, isChargeTriggered = false, chargeProgress = 0, chargeVibrateInterval = null;
 var particleCanvas = null, pctx = null, energyParticles = [], isFlyingTransitionTriggered = false;
 
+// 🌟 중복 저장 방지 플래그
+var hasTriggeredDBSave = false;
+
 function triggerDeviceVibrate(durationMs, intensity) {
   try {
     if (navigator.vibrate) navigator.vibrate(durationMs || 40);
@@ -229,6 +232,17 @@ function triggerDeviceVibrate(durationMs, intensity) {
       window.webkit.messageHandlers.haptic.postMessage({ type: 'impactMedium' });
     }
   } catch(e) {}
+}
+
+// 🌟 Supabase 단 1회 안전 저장 헬퍼
+function safeTriggerDBSave() {
+  if (hasTriggeredDBSave) return;
+  hasTriggeredDBSave = true;
+  if (typeof window.saveButterflyToSupabase === 'function') {
+    window.saveButterflyToSupabase();
+  } else if (typeof saveButterflyToSupabase === 'function') {
+    saveButterflyToSupabase();
+  }
 }
 
 function initFullButterflyViewer(textureURL) {
@@ -265,7 +279,7 @@ function initFullButterflyViewer(textureURL) {
   fullGroup.position.set(0, -6.5, 0);
 
   previewStartTime = performance.now();
-  isFlyingAway = false; isFlyingTransitionTriggered = false; resetChargeState();
+  isFlyingAway = false; isFlyingTransitionTriggered = false; hasTriggeredDBSave = false; resetChargeState();
 
   var whiteMat = new THREE.MeshStandardMaterial({ color: 0xffffff, side: THREE.DoubleSide, roughness: 0.35, metalness: 0.0 });
   var targetAnt = 'Antenna_' + selectedAntennaType;
@@ -377,10 +391,12 @@ function initFullButterflyViewer(textureURL) {
       }
       fullGroup.position.y += 0.09; fullGroup.position.z -= 0.04;
 
+      // 🌟 [안전 개선] 나비가 화면 상단으로 나갈 때 확실하게 저장 트리거 보장
       if (fullGroup.position.y > 4.6 && !isFlyingTransitionTriggered) {
         isFlyingTransitionTriggered = true;
         clearTimeout(flightSafetyTimer);
-        saveButterflyToSupabase();
+        safeTriggerDBSave();
+
         if (container) container.style.opacity = '0';
         var glowBgEl = document.querySelector('.preview-ethereal-glow-bg');
         if (glowBgEl) glowBgEl.style.opacity = '0';
@@ -525,12 +541,18 @@ function bindInteractiveEvents(targetEl) {
     if (isChargeTriggered && chargeProgress >= 1.0 && swipeDeltaY > 40 && !isFlyingAway) {
       isFlyingAway = true;
       triggerDeviceVibrate(180, 1.0);
+
+      // 🌟 [안전 개선] 위로 날려보내는 스와이프 발생 즉시 선제적 저장 트리거
+      safeTriggerDBSave();
+
       var footerUI = document.getElementById('preview-footer-ui');
       if (footerUI) { footerUI.style.setProperty('display', 'none', 'important'); footerUI.style.opacity = '0'; footerUI.style.pointerEvents = 'none'; }
       clearTimeout(flightSafetyTimer);
       flightSafetyTimer = setTimeout(function() {
         if (!isFlyingTransitionTriggered) {
-          isFlyingTransitionTriggered = true; saveButterflyToSupabase(); showScreen('screen-complete');
+          isFlyingTransitionTriggered = true; 
+          safeTriggerDBSave();
+          showScreen('screen-complete');
         }
       }, 3500);
     } else resetChargeState();

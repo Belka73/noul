@@ -1404,10 +1404,35 @@ function stopBubblePhysics() {
   if (bubbleCanvas && bctx) bctx.clearRect(0, 0, bubbleCanvas.width, bubbleCanvas.height);
 }
 
-async function saveButterflyToSupabase() {
+// 🌟 Supabase에 나비 안전 저장 함수 (전역 window 바인딩 + 페이로드 최적화)
+window.saveButterflyToSupabase = async function() {
   try {
-    var finalTex = window.currentExtractedTexture || currentExtractedTexture;
+    var rawTex = window.currentExtractedTexture || currentExtractedTexture;
+    
+    // 🌟 1. 거대한 1000x1000 PNG Base64를 512x512 JPEG로 경량화하여 페이로드 거부 방지
+    function compressBase64(base64Str) {
+      return new Promise(function(resolve) {
+        if (!base64Str || !base64Str.startsWith('data:image')) {
+          resolve(base64Str);
+          return;
+        }
+        var img = new Image();
+        img.onload = function() {
+          var cvs = document.createElement('canvas');
+          cvs.width = 512;
+          cvs.height = 512;
+          var c = cvs.getContext('2d');
+          c.drawImage(img, 0, 0, 512, 512);
+          resolve(cvs.toDataURL('image/jpeg', 0.8));
+        };
+        img.onerror = function() { resolve(base64Str); };
+        img.src = base64Str;
+      });
+    }
+
+    var finalTex = await compressBase64(rawTex);
     var tempId = Date.now();
+
     specimenButterfliesData.unshift({
       id: tempId, name: userSelections.q7_name || '나비',
       wingId: selectedButterflyShape, antId: selectedAntennaType, patternId: selectedPatternId, q1: [],
@@ -1417,29 +1442,29 @@ async function saveButterflyToSupabase() {
     });
 
     if (!supabase) {
-      console.warn("⚠️ Supabase 클라이언트가 초기화되지 않았습니다.");
+      console.error("❌ Supabase 클라이언트가 초기화되지 않았습니다. window.supabase를 확인해주세요.");
       return;
     }
+
+    console.log("🚀 Supabase INSERT 요청 전송 중...");
+
+    // 🌟 2. DB 스키마에 정의된 안전한 컬럼만 매핑하여 INSERT
     var { data, error } = await supabase.from('butterflies').insert([{
       name: userSelections.q7_name || '이름없는 나비',
-      wing_shape: selectedButterflyShape,
-      pattern_id: selectedPatternId,
-      antenna_type: selectedAntennaType,
-      q1: [],
-      q2: userSelections.q2,
-      core_concern: userSelections.core_concern,
-      q3: [],
-      q4: [],
-      q5: [],
+      wing_shape: selectedButterflyShape || 'crescent',
+      pattern_id: selectedPatternId || 'crescent_none',
+      antenna_type: selectedAntennaType || 'ball',
+      q1: userSelections.q1 || [],
+      q2: userSelections.q2 || [],
+      core_concern: userSelections.core_concern || (userSelections.q2 && userSelections.q2[0]) || "",
       memo: userSelections.q6_memo || '',
-      revisit_date: null,
       texture_url: finalTex
     }]).select();
 
     if (error) {
-      console.error("❌ Supabase 저장 실패:", error);
+      console.error("❌ Supabase 저장 실패 (상세 내용):", error);
     } else {
-      console.log("✅ Supabase 저장 성공:", data);
+      console.log("✅ Supabase 저장 성공 (결과 데이터):", data);
       if (data && data.length > 0 && data[0].id) {
         lastSavedButterflyId = data[0].id;
         if (specimenButterfliesData.length > 0 && specimenButterfliesData[0].id === tempId) {
@@ -1448,9 +1473,10 @@ async function saveButterflyToSupabase() {
       }
     }
   } catch (err) { 
-    console.error("Supabase 나비 저장 에러:", err); 
+    console.error("❌ Supabase 나비 저장 예외 발생:", err); 
   }
-}
+};
+var saveButterflyToSupabase = window.saveButterflyToSupabase;
 
 var specimenButterfliesData = [];
 var specimenContainer = document.getElementById('specimen-items-container');
