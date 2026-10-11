@@ -773,7 +773,6 @@ function getSupabaseClient() {
   }
   return supabase;
 }
-getSupabaseClient();
 
 var surveyQuestions = [
   { title: "당신의 이름은 무엇인가요?", desc: "" },
@@ -1429,9 +1428,9 @@ window.saveButterflyToSupabase = async function() {
   try {
     var client = getSupabaseClient();
     
-    // 클라이언트가 즉시 준비되지 않은 경우 지연 재시도 (최대 5회)
+    // 클라이언트가 준비될 때까지 최대 10회(약 3초) 대기 시도
     if (!client) {
-      for (var attempt = 0; attempt < 5; attempt++) {
+      for (var attempt = 0; attempt < 10; attempt++) {
         await new Promise(function(resolve) { setTimeout(resolve, 300); });
         client = getSupabaseClient();
         if (client) break;
