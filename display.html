@@ -431,7 +431,8 @@
       const shapeId = data.wing_shape || 'crescent';
       const antId = data.antenna_type || 'ball';
       const targetAntennaPrefix = 'Antenna_' + antId;
-      const modelPath = '3DButterfly/' + shapeId + '.glb';
+      // 🌟 index 폴더 내부 모델 참조하도록 상대 경로 수정
+      const modelPath = 'index/3DButterfly/' + shapeId + '.glb';
 
       if (isUser && gltfLoader) {
         gltfLoader.load(modelPath, function(gltf) {
@@ -886,9 +887,10 @@
             .then(({ data }) => { if (data) data.reverse().forEach(item => addUserButterfly(item, false)); })
             .catch(e => console.warn("Supabase 데이터 에러 무시"));
 
+          // 🌟 실시간 즉시 연출 수신 (10초 지연 제거)
           supabaseInstance.channel('public:butterflies')
             .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'butterflies' }, (payload) => {
-              setTimeout(() => { addUserButterfly(payload.new, true); }, 10000);
+              addUserButterfly(payload.new, true);
             }).subscribe();
         }
       } catch (err) {}
