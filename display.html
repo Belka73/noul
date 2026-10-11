@@ -507,7 +507,6 @@
         id: Math.random().toString(36).substring(7),
         group, innerGroup, leftWing, rightWing,
         velocity: initialVelocity,
-        // 🌟 날갯짓 빈도(speed)를 24.0 ~ 30.0으로 대폭 상향하여 훨씬 자주 펄럭이도록 설정
         speed: 24.0 + Math.random() * 6.0, 
         seed: Math.random() * 1000,
         flapAmp: 1.0, 
@@ -629,7 +628,7 @@
     function updateMotion(b, time) {
       let currentTargetScale = b.targetScale;
       
-      // 손가락 착석 나비 크기 (큼직한 원본 크기 유지)
+      // 손가락 착석 나비 크기 (큼직한 크기 유지)
       if (b.isSpecialLanding && (b.specialState === 'approaching' || b.specialState === 'landed')) {
         const landingBaseScale = 1.05;
         const effectivePerspective = Math.max(0.85, handPerspectiveScale);
@@ -656,20 +655,18 @@
         );
       }
 
-      // 🌟 날갯짓 빈도 및 모션 계산 (펄럭임 횟수 대폭 상향)
+      // 날갯짓 빈도 및 모션
       if (b.state === 'landing_rest') {
           b.flapAmp *= 0.92; 
-          // 손끝에 가만히 앉아 있을 때도 날개 끝을 가볍고 빠르게 사르르 떪
           const flap = Math.sin(time * (b.speed * 0.8) + b.seed) * 0.16 * b.flapAmp;
           const restFold = -1.25; 
           b.leftWing.rotation.y = flap + restFold * (1 - b.flapAmp);
           b.rightWing.rotation.y = -flap - restFold * (1 - b.flapAmp);
       } else {
           b.flapAmp += (1.0 - b.flapAmp) * 0.1; 
-          // 손가락으로 다가오는 중이거나 상승할 때는 더욱 바쁘고 역동적으로 날갯짓
           let currentFlapSpeed = b.speed;
           if (b.isSpecialLanding && b.specialState === 'approaching') {
-            currentFlapSpeed = b.speed * 1.35; // 손가락으로 날아올 때 날갯짓 활발
+            currentFlapSpeed = b.speed * 1.35;
           } else if (b.isAscendingArrival) {
             currentFlapSpeed = b.speed * 1.25;
           }
@@ -683,38 +680,40 @@
       if (b.isSpecialLanding) {
           isFollowing = true;
 
+          // 🌟 [복원]: 손가락으로 다가오는 나비의 비행 속도를 시원하고 빠르게 정상 복원
           if (b.specialState === 'approaching') {
               spawnButterflyTrail(b.group.position, 2);
 
               const dist = b.group.position.distanceTo(handTarget3D);
-              if (dist < 1.2) {
+              if (dist < 1.4) {
                   b.specialState = 'landed';
                   triggerLandingStorySequence(b);
               } else {
                   b.state = 'flying';
-                  _vDir.subVectors(handTarget3D, b.group.position).normalize().multiplyScalar(0.16);
-                  b.velocity.lerp(_vDir, 0.06); 
+                  // 다가오는 가속도(0.16 -> 0.48) 및 보간율(0.06 -> 0.14) 복원
+                  _vDir.subVectors(handTarget3D, b.group.position).normalize().multiplyScalar(0.48);
+                  b.velocity.lerp(_vDir, 0.14); 
                   
                   _vTargetPos.copy(b.group.position).add(b.velocity);
                   dummyObj.position.copy(b.group.position);
                   dummyObj.lookAt(_vTargetPos);
-                  const rollAngle = (b.velocity.x * -10);
+                  const rollAngle = (b.velocity.x * -15);
                   dummyObj.rotateZ(rollAngle); 
-                  b.group.quaternion.slerp(dummyObj.quaternion, 0.12);
+                  b.group.quaternion.slerp(dummyObj.quaternion, 0.18);
               }
           }
           
           if (b.specialState === 'landed') {
               b.state = 'landing_rest';
               b.velocity.set(0, 0, 0);
-              b.group.position.lerp(handTarget3D, 0.2); 
+              b.group.position.lerp(handTarget3D, 0.25); 
               
               dummyObj.position.copy(b.group.position);
               dummyObj.lookAt(camera.position); 
               dummyObj.rotateY(Math.PI / 2);
               dummyObj.rotateZ(0.25);
               
-              b.group.quaternion.slerp(dummyObj.quaternion, 0.15);
+              b.group.quaternion.slerp(dummyObj.quaternion, 0.18);
           }
 
           if (b.specialState === 'leaving') {
@@ -722,13 +721,13 @@
 
               b.state = 'flying';
               _vLeave.z = b.group.position.z - 2;
-              _vDir.subVectors(_vLeave, b.group.position).normalize().multiplyScalar(0.10);
-              b.velocity.lerp(_vDir, 0.05); 
+              _vDir.subVectors(_vLeave, b.group.position).normalize().multiplyScalar(0.18);
+              b.velocity.lerp(_vDir, 0.08); 
               
               _vTargetPos.copy(b.group.position).add(b.velocity);
               dummyObj.position.copy(b.group.position);
               dummyObj.lookAt(_vTargetPos);
-              b.group.quaternion.slerp(dummyObj.quaternion, 0.08);
+              b.group.quaternion.slerp(dummyObj.quaternion, 0.10);
 
               if (b.group.position.x > 20 || b.group.position.y > 20) {
                   b.isSpecialLanding = false;
@@ -788,7 +787,8 @@
           }
       }
 
-      let maxSpeed = isFollowing ? 0.25 : 0.10;
+      // 비행 최고 속도 한계치 (손가락에 다가올 때는 0.52까지 시원하게 허용)
+      let maxSpeed = isFollowing ? 0.52 : 0.10;
       if (interactionMode === 'scatter') maxSpeed = 1.2;
       if (b.isAscendingArrival) maxSpeed = 0.20;
 
