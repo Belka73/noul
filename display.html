@@ -15,7 +15,6 @@
       background-color: #000000; user-select: none; cursor: none;
       font-family: -apple-system, BlinkMacSystemFont, "Pretendard Variable", Pretendard, sans-serif;
     }
-    /* 🌟 GPU 렉 원인이었던 CSS filter 제거 및 가벼운 렌더링 세팅 */
     #webcam-video {
       position: absolute; inset: 0; width: 100%; height: 100%;
       object-fit: cover; transform: scaleX(-1);
@@ -40,13 +39,13 @@
       will-change: transform, opacity;
     }
 
-    /* 🌟 1단계: 검은색 배경에 흰 글씨로 고민 키워드와 이유를 띄우는 카드 */
+    /* 🌟 1단계: 외곽이 부드럽게 번지는 타원형 검은색 안개 블러 말풍선 (고민/이유) */
     #floating-concern-card {
       position: absolute;
       transform: translate(45px, -115%);
-      width: 290px;
-      min-height: 140px;
-      padding: 24px 22px;
+      width: 320px;
+      min-height: 180px;
+      padding: 40px 38px;
       display: flex;
       flex-direction: column;
       align-items: center;
@@ -55,39 +54,50 @@
       pointer-events: none;
       z-index: 42;
       opacity: 0;
-      background: rgba(14, 14, 16, 0.88);
-      border: 1px solid rgba(255, 255, 255, 0.22);
-      border-radius: 26px;
-      backdrop-filter: blur(16px);
-      -webkit-backdrop-filter: blur(16px);
-      box-shadow: 0 16px 36px rgba(0, 0, 0, 0.85), 0 0 20px rgba(255, 255, 255, 0.08);
-      transition: opacity 0.4s ease, transform 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+      transition: opacity 0.45s ease, transform 0.45s cubic-bezier(0.16, 1, 0.3, 1);
       will-change: transform, opacity;
     }
+
+    #floating-concern-card::before {
+      content: '';
+      position: absolute;
+      inset: -20px;
+      background: radial-gradient(ellipse 65% 55% at center, rgba(8, 8, 10, 0.96) 0%, rgba(8, 8, 10, 0.88) 35%, rgba(8, 8, 10, 0.55) 60%, rgba(8, 8, 10, 0.15) 80%, rgba(0, 0, 0, 0) 100%);
+      filter: blur(16px);
+      z-index: -1;
+      border-radius: 50%;
+    }
+
     #floating-concern-card.visible {
       opacity: 1;
       transform: translate(45px, -125%);
     }
 
+    /* 🌟 선택된 키워드: 즉시 유지 + 순백색 발광 네온 효과 */
     .concern-badge-tag {
       display: inline-block;
-      padding: 4px 14px;
-      border-radius: 9999px;
-      background: rgba(255, 255, 255, 0.12);
-      border: 1px solid rgba(255, 255, 255, 0.25);
       color: #ffffff;
-      font-size: 13px;
+      font-size: 17px;
       font-weight: 800;
-      letter-spacing: -0.2px;
-      margin-bottom: 10px;
-      box-shadow: 0 0 14px rgba(255, 255, 255, 0.25);
+      letter-spacing: -0.3px;
+      margin-bottom: 8px;
+      z-index: 2;
+      text-shadow: 0 0 10px rgba(255, 255, 255, 1.0),
+                   0 0 20px rgba(255, 255, 255, 0.85),
+                   0 0 35px rgba(255, 255, 255, 0.65),
+                   0 0 50px rgba(255, 255, 255, 0.4);
     }
+
+    /* 🌟 자세한 고민 이유 (타이핑 대상) */
     #floating-concern-reason {
-      font-size: 12.5px;
+      font-size: 13px;
       font-weight: 500;
       line-height: 1.55;
-      color: #e5e5ea;
+      color: #f0f0f5;
       word-break: keep-all;
+      z-index: 2;
+      text-shadow: 0 1px 4px rgba(0, 0, 0, 0.8);
+      min-height: 38px;
     }
 
     /* 🌟 2단계: 외곽이 완벽히 번져있는 타원형 흰색 빛 블러 말풍선 (다정한 한마디) */
@@ -112,7 +122,7 @@
       content: '';
       position: absolute;
       inset: -20px;
-      background: radial-gradient(ellipse 65% 55% at center, rgba(255, 255, 255, 0.98) 0%, rgba(255, 255, 255, 0.9) 28%, rgba(255, 255, 255, 0.5) 55%, rgba(255, 255, 255, 0.15) 75%, rgba(255, 255, 255, 0) 100%);
+      background: radial-gradient(ellipse 65% 55% at center, rgba(255, 255, 255, 0.98) 0%, rgba(255, 255, 255, 0.9) 28%, rgba(255, 255, 255, 0.55) 55%, rgba(255, 255, 255, 0.15) 75%, rgba(255, 255, 255, 0) 100%);
       filter: blur(14px);
       z-index: -1;
       border-radius: 50%;
@@ -122,6 +132,7 @@
       transform: translate(45px, -125%);
     }
 
+    /* 🌟 나비 이름: 즉시 유지 */
     #floating-butterfly-name {
       font-size: 16px;
       font-weight: 800;
@@ -130,6 +141,8 @@
       margin-bottom: 5px;
       z-index: 2;
     }
+
+    /* 🌟 다정한 한마디 (타이핑 대상) */
     #floating-butterfly-memo {
       font-size: 12.5px;
       font-weight: 600;
@@ -137,6 +150,22 @@
       color: #1a1a20;
       word-break: keep-all;
       z-index: 2;
+      min-height: 36px;
+    }
+
+    /* 타이핑 커서 깜빡임 효과 */
+    .typing-cursor {
+      display: inline-block;
+      width: 2px;
+      height: 1em;
+      vertical-align: middle;
+      background-color: currentColor;
+      margin-left: 2px;
+      animation: cursorBlink 0.75s infinite;
+    }
+    @keyframes cursorBlink {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0; }
     }
 
     /* 🌟 하단 가로 배너형 제스처 안내 바 */
@@ -186,16 +215,16 @@
   <div id="three-canvas-container"></div>
   <div id="hand-pointer"></div>
 
-  <!-- 1단계: 검은 배경 / 흰 글씨 고민 및 이유 안내 카드 -->
+  <!-- 1단계: 외곽이 번지는 검은 안개 블러 / 발광 흰 글씨 고민 안내 카드 -->
   <div id="floating-concern-card">
     <div id="floating-concern-tag" class="concern-badge-tag">#완벽주의 강박</div>
-    <div id="floating-concern-reason">"항상 잘 해내야 한다는 마음이 앞서서요."</div>
+    <div id="floating-concern-reason"></div>
   </div>
 
-  <!-- 2단계: 흰색 블러 타원 다정한 한마디 카드 -->
+  <!-- 2단계: 외곽이 번지는 흰색 블러 타원 다정한 한마디 카드 -->
   <div id="floating-info-card">
     <div id="floating-butterfly-name">‘나비’</div>
-    <div id="floating-butterfly-memo">너의 찬란한 날갯짓을 응원해.</div>
+    <div id="floating-butterfly-memo"></div>
   </div>
 
   <!-- 하단 가로 나열 배너 -->
@@ -218,7 +247,7 @@
 
   <script>
     /* ========================================================
-       1. 안전한 지오메트리 세팅 및 3D 씬 강제 구축 (최적화)
+       1. 안전한 지오메트리 세팅 및 3D 씬 강제 구축
        ======================================================== */
     function createStableWingGeom(isRight) {
       const shape = new THREE.Shape();
@@ -280,7 +309,7 @@
 
     const renderer = new THREE.WebGLRenderer({ alpha: true, antialias: false, powerPreference: "high-performance" });
     renderer.setSize(window.innerWidth, window.innerHeight);
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.25));
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.5));
     container.appendChild(renderer.domElement);
 
     const textureLoader = new THREE.TextureLoader();
@@ -348,9 +377,9 @@
         p.x = pos.x + (Math.random() - 0.5) * 0.18;
         p.y = pos.y + (Math.random() - 0.5) * 0.18;
         p.z = pos.z + (Math.random() - 0.5) * 0.12;
-        p.vx = (Math.random() - 0.5) * 0.04;
-        p.vy = (Math.random() - 0.5) * 0.04 - 0.01;
-        p.vz = (Math.random() - 0.5) * 0.03;
+        p.vx = (Math.random() - 0.5) * 0.03;
+        p.vy = (Math.random() - 0.5) * 0.03 - 0.008;
+        p.vz = (Math.random() - 0.5) * 0.02;
         p.life = 1.0;
         p.maxLife = 0.7 + Math.random() * 0.5;
         p.size = 0.4 + Math.random() * 0.25;
@@ -463,7 +492,7 @@
 
       if (isDelayedArrival) {
         group.position.set((Math.random() - 0.5) * 5, -8.0, 1.0);
-        initialVelocity = new THREE.Vector3((Math.random() - 0.5) * 0.06, 0.16, -0.04);
+        initialVelocity = new THREE.Vector3((Math.random() - 0.5) * 0.03, 0.09, -0.02);
         group.scale.set(0.01, 0.01, 0.01);
       } else {
         group.position.set(
@@ -471,7 +500,7 @@
           (Math.random() - 0.5) * 18, 
           -12.0 - Math.random() * 16.0
         );
-        initialVelocity = new THREE.Vector3((Math.random() - 0.5) * 0.15, (Math.random() - 0.5) * 0.15, (Math.random() - 0.5) * 0.08);
+        initialVelocity = new THREE.Vector3((Math.random() - 0.5) * 0.07, (Math.random() - 0.5) * 0.07, (Math.random() - 0.5) * 0.04);
         group.scale.set(targetScale, targetScale, targetScale);
       }
 
@@ -481,7 +510,7 @@
         id: Math.random().toString(36).substring(7),
         group, innerGroup, leftWing, rightWing,
         velocity: initialVelocity,
-        speed: 18.0 + Math.random() * 8.0, 
+        speed: 10.0 + Math.random() * 4.0, 
         seed: Math.random() * 1000,
         flapAmp: 1.0, 
         state: 'flying',
@@ -533,29 +562,69 @@
     const floatingMemo = document.getElementById('floating-butterfly-memo');
 
     let landingStorySequenceTimer = null;
+    let activeTypingTimeout = null;
+
+    /* ========================================================
+       🌟 텍스트 타이핑 효과 함수 (글자별 타이핑 애니메이션)
+       ======================================================== */
+    function typeWriterText(targetElement, fullText, speed = 45, callback = null) {
+      if (activeTypingTimeout) clearTimeout(activeTypingTimeout);
+      targetElement.innerHTML = '';
+      
+      let index = 0;
+      function step() {
+        if (index <= fullText.length) {
+          const currentSub = fullText.substring(0, index);
+          const isDone = index === fullText.length;
+          targetElement.innerHTML = `${currentSub}${isDone ? '' : '<span class="typing-cursor"></span>'}`;
+          index++;
+          if (!isDone) {
+            activeTypingTimeout = setTimeout(step, speed);
+          } else if (callback) {
+            callback();
+          }
+        }
+      }
+      step();
+    }
 
     function resetLandingCards() {
       clearTimeout(landingStorySequenceTimer);
+      if (activeTypingTimeout) clearTimeout(activeTypingTimeout);
       if (floatingConcernCard) floatingConcernCard.classList.remove('visible');
       if (floatingInfoCard) floatingInfoCard.classList.remove('visible');
+      if (floatingConcernReason) floatingConcernReason.innerHTML = '';
+      if (floatingMemo) floatingMemo.innerHTML = '';
     }
 
     function triggerLandingStorySequence(b) {
       resetLandingCards();
+      
+      // 1단계: 키워드는 즉시 발광 유지, 자세한 고민 이유는 타이핑 시작
       if (floatingConcernCard) {
         floatingConcernTag.innerText = `#${b.core_concern}`;
-        floatingConcernReason.innerText = `"${b.concern_reason}"`;
         floatingConcernCard.classList.add('visible');
+        
+        const fullReason = `"${b.concern_reason}"`;
+        // 카드가 서서히 뜬 직후(150ms 후) 타이핑 시작
+        setTimeout(() => {
+          typeWriterText(floatingConcernReason, fullReason, 45);
+        }, 150);
       }
 
+      // 2단계: 4.2초 후 다정한 한마디로 전환 (이름은 즉시 유지, 한마디는 타이핑)
       landingStorySequenceTimer = setTimeout(() => {
         if (floatingConcernCard) floatingConcernCard.classList.remove('visible');
         if (floatingInfoCard) {
           floatingName.innerText = `‘${b.name}’`;
-          floatingMemo.innerText = `"${b.memo}"`;
           floatingInfoCard.classList.add('visible');
+          
+          const fullMemo = `"${b.memo}"`;
+          setTimeout(() => {
+            typeWriterText(floatingMemo, fullMemo, 45);
+          }, 150);
         }
-      }, 3500);
+      }, 4200);
     }
 
     let currentScreenX = 0, currentScreenY = 0;
@@ -572,13 +641,13 @@
       if (b.isAscendingArrival) {
         b.arrivalTimer += 0.016;
         b.group.scale.set(
-          b.group.scale.x + (b.targetScale - b.group.scale.x) * 0.06,
-          b.group.scale.y + (b.targetScale - b.group.scale.y) * 0.06,
-          b.group.scale.z + (b.targetScale - b.group.scale.z) * 0.06
+          b.group.scale.x + (b.targetScale - b.group.scale.x) * 0.04,
+          b.group.scale.y + (b.targetScale - b.group.scale.y) * 0.04,
+          b.group.scale.z + (b.targetScale - b.group.scale.z) * 0.04
         );
         b.velocity.y *= 0.99;
 
-        if (b.arrivalTimer > 4.5 || b.group.position.y > 0) {
+        if (b.arrivalTimer > 5.5 || b.group.position.y > 0) {
           b.isAscendingArrival = false; 
         }
       } else {
@@ -591,14 +660,14 @@
 
       if (b.state === 'landing_rest') {
           b.flapAmp *= 0.88; 
-          const flap = Math.sin(time * b.speed + b.seed) * 0.12 * b.flapAmp;
+          const flap = Math.sin(time * b.speed + b.seed) * 0.10 * b.flapAmp;
           const restFold = -1.25; 
           b.leftWing.rotation.y = flap + restFold * (1 - b.flapAmp);
           b.rightWing.rotation.y = -flap - restFold * (1 - b.flapAmp);
       } else {
           b.flapAmp += (1.0 - b.flapAmp) * 0.1; 
-          const flapSpeed = b.isAscendingArrival ? (b.speed * 1.5) : b.speed;
-          const flap = Math.sin(time * flapSpeed + b.seed) * 0.65 * b.flapAmp;
+          const flapSpeed = b.isAscendingArrival ? (b.speed * 1.3) : b.speed;
+          const flap = Math.sin(time * flapSpeed + b.seed) * 0.55 * b.flapAmp;
           b.leftWing.rotation.y = flap;
           b.rightWing.rotation.y = -flap;
       }
@@ -612,34 +681,34 @@
               spawnButterflyTrail(b.group.position, 2);
 
               const dist = b.group.position.distanceTo(handTarget3D);
-              if (dist < 1.5) {
+              if (dist < 1.2) {
                   b.specialState = 'landed';
                   triggerLandingStorySequence(b);
               } else {
                   b.state = 'flying';
-                  _vDir.subVectors(handTarget3D, b.group.position).normalize().multiplyScalar(0.5);
-                  b.velocity.lerp(_vDir, 0.15); 
+                  _vDir.subVectors(handTarget3D, b.group.position).normalize().multiplyScalar(0.16);
+                  b.velocity.lerp(_vDir, 0.06); 
                   
                   _vTargetPos.copy(b.group.position).add(b.velocity);
                   dummyObj.position.copy(b.group.position);
                   dummyObj.lookAt(_vTargetPos);
-                  const rollAngle = (b.velocity.x * -15);
+                  const rollAngle = (b.velocity.x * -10);
                   dummyObj.rotateZ(rollAngle); 
-                  b.group.quaternion.slerp(dummyObj.quaternion, 0.2);
+                  b.group.quaternion.slerp(dummyObj.quaternion, 0.12);
               }
           }
           
           if (b.specialState === 'landed') {
               b.state = 'landing_rest';
               b.velocity.set(0, 0, 0);
-              b.group.position.lerp(handTarget3D, 0.3); 
+              b.group.position.lerp(handTarget3D, 0.2); 
               
               dummyObj.position.copy(b.group.position);
               dummyObj.lookAt(camera.position); 
               dummyObj.rotateY(Math.PI / 2);
               dummyObj.rotateZ(0.25);
               
-              b.group.quaternion.slerp(dummyObj.quaternion, 0.2);
+              b.group.quaternion.slerp(dummyObj.quaternion, 0.15);
           }
 
           if (b.specialState === 'leaving') {
@@ -647,13 +716,13 @@
 
               b.state = 'flying';
               _vLeave.z = b.group.position.z - 2;
-              _vDir.subVectors(_vLeave, b.group.position).normalize().multiplyScalar(0.22);
-              b.velocity.lerp(_vDir, 0.08); 
+              _vDir.subVectors(_vLeave, b.group.position).normalize().multiplyScalar(0.10);
+              b.velocity.lerp(_vDir, 0.05); 
               
               _vTargetPos.copy(b.group.position).add(b.velocity);
               dummyObj.position.copy(b.group.position);
               dummyObj.lookAt(_vTargetPos);
-              b.group.quaternion.slerp(dummyObj.quaternion, 0.12);
+              b.group.quaternion.slerp(dummyObj.quaternion, 0.08);
 
               if (b.group.position.x > 20 || b.group.position.y > 20) {
                   b.isSpecialLanding = false;
@@ -667,26 +736,26 @@
               b.state = 'flying';
               
               const orbitIdx = fistButterflies.indexOf(b.id);
-              const orbitAngle = time * 2.2 + (orbitIdx * ((Math.PI * 2) / fistButterflies.length));
+              const orbitAngle = time * 1.4 + (orbitIdx * ((Math.PI * 2) / fistButterflies.length));
               const orbitRadius = 1.8 + (orbitIdx % 2) * 0.6;
               _vOrbit.set(
                 Math.cos(orbitAngle) * orbitRadius,
-                Math.sin(orbitAngle * 1.3) * 0.8,
+                Math.sin(orbitAngle * 1.1) * 0.7,
                 Math.sin(orbitAngle) * orbitRadius
               );
               _vTargetPos.copy(handTarget3D).add(_vOrbit);
               
-              _vDir.subVectors(_vTargetPos, b.group.position).normalize().multiplyScalar(0.35);
-              b.velocity.lerp(_vDir, 0.18);
-              b.velocity.x += (Math.random() - 0.5) * 0.02;
-              b.velocity.y += (Math.random() - 0.5) * 0.02;
+              _vDir.subVectors(_vTargetPos, b.group.position).normalize().multiplyScalar(0.20);
+              b.velocity.lerp(_vDir, 0.12);
+              b.velocity.x += (Math.random() - 0.5) * 0.01;
+              b.velocity.y += (Math.random() - 0.5) * 0.01;
 
               _vTargetPos.copy(b.group.position).add(b.velocity);
               dummyObj.position.copy(b.group.position);
               dummyObj.lookAt(_vTargetPos);
-              const rollAngle = (b.velocity.x * -25);
+              const rollAngle = (b.velocity.x * -18);
               dummyObj.rotateZ(rollAngle); 
-              b.group.quaternion.slerp(dummyObj.quaternion, 0.22);
+              b.group.quaternion.slerp(dummyObj.quaternion, 0.15);
           }
           else if (interactionMode === 'scatter') {
               const dist = b.group.position.distanceTo(handTarget3D);
@@ -694,53 +763,53 @@
                   isFollowing = true;
                   b.state = 'flying';
                   _vDir.subVectors(b.group.position, handTarget3D).normalize();
-                  b.velocity.addScaledVector(_vDir, 0.45);
+                  b.velocity.addScaledVector(_vDir, 0.35);
               }
           } 
       }
 
       if (!isFollowing && !b.isAscendingArrival) {
           b.state = 'flying';
-          const t = time * 0.8 + b.seed;
-          b.velocity.x += Math.sin(t * 1.8) * 0.004;
-          b.velocity.y += Math.cos(t * 1.5) * 0.004;
-          b.velocity.z += Math.sin(t * 2.0) * 0.002;
+          const t = time * 0.5 + b.seed;
+          b.velocity.x += Math.sin(t * 1.4) * 0.002;
+          b.velocity.y += Math.cos(t * 1.2) * 0.002;
+          b.velocity.z += Math.sin(t * 1.5) * 0.001;
 
           if (Math.random() < 0.015) {
-              b.velocity.x += (Math.random() - 0.5) * 0.14;
-              b.velocity.y += (Math.random() - 0.5) * 0.14;
-              b.velocity.z += (Math.random() - 0.5) * 0.08; 
+              b.velocity.x += (Math.random() - 0.5) * 0.06;
+              b.velocity.y += (Math.random() - 0.5) * 0.06;
+              b.velocity.z += (Math.random() - 0.5) * 0.03; 
           }
       }
 
-      let maxSpeed = isFollowing ? 0.5 : 0.22;
-      if (interactionMode === 'scatter') maxSpeed = 1.6;
-      if (b.isAscendingArrival) maxSpeed = 0.35;
+      let maxSpeed = isFollowing ? 0.25 : 0.10;
+      if (interactionMode === 'scatter') maxSpeed = 1.2;
+      if (b.isAscendingArrival) maxSpeed = 0.20;
 
       if (b.velocity.length() > maxSpeed) {
-          b.velocity.multiplyScalar(0.95);
+          b.velocity.multiplyScalar(0.92);
       }
       
       b.group.position.add(b.velocity);
 
       if (!b.isSpecialLanding || b.specialState !== 'leaving') {
-          if (b.group.position.x > 18) b.velocity.x -= 0.02;
-          if (b.group.position.x < -18) b.velocity.x += 0.02;
-          if (b.group.position.y > 12) b.velocity.y -= 0.02;
-          if (b.group.position.y < -12) b.velocity.y += 0.02;
-          if (b.group.position.z > -8.0) b.velocity.z -= 0.035;
-          if (b.group.position.z < -28.0) b.velocity.z += 0.035;
+          if (b.group.position.x > 18) b.velocity.x -= 0.012;
+          if (b.group.position.x < -18) b.velocity.x += 0.012;
+          if (b.group.position.y > 12) b.velocity.y -= 0.012;
+          if (b.group.position.y < -12) b.velocity.y += 0.012;
+          if (b.group.position.z > -8.0) b.velocity.z -= 0.02;
+          if (b.group.position.z < -28.0) b.velocity.z += 0.02;
       }
 
       if (b.velocity.lengthSq() > 0.00001 && b.state === 'flying' && !isFollowing) {
         _vTargetPos.copy(b.group.position).add(b.velocity);
         dummyObj.position.copy(b.group.position);
         dummyObj.lookAt(_vTargetPos);
-        const rollAngle = (b.velocity.x * -25) + Math.sin(time * 3 + b.seed) * 0.6;
-        const pitchAngle = Math.sin(time * 2.5 + b.seed) * 0.4;
+        const rollAngle = (b.velocity.x * -18) + Math.sin(time * 2 + b.seed) * 0.4;
+        const pitchAngle = Math.sin(time * 1.8 + b.seed) * 0.25;
         dummyObj.rotateZ(rollAngle); 
         dummyObj.rotateX(pitchAngle); 
-        b.group.quaternion.slerp(dummyObj.quaternion, 0.1);
+        b.group.quaternion.slerp(dummyObj.quaternion, 0.07);
       }
     }
 
@@ -841,12 +910,17 @@
     }, 1500);
 
     /* ========================================================
-       3. 네이티브 웹캠 및 비동기 MediaPipe 최적화 엔진
+       3. 네이티브 웹캠 FHD 고화질 복원 + 오프스크린 AI 분리 최적화
        ======================================================== */
     setTimeout(() => {
       try {
         if (typeof Hands !== 'undefined') {
           const videoElement = document.getElementById('webcam-video');
+
+          const offscreenCanvas = document.createElement('canvas');
+          offscreenCanvas.width = 320;
+          offscreenCanvas.height = 240;
+          const offscreenCtx = offscreenCanvas.getContext('2d', { willReadFrequently: true });
 
           const hands = new Hands({ locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}` });
           hands.setOptions({ 
@@ -932,13 +1006,12 @@
           }
           });
 
-          // 🌟 렉 해결의 핵심: MediaPipe Camera 루프 제거 ➔ 브라우저 표준 WebRTC로 직접 연결
           if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
             navigator.mediaDevices.getUserMedia({
               video: {
-                width: { ideal: 320 },
-                height: { ideal: 240 },
-                frameRate: { ideal: 20, max: 24 }
+                width: { ideal: 1920 },
+                height: { ideal: 1080 },
+                frameRate: { ideal: 30 }
               },
               audio: false
             }).then((stream) => {
@@ -947,18 +1020,18 @@
                 videoElement.play();
 
                 let isProcessingFrame = false;
-                // 3D 렌더링에 영향을 주지 않도록 약 75ms 주기로 부드럽게 프레임 전달
                 function processVideoLoop() {
                   if (!isProcessingFrame && videoElement.readyState >= 2) {
                     isProcessingFrame = true;
-                    hands.send({ image: videoElement })
+                    offscreenCtx.drawImage(videoElement, 0, 0, 320, 240);
+                    hands.send({ image: offscreenCanvas })
                       .catch(() => {})
                       .finally(() => {
                         isProcessingFrame = false;
-                        setTimeout(processVideoLoop, 75);
+                        setTimeout(processVideoLoop, 70);
                       });
                   } else {
-                    setTimeout(processVideoLoop, 75);
+                    setTimeout(processVideoLoop, 70);
                   }
                 }
                 processVideoLoop();
