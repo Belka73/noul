@@ -1496,7 +1496,6 @@ window.saveButterflyToSupabase = async function() {
 
     if (error) {
       console.error("❌ Supabase 저장 실패 (상세 내용):", error);
-      alert("데이터 저장 실패: " + (error.message || JSON.stringify(error)));
     } else {
       console.log("✅ Supabase 저장 성공 (결과 데이터):", data);
       if (data && data.length > 0 && data[0].id) {
@@ -1508,7 +1507,6 @@ window.saveButterflyToSupabase = async function() {
     }
   } catch (err) { 
     console.error("❌ Supabase 나비 저장 예외 발생:", err); 
-    alert("데이터 저장 예외 발생: " + err.message);
   }
 };
 var saveButterflyToSupabase = window.saveButterflyToSupabase;
@@ -1620,24 +1618,44 @@ window.addEventListener('keydown', function(e) {
 window.addEventListener('resize', function() {
   var activeScreen = document.querySelector('.screen.active');
   if (activeScreen) {
-    if (activeScreen.id === 'screen-survey-concern-top7' && top7Engine) {
-      var container = document.getElementById('top7-physics-container');
-      var canvas = document.getElementById('top7-physics-canvas');
-      if (container && canvas) {
-        var rect = container.getBoundingClientRect();
-        var width = rect.width || window.innerWidth;
-        var height = container.clientHeight || rect.height || (window.innerHeight - 240);
-        canvas.width = width;
-        canvas.height = height;
-        if (top7Boundaries && top7Boundaries.length === 3) {
-          var wallThick = 500;
-          Matter.Body.setPosition(top7Boundaries[0], { x: width / 2, y: height + wallThick / 2 });
-          Matter.Body.setPosition(top7Boundaries[1], { x: -wallThick / 2, y: height / 2 });
-          Matter.Body.setPosition(top7Boundaries[2], { x: width + wallThick / 2, y: height / 2 });
-        }
+    if (activeScreen.id === 'screen-preview' && fullCamera && fullRenderer) {
+      var w = window.innerWidth;
+      var h = window.innerHeight;
+      fullCamera.aspect = w / h;
+      fullCamera.updateProjectionMatrix();
+      fullRenderer.setSize(w, h);
+      fullRenderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+      if (particleCanvas) {
+        particleCanvas.width = w;
+        particleCanvas.height = h;
       }
-    } else if (activeScreen.id === 'screen-survey' && currentStepIdx === 2) {
-      resizeBubblePhysicsCanvas();
+    } else if (activeScreen.id === 'screen-loading' && loadingCamera && loadingRenderer) {
+      var loadingCont = document.getElementById('loading-three-container');
+      if (loadingCont) {
+        var lw = loadingCont.clientWidth || window.innerWidth;
+        var lh = loadingCont.clientHeight || window.innerHeight;
+        loadingCamera.aspect = lw / lh;
+        loadingCamera.updateProjectionMatrix();
+        loadingRenderer.setSize(lw, lh);
+      }
+    } else if (activeScreen.id === 'screen-share' && shareCamera && shareRenderer) {
+      var shareCont = document.getElementById('share-three-container');
+      if (shareCont) {
+        var sw = shareCont.clientWidth || window.innerWidth;
+        var sh = shareCont.clientHeight || window.innerHeight;
+        shareCamera.aspect = sw / sh;
+        shareCamera.updateProjectionMatrix();
+        shareRenderer.setSize(sw, sh);
+      }
+    } else if (activeScreen.id === 'screen-gallery' && modalThreeCamera && modalThreeRenderer) {
+      var modalCont = document.getElementById('specimen-three-container');
+      if (modalCont) {
+        var mw = modalCont.clientWidth || window.innerWidth;
+        var mh = modalCont.clientHeight || window.innerHeight;
+        modalThreeCamera.aspect = mw / mh;
+        modalThreeCamera.updateProjectionMatrix();
+        modalThreeRenderer.setSize(mw, mh);
+      }
     }
   }
 });
