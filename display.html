@@ -31,7 +31,6 @@
       position: absolute; inset: 0; z-index: 10;
     }
 
-    /* 🌟 상호작용 원 크기 확대 (36px -> 52px, 내부 코어 14px -> 20px) */
     #hand-pointer {
       position: absolute; 
       width: 52px; height: 52px;
@@ -60,7 +59,7 @@
       box-shadow: 0 0 10px rgba(255, 255, 255, 0.4);
     }
 
-    /* 🌟 1단계: 고민 안내 카드 */
+    /* 1단계: 고민 안내 카드 */
     #floating-concern-card {
       position: absolute;
       transform: translate(45px, -115%);
@@ -119,7 +118,7 @@
       min-height: 38px;
     }
 
-    /* 🌟 2단계: 다정한 한마디 카드 */
+    /* 2단계: 다정한 한마디 카드 */
     #floating-info-card {
       position: absolute;
       transform: translate(45px, -115%);
@@ -716,24 +715,32 @@
               b.state = 'flying';
               
               const orbitIdx = fistButterflies.indexOf(b.id);
-              const orbitAngle = time * 2.2 + (orbitIdx * ((Math.PI * 2) / fistButterflies.length));
-              const orbitRadius = 1.5 + (orbitIdx % 2) * 0.5;
-              _vOrbit.set(Math.cos(orbitAngle) * orbitRadius, Math.sin(orbitAngle * 1.2) * 0.6, Math.sin(orbitAngle) * orbitRadius);
+              const orbitAngle = time * 1.35 + (orbitIdx * ((Math.PI * 2) / fistButterflies.length)) + b.seed * 0.1;
+              const orbitRadius = 2.4 + (orbitIdx * 0.45);
+              const heightOffset = Math.sin(orbitAngle * 1.1 + orbitIdx) * 1.2;
+              const depthOffset = Math.cos(orbitAngle * 0.9 + orbitIdx) * 1.0;
+
+              _vOrbit.set(
+                Math.cos(orbitAngle) * orbitRadius,
+                heightOffset,
+                depthOffset
+              );
               _vTargetPos.copy(handTarget3D).add(_vOrbit);
               
-              _vDir.subVectors(_vTargetPos, b.group.position).normalize().multiplyScalar(0.45);
-              b.velocity.lerp(_vDir, 0.25);
-              b.velocity.x += (Math.random() - 0.5) * 0.01;
-              b.velocity.y += (Math.random() - 0.5) * 0.01;
+              _vDir.subVectors(_vTargetPos, b.group.position).normalize().multiplyScalar(0.22);
+              b.velocity.lerp(_vDir, 0.10);
+              b.velocity.x += (Math.random() - 0.5) * 0.008;
+              b.velocity.y += (Math.random() - 0.5) * 0.008;
 
               _vTargetPos.copy(b.group.position).add(b.velocity);
               dummyObj.position.copy(b.group.position);
               dummyObj.lookAt(_vTargetPos);
-              const rollAngle = (b.velocity.x * -18);
+              const rollAngle = (b.velocity.x * -14);
               dummyObj.rotateZ(rollAngle); 
-              b.group.quaternion.slerp(dummyObj.quaternion, 0.22);
+              b.group.quaternion.slerp(dummyObj.quaternion, 0.12);
           }
-          else if (interactionMode === 'scatter') {
+          // 🌟 [철통 방어]: interactionMode가 'scatter'이면서 'land_one'이 아닐 때만 극히 약하게 물러남
+          else if (interactionMode === 'scatter' && !specialButterfly) {
               const dist = b.group.position.distanceTo(handTarget3D);
               if (dist < 26.0) {
                   isFollowing = true;
@@ -741,7 +748,7 @@
                   _vDir.subVectors(b.group.position, handTarget3D);
                   _vDir.z = 0; 
                   _vDir.normalize();
-                  b.velocity.addScaledVector(_vDir, 0.06); 
+                  b.velocity.addScaledVector(_vDir, 0.05); 
                   b.velocity.z *= 0.85; 
               }
           } 
@@ -765,9 +772,9 @@
       if (b.isSpecialLanding) {
           maxSpeed = 0.26;
       } else if (isFollowing && interactionMode === 'scatter') {
-          maxSpeed = 0.14; 
+          maxSpeed = 0.12; 
       } else if (isFollowing && interactionMode === 'fist_gather') {
-          maxSpeed = 0.55;
+          maxSpeed = 0.28;
       }
 
       if (b.velocity.length() > maxSpeed) {
@@ -888,7 +895,7 @@
     }, 1500);
 
     /* ========================================================
-       3. 네이티브 웹캠 FHD 고화질 + 정밀 제스처 판정 알고리즘
+       3. 네이티브 웹캠 FHD 고화질 + 철통 상태 잠금 알고리즘
        ======================================================== */
     setTimeout(() => {
       try {
@@ -907,6 +914,9 @@
             minDetectionConfidence: 0.5, 
             minTrackingConfidence: 0.5 
           });
+
+          // 🌟 상태 잠금(Hysteresis) 버퍼: 산란(scatter)으로 쉽게 넘어가지 못하게 프레임 카운터 적용
+          let scatterFrameCount = 0;
           
           hands.onResults((results) => {
             if (results.multiHandLandmarks && results.multiHandLandmarks.length > 0) {
@@ -929,62 +939,51 @@
 
               const dist3D = (p1, p2) => Math.hypot(p1.x - p2.x, p1.y - p2.y, (p1.z || 0) - (p2.z || 0));
 
-              // 검지 펴짐 판정
-              const indexTipToWrist = dist3D(lm[8], wrist);
-              const indexPipToWrist = dist3D(lm[6], wrist);
-              const isIndexOpen = (indexTipToWrist > indexPipToWrist * 1.08) || (lm[8].y < lm[6].y);
+              // 각 손끝과 손목 거리
+              const indexDist = dist3D(lm[8], wrist);
+              const middleDist = dist3D(lm[12], wrist);
+              const ringDist = dist3D(lm[16], wrist);
+              const pinkyDist = dist3D(lm[20], wrist);
 
-              // 중지, 약지, 소지 펴짐/접힘 판정
-              const middleTipToWrist = dist3D(lm[12], wrist);
-              const middlePipToWrist = dist3D(lm[10], wrist);
-              const isMiddleOpen = (middleTipToWrist > middlePipToWrist * 1.08) || (lm[12].y < lm[10].y);
+              // 각 손가락 마디 간 굽힘 체크 (손끝과 뿌리마디)
+              const indexFolded = dist3D(lm[8], lm[5]) < dist3D(lm[6], lm[5]) * 1.12;
+              const middleFolded = dist3D(lm[12], lm[9]) < dist3D(lm[10], lm[9]) * 1.15;
+              const ringFolded = dist3D(lm[16], lm[13]) < dist3D(lm[14], lm[13]) * 1.15;
+              const pinkyFolded = dist3D(lm[20], lm[17]) < dist3D(lm[18], lm[17]) * 1.15;
 
-              const ringTipToWrist = dist3D(lm[16], wrist);
-              const ringPipToWrist = dist3D(lm[14], wrist);
-              const isRingOpen = (ringTipToWrist > ringPipToWrist * 1.08) || (lm[16].y < lm[14].y);
+              // 🌟 [원리 1]: 검지가 중지·약지보다 명확히 손목에서 멀리 나와 있으면 무조건 검지 손가락
+              const isIndexDominant = (indexDist > middleDist * 1.12) && (indexDist > ringDist * 1.2);
+              const isOtherTwoFolded = (middleFolded ? 1 : 0) + (ringFolded ? 1 : 0) + (pinkyFolded ? 1 : 0) >= 2;
+              const isPointGesture = !indexFolded && (isIndexDominant || isOtherTwoFolded);
 
-              const pinkyTipToWrist = dist3D(lm[20], wrist);
-              const pinkyPipToWrist = dist3D(lm[18], wrist);
-              const isPinkyOpen = (pinkyTipToWrist > pinkyPipToWrist * 1.08) || (lm[20].y < lm[18].y);
+              // 🌟 [원리 2]: 5손가락 전체가 하나도 접히지 않고 완전히 펼쳐진 상태
+              const isTrueScatter = !indexFolded && !middleFolded && !ringFolded && !pinkyFolded && !isPointGesture;
 
-              const isThumbOpen = Math.hypot(lm[4].x - lm[2].x, lm[4].y - lm[2].y) > 0.08;
-
-              let foldedOthersCount = 0;
-              if (!isMiddleOpen) foldedOthersCount++;
-              if (!isRingOpen) foldedOthersCount++;
-              if (!isPinkyOpen) foldedOthersCount++;
-
-              let totalOpenFingers = 0;
-              if (isThumbOpen) totalOpenFingers++;
-              if (isIndexOpen) totalOpenFingers++;
-              if (isMiddleOpen) totalOpenFingers++;
-              if (isRingOpen) totalOpenFingers++;
-              if (isPinkyOpen) totalOpenFingers++;
-
-              // 주먹 판정
-              const isIndexFolded = dist3D(lm[8], lm[5]) < dist3D(lm[6], lm[5]) * 1.3 || (!isIndexOpen && lm[8].y >= lm[6].y);
-              const isMiddleFolded = !isMiddleOpen;
-              const isRingFolded = !isRingOpen;
-              const isPinkyFolded = !isPinkyOpen;
-              const isTrueFist = isIndexFolded && isMiddleFolded && isRingFolded && isPinkyFolded && (totalOpenFingers <= 1);
+              // 🌟 [원리 3]: 검지까지 다 접힌 완벽한 주먹
+              const isTrueFist = indexFolded && middleFolded && ringFolded && pinkyFolded && !isPointGesture;
 
               const prevMode = interactionMode;
 
-              // 1) 검지 손가락 하나 들기 (land_one)
-              if (isIndexOpen && foldedOthersCount >= 2) {
+              // 🌟 1순위: 검지 가리키기 (land_one) - 최우선 잠금, scatter 카운터 즉시 리셋
+              if (isPointGesture) {
+                  scatterFrameCount = 0;
                   interactionMode = 'land_one';
                   const distance = (8 - camera.position.z) / vec.z; 
                   targetHandPos3D.copy(camera.position).add(vec.multiplyScalar(distance));
 
-              // 2) 손을 쫙 펴는 산란 (scatter)
-              } else if (totalOpenFingers >= 4 && isIndexOpen && isMiddleOpen && isRingOpen && isPinkyOpen) {
-                  interactionMode = 'scatter';
-                  const distance = (8 - camera.position.z) / vec.z; 
-                  targetHandPos3D.copy(camera.position).add(vec.multiplyScalar(distance));
-                  resetLandingCards();
+              // 🌟 2순위: 5손가락을 펴는 산란은 연속 4프레임 이상 확실하게 유지되어야만 발동 (오인식 튐 원천 방지)
+              } else if (isTrueScatter) {
+                  scatterFrameCount++;
+                  if (scatterFrameCount > 3) {
+                      interactionMode = 'scatter';
+                      const distance = (8 - camera.position.z) / vec.z; 
+                      targetHandPos3D.copy(camera.position).add(vec.multiplyScalar(distance));
+                      resetLandingCards();
+                  }
 
-              // 3) 주먹 쥐기 (fist_gather)
+              // 🌟 3순위: 주먹 쥐기
               } else if (isTrueFist) {
+                  scatterFrameCount = 0;
                   interactionMode = 'fist_gather';
                   const distance = (0 - camera.position.z) / vec.z; 
                   targetHandPos3D.copy(camera.position).add(vec.multiplyScalar(distance));
@@ -996,12 +995,17 @@
                       fistButterflies = allFlock.slice(0, 5).map(b => b.id);
                   }
               } else {
-                  interactionMode = 'none';
-                  fistButterflies = [];
-                  resetLandingCards();
+                  scatterFrameCount = 0;
+                  // 모호한 중간 단계에서는 scatter로 절대 가지 않고 land_one 유지 또는 none
+                  if (interactionMode !== 'land_one') {
+                      interactionMode = 'none';
+                      fistButterflies = [];
+                      resetLandingCards();
+                  }
               }
               isHandDetected = true;
             } else {
+              scatterFrameCount = 0;
               handPointer.style.opacity = '0';
               isHandDetected = false;
               interactionMode = 'none';
