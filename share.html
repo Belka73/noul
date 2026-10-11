@@ -36,13 +36,13 @@
     .share-card-container {
       width: 100%;
       max-width: 380px;
-      background: rgba(20, 20, 20, 0.85);
-      border: 1px solid rgba(255, 255, 255, 0.16);
-      border-radius: 36px;
-      padding: 1.8rem 1.4rem;
-      backdrop-filter: blur(20px);
-      -webkit-backdrop-filter: blur(20px);
-      box-shadow: 0 20px 50px rgba(0, 0, 0, 0.8), 0 0 30px rgba(255, 255, 255, 0.05);
+      background: transparent;
+      border: none;
+      border-radius: 0;
+      padding: 0.5rem 0.5rem;
+      backdrop-filter: none;
+      -webkit-backdrop-filter: none;
+      box-shadow: none;
       display: flex;
       flex-direction: column;
       align-items: center;
@@ -50,7 +50,7 @@
 
     .canvas-3d-box {
       width: 100%;
-      height: 220px;
+      height: 240px;
       position: relative;
       margin: 0.5rem 0 1rem;
     }
@@ -58,7 +58,7 @@
     .exhibition-info-table {
       width: 100%;
       border-top: 1.5px solid rgba(255, 255, 255, 0.2);
-      margin-top: 1rem;
+      margin-top: 1.2rem;
       padding-top: 0.8rem;
     }
 
@@ -118,21 +118,21 @@
       </div>
       <div class="info-row">
         <span class="info-label">전시 기간</span>
-        <span class="info-value">2026. 10. 24 - 10. 28</span>
+        <span class="info-value">2026. 10. 24 - 10. 27</span>
       </div>
       <div class="info-row">
         <span class="info-label">관람 시간</span>
-        <span class="info-value">10:00 ~ 18:00</span>
+        <span class="info-value">11:00 ~ 18:00</span>
       </div>
       <div class="info-row">
         <span class="info-label">전시 장소</span>
-        <span class="info-value">서울특별시 마포구 와우산로 94<br>홍익대학교 현대미술관(HOMA) 2관</span>
+        <span class="info-value">인천 연수구 송도문화로 120번길 20<br>미카엘관 B1 2관</span>
       </div>
     </section>
 
     <!-- 지도 및 길찾기 버튼 (전시 방문 유도) -->
     <footer class="w-full mt-5 space-y-2">
-      <a href="https://map.naver.com" target="_blank" 
+      <a href="https://map.naver.com/?query=%EC%9D%B8%EC%B2%9C%20%EC%97%B0%EC%88%98%EA%B5%AC%20%EC%86%A1%EB%8F%84%EB%AC%B8%ED%99%94%EB%A1%9C%20120%EB%B2%88%EA%B8%B8%2020" target="_blank" 
          class="w-full py-3.5 rounded-full bg-white text-black font-bold text-xs flex items-center justify-center gap-2 active:scale-95 transition-all shadow-lg shadow-white/10">
         <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
           <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/>
@@ -146,21 +146,127 @@
   </main>
 
   <script>
-    // 1. URL 파라미터에서 나비 데이터 읽기
+    // 1. Supabase 클라이언트 설정
+    const SUPABASE_URL = 'https://djmdzsbfsobsutphragw.supabase.co';
+    const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRqbWR6c2Jmc29ic3V0cGhyYWd3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODk4ODQ3NTgsImV4cCI6MjEwNTQ2MDc1OH0.BC7llaSjbq6cYhDlRqrwJaycpQ6gSNcp5LgYBeM6WEM';
+    let supabase = null;
+    try {
+      if (window.supabase) {
+        supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+      }
+    } catch (e) {
+      console.warn("Supabase 초기화 경고:", e);
+    }
+
+    // 2. URL 파라미터 기본값 확인
     const urlParams = new URLSearchParams(window.location.search);
-    const butterflyName = urlParams.get('name') || "빛의 나비";
-    const memoText = urlParams.get('memo') || "너의 찬란한 날갯짓을 응원해.";
-    const shape = urlParams.get('shape') || "crescent";
+    const butterflyId = urlParams.get('id');
+    let butterflyName = urlParams.get('name') || "빛의 나비";
+    let memoText = urlParams.get('memo') || "너의 찬란한 날갯짓을 응원해.";
+    let shape = urlParams.get('shape') || "crescent";
+    let patternId = urlParams.get('pattern') || null;
+    let antennaType = urlParams.get('antenna') || "ball";
+    let textureUrl = null;
 
-    // 제목에 사용자 지정 나비 이름 반영
-    document.getElementById('share-title-text').innerHTML = `'${butterflyName}'(이)<br>도착했습니다`;
-    // 다정한 말 반영
-    document.getElementById('share-memo-text').innerText = `"${memoText}"`;
+    function updateUIElements() {
+      const titleEl = document.getElementById('share-title-text');
+      if (titleEl) {
+        titleEl.innerHTML = `'${butterflyName}'(이)<br>도착했습니다`;
+      }
+      const memoEl = document.getElementById('share-memo-text');
+      if (memoEl) {
+        memoEl.innerText = `"${memoText}"`;
+      }
+    }
+    updateUIElements();
 
-    // 2. 단독 3D 나비 뷰어 구동
+    // 3. 폴백 더미 텍스처 생성기
+    function createFallbackTexture() {
+      const c = document.createElement('canvas');
+      c.width = 1000; c.height = 1000;
+      const ctx = c.getContext('2d');
+      const grad = ctx.createLinearGradient(0, 0, 1000, 1000);
+      grad.addColorStop(0, '#ffffff');
+      grad.addColorStop(1, '#e5e7eb');
+      ctx.fillStyle = grad;
+      ctx.fillRect(0, 0, 1000, 1000);
+      return c.toDataURL('image/png');
+    }
+
+    // 4. 3D 패턴 경로 계산 (shape-select.js와 동일)
+    function get3DPatternPath(shapeKey, patId) {
+      if (!patId || patId.indexOf('none') > -1) return null;
+      const parts = patId.split('_');
+      const patNum = parts[parts.length - 1] || "1";
+
+      let shapePrefix = shapeKey || 'crescent';
+      if (shapePrefix === 'moon-halo' || shapePrefix === 'moon') shapePrefix = 'moon-halo';
+      else if (shapePrefix === 'dawn-ray' || shapePrefix === 'dawn') shapePrefix = 'dawn-ray';
+      else if (shapePrefix === 'wave-fin' || shapePrefix === 'wave') shapePrefix = 'wave-fin';
+
+      return '3DButterfly_pattern/' + shapePrefix + '_pattern_3D_' + patNum + '.png';
+    }
+
+    // 5. 날개 텍스처 투영 셰이더 생성 (scene3d.js와 동일)
+    function createWingMaterials(texUrl, patPath) {
+      const photoTex = new THREE.TextureLoader().load(texUrl);
+      photoTex.flipY = false;
+      if (THREE.sRGBEncoding) photoTex.encoding = THREE.sRGBEncoding;
+
+      let patTex = null;
+      let hasPat = false;
+      if (patPath) {
+        patTex = new THREE.TextureLoader().load(patPath);
+        patTex.flipY = false;
+        if (THREE.sRGBEncoding) patTex.encoding = THREE.sRGBEncoding;
+        hasPat = true;
+      }
+
+      function createCustomWingShader() {
+        return new THREE.ShaderMaterial({
+          uniforms: {
+            photoMap: { value: photoTex },
+            patMap: { value: patTex || new THREE.Texture() },
+            hasPattern: { value: hasPat ? 1.0 : 0.0 }
+          },
+          vertexShader: [
+            'varying vec2 vProjectedUv;',
+            'varying vec2 vModelUv;',
+            'void main() {',
+            '  vModelUv = uv;',
+            '  float u = (position.x + 2.4) / 4.8;',
+            '  float v = (position.y + 2.4) / 4.8;',
+            '  vProjectedUv = vec2(clamp(u, 0.0, 1.0), clamp(1.0 - v, 0.0, 1.0));',
+            '  gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);',
+            '}'
+          ].join('\n'),
+          fragmentShader: [
+            'uniform sampler2D photoMap;',
+            'uniform sampler2D patMap;',
+            'uniform float hasPattern;',
+            'varying vec2 vProjectedUv;',
+            'varying vec2 vModelUv;',
+            'void main() {',
+            '  vec4 photoCol = texture2D(photoMap, vProjectedUv);',
+            '  vec4 finalCol = photoCol;',
+            '  if (hasPattern > 0.5) {',
+            '    vec4 patCol = texture2D(patMap, vModelUv);',
+            '    finalCol.rgb = mix(finalCol.rgb, finalCol.rgb * patCol.rgb, patCol.a * 0.95);',
+            '  }',
+            '  gl_FragColor = finalCol;',
+            '}'
+          ].join('\n'),
+          side: THREE.DoubleSide
+        });
+      }
+
+      return { matL: createCustomWingShader(), matR: createCustomWingShader() };
+    }
+
+    // 6. 단독 3D 나비 뷰어 구동
     const container = document.getElementById('share-three-container');
     const w = container.clientWidth || 340;
-    const h = container.clientHeight || 220;
+    const h = container.clientHeight || 240;
 
     const scene = new THREE.Scene();
     const camera = new THREE.PerspectiveCamera(40, w / h, 0.1, 100);
@@ -169,6 +275,7 @@
     const renderer = new THREE.WebGLRenderer({ alpha: true, antialias: true });
     renderer.setSize(w, h);
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    if (THREE.sRGBEncoding) renderer.outputEncoding = THREE.sRGBEncoding;
     container.appendChild(renderer.domElement);
 
     const ambLight = new THREE.AmbientLight(0xffffff, 1.2);
@@ -178,45 +285,81 @@
     scene.add(dirLight);
 
     const group = new THREE.Group();
-    // 3번째 사진과 동일한 비스듬한 상승 구도로 각도 설정
     group.rotation.x = 0.75;
     group.rotation.y = -0.55;
     group.rotation.z = 0.35;
+    scene.add(group);
 
     let wingL = null, wingR = null;
 
-    // 더미 그라데이션 텍스처 생성
-    const c = document.createElement('canvas');
-    c.width = 512; c.height = 512;
-    const ctx = c.getContext('2d');
-    const grad = ctx.createLinearGradient(0, 0, 512, 512);
-    grad.addColorStop(0, '#ffffff'); grad.addColorStop(1, '#a6c0fe');
-    ctx.fillStyle = grad; ctx.fillRect(0, 0, 512, 512);
-    const tex = new THREE.CanvasTexture(c);
+    function build3DModel(targetShape, targetAnt, curTexUrl, curPatId) {
+      while (group.children.length > 0) {
+        group.remove(group.children[0]);
+      }
+      wingL = null;
+      wingR = null;
 
-    const wingMat = new THREE.MeshBasicMaterial({ map: tex, side: THREE.DoubleSide });
-    const whiteMat = new THREE.MeshStandardMaterial({ color: 0xffffff, side: THREE.DoubleSide, roughness: 0.3 });
+      const pat3DPath = get3DPatternPath(targetShape, curPatId);
+      const wingMats = createWingMaterials(curTexUrl || createFallbackTexture(), pat3DPath);
+      const whiteMat = new THREE.MeshStandardMaterial({ color: 0xffffff, side: THREE.DoubleSide, roughness: 0.3 });
+      const targetAntPrefix = 'Antenna_' + (targetAnt || 'ball');
 
-    if (window.THREE && THREE.GLTFLoader) {
-      new THREE.GLTFLoader().load('3DButterfly/' + shape + '.glb', function(gltf) {
-        const model = gltf.scene;
-        model.traverse(function(child) {
-          if (child.isMesh) {
-            if (child.name.startsWith('Wing_L')) { wingL = child; child.material = wingMat; }
-            else if (child.name.startsWith('Wing_R')) { wingR = child; child.material = wingMat; }
-            else if (child.name.startsWith('Body')) { child.material = whiteMat; }
-            else if (child.name.startsWith('Antenna_')) { child.material = whiteMat; }
-          }
+      if (window.THREE && THREE.GLTFLoader) {
+        new THREE.GLTFLoader().load('3DButterfly/' + targetShape + '.glb', function(gltf) {
+          const model = gltf.scene;
+          model.traverse(function(child) {
+            if (child.isMesh) {
+              const n = child.name || '';
+              if (n.startsWith('Wing_L')) {
+                wingL = child;
+                child.material = wingMats.matL;
+              } else if (n.startsWith('Wing_R')) {
+                wingR = child;
+                child.material = wingMats.matR;
+              } else if (n.startsWith('Body')) {
+                child.material = whiteMat;
+              } else if (n.startsWith('Antenna_')) {
+                child.material = whiteMat;
+                child.visible = n.startsWith(targetAntPrefix);
+              }
+            }
+          });
+          model.scale.set(0.95, 0.95, 0.95);
+          model.position.set(0, 0, 0);
+          group.add(model);
         });
-        model.scale.set(0.95, 0.95, 0.95);
-        model.position.set(0, 0, 0);
-        group.add(model);
-      });
+      }
     }
 
-    scene.add(group);
-    const clock = new THREE.Clock();
+    // 7. Supabase 조회 및 나비 데이터 바인딩
+    async function loadButterflyData() {
+      if (supabase && butterflyId) {
+        try {
+          const { data, error } = await supabase
+            .from('butterflies')
+            .select('*')
+            .eq('id', butterflyId)
+            .single();
 
+          if (!error && data) {
+            butterflyName = data.name || butterflyName;
+            memoText = data.memo || memoText;
+            shape = data.wing_shape || shape;
+            patternId = data.pattern_id || patternId;
+            antennaType = data.antenna_type || antennaType;
+            textureUrl = data.texture_url || null;
+            updateUIElements();
+          }
+        } catch (err) {
+          console.error("Supabase 나비 조회 실패:", err);
+        }
+      }
+      build3DModel(shape, antennaType, textureUrl, patternId);
+    }
+    loadButterflyData();
+
+    // 8. 렌더 애니메이션 루프
+    const clock = new THREE.Clock();
     function animate() {
       requestAnimationFrame(animate);
       const t = clock.getElapsedTime();
@@ -227,12 +370,18 @@
         wingR.rotation.y = -flap;
       }
 
-      // 기본 각도를 유지하면서 미세한 부유감 연출
       group.position.y = Math.sin(t * 2.0) * 0.08;
-
       renderer.render(scene, camera);
     }
     animate();
+
+    window.addEventListener('resize', function() {
+      const rw = container.clientWidth || 340;
+      const rh = container.clientHeight || 240;
+      camera.aspect = rw / rh;
+      camera.updateProjectionMatrix();
+      renderer.setSize(rw, rh);
+    });
   </script>
 </body>
 </html>

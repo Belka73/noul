@@ -46,6 +46,9 @@ var surveyTitleTypeTimer = null;
 var coreConcernTypeTimer = null;
 var openingDelayTimer = null;
 
+// 방금 Supabase에 저장된 나비의 ID를 보관하는 전역 변수
+var lastSavedButterflyId = null;
+
 function clearAllTimers() {
   clearTimeout(typeTimer);
   clearTimeout(guideTypeTimer);
@@ -226,7 +229,12 @@ if (btnActionShare) {
     var rawShape = selectedButterflyShape || "crescent";
     var baseUrl = window.location.href.split('?')[0].replace(/index\.html$/, '');
     if (!baseUrl.endsWith('/')) baseUrl += '/';
-    var shareCardUrl = baseUrl + 'share.html?name=' + encodeURIComponent(rawName) + '&memo=' + encodeURIComponent(rawMemo) + '&shape=' + encodeURIComponent(rawShape);
+    
+    // Supabase에 저장된 고유 ID가 있으면 쿼리에 포함
+    var shareCardUrl = baseUrl + 'share.html?name=' + encodeURIComponent(rawName) + 
+      '&memo=' + encodeURIComponent(rawMemo) + 
+      '&shape=' + encodeURIComponent(rawShape) +
+      (lastSavedButterflyId ? ('&id=' + encodeURIComponent(lastSavedButterflyId)) : '');
 
     var shareData = { title: '너울(Noul) - ' + rawName, text: "내가 빚은 나비 '" + rawName + "'(이)가 도착했습니다.", url: shareCardUrl };
     if (navigator.share) navigator.share(shareData).catch(function() {});
@@ -1399,8 +1407,9 @@ function stopBubblePhysics() {
 async function saveButterflyToSupabase() {
   try {
     var finalTex = window.currentExtractedTexture || currentExtractedTexture;
+    var tempId = Date.now();
     specimenButterfliesData.unshift({
-      id: Date.now(), name: userSelections.q7_name || '나비',
+      id: tempId, name: userSelections.q7_name || '나비',
       wingId: selectedButterflyShape, antId: selectedAntennaType, patternId: selectedPatternId, q1: [],
       core_concern: userSelections.core_concern || (userSelections.q2 && userSelections.q2[0]) || "",
       memo: userSelections.q6_memo || '', textureUrl: finalTex,
@@ -1412,15 +1421,31 @@ async function saveButterflyToSupabase() {
       return;
     }
     var { data, error } = await supabase.from('butterflies').insert([{
-      name: userSelections.q7_name || '이름없는 나비', wing_shape: selectedButterflyShape, antenna_type: selectedAntennaType,
-      q1: [], q2: userSelections.q2, core_concern: userSelections.core_concern, q3: [], q4: [], q5: [],
-      memo: userSelections.q6_memo || '', revisit_date: null, email: null, texture_url: finalTex
-    }]);
+      name: userSelections.q7_name || '이름없는 나비',
+      wing_shape: selectedButterflyShape,
+      pattern_id: selectedPatternId,
+      antenna_type: selectedAntennaType,
+      q1: [],
+      q2: userSelections.q2,
+      core_concern: userSelections.core_concern,
+      q3: [],
+      q4: [],
+      q5: [],
+      memo: userSelections.q6_memo || '',
+      revisit_date: null,
+      texture_url: finalTex
+    }]).select();
 
     if (error) {
       console.error("❌ Supabase 저장 실패:", error);
     } else {
       console.log("✅ Supabase 저장 성공:", data);
+      if (data && data.length > 0 && data[0].id) {
+        lastSavedButterflyId = data[0].id;
+        if (specimenButterfliesData.length > 0 && specimenButterfliesData[0].id === tempId) {
+          specimenButterfliesData[0].id = data[0].id;
+        }
+      }
     }
   } catch (err) { 
     console.error("Supabase 나비 저장 에러:", err); 

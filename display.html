@@ -83,6 +83,48 @@
       word-break: keep-all;
       z-index: 2;
     }
+
+    /* 🌟 하단 가로 배너형 제스처 안내 바 */
+    #gesture-guide-banner {
+      position: absolute;
+      bottom: 2.2rem;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 50;
+      pointer-events: none;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 1.8rem;
+      padding: 0.9rem 2.2rem;
+      background: rgba(18, 18, 22, 0.72);
+      border: 1px solid rgba(255, 255, 255, 0.18);
+      border-radius: 9999px;
+      backdrop-filter: blur(18px);
+      -webkit-backdrop-filter: blur(18px);
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.6), 0 0 20px rgba(255, 255, 255, 0.05);
+      white-space: nowrap;
+    }
+
+    .guide-banner-item {
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+      font-size: 13.5px;
+      color: #e5e5ea;
+      letter-spacing: -0.2px;
+    }
+
+    .guide-banner-item strong {
+      color: #ffffff;
+      font-weight: 700;
+    }
+
+    .guide-banner-divider {
+      width: 1px;
+      height: 14px;
+      background: rgba(255, 255, 255, 0.22);
+    }
   </style>
 </head>
 <body>
@@ -96,6 +138,24 @@
     <div id="floating-butterfly-name">‘나비’</div>
     <div id="floating-butterfly-memo">너의 찬란한 날갯짓을 응원해.</div>
   </div>
+
+  <!-- 하단 가로 나열 배너 -->
+  <aside id="gesture-guide-banner">
+    <div class="guide-banner-item">
+      <span>👉</span>
+      <span><strong>손가락 하나</strong> 나비가 손끝에 내려앉아요. 나비와 함께 교감해 보세요.</span>
+    </div>
+    <div class="guide-banner-divider"></div>
+    <div class="guide-banner-item">
+      <span>✊</span>
+      <span><strong>주먹을 쥐면</strong> 나비들이 곁으로 모여들어요.</span>
+    </div>
+    <div class="guide-banner-divider"></div>
+    <div class="guide-banner-item">
+      <span>🖐️</span>
+      <span><strong>손을 펼치면</strong> 나비들이 흩어져 날아가요.</span>
+    </div>
+  </aside>
 
   <script>
     /* ========================================================
@@ -386,7 +446,7 @@
               b.group.quaternion.slerp(dummyObj.quaternion, 0.2);
           }
 
-          // 🌟 수정사항 1: 손가락에 앉았던 나비가 퇴장할 때 좀 더 느리고 우아하게 나가도록 속도 완화 (0.6 -> 0.22)
+          // 🌟 손가락에 앉았던 나비가 퇴장할 때 좀 더 느리고 우아하게 나가도록 속도 완화 (0.6 -> 0.22)
           if (b.specialState === 'leaving') {
               b.state = 'flying';
               const leaveTarget = new THREE.Vector3(25, 25, b.group.position.z - 2);
@@ -405,7 +465,7 @@
           }
       } 
       else if (isHandDetected) {
-          // 🌟 수정사항 3: 주먹으로 모였을 때 주먹 중심이 아닌, 주먹 주변을 자연스럽게 맴돌며 비행
+          // 🌟 주먹으로 모였을 때 주먹 중심이 아닌, 주먹 주변을 자연스럽게 맴돌며 비행
           if (interactionMode === 'fist_gather' && fistButterflies.includes(b.id)) {
               isFollowing = true;
               b.state = 'flying';
@@ -431,7 +491,7 @@
               dummyObj.rotateZ(rollAngle); 
               b.group.quaternion.slerp(dummyObj.quaternion, 0.22);
           }
-          // 🌟 수정사항 2: 손을 폈을 때 좀 더 팡 하고 강하게 흩어지도록 밀어내는 힘 대폭 강화 (0.1 -> 0.45)
+          // 🌟 손을 폈을 때 좀 더 팡 하고 강하게 흩어지도록 밀어내는 힘 대폭 강화 (0.1 -> 0.45)
           else if (interactionMode === 'scatter') {
               const dist = b.group.position.distanceTo(handTarget3D);
               if (dist < 32.0) {
@@ -654,7 +714,7 @@
                   targetHandPos3D.copy(camera.position).add(vec.multiplyScalar(distance));
                   if (floatingInfoCard) floatingInfoCard.classList.remove('visible');
 
-                  // 🌟 수정사항 3: 주먹을 쥐었을 때 딱 5마리만 선별
+                  // 🌟 주먹을 쥐었을 때 딱 5마리만 선별
                   if (prevMode !== 'fist_gather') {
                       const allFlock = [...defaultFlock, ...userFlock];
                       allFlock.sort((a, b) => a.group.position.distanceTo(handTarget3D) - b.group.position.distanceTo(handTarget3D));
