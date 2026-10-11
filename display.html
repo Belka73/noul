@@ -73,7 +73,7 @@
       transform: translate(45px, -125%);
     }
 
-    /* 🌟 선택된 키워드: 즉시 유지 + 순백색 발광 네온 효과 */
+    /* 선택된 키워드: 즉시 유지 + 순백색 발광 네온 효과 */
     .concern-badge-tag {
       display: inline-block;
       color: #ffffff;
@@ -88,7 +88,7 @@
                    0 0 50px rgba(255, 255, 255, 0.4);
     }
 
-    /* 🌟 자세한 고민 이유 (타이핑 대상) */
+    /* 자세한 고민 이유 */
     #floating-concern-reason {
       font-size: 13px;
       font-weight: 500;
@@ -132,7 +132,6 @@
       transform: translate(45px, -125%);
     }
 
-    /* 🌟 나비 이름: 즉시 유지 */
     #floating-butterfly-name {
       font-size: 16px;
       font-weight: 800;
@@ -142,7 +141,6 @@
       z-index: 2;
     }
 
-    /* 🌟 다정한 한마디 (타이핑 대상) */
     #floating-butterfly-memo {
       font-size: 12.5px;
       font-weight: 600;
@@ -153,7 +151,6 @@
       min-height: 36px;
     }
 
-    /* 타이핑 커서 깜빡임 효과 */
     .typing-cursor {
       display: inline-block;
       width: 2px;
@@ -510,7 +507,8 @@
         id: Math.random().toString(36).substring(7),
         group, innerGroup, leftWing, rightWing,
         velocity: initialVelocity,
-        speed: 10.0 + Math.random() * 4.0, 
+        // 🌟 날갯짓 빈도(speed)를 24.0 ~ 30.0으로 대폭 상향하여 훨씬 자주 펄럭이도록 설정
+        speed: 24.0 + Math.random() * 6.0, 
         seed: Math.random() * 1000,
         flapAmp: 1.0, 
         state: 'flying',
@@ -600,19 +598,16 @@
     function triggerLandingStorySequence(b) {
       resetLandingCards();
       
-      // 1단계: 키워드는 즉시 발광 유지, 자세한 고민 이유는 타이핑 시작
       if (floatingConcernCard) {
         floatingConcernTag.innerText = `#${b.core_concern}`;
         floatingConcernCard.classList.add('visible');
         
         const fullReason = `"${b.concern_reason}"`;
-        // 카드가 서서히 뜬 직후(150ms 후) 타이핑 시작
         setTimeout(() => {
           typeWriterText(floatingConcernReason, fullReason, 45);
         }, 150);
       }
 
-      // 2단계: 4.2초 후 다정한 한마디로 전환 (이름은 즉시 유지, 한마디는 타이핑)
       landingStorySequenceTimer = setTimeout(() => {
         if (floatingConcernCard) floatingConcernCard.classList.remove('visible');
         if (floatingInfoCard) {
@@ -633,9 +628,12 @@
 
     function updateMotion(b, time) {
       let currentTargetScale = b.targetScale;
+      
+      // 손가락 착석 나비 크기 (큼직한 원본 크기 유지)
       if (b.isSpecialLanding && (b.specialState === 'approaching' || b.specialState === 'landed')) {
-        const landingBaseScale = 0.45;
-        currentTargetScale = landingBaseScale * handPerspectiveScale;
+        const landingBaseScale = 1.05;
+        const effectivePerspective = Math.max(0.85, handPerspectiveScale);
+        currentTargetScale = landingBaseScale * effectivePerspective;
       }
 
       if (b.isAscendingArrival) {
@@ -658,16 +656,24 @@
         );
       }
 
+      // 🌟 날갯짓 빈도 및 모션 계산 (펄럭임 횟수 대폭 상향)
       if (b.state === 'landing_rest') {
-          b.flapAmp *= 0.88; 
-          const flap = Math.sin(time * b.speed + b.seed) * 0.10 * b.flapAmp;
+          b.flapAmp *= 0.92; 
+          // 손끝에 가만히 앉아 있을 때도 날개 끝을 가볍고 빠르게 사르르 떪
+          const flap = Math.sin(time * (b.speed * 0.8) + b.seed) * 0.16 * b.flapAmp;
           const restFold = -1.25; 
           b.leftWing.rotation.y = flap + restFold * (1 - b.flapAmp);
           b.rightWing.rotation.y = -flap - restFold * (1 - b.flapAmp);
       } else {
           b.flapAmp += (1.0 - b.flapAmp) * 0.1; 
-          const flapSpeed = b.isAscendingArrival ? (b.speed * 1.3) : b.speed;
-          const flap = Math.sin(time * flapSpeed + b.seed) * 0.55 * b.flapAmp;
+          // 손가락으로 다가오는 중이거나 상승할 때는 더욱 바쁘고 역동적으로 날갯짓
+          let currentFlapSpeed = b.speed;
+          if (b.isSpecialLanding && b.specialState === 'approaching') {
+            currentFlapSpeed = b.speed * 1.35; // 손가락으로 날아올 때 날갯짓 활발
+          } else if (b.isAscendingArrival) {
+            currentFlapSpeed = b.speed * 1.25;
+          }
+          const flap = Math.sin(time * currentFlapSpeed + b.seed) * 0.72 * b.flapAmp;
           b.leftWing.rotation.y = flap;
           b.rightWing.rotation.y = -flap;
       }
@@ -991,7 +997,7 @@
                   }
               } else {
                   interactionMode = 'none';
-                  handPointer.style.background = 'radial-gradient(circle, rgba(255, 255, 255, 0.4) 0%, rgba(255, 255, 255, 0) 100%, rgba(255, 255, 255, 0) 70%)';
+                  handPointer.style.background = 'radial-gradient(circle, rgba(255, 255, 255, 0.4) 0%, rgba(255, 255, 255, 100%, rgba(255, 255, 255, 0) 70%)';
                   fistButterflies = [];
                   resetLandingCards();
               }
