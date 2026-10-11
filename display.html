@@ -690,7 +690,7 @@
                   triggerLandingStorySequence(b);
               } else {
                   b.state = 'flying';
-                  // 손가락으로 날아오는 추진력(0.18 -> 0.26) 및 회전 반응속도(0.05 -> 0.08)를 소폭 상향
+                  // 손가락으로 날아오는 추진력(0.26) 및 회전 반응속도(0.08)
                   _vDir.subVectors(handTarget3D, b.group.position).normalize().multiplyScalar(0.26);
                   b.velocity.lerp(_vDir, 0.08); 
                   
@@ -790,7 +790,7 @@
           }
       }
 
-      // 🌟 손가락 착석 나비 최대 속도만 0.18에서 0.26으로 소폭 상향 조정
+      // 🌟 손가락 착석 나비 최대 속도 0.26 유지, 주변 나비는 0.10 유지
       let maxSpeed = 0.10;
       if (b.isSpecialLanding) {
           maxSpeed = 0.26;
@@ -829,6 +829,9 @@
       }
     }
 
+    // 🌟 [수정]: 호출 제스처 깜빡임 방지 타이머
+    let releaseLandingTimer = null;
+
     function animate() {
       requestAnimationFrame(animate);
       const dt = clock.getDelta();
@@ -853,7 +856,13 @@
         }
       }
 
+      // 🌟 [수정]: 1프레임 튀어도 즉시 취소되지 않고 안정적으로 유지되는 착석 제어로직
       if (interactionMode === 'land_one' && isHandDetected) {
+          if (releaseLandingTimer) {
+              clearTimeout(releaseLandingTimer);
+              releaseLandingTimer = null;
+          }
+
           if (!landingButterflyId) {
               const allFlock = [...defaultFlock, ...userFlock];
               const randIdx = Math.floor(Math.random() * allFlock.length);
@@ -867,14 +876,18 @@
               selected.velocity.set(0, 0, 0); 
           }
       } else {
-          if (landingButterflyId) {
-              const allFlock = [...defaultFlock, ...userFlock];
-              const selected = allFlock.find(b => b.id === landingButterflyId);
-              if (selected) {
-                  selected.specialState = 'leaving';
-              }
-              landingButterflyId = null;
-              resetLandingCards();
+          // 손가락 인식이 순간 끊기거나 1프레임 튀었을 때 바로 취소하지 않고 450ms 완충
+          if (landingButterflyId && !releaseLandingTimer) {
+              releaseLandingTimer = setTimeout(() => {
+                  const allFlock = [...defaultFlock, ...userFlock];
+                  const selected = allFlock.find(b => b.id === landingButterflyId);
+                  if (selected) {
+                      selected.specialState = 'leaving';
+                  }
+                  landingButterflyId = null;
+                  resetLandingCards();
+                  releaseLandingTimer = null;
+              }, 450);
           }
       }
 
@@ -972,28 +985,37 @@
               vec.unproject(camera);
               vec.sub(camera.position).normalize();
               
-              let openFingers = 0;
-              const tips = [8, 12, 16, 20];
-              const pips = [6, 10, 14, 18];
-              for(let i=0; i<4; i++) {
-                  if(Math.hypot(lm[tips[i]].x - wrist.x, lm[tips[i]].y - wrist.y) > Math.hypot(lm[pips[i]].x - wrist.x, lm[pips[i]].y - wrist.y) * 1.1) openFingers++;
-              }
+              // 🌟 [수정]: 더욱 정밀하고 흔들림 없는 손가락 펴짐 판정 (검지 중심)
+              const isIndexOpen = Math.hypot(lm[8].x - wrist.x, lm[8].y - wrist.y) > Math.hypot(lm[6].x - wrist.x, lm[6].y - wrist.y) * 1.05;
+              const isMiddleOpen = Math.hypot(lm[12].x - wrist.x, lm[12].y - wrist.y) > Math.hypot(lm[10].x - wrist.x, lm[10].y - wrist.y) * 1.05;
+              const isRingOpen = Math.hypot(lm[16].x - wrist.x, lm[16].y - wrist.y) > Math.hypot(lm[14].x - wrist.x, lm[14].y - wrist.y) * 1.05;
+              const isPinkyOpen = Math.hypot(lm[20].x - wrist.x, lm[20].y - wrist.y) > Math.hypot(lm[18].x - wrist.x, lm[18].y - wrist.y) * 1.05;
               
+              let openCount = 0;
+              if (isIndexOpen) openCount++;
+              if (isMiddleOpen) openCount++;
+              if (isRingOpen) openCount++;
+              if (isPinkyOpen) openCount++;
+
               const prevMode = interactionMode;
-              if (openFingers >= 3) {
+
+              // 손을 쫙 편 상태 (산란)
+              if (openCount >= 3) {
                   interactionMode = 'scatter';
                   handPointer.style.background = 'radial-gradient(circle, rgba(200, 230, 255, 0.95) 0%, rgba(100, 150, 255, 0.4) 40%, rgba(255, 255, 255, 0) 70%)';
                   const distance = (8 - camera.position.z) / vec.z; 
                   targetHandPos3D.copy(camera.position).add(vec.multiplyScalar(distance));
                   resetLandingCards();
 
-              } else if (openFingers === 1) {
+              // 🌟 [수정]: 검지가 펴져 있고, 나머지 손가락이 1개 이하로만 애매하게 펴진 경우 완벽히 land_one으로 고정
+              } else if (isIndexOpen && openCount <= 2 && (!isMiddleOpen || !isRingOpen)) {
                   interactionMode = 'land_one';
                   handPointer.style.background = 'radial-gradient(circle, rgba(255, 255, 255, 0.95) 0%, rgba(150, 200, 255, 0.4) 40%, rgba(255, 255, 255, 0) 70%)';
                   const distance = (8 - camera.position.z) / vec.z; 
                   targetHandPos3D.copy(camera.position).add(vec.multiplyScalar(distance));
 
-              } else if (openFingers === 0) {
+              // 주먹을 쥔 상태 (모여들기)
+              } else if (openCount === 0) {
                   interactionMode = 'fist_gather';
                   handPointer.style.background = 'radial-gradient(circle, rgba(255, 200, 200, 0.9) 0%, rgba(255, 100, 100, 0.3) 40%, rgba(255, 255, 255, 0) 70%)';
                   const distance = (0 - camera.position.z) / vec.z; 
