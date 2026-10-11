@@ -487,7 +487,8 @@
       }
 
       let initialVelocity;
-      let targetScale = 0.14 + Math.random() * 0.08;
+      // 🌟 [수정]: 뒤쪽 일반 나비들의 기본 크기(Scale)를 기존 0.14~0.22 -> 0.22~0.30으로 확실하게 확대
+      let targetScale = 0.22 + Math.random() * 0.08;
 
       if (isFingerTarget) {
         group.position.set(-18, 14, customZ);
@@ -499,10 +500,11 @@
         initialVelocity = new THREE.Vector3((Math.random() - 0.5) * 0.03, 0.09, -0.02);
         group.scale.set(0.01, 0.01, 0.01);
       } else {
+        // 🌟 [수정]: 뒤쪽 나비들의 생성 깊이를 기존 -12 ~ -28 -> 카메라와 가까운 -4.0 ~ -16.0으로 전진 배치
         group.position.set(
-          (Math.random() - 0.5) * 30, 
-          (Math.random() - 0.5) * 18, 
-          -12.0 - Math.random() * 16.0
+          (Math.random() - 0.5) * 26, 
+          (Math.random() - 0.5) * 16, 
+          -4.0 - Math.random() * 12.0
         );
         initialVelocity = new THREE.Vector3((Math.random() - 0.5) * 0.07, (Math.random() - 0.5) * 0.07, (Math.random() - 0.5) * 0.04);
         group.scale.set(targetScale, targetScale, targetScale);
@@ -696,7 +698,7 @@
               const dy = b.group.position.y - handTarget3D.y;
               const dist2D = Math.hypot(dx, dy);
 
-              // 🌟 2D 평면 거리 1.8 이내 진입 시 즉시 착석 성공
+              // 2D 평면 거리 1.8 이내 진입 시 즉시 착석 성공
               if (dist2D < 1.8) {
                   b.group.position.z = handTarget3D.z;
                   b.specialState = 'landed';
@@ -707,7 +709,7 @@
                   _vDir.z = 0; 
                   _vDir.normalize().multiplyScalar(0.26);
                   b.velocity.lerp(_vDir, 0.08); 
-                  b.velocity.z = 0;
+                  b.velocity.z = 0; 
                   
                   _vTargetPos.copy(b.group.position).add(b.velocity);
                   dummyObj.position.copy(b.group.position);
@@ -740,7 +742,7 @@
               _vLeave.z = b.group.position.z;
               _vDir.subVectors(_vLeave, b.group.position).normalize().multiplyScalar(0.18);
               b.velocity.lerp(_vDir, 0.08); 
-              b.velocity.z = 0;
+              b.velocity.z = 0; 
               
               _vTargetPos.copy(b.group.position).add(b.velocity);
               dummyObj.position.copy(b.group.position);
@@ -755,22 +757,23 @@
           }
       } 
       else if (isHandDetected) {
+          // 주먹 쥘 때(fist_gather) 빠르고 역동적으로 모여들기
           if (interactionMode === 'fist_gather' && fistButterflies.includes(b.id)) {
               isFollowing = true;
               b.state = 'flying';
               
               const orbitIdx = fistButterflies.indexOf(b.id);
-              const orbitAngle = time * 1.4 + (orbitIdx * ((Math.PI * 2) / fistButterflies.length));
-              const orbitRadius = 1.8 + (orbitIdx % 2) * 0.6;
+              const orbitAngle = time * 2.2 + (orbitIdx * ((Math.PI * 2) / fistButterflies.length));
+              const orbitRadius = 1.5 + (orbitIdx % 2) * 0.5;
               _vOrbit.set(
                 Math.cos(orbitAngle) * orbitRadius,
-                Math.sin(orbitAngle * 1.1) * 0.7,
+                Math.sin(orbitAngle * 1.2) * 0.6,
                 Math.sin(orbitAngle) * orbitRadius
               );
               _vTargetPos.copy(handTarget3D).add(_vOrbit);
               
-              _vDir.subVectors(_vTargetPos, b.group.position).normalize().multiplyScalar(0.20);
-              b.velocity.lerp(_vDir, 0.12);
+              _vDir.subVectors(_vTargetPos, b.group.position).normalize().multiplyScalar(0.45);
+              b.velocity.lerp(_vDir, 0.25);
               b.velocity.x += (Math.random() - 0.5) * 0.01;
               b.velocity.y += (Math.random() - 0.5) * 0.01;
 
@@ -779,7 +782,7 @@
               dummyObj.lookAt(_vTargetPos);
               const rollAngle = (b.velocity.x * -18);
               dummyObj.rotateZ(rollAngle); 
-              b.group.quaternion.slerp(dummyObj.quaternion, 0.15);
+              b.group.quaternion.slerp(dummyObj.quaternion, 0.22);
           }
           else if (interactionMode === 'scatter') {
               const dist = b.group.position.distanceTo(handTarget3D);
@@ -812,7 +815,7 @@
       } else if (isFollowing && interactionMode === 'scatter') {
           maxSpeed = 1.2;
       } else if (isFollowing && interactionMode === 'fist_gather') {
-          maxSpeed = 0.22;
+          maxSpeed = 0.55;
       } else if (b.isAscendingArrival) {
           maxSpeed = 0.20;
       }
@@ -823,13 +826,14 @@
       
       b.group.position.add(b.velocity);
 
+      // 🌟 [수정]: 뒤쪽 유영 나비의 z축 경계선을 -2.0 ~ -16.0으로 좁혀 카메라 가까운 곳에서 선명하게 머물도록 유지
       if (!b.isSpecialLanding) {
           if (b.group.position.x > 18) b.velocity.x -= 0.012;
           if (b.group.position.x < -18) b.velocity.x += 0.012;
           if (b.group.position.y > 12) b.velocity.y -= 0.012;
           if (b.group.position.y < -12) b.velocity.y += 0.012;
-          if (b.group.position.z > -8.0) b.velocity.z -= 0.02;
-          if (b.group.position.z < -28.0) b.velocity.z += 0.02;
+          if (b.group.position.z > -2.0) b.velocity.z -= 0.02;
+          if (b.group.position.z < -16.0) b.velocity.z += 0.02;
       }
 
       if (b.velocity.lengthSq() > 0.00001 && b.state === 'flying' && !isFollowing) {
