@@ -46,7 +46,6 @@ var surveyTitleTypeTimer = null;
 var coreConcernTypeTimer = null;
 var openingDelayTimer = null;
 
-// 방금 Supabase에 저장된 나비의 ID를 보관하는 전역 변수
 var lastSavedButterflyId = null;
 
 function clearAllTimers() {
@@ -230,7 +229,6 @@ if (btnActionShare) {
     var baseUrl = window.location.href.split('?')[0].replace(/index\.html$/, '');
     if (!baseUrl.endsWith('/')) baseUrl += '/';
     
-    // Supabase에 저장된 고유 ID가 있으면 쿼리에 포함
     var shareCardUrl = baseUrl + 'share.html?name=' + encodeURIComponent(rawName) + 
       '&memo=' + encodeURIComponent(rawMemo) + 
       '&shape=' + encodeURIComponent(rawShape) +
@@ -636,6 +634,34 @@ if (btnTop7BridgeNext) {
   };
 }
 
+function initConcernReasonScreen() {
+  clearTimeout(reasonTypeTimer);
+  var pickedKeyword = userSelections.core_concern || "완벽주의 강박";
+  if (elConcernReasonKeywordDisplay) elConcernReasonKeywordDisplay.innerText = pickedKeyword;
+  if (elConcernReasonTitle) elConcernReasonTitle.innerHTML = "";
+
+  var tokens = "이것을 선택한 이유는 무엇인가요?".match(/(<[^>]+>|[^<])/g) || [];
+  var idx = 0, cur = "";
+  (function typeReasonChar() {
+    if (idx < tokens.length) {
+      var char = tokens[idx]; cur += char;
+      if (elConcernReasonTitle) elConcernReasonTitle.innerHTML = cur;
+      idx++;
+      reasonTypeTimer = setTimeout(typeReasonChar, char.startsWith('<') ? 0 : (char === '?' || char === '.' ? 320 : 70));
+    } else {
+      setTimeout(function() {
+        if (elConcernReasonKeywordDisplay) elConcernReasonKeywordDisplay.style.opacity = '1';
+      }, 200);
+    }
+  })();
+
+  if (inputConcernReason) {
+    inputConcernReason.value = userSelections.concern_reason || "";
+    if (concernReasonCounter) concernReasonCounter.innerText = (userSelections.concern_reason ? userSelections.concern_reason.length : 0) + '/100';
+  }
+  validateConcernReasonStep();
+}
+
 function initPostConcernBridgeScreen() {
   clearTimeout(postConcernTypeTimer);
   var textEl = document.getElementById('post-concern-bridge-text');
@@ -725,7 +751,18 @@ function startCaptureGuideCinematicFlow() {
 var SUPABASE_URL = 'https://djmdzsbfsobsutphragw.supabase.co';
 var SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRqbWR6c2Jmc29ic3V0cGhyYWd3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODk4ODQ3NTgsImV4cCI6MjEwNTQ2MDc1OH0.BC7llaSjbq6cYhDlRqrwJaycpQ6gSNcp5LgYBeM6WEM';
 var supabase = null;
-try { if (window.supabase) supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY); } catch (err) {}
+
+function getSupabaseClient() {
+  if (!supabase && window.supabase) {
+    try {
+      supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    } catch (e) {
+      console.warn("Supabase 클라이언트 생성 재시도 실패:", e);
+    }
+  }
+  return supabase;
+}
+getSupabaseClient();
 
 var surveyQuestions = [
   { title: "당신의 이름은 무엇인가요?", desc: "" },
@@ -1105,33 +1142,6 @@ function validateConcernReasonStep() {
   btnConcernReasonNext.style.pointerEvents = isValid ? 'auto' : 'none';
 }
 
-function initConcernReasonScreen() {
-  clearTimeout(reasonTypeTimer);
-  if (elConcernReasonKeywordDisplay) elConcernReasonKeywordDisplay.innerText = userSelections.core_concern || "고민";
-  if (elConcernReasonTitle) elConcernReasonTitle.innerHTML = "";
-
-  var tokens = "이것을 선택한 이유는 무엇인가요?".match(/(<[^>]+>|[^<])/g) || [];
-  var idx = 0, cur = "";
-  (function typeReasonChar() {
-    if (idx < tokens.length) {
-      var char = tokens[idx]; cur += char;
-      if (elConcernReasonTitle) elConcernReasonTitle.innerHTML = cur;
-      idx++;
-      reasonTypeTimer = setTimeout(typeReasonChar, char.startsWith('<') ? 0 : (char === '?' || char === '.' ? 320 : 70));
-    } else {
-      setTimeout(function() {
-        if (elConcernReasonKeywordDisplay) elConcernReasonKeywordDisplay.style.opacity = '1';
-      }, 200);
-    }
-  })();
-
-  if (inputConcernReason) {
-    inputConcernReason.value = userSelections.concern_reason || "";
-    if (concernReasonCounter) concernReasonCounter.innerText = (userSelections.concern_reason ? userSelections.concern_reason.length : 0) + '/100';
-  }
-  validateConcernReasonStep();
-}
-
 if (inputConcernReason) {
   inputConcernReason.oninput = function(e) {
     userSelections.concern_reason = e.target.value;
@@ -1404,12 +1414,16 @@ function stopBubblePhysics() {
   if (bubbleCanvas && bctx) bctx.clearRect(0, 0, bubbleCanvas.width, bubbleCanvas.height);
 }
 
-// 🌟 Supabase에 나비 안전 저장 함수 (전역 window 바인딩 + 페이로드 최적화)
 window.saveButterflyToSupabase = async function() {
   try {
+    var client = getSupabaseClient();
+    if (!client) {
+      console.error("❌ Supabase 클라이언트가 초기화되지 않았습니다. window.supabase를 확인해주세요.");
+      return;
+    }
+
     var rawTex = window.currentExtractedTexture || currentExtractedTexture;
     
-    // 🌟 1. 거대한 1000x1000 PNG Base64를 512x512 JPEG로 경량화하여 페이로드 거부 방지
     function compressBase64(base64Str) {
       return new Promise(function(resolve) {
         if (!base64Str || !base64Str.startsWith('data:image')) {
@@ -1441,28 +1455,28 @@ window.saveButterflyToSupabase = async function() {
       date: new Date().toISOString().slice(0, 10).replace(/-/g, '. ')
     });
 
-    if (!supabase) {
-      console.error("❌ Supabase 클라이언트가 초기화되지 않았습니다. window.supabase를 확인해주세요.");
-      return;
-    }
+    var safeQ1 = Array.isArray(userSelections.q1) ? JSON.parse(JSON.stringify(userSelections.q1)) : [];
+    var safeQ2 = Array.isArray(userSelections.q2) ? JSON.parse(JSON.stringify(userSelections.q2)) : [];
 
-    console.log("🚀 Supabase INSERT 요청 전송 중...");
-
-    // 🌟 2. DB 스키마에 정의된 안전한 컬럼만 매핑하여 INSERT
-    var { data, error } = await supabase.from('butterflies').insert([{
+    var insertPayload = {
       name: userSelections.q7_name || '이름없는 나비',
       wing_shape: selectedButterflyShape || 'crescent',
       pattern_id: selectedPatternId || 'crescent_none',
       antenna_type: selectedAntennaType || 'ball',
-      q1: userSelections.q1 || [],
-      q2: userSelections.q2 || [],
-      core_concern: userSelections.core_concern || (userSelections.q2 && userSelections.q2[0]) || "",
+      q1: safeQ1,
+      q2: safeQ2,
+      core_concern: userSelections.core_concern || (safeQ2.length > 0 ? safeQ2[0] : ""),
       memo: userSelections.q6_memo || '',
       texture_url: finalTex
-    }]).select();
+    };
+
+    console.log("🚀 Supabase INSERT 요청 전송 시작. 데이터:", insertPayload);
+
+    var { data, error } = await client.from('butterflies').insert([insertPayload]).select();
 
     if (error) {
       console.error("❌ Supabase 저장 실패 (상세 내용):", error);
+      alert("데이터 저장 실패: " + (error.message || JSON.stringify(error)));
     } else {
       console.log("✅ Supabase 저장 성공 (결과 데이터):", data);
       if (data && data.length > 0 && data[0].id) {
@@ -1474,6 +1488,7 @@ window.saveButterflyToSupabase = async function() {
     }
   } catch (err) { 
     console.error("❌ Supabase 나비 저장 예외 발생:", err); 
+    alert("데이터 저장 예외 발생: " + err.message);
   }
 };
 var saveButterflyToSupabase = window.saveButterflyToSupabase;
@@ -1538,9 +1553,10 @@ if (gallerySearchInput) gallerySearchInput.oninput = function(e) { renderFiltere
 
 async function initSpecimenGallery() {
   if (gallerySearchInput) gallerySearchInput.value = "";
-  if (supabase) {
+  var client = getSupabaseClient();
+  if (client) {
     try {
-      var res = await supabase.from('butterflies').select('*').order('id', { ascending: false }).limit(50);
+      var res = await client.from('butterflies').select('*').order('id', { ascending: false }).limit(50);
       if (res.data && res.data.length > 0) {
         specimenButterfliesData = res.data.map(function(item) {
           return {
