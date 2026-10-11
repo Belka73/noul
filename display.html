@@ -31,11 +31,11 @@
       position: absolute; inset: 0; z-index: 10;
     }
 
-    /* 🌟 기 모으는 원과 동일한 크기(36px) 및 반투명 2중 화이트 디자인으로 통일 */
+    /* 🌟 상호작용 원 크기 확대 (36px -> 52px, 내부 코어 14px -> 20px) */
     #hand-pointer {
       position: absolute; 
-      width: 36px; height: 36px;
-      margin-left: -18px; margin-top: -18px; 
+      width: 52px; height: 52px;
+      margin-left: -26px; margin-top: -26px; 
       border-radius: 50%;
       background: rgba(255, 255, 255, 0.08);
       border: 1px solid rgba(255, 255, 255, 0.22);
@@ -50,18 +50,17 @@
       justify-content: center;
     }
 
-    /* 기 모으기 위젯의 내부 코어 원과 동일한 중심 코어 */
     #hand-pointer::after {
       content: '';
-      width: 14px;
-      height: 14px;
+      width: 20px;
+      height: 20px;
       border-radius: 50%;
       background: rgba(255, 255, 255, 0.35);
       border: 1px solid rgba(255, 255, 255, 0.6);
-      box-shadow: 0 0 8px rgba(255, 255, 255, 0.4);
+      box-shadow: 0 0 10px rgba(255, 255, 255, 0.4);
     }
 
-    /* 🌟 1단계: 외곽이 부드럽게 번지는 타원형 검은색 안개 블러 말풍선 (고민/이유) */
+    /* 🌟 1단계: 고민 안내 카드 */
     #floating-concern-card {
       position: absolute;
       transform: translate(45px, -115%);
@@ -95,7 +94,6 @@
       transform: translate(45px, -125%);
     }
 
-    /* 선택된 키워드: 즉시 유지 + 순백색 발광 네온 효과 */
     .concern-badge-tag {
       display: inline-block;
       color: #ffffff;
@@ -110,7 +108,6 @@
                    0 0 50px rgba(255, 255, 255, 0.4);
     }
 
-    /* 자세한 고민 이유 */
     #floating-concern-reason {
       font-size: 13px;
       font-weight: 500;
@@ -122,7 +119,7 @@
       min-height: 38px;
     }
 
-    /* 🌟 2단계: 외곽이 완벽히 번져있는 타원형 흰색 빛 블러 말풍선 (다정한 한마디) */
+    /* 🌟 2단계: 다정한 한마디 카드 */
     #floating-info-card {
       position: absolute;
       transform: translate(45px, -115%);
@@ -187,7 +184,6 @@
       50% { opacity: 0; }
     }
 
-    /* 🌟 하단 가로 배너형 제스처 안내 바 */
     #gesture-guide-banner {
       position: absolute;
       bottom: 2.2rem;
@@ -199,11 +195,11 @@
       align-items: center;
       justify-content: center;
       gap: 1.8rem;
-      padding: 0.85rem 2.2rem;
-      background: rgba(18, 18, 22, 0.82);
-      border: 1px solid rgba(255, 255, 255, 0.18);
-      border-radius: 9999px;
-      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.6);
+      padding: 0.5rem 1.0rem;
+      background: transparent !important;
+      border: none !important;
+      border-radius: 0 !important;
+      box-shadow: none !important;
       white-space: nowrap;
       will-change: transform;
     }
@@ -215,6 +211,7 @@
       font-size: 13.5px;
       color: #e5e5ea;
       letter-spacing: -0.2px;
+      text-shadow: 0 1px 8px rgba(0, 0, 0, 0.85), 0 2px 14px rgba(0, 0, 0, 0.95);
     }
     .guide-banner-item strong {
       color: #ffffff;
@@ -222,8 +219,9 @@
     }
     .guide-banner-divider {
       width: 1px;
-      height: 14px;
-      background: rgba(255, 255, 255, 0.22);
+      height: 13px;
+      background: rgba(255, 255, 255, 0.28);
+      box-shadow: 0 0 4px rgba(0, 0, 0, 0.8);
     }
   </style>
 </head>
@@ -246,7 +244,7 @@
     <div id="floating-butterfly-memo"></div>
   </div>
 
-  <!-- 하단 가로 나열 배너 -->
+  <!-- 하단 안내 배너 -->
   <aside id="gesture-guide-banner">
     <div class="guide-banner-item">
       <span>👉</span>
@@ -735,16 +733,15 @@
               dummyObj.rotateZ(rollAngle); 
               b.group.quaternion.slerp(dummyObj.quaternion, 0.22);
           }
-          // 🌟 [수정]: 손 펼쳤을 때(scatter) 너무 세게 날아가지 않도록 부드러운 힘(0.18)으로 완화
           else if (interactionMode === 'scatter') {
               const dist = b.group.position.distanceTo(handTarget3D);
-              if (dist < 28.0) {
+              if (dist < 26.0) {
                   isFollowing = true;
                   b.state = 'flying';
                   _vDir.subVectors(b.group.position, handTarget3D);
                   _vDir.z = 0; 
                   _vDir.normalize();
-                  b.velocity.addScaledVector(_vDir, 0.18); // 기존 0.35 -> 0.18로 대폭 완화
+                  b.velocity.addScaledVector(_vDir, 0.06); 
                   b.velocity.z *= 0.85; 
               }
           } 
@@ -764,12 +761,11 @@
           }
       }
 
-      // 🌟 [수정]: 산란 시 최대 속도를 기존 1.0 -> 0.32로 줄여 자연스러운 유영 유지
       let maxSpeed = 0.10;
       if (b.isSpecialLanding) {
           maxSpeed = 0.26;
       } else if (isFollowing && interactionMode === 'scatter') {
-          maxSpeed = 0.32; // 과속 방지
+          maxSpeed = 0.14; 
       } else if (isFollowing && interactionMode === 'fist_gather') {
           maxSpeed = 0.55;
       }
@@ -781,10 +777,10 @@
       b.group.position.add(b.velocity);
 
       if (!b.isSpecialLanding) {
-          if (b.group.position.x > 18) b.velocity.x -= 0.012;
-          if (b.group.position.x < -18) b.velocity.x += 0.012;
-          if (b.group.position.y > 12) b.velocity.y -= 0.012;
-          if (b.group.position.y < -12) b.velocity.y += 0.012;
+          if (b.group.position.x > 16) b.velocity.x -= 0.02;
+          if (b.group.position.x < -16) b.velocity.x += 0.02;
+          if (b.group.position.y > 10) b.velocity.y -= 0.02;
+          if (b.group.position.y < -10) b.velocity.y += 0.02;
           if (b.group.position.z > -2.0) b.velocity.z -= 0.02;
           if (b.group.position.z < -16.0) b.velocity.z += 0.02;
       }
@@ -892,7 +888,7 @@
     }, 1500);
 
     /* ========================================================
-       3. 네이티브 웹캠 FHD 고화질 + AI 최적화 (안정적인 1손 추적)
+       3. 네이티브 웹캠 FHD 고화질 + 정밀 제스처 판정 알고리즘
        ======================================================== */
     setTimeout(() => {
       try {
@@ -930,11 +926,27 @@
               const vec = new THREE.Vector3((1 - tip.x) * 2 - 1, -(tip.y * 2) + 1, 0.5);
               vec.unproject(camera);
               vec.sub(camera.position).normalize();
-              
-              const isIndexOpen = lm[8].y < lm[6].y;
-              const isMiddleOpen = lm[12].y < lm[10].y;
-              const isRingOpen = lm[16].y < lm[14].y;
-              const isPinkyOpen = lm[20].y < lm[18].y;
+
+              const dist3D = (p1, p2) => Math.hypot(p1.x - p2.x, p1.y - p2.y, (p1.z || 0) - (p2.z || 0));
+
+              // 검지 펴짐 판정
+              const indexTipToWrist = dist3D(lm[8], wrist);
+              const indexPipToWrist = dist3D(lm[6], wrist);
+              const isIndexOpen = (indexTipToWrist > indexPipToWrist * 1.08) || (lm[8].y < lm[6].y);
+
+              // 중지, 약지, 소지 펴짐/접힘 판정
+              const middleTipToWrist = dist3D(lm[12], wrist);
+              const middlePipToWrist = dist3D(lm[10], wrist);
+              const isMiddleOpen = (middleTipToWrist > middlePipToWrist * 1.08) || (lm[12].y < lm[10].y);
+
+              const ringTipToWrist = dist3D(lm[16], wrist);
+              const ringPipToWrist = dist3D(lm[14], wrist);
+              const isRingOpen = (ringTipToWrist > ringPipToWrist * 1.08) || (lm[16].y < lm[14].y);
+
+              const pinkyTipToWrist = dist3D(lm[20], wrist);
+              const pinkyPipToWrist = dist3D(lm[18], wrist);
+              const isPinkyOpen = (pinkyTipToWrist > pinkyPipToWrist * 1.08) || (lm[20].y < lm[18].y);
+
               const isThumbOpen = Math.hypot(lm[4].x - lm[2].x, lm[4].y - lm[2].y) > 0.08;
 
               let foldedOthersCount = 0;
@@ -949,6 +961,13 @@
               if (isRingOpen) totalOpenFingers++;
               if (isPinkyOpen) totalOpenFingers++;
 
+              // 주먹 판정
+              const isIndexFolded = dist3D(lm[8], lm[5]) < dist3D(lm[6], lm[5]) * 1.3 || (!isIndexOpen && lm[8].y >= lm[6].y);
+              const isMiddleFolded = !isMiddleOpen;
+              const isRingFolded = !isRingOpen;
+              const isPinkyFolded = !isPinkyOpen;
+              const isTrueFist = isIndexFolded && isMiddleFolded && isRingFolded && isPinkyFolded && (totalOpenFingers <= 1);
+
               const prevMode = interactionMode;
 
               // 1) 검지 손가락 하나 들기 (land_one)
@@ -958,14 +977,14 @@
                   targetHandPos3D.copy(camera.position).add(vec.multiplyScalar(distance));
 
               // 2) 손을 쫙 펴는 산란 (scatter)
-              } else if (totalOpenFingers >= 4 && isMiddleOpen && isRingOpen && isPinkyOpen) {
+              } else if (totalOpenFingers >= 4 && isIndexOpen && isMiddleOpen && isRingOpen && isPinkyOpen) {
                   interactionMode = 'scatter';
                   const distance = (8 - camera.position.z) / vec.z; 
                   targetHandPos3D.copy(camera.position).add(vec.multiplyScalar(distance));
                   resetLandingCards();
 
               // 3) 주먹 쥐기 (fist_gather)
-              } else if (totalOpenFingers <= 1 && !isIndexOpen && !isMiddleOpen) {
+              } else if (isTrueFist) {
                   interactionMode = 'fist_gather';
                   const distance = (0 - camera.position.z) / vec.z; 
                   targetHandPos3D.copy(camera.position).add(vec.multiplyScalar(distance));
