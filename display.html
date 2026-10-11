@@ -677,6 +677,7 @@
 
       let isFollowing = false;
 
+      // 🌟 [수정]: 손가락으로 불려오는 특정 착석 나비만 특별 경로 적용
       if (b.isSpecialLanding) {
           isFollowing = true;
 
@@ -735,6 +736,7 @@
               }
           }
       } 
+      // 🌟 [수정]: 착석 나비가 아닌 주변 일반 나비들은 land_one 모드일 때 완전히 독립된 자유 비행 유지
       else if (isHandDetected) {
           if (interactionMode === 'fist_gather' && fistButterflies.includes(b.id)) {
               isFollowing = true;
@@ -773,6 +775,7 @@
           } 
       }
 
+      // 🌟 [수정]: 자유 비행 나비(주변 나비 포함)는 항상 일정한 유영 속도 유지
       if (!isFollowing && !b.isAscendingArrival) {
           b.state = 'flying';
           const t = time * 0.5 + b.seed;
@@ -787,10 +790,17 @@
           }
       }
 
-      // 손가락 추적 시 최대 허용 속도를 0.52에서 0.18로 축소하여 과속 방지
-      let maxSpeed = isFollowing ? 0.18 : 0.10;
-      if (interactionMode === 'scatter') maxSpeed = 1.2;
-      if (b.isAscendingArrival) maxSpeed = 0.20;
+      // 🌟 [수정]: 착석 나비는 0.18, 산란 모드는 1.2, 그 외 모든 일반 주변 나비는 0.10으로 엄격히 제한
+      let maxSpeed = 0.10;
+      if (b.isSpecialLanding) {
+          maxSpeed = 0.18;
+      } else if (isFollowing && interactionMode === 'scatter') {
+          maxSpeed = 1.2;
+      } else if (isFollowing && interactionMode === 'fist_gather') {
+          maxSpeed = 0.22;
+      } else if (b.isAscendingArrival) {
+          maxSpeed = 0.20;
+      }
 
       if (b.velocity.length() > maxSpeed) {
           b.velocity.multiplyScalar(0.92);
