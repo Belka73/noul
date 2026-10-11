@@ -753,9 +753,20 @@ var SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYm
 var supabase = null;
 
 function getSupabaseClient() {
-  if (!supabase && window.supabase) {
+  if (supabase) return supabase;
+  
+  var factory = null;
+  if (window.supabase && typeof window.supabase.createClient === 'function') {
+    factory = window.supabase.createClient;
+  } else if (window.supabaseJs && typeof window.supabaseJs.createClient === 'function') {
+    factory = window.supabaseJs.createClient;
+  } else if (typeof window.createClient === 'function') {
+    factory = window.createClient;
+  }
+
+  if (factory) {
     try {
-      supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+      supabase = factory(SUPABASE_URL, SUPABASE_ANON_KEY);
     } catch (e) {
       console.warn("Supabase 클라이언트 생성 재시도 실패:", e);
     }
@@ -1417,6 +1428,16 @@ function stopBubblePhysics() {
 window.saveButterflyToSupabase = async function() {
   try {
     var client = getSupabaseClient();
+    
+    // 클라이언트가 즉시 준비되지 않은 경우 지연 재시도 (최대 5회)
+    if (!client) {
+      for (var attempt = 0; attempt < 5; attempt++) {
+        await new Promise(function(resolve) { setTimeout(resolve, 300); });
+        client = getSupabaseClient();
+        if (client) break;
+      }
+    }
+
     if (!client) {
       console.error("❌ Supabase 클라이언트가 초기화되지 않았습니다. window.supabase를 확인해주세요.");
       return;
