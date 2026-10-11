@@ -317,6 +317,75 @@
       return group;
     }
 
+    /* 🌟 앱(scene3d.js)과 100% 동일한 날개 평면 투영 셰이더 생성기 */
+    function createWingMaterials(textureURL, patternPath3D) {
+      const photoTex = textureLoader.load(textureURL);
+      photoTex.flipY = false;
+      if (THREE.sRGBEncoding) photoTex.encoding = THREE.sRGBEncoding;
+
+      let patTex = null;
+      let hasPat = false;
+      if (patternPath3D) {
+        patTex = textureLoader.load(patternPath3D);
+        patTex.flipY = false;
+        if (THREE.sRGBEncoding) patTex.encoding = THREE.sRGBEncoding;
+        hasPat = true;
+      }
+
+      function createCustomWingShader() {
+        return new THREE.ShaderMaterial({
+          uniforms: {
+            photoMap: { value: photoTex },
+            patMap: { value: patTex || new THREE.Texture() },
+            hasPattern: { value: hasPat ? 1.0 : 0.0 }
+          },
+          vertexShader: [
+            'varying vec2 vProjectedUv;',
+            'varying vec2 vModelUv;',
+            'void main() {',
+            '  vModelUv = uv;',
+            '  float u = (position.x + 2.4) / 4.8;',
+            '  float v = (position.y + 2.4) / 4.8;',
+            '  vProjectedUv = vec2(clamp(u, 0.0, 1.0), clamp(1.0 - v, 0.0, 1.0));',
+            '  gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);',
+            '}'
+          ].join('\n'),
+          fragmentShader: [
+            'uniform sampler2D photoMap;',
+            'uniform sampler2D patMap;',
+            'uniform float hasPattern;',
+            'varying vec2 vProjectedUv;',
+            'varying vec2 vModelUv;',
+            'void main() {',
+            '  vec4 photoCol = texture2D(photoMap, vProjectedUv);',
+            '  vec4 finalCol = photoCol;',
+            '  if (hasPattern > 0.5) {',
+            '    vec4 patCol = texture2D(patMap, vModelUv);',
+            '    finalCol.rgb = mix(finalCol.rgb, finalCol.rgb * patCol.rgb, patCol.a * 0.95);',
+            '  }',
+            '  gl_FragColor = finalCol;',
+            '}'
+          ].join('\n'),
+          side: THREE.DoubleSide
+        });
+      }
+
+      return { matL: createCustomWingShader(), matR: createCustomWingShader() };
+    }
+
+    function get3DPatternPath(shapeKey, patId) {
+      if (!patId || patId.indexOf('none') > -1) return null;
+      const parts = patId.split('_');
+      const patNum = parts[parts.length - 1] || "1";
+
+      let shapePrefix = shapeKey || 'crescent';
+      if (shapePrefix === 'moon-halo' || shapePrefix === 'moon') shapePrefix = 'moon-halo';
+      else if (shapePrefix === 'dawn-ray' || shapePrefix === 'dawn') shapePrefix = 'dawn-ray';
+      else if (shapePrefix === 'wave-fin' || shapePrefix === 'wave') shapePrefix = 'wave-fin';
+
+      return '3DButterfly_pattern/' + shapePrefix + '_pattern_3D_' + patNum + '.png';
+    }
+
     const container = document.getElementById('three-canvas-container');
     const scene = new THREE.Scene();
     
@@ -406,16 +475,9 @@
       const group = new THREE.Group();
       const innerGroup = new THREE.Group(); 
       
-      let wingMat = new THREE.MeshBasicMaterial({ color: 0xffffff, side: THREE.DoubleSide, transparent: false, alphaTest: 0.5 });
-      if (isUser && data.texture_url && data.texture_url.startsWith('data:image')) {
-        const userTex = textureLoader.load(data.texture_url);
-        userTex.flipY = false;
-        wingMat = new THREE.MeshBasicMaterial({ map: userTex, side: THREE.DoubleSide, transparent: false, alphaTest: 0.5 });
-      }
-
       const whiteMat = new THREE.MeshBasicMaterial({ color: 0xffffff });
-      let leftWing = new THREE.Mesh(leftGeom, wingMat);
-      let rightWing = new THREE.Mesh(rightGeom, wingMat);
+      let leftWing = new THREE.Mesh(leftGeom, whiteMat);
+      let rightWing = new THREE.Mesh(rightGeom, whiteMat);
       const defaultBody = new THREE.Mesh(bodyGeom, whiteMat);
       
       innerGroup.add(leftWing);
@@ -431,18 +493,21 @@
       const shapeId = data.wing_shape || 'crescent';
       const antId = data.antenna_type || 'ball';
       const targetAntennaPrefix = 'Antenna_' + antId;
-      // 🌟 index 폴더 내부 모델 참조하도록 상대 경로 수정
-      const modelPath = 'index/3DButterfly/' + shapeId + '.glb';
+      const modelPath = '3DButterfly/' + shapeId + '.glb';
 
-      if (isUser && gltfLoader) {
+      // 🌟 앱과 동일한 3D 셰이더 및 모델 로딩 적용
+      if (isUser && data.texture_url && gltfLoader) {
+        const patPath = get3DPatternPath(shapeId, data.pattern_id);
+        const wingMats = createWingMaterials(data.texture_url, patPath);
+
         gltfLoader.load(modelPath, function(gltf) {
           const model = gltf.scene;
           let newWingL = null, newWingR = null;
           model.traverse(function(child) {
             if (child.isMesh) {
               const name = child.name;
-              if (name.startsWith('Wing_L')) { newWingL = child; child.material = wingMat; }
-              else if (name.startsWith('Wing_R')) { newWingR = child; child.material = wingMat; }
+              if (name.startsWith('Wing_L')) { newWingL = child; child.material = wingMats.matL; }
+              else if (name.startsWith('Wing_R')) { newWingR = child; child.material = wingMats.matR; }
               else if (name.startsWith('Body')) { child.material = whiteMat; }
               else if (name.startsWith('Antenna_')) { child.material = whiteMat; child.visible = name.startsWith(targetAntennaPrefix); }
             }
