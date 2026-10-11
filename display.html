@@ -413,7 +413,6 @@
     const rawUserDataList = [];
 
     // 🌟 나비 생성 함수
-    // isFingerTarget이 true이면 뒤쪽 유영 나비와 아예 다른 공간(손가락 바로 그 z축)에 독립 생성
     function buildButterfly(data = {}, isUser = false, isDelayedArrival = false, isFingerTarget = false, customZ = 0) {
       const group = new THREE.Group();
       const innerGroup = new THREE.Group(); 
@@ -490,7 +489,6 @@
       let initialVelocity;
       let targetScale = 0.14 + Math.random() * 0.08;
 
-      // 🌟 [핵심]: 손가락으로 부르는 나비는 애초에 손가락의 z축(customZ)에 생성
       if (isFingerTarget) {
         group.position.set(-18, 14, customZ);
         initialVelocity = new THREE.Vector3(0, 0, 0);
@@ -501,7 +499,6 @@
         initialVelocity = new THREE.Vector3((Math.random() - 0.5) * 0.03, 0.09, -0.02);
         group.scale.set(0.01, 0.01, 0.01);
       } else {
-        // 뒤에서 유영하는 일반 나비들 (깊은 z축)
         group.position.set(
           (Math.random() - 0.5) * 30, 
           (Math.random() - 0.5) * 18, 
@@ -555,7 +552,6 @@
     let isHandDetected = false;
     let interactionMode = 'none';
     
-    // 🌟 뒤쪽 무리와 완전히 구분되는 단독 손가락 나비 객체
     let specialButterfly = null;
     let fistButterflies = []; 
     let fingerAngle = 1.0; 
@@ -689,15 +685,20 @@
 
       let isFollowing = false;
 
-      // 🌟 손가락 나비 전용 이동: 애초에 손가락 z축 평면에 생성되어 X, Y로 바로 손끝을 향해 비행
+      // 🌟 손가락 나비 전용 이동: 2D 평면 거리 기준 안착 판정
       if (b.isSpecialLanding) {
           isFollowing = true;
 
           if (b.specialState === 'approaching') {
               spawnButterflyTrail(b.group.position, 2);
 
-              const dist = b.group.position.distanceTo(handTarget3D);
-              if (dist < 1.4) {
+              const dx = b.group.position.x - handTarget3D.x;
+              const dy = b.group.position.y - handTarget3D.y;
+              const dist2D = Math.hypot(dx, dy);
+
+              // 🌟 2D 평면 거리 1.8 이내 진입 시 즉시 착석 성공
+              if (dist2D < 1.8) {
+                  b.group.position.z = handTarget3D.z;
                   b.specialState = 'landed';
                   triggerLandingStorySequence(b);
               } else {
@@ -722,6 +723,7 @@
               b.velocity.set(0, 0, 0);
               b.group.position.x += (handTarget3D.x - b.group.position.x) * 0.08;
               b.group.position.y += (handTarget3D.y - b.group.position.y) * 0.08;
+              b.group.position.z = handTarget3D.z;
               
               dummyObj.position.copy(b.group.position);
               dummyObj.lookAt(camera.position); 
@@ -752,7 +754,6 @@
               }
           }
       } 
-      // 🌟 착석 나비가 아닌 뒤쪽 일반 나비들은 원래대로 제스처 반응
       else if (isHandDetected) {
           if (interactionMode === 'fist_gather' && fistButterflies.includes(b.id)) {
               isFollowing = true;
@@ -791,7 +792,6 @@
           } 
       }
 
-      // 뒤쪽 자유 비행 나비의 일반 유영
       if (!isFollowing && !b.isAscendingArrival) {
           b.state = 'flying';
           const t = time * 0.5 + b.seed;
@@ -823,7 +823,6 @@
       
       b.group.position.add(b.velocity);
 
-      // 뒤쪽 유영 나비만 경계선 제한 적용
       if (!b.isSpecialLanding) {
           if (b.group.position.x > 18) b.velocity.x -= 0.012;
           if (b.group.position.x < -18) b.velocity.x += 0.012;
@@ -872,7 +871,7 @@
         }
       }
 
-      // 🌟 [핵심 로직]: 손가락으로 부를 때는 뒤쪽 나비와 완전히 다른, 애초에 손가락 z축 위치인 전용 나비를 생성
+      // 🌟 손가락 나비 생성 로직
       if (interactionMode === 'land_one' && isHandDetected) {
           if (releaseLandingTimer) {
               clearTimeout(releaseLandingTimer);
@@ -880,7 +879,6 @@
           }
 
           if (!specialButterfly) {
-              // 사용자가 남긴 데이터가 있으면 랜덤 선택, 없으면 기본 나비 데이터 사용
               let targetData = {};
               let isUserButterfly = false;
               if (rawUserDataList.length > 0) {
@@ -889,11 +887,9 @@
                   isUserButterfly = true;
               }
 
-              // 애초에 손가락 z축(handTarget3D.z) 위치에서 완전히 새로운 객체로 생성
               specialButterfly = buildButterfly(targetData, isUserButterfly, false, true, handTarget3D.z);
           }
       } else {
-          // 손가락 인식이 순간 끊겼을 때 450ms 완충 후 퇴장
           if (specialButterfly && !releaseLandingTimer) {
               releaseLandingTimer = setTimeout(() => {
                   if (specialButterfly) {
@@ -905,11 +901,9 @@
           }
       }
 
-      // 뒤쪽 일반 나비들 업데이트
       for (let i = 0; i < defaultFlock.length; i++) updateMotion(defaultFlock[i], time);
       for (let i = 0; i < userFlock.length; i++) updateMotion(userFlock[i], time);
       
-      // 손가락 전용 나비 업데이트
       if (specialButterfly) updateMotion(specialButterfly, time);
       
       prevHandTarget3D.copy(handTarget3D); 
@@ -934,7 +928,6 @@
           const supabaseInstance = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
           function addUserButterfly(data, isDelayedArrival = false) {
-            // 사용자 나비 데이터 리스트에 보관 (손가락 나비가 가져다 씀)
             rawUserDataList.push(data);
             if (rawUserDataList.length > 50) rawUserDataList.shift();
 
