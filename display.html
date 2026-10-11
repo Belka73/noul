@@ -30,13 +30,35 @@
     #three-canvas-container {
       position: absolute; inset: 0; z-index: 10;
     }
+
+    /* 🌟 기 모으는 원과 동일한 크기(36px) 및 반투명 2중 화이트 디자인으로 통일 */
     #hand-pointer {
-      position: absolute; width: 60px; height: 60px;
-      margin-left: -30px; margin-top: -30px; border-radius: 50%;
-      background: radial-gradient(circle, rgba(255, 255, 255, 0.95) 0%, rgba(255, 255, 255, 0.35) 45%, rgba(255, 255, 255, 0) 70%);
-      box-shadow: 0 0 35px rgba(255, 255, 255, 0.9), 0 0 70px rgba(255, 255, 255, 0.4);
-      pointer-events: none; z-index: 30; opacity: 0; transition: opacity 0.25s ease;
+      position: absolute; 
+      width: 36px; height: 36px;
+      margin-left: -18px; margin-top: -18px; 
+      border-radius: 50%;
+      background: rgba(255, 255, 255, 0.08);
+      border: 1px solid rgba(255, 255, 255, 0.22);
+      backdrop-filter: blur(4px);
+      -webkit-backdrop-filter: blur(4px);
+      box-shadow: 0 0 16px rgba(255, 255, 255, 0.15);
+      pointer-events: none; z-index: 30; opacity: 0; 
+      transition: opacity 0.25s ease, transform 0.1s ease;
       will-change: transform, opacity;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    /* 기 모으기 위젯의 내부 코어 원과 동일한 중심 코어 */
+    #hand-pointer::after {
+      content: '';
+      width: 14px;
+      height: 14px;
+      border-radius: 50%;
+      background: rgba(255, 255, 255, 0.35);
+      border: 1px solid rgba(255, 255, 255, 0.6);
+      box-shadow: 0 0 8px rgba(255, 255, 255, 0.4);
     }
 
     /* 🌟 1단계: 외곽이 부드럽게 번지는 타원형 검은색 안개 블러 말풍선 (고민/이유) */
@@ -212,13 +234,13 @@
   <div id="three-canvas-container"></div>
   <div id="hand-pointer"></div>
 
-  <!-- 1단계: 외곽이 번지는 검은 안개 블러 / 발광 흰 글씨 고민 안내 카드 -->
+  <!-- 1단계: 고민 안내 카드 -->
   <div id="floating-concern-card">
     <div id="floating-concern-tag" class="concern-badge-tag">#완벽주의 강박</div>
     <div id="floating-concern-reason"></div>
   </div>
 
-  <!-- 2단계: 외곽이 번지는 흰색 블러 타원 다정한 한마디 카드 -->
+  <!-- 2단계: 다정한 한마디 카드 -->
   <div id="floating-info-card">
     <div id="floating-butterfly-name">‘나비’</div>
     <div id="floating-butterfly-memo"></div>
@@ -229,11 +251,6 @@
     <div class="guide-banner-item">
       <span>👉</span>
       <span><strong>손가락 하나</strong> 나비가 손끝에 내려앉아요. 나비와 함께 교감해 보세요.</span>
-    </div>
-    <div class="guide-banner-divider"></div>
-    <div class="guide-banner-item">
-      <span>🫂</span>
-      <span><strong>양팔로 안아주면</strong> 나비들이 나를 포근히 감싸 돌아요.</span>
     </div>
     <div class="guide-banner-divider"></div>
     <div class="guide-banner-item">
@@ -460,7 +477,11 @@
         initialVelocity = new THREE.Vector3((Math.random() - 0.5) * 0.03, 0.09, -0.02);
         group.scale.set(0.01, 0.01, 0.01);
       } else {
-        group.position.set((Math.random() - 0.5) * 26, (Math.random() - 0.5) * 16, -4.0 - Math.random() * 12.0);
+        group.position.set(
+          (Math.random() - 0.5) * 26, 
+          (Math.random() - 0.5) * 16, 
+          -4.0 - Math.random() * 12.0
+        );
         initialVelocity = new THREE.Vector3((Math.random() - 0.5) * 0.07, (Math.random() - 0.5) * 0.07, (Math.random() - 0.5) * 0.04);
         group.scale.set(targetScale, targetScale, targetScale);
       }
@@ -504,10 +525,6 @@
     let handTarget3D = new THREE.Vector3(999, 999, 0);
     let targetHandPos3D = new THREE.Vector3(999, 999, 0);
     let prevHandTarget3D = new THREE.Vector3(999, 999, 0);
-
-    // 🌟 양팔로 안아줄 때 상체/가슴의 중심점 3D 좌표
-    let bodyCenter3D = new THREE.Vector3(0, 0, 0);
-
     let isHandDetected = false;
     let interactionMode = 'none';
     
@@ -580,7 +597,7 @@
     let targetScreenX = 0, targetScreenY = 0;
     const handPointer = document.getElementById('hand-pointer');
 
-    function updateMotion(b, time, butterflyIndex = 0) {
+    function updateMotion(b, time) {
       let currentTargetScale = b.targetScale;
       
       if (b.isSpecialLanding && (b.specialState === 'approaching' || b.specialState === 'landed')) {
@@ -619,8 +636,6 @@
             currentFlapSpeed = b.speed * 1.35;
           } else if (b.isAscendingArrival) {
             currentFlapSpeed = b.speed * 1.25;
-          } else if (interactionMode === 'self_hug') {
-            currentFlapSpeed = b.speed * 1.15; // 🌟 안아줄 때 평온하고 온화한 날갯짓
           }
           const flap = Math.sin(time * currentFlapSpeed + b.seed) * 0.72 * b.flapAmp;
           b.leftWing.rotation.y = flap;
@@ -629,40 +644,8 @@
 
       let isFollowing = false;
 
-      // 🌟 [신규 기능]: 양팔로 자신을 안아주었을 때 (self_hug) - 모든 나비가 사용자의 상체 주변을 포근하게 감싸며 회전
-      if (interactionMode === 'self_hug') {
-          isFollowing = true;
-          b.state = 'flying';
-
-          // 상체 중심을 둘러싸는 3D 구체 오르빗 궤적 계산
-          const totalFlockCount = defaultFlock.length + userFlock.length;
-          const orbitAngle = time * 1.35 + (butterflyIndex * ((Math.PI * 2) / Math.max(1, totalFlockCount)));
-          const orbitRadiusX = 3.6 + Math.sin(time * 0.8 + b.seed) * 0.8;
-          const orbitRadiusY = 2.4 + Math.cos(time * 0.6 + b.seed) * 0.6;
-          const orbitRadiusZ = 2.8 + Math.sin(time * 0.9 + b.seed) * 0.7;
-
-          _vOrbit.set(
-            Math.cos(orbitAngle) * orbitRadiusX,
-            Math.sin(orbitAngle * 1.3) * orbitRadiusY,
-            Math.sin(orbitAngle) * orbitRadiusZ
-          );
-          _vTargetPos.copy(bodyCenter3D).add(_vOrbit);
-
-          _vDir.subVectors(_vTargetPos, b.group.position).normalize().multiplyScalar(0.36);
-          b.velocity.lerp(_vDir, 0.16);
-
-          _vTargetPos.copy(b.group.position).add(b.velocity);
-          dummyObj.position.copy(b.group.position);
-          dummyObj.lookAt(_vTargetPos);
-          const rollAngle = (b.velocity.x * -16);
-          dummyObj.rotateZ(rollAngle);
-          b.group.quaternion.slerp(dummyObj.quaternion, 0.16);
-
-          // 포옹 중일 때 궤적 방출
-          if (butterflyIndex % 3 === 0) spawnButterflyTrail(b.group.position);
-      }
       // 🌟 손가락 착석 전용 나비 이동
-      else if (b.isSpecialLanding) {
+      if (b.isSpecialLanding) {
           isFollowing = true;
 
           if (b.specialState === 'approaching') {
@@ -708,6 +691,8 @@
           }
 
           if (b.specialState === 'leaving') {
+              spawnButterflyTrail(b.group.position);
+
               b.state = 'flying';
               _vLeave.z = b.group.position.z;
               _vDir.subVectors(_vLeave, b.group.position).normalize().multiplyScalar(0.18);
@@ -750,6 +735,7 @@
               dummyObj.rotateZ(rollAngle); 
               b.group.quaternion.slerp(dummyObj.quaternion, 0.22);
           }
+          // 🌟 [수정]: 손 펼쳤을 때(scatter) 너무 세게 날아가지 않도록 부드러운 힘(0.18)으로 완화
           else if (interactionMode === 'scatter') {
               const dist = b.group.position.distanceTo(handTarget3D);
               if (dist < 28.0) {
@@ -758,7 +744,7 @@
                   _vDir.subVectors(b.group.position, handTarget3D);
                   _vDir.z = 0; 
                   _vDir.normalize();
-                  b.velocity.addScaledVector(_vDir, 0.35); 
+                  b.velocity.addScaledVector(_vDir, 0.18); // 기존 0.35 -> 0.18로 대폭 완화
                   b.velocity.z *= 0.85; 
               }
           } 
@@ -778,21 +764,23 @@
           }
       }
 
+      // 🌟 [수정]: 산란 시 최대 속도를 기존 1.0 -> 0.32로 줄여 자연스러운 유영 유지
       let maxSpeed = 0.10;
       if (b.isSpecialLanding) {
           maxSpeed = 0.26;
-      } else if (interactionMode === 'self_hug') {
-          maxSpeed = 0.42;
       } else if (isFollowing && interactionMode === 'scatter') {
-          maxSpeed = 1.0;
+          maxSpeed = 0.32; // 과속 방지
       } else if (isFollowing && interactionMode === 'fist_gather') {
           maxSpeed = 0.55;
       }
 
-      if (b.velocity.length() > maxSpeed) b.velocity.multiplyScalar(0.92);
+      if (b.velocity.length() > maxSpeed) {
+          b.velocity.multiplyScalar(0.92);
+      }
+      
       b.group.position.add(b.velocity);
 
-      if (!b.isSpecialLanding && interactionMode !== 'self_hug') {
+      if (!b.isSpecialLanding) {
           if (b.group.position.x > 18) b.velocity.x -= 0.012;
           if (b.group.position.x < -18) b.velocity.x += 0.012;
           if (b.group.position.y > 12) b.velocity.y -= 0.012;
@@ -829,7 +817,7 @@
         if (floatingInfoCard) { floatingInfoCard.style.left = `${currentScreenX}px`; floatingInfoCard.style.top = `${currentScreenY}px`; }
       }
 
-      // 손가락 하나 제스처 시 착석 나비 소환 (포옹 중이 아닐 때만)
+      // 🌟 손가락 하나 제스처 시 즉시 착석 나비 소환
       if (interactionMode === 'land_one' && isHandDetected) {
           if (releaseLandingTimer) {
               clearTimeout(releaseLandingTimer);
@@ -847,7 +835,7 @@
               specialButterfly = buildButterfly(targetData, isUserButterfly, false, true, handTarget3D.z);
           }
       } else {
-          if (specialButterfly && !releaseLandingTimer && interactionMode !== 'self_hug') {
+          if (specialButterfly && !releaseLandingTimer) {
               releaseLandingTimer = setTimeout(() => {
                   if (specialButterfly) specialButterfly.specialState = 'leaving';
                   resetLandingCards();
@@ -856,15 +844,9 @@
           }
       }
 
-      // 전체 나비 갱신 (인덱스 부여하여 포옹 오르빗 각도 분산)
-      let bIdx = 0;
-      for (let i = 0; i < defaultFlock.length; i++) {
-        updateMotion(defaultFlock[i], time, bIdx++);
-      }
-      for (let i = 0; i < userFlock.length; i++) {
-        updateMotion(userFlock[i], time, bIdx++);
-      }
-      if (specialButterfly) updateMotion(specialButterfly, time, bIdx++);
+      for (let i = 0; i < defaultFlock.length; i++) updateMotion(defaultFlock[i], time);
+      for (let i = 0; i < userFlock.length; i++) updateMotion(userFlock[i], time);
+      if (specialButterfly) updateMotion(specialButterfly, time);
       
       prevHandTarget3D.copy(handTarget3D); 
       renderer.render(scene, camera);
@@ -910,7 +892,7 @@
     }, 1500);
 
     /* ========================================================
-       3. 네이티브 웹캠 + 상체/포옹(Self-Hug) & 손 제스처 감지
+       3. 네이티브 웹캠 FHD 고화질 + AI 최적화 (안정적인 1손 추적)
        ======================================================== */
     setTimeout(() => {
       try {
@@ -924,48 +906,14 @@
 
           const hands = new Hands({ locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}` });
           hands.setOptions({ 
-            maxNumHands: 2, // 🌟 양팔/두 손 교차 포옹 감지를 위해 2손 모드 활성화 (최적화 완료)
+            maxNumHands: 1,
             modelComplexity: 0, 
             minDetectionConfidence: 0.5, 
             minTrackingConfidence: 0.5 
           });
           
           hands.onResults((results) => {
-            const numHands = results.multiHandLandmarks ? results.multiHandLandmarks.length : 0;
-
-            // 🌟 [상체 제스처 감지]: 양팔로 자신을 감싸 안는 동작 (Self-Hug)
-            if (numHands === 2) {
-              const h1 = results.multiHandLandmarks[0];
-              const h2 = results.multiHandLandmarks[1];
-
-              // 두 손목 및 손바닥(MCP)의 거리 계산
-              const wristDist = Math.hypot(h1[0].x - h2[0].x, h1[0].y - h2[0].y);
-              const palmDist = Math.hypot(h1[9].x - h2[9].x, h1[9].y - h2[9].y);
-              
-              // 두 손의 수직 위치가 상체 영역(0.2 ~ 0.85)에 있고, 두 손이 가슴 앞에서 포개지거나 교차됨
-              const isUpperBodyHeight = h1[0].y > 0.25 && h1[0].y < 0.85 && h2[0].y > 0.25 && h2[0].y < 0.85;
-              const isHandsCrossedOrClose = wristDist < 0.28 || palmDist < 0.24;
-
-              if (isUpperBodyHeight && isHandsCrossedOrClose) {
-                interactionMode = 'self_hug';
-                isHandDetected = true;
-                handPointer.style.opacity = '0'; // 포인터 숨김
-                resetLandingCards();
-
-                // 상체(가슴)의 3D 중심점 추정
-                const chestX = ((1 - h1[0].x) + (1 - h2[0].x)) * 0.5;
-                const chestY = (h1[0].y + h2[0].y) * 0.5;
-                const vecCenter = new THREE.Vector3(chestX * 2 - 1, -(chestY * 2) + 1, 0.5);
-                vecCenter.unproject(camera);
-                vecCenter.sub(camera.position).normalize();
-                const distCam = (4 - camera.position.z) / vecCenter.z;
-                bodyCenter3D.copy(camera.position).add(vecCenter.multiplyScalar(distCam));
-                return;
-              }
-            }
-
-            // 🌟 단일 손 제스처 처리 (포옹이 아닐 때)
-            if (numHands > 0) {
+            if (results.multiHandLandmarks && results.multiHandLandmarks.length > 0) {
               const lm = results.multiHandLandmarks[0];
               const tip = lm[8]; 
               const mcp = lm[5]; 
@@ -1006,14 +954,12 @@
               // 1) 검지 손가락 하나 들기 (land_one)
               if (isIndexOpen && foldedOthersCount >= 2) {
                   interactionMode = 'land_one';
-                  handPointer.style.background = 'radial-gradient(circle, rgba(255, 255, 255, 0.95) 0%, rgba(150, 200, 255, 0.4) 40%, rgba(255, 255, 255, 0) 70%)';
                   const distance = (8 - camera.position.z) / vec.z; 
                   targetHandPos3D.copy(camera.position).add(vec.multiplyScalar(distance));
 
               // 2) 손을 쫙 펴는 산란 (scatter)
               } else if (totalOpenFingers >= 4 && isMiddleOpen && isRingOpen && isPinkyOpen) {
                   interactionMode = 'scatter';
-                  handPointer.style.background = 'radial-gradient(circle, rgba(200, 230, 255, 0.95) 0%, rgba(100, 150, 255, 0.4) 40%, rgba(255, 255, 255, 0) 70%)';
                   const distance = (8 - camera.position.z) / vec.z; 
                   targetHandPos3D.copy(camera.position).add(vec.multiplyScalar(distance));
                   resetLandingCards();
@@ -1021,7 +967,6 @@
               // 3) 주먹 쥐기 (fist_gather)
               } else if (totalOpenFingers <= 1 && !isIndexOpen && !isMiddleOpen) {
                   interactionMode = 'fist_gather';
-                  handPointer.style.background = 'radial-gradient(circle, rgba(255, 200, 200, 0.9) 0%, rgba(255, 100, 100, 0.3) 40%, rgba(255, 255, 255, 0) 70%)';
                   const distance = (0 - camera.position.z) / vec.z; 
                   targetHandPos3D.copy(camera.position).add(vec.multiplyScalar(distance));
                   resetLandingCards();
@@ -1033,7 +978,6 @@
                   }
               } else {
                   interactionMode = 'none';
-                  handPointer.style.background = 'radial-gradient(circle, rgba(255, 255, 255, 0.4) 0%, rgba(255, 255, 255, 100%, rgba(255, 255, 255, 0) 70%)';
                   fistButterflies = [];
                   resetLandingCards();
               }
