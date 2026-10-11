@@ -410,8 +410,11 @@
     const defaultFlock = [];
     const userFlock = [];
     const MAX_USER_BUTTERFLIES = 15;
+    const rawUserDataList = [];
 
-    function buildButterfly(data = {}, isUser = false, isDelayedArrival = false) {
+    // 🌟 나비 생성 함수
+    // isFingerTarget이 true이면 뒤쪽 유영 나비와 아예 다른 공간(손가락 바로 그 z축)에 독립 생성
+    function buildButterfly(data = {}, isUser = false, isDelayedArrival = false, isFingerTarget = false, customZ = 0) {
       const group = new THREE.Group();
       const innerGroup = new THREE.Group(); 
       
@@ -487,11 +490,18 @@
       let initialVelocity;
       let targetScale = 0.14 + Math.random() * 0.08;
 
-      if (isDelayedArrival) {
+      // 🌟 [핵심]: 손가락으로 부르는 나비는 애초에 손가락의 z축(customZ)에 생성
+      if (isFingerTarget) {
+        group.position.set(-18, 14, customZ);
+        initialVelocity = new THREE.Vector3(0, 0, 0);
+        targetScale = 0.52;
+        group.scale.set(0.52, 0.52, 0.52);
+      } else if (isDelayedArrival) {
         group.position.set((Math.random() - 0.5) * 5, -8.0, 1.0);
         initialVelocity = new THREE.Vector3((Math.random() - 0.5) * 0.03, 0.09, -0.02);
         group.scale.set(0.01, 0.01, 0.01);
       } else {
+        // 뒤에서 유영하는 일반 나비들 (깊은 z축)
         group.position.set(
           (Math.random() - 0.5) * 30, 
           (Math.random() - 0.5) * 18, 
@@ -514,8 +524,8 @@
         targetScale: targetScale,
         isAscendingArrival: isDelayedArrival,
         arrivalTimer: 0,
-        isSpecialLanding: false,
-        specialState: null,
+        isSpecialLanding: isFingerTarget,
+        specialState: isFingerTarget ? 'approaching' : null,
         name: data.name || (isUser ? "익명의 나비" : "나비"),
         memo: data.memo || "너의 찬란한 날갯짓을 응원해.",
         core_concern: data.core_concern || (Array.isArray(data.q2) && data.q2.length > 0 ? data.q2[0] : "완벽주의 강박"),
@@ -527,7 +537,7 @@
 
     // 기본 나비 15마리
     for (let i = 0; i < 15; i++) {
-      defaultFlock.push(buildButterfly({}, false, false));
+      defaultFlock.push(buildButterfly({}, false, false, false));
     }
 
     const clock = new THREE.Clock();
@@ -544,7 +554,9 @@
     let prevHandTarget3D = new THREE.Vector3(999, 999, 0);
     let isHandDetected = false;
     let interactionMode = 'none';
-    let landingButterflyId = null; 
+    
+    // 🌟 뒤쪽 무리와 완전히 구분되는 단독 손가락 나비 객체
+    let specialButterfly = null;
     let fistButterflies = []; 
     let fingerAngle = 1.0; 
     let handPerspectiveScale = 1.0;
@@ -677,7 +689,7 @@
 
       let isFollowing = false;
 
-      // 🌟 손가락으로 불려오는 특정 착석 나비만 특별 경로 적용
+      // 🌟 손가락 나비 전용 이동: 애초에 손가락 z축 평면에 생성되어 X, Y로 바로 손끝을 향해 비행
       if (b.isSpecialLanding) {
           isFollowing = true;
 
@@ -690,9 +702,11 @@
                   triggerLandingStorySequence(b);
               } else {
                   b.state = 'flying';
-                  // 손가락으로 날아오는 추진력(0.26) 및 회전 반응속도(0.08)
-                  _vDir.subVectors(handTarget3D, b.group.position).normalize().multiplyScalar(0.26);
+                  _vDir.subVectors(handTarget3D, b.group.position);
+                  _vDir.z = 0; 
+                  _vDir.normalize().multiplyScalar(0.26);
                   b.velocity.lerp(_vDir, 0.08); 
+                  b.velocity.z = 0;
                   
                   _vTargetPos.copy(b.group.position).add(b.velocity);
                   dummyObj.position.copy(b.group.position);
@@ -706,8 +720,8 @@
           if (b.specialState === 'landed') {
               b.state = 'landing_rest';
               b.velocity.set(0, 0, 0);
-              // 손끝에 안착할 때 급격하게 붙지 않도록 부드러운 속도 유지
-              b.group.position.lerp(handTarget3D, 0.08); 
+              b.group.position.x += (handTarget3D.x - b.group.position.x) * 0.08;
+              b.group.position.y += (handTarget3D.y - b.group.position.y) * 0.08;
               
               dummyObj.position.copy(b.group.position);
               dummyObj.lookAt(camera.position); 
@@ -721,9 +735,10 @@
               spawnButterflyTrail(b.group.position, 2);
 
               b.state = 'flying';
-              _vLeave.z = b.group.position.z - 2;
+              _vLeave.z = b.group.position.z;
               _vDir.subVectors(_vLeave, b.group.position).normalize().multiplyScalar(0.18);
               b.velocity.lerp(_vDir, 0.08); 
+              b.velocity.z = 0;
               
               _vTargetPos.copy(b.group.position).add(b.velocity);
               dummyObj.position.copy(b.group.position);
@@ -731,12 +746,13 @@
               b.group.quaternion.slerp(dummyObj.quaternion, 0.10);
 
               if (b.group.position.x > 20 || b.group.position.y > 20) {
-                  b.isSpecialLanding = false;
-                  b.specialState = null;
+                  scene.remove(b.group);
+                  specialButterfly = null;
+                  return;
               }
           }
       } 
-      // 🌟 착석 나비가 아닌 주변 일반 나비들은 land_one 모드일 때 완전히 독립된 자유 비행 유지
+      // 🌟 착석 나비가 아닌 뒤쪽 일반 나비들은 원래대로 제스처 반응
       else if (isHandDetected) {
           if (interactionMode === 'fist_gather' && fistButterflies.includes(b.id)) {
               isFollowing = true;
@@ -775,7 +791,7 @@
           } 
       }
 
-      // 🌟 자유 비행 나비(주변 나비)는 원래의 차분한 유영 속도 유지
+      // 뒤쪽 자유 비행 나비의 일반 유영
       if (!isFollowing && !b.isAscendingArrival) {
           b.state = 'flying';
           const t = time * 0.5 + b.seed;
@@ -790,7 +806,6 @@
           }
       }
 
-      // 🌟 손가락 착석 나비 최대 속도 0.26 유지, 주변 나비는 0.10 유지
       let maxSpeed = 0.10;
       if (b.isSpecialLanding) {
           maxSpeed = 0.26;
@@ -808,7 +823,8 @@
       
       b.group.position.add(b.velocity);
 
-      if (!b.isSpecialLanding || b.specialState !== 'leaving') {
+      // 뒤쪽 유영 나비만 경계선 제한 적용
+      if (!b.isSpecialLanding) {
           if (b.group.position.x > 18) b.velocity.x -= 0.012;
           if (b.group.position.x < -18) b.velocity.x += 0.012;
           if (b.group.position.y > 12) b.velocity.y -= 0.012;
@@ -829,7 +845,7 @@
       }
     }
 
-    // 🌟 [수정]: 호출 제스처 깜빡임 방지 타이머
+    // 🌟 호출 제스처 깜빡임 방지 타이머
     let releaseLandingTimer = null;
 
     function animate() {
@@ -856,43 +872,45 @@
         }
       }
 
-      // 🌟 [수정]: 1프레임 튀어도 즉시 취소되지 않고 안정적으로 유지되는 착석 제어로직
+      // 🌟 [핵심 로직]: 손가락으로 부를 때는 뒤쪽 나비와 완전히 다른, 애초에 손가락 z축 위치인 전용 나비를 생성
       if (interactionMode === 'land_one' && isHandDetected) {
           if (releaseLandingTimer) {
               clearTimeout(releaseLandingTimer);
               releaseLandingTimer = null;
           }
 
-          if (!landingButterflyId) {
-              const allFlock = [...defaultFlock, ...userFlock];
-              const randIdx = Math.floor(Math.random() * allFlock.length);
-              const selected = allFlock[randIdx];
-              
-              landingButterflyId = selected.id;
-              selected.isSpecialLanding = true;
-              selected.specialState = 'approaching';
+          if (!specialButterfly) {
+              // 사용자가 남긴 데이터가 있으면 랜덤 선택, 없으면 기본 나비 데이터 사용
+              let targetData = {};
+              let isUserButterfly = false;
+              if (rawUserDataList.length > 0) {
+                  const randIdx = Math.floor(Math.random() * rawUserDataList.length);
+                  targetData = rawUserDataList[randIdx];
+                  isUserButterfly = true;
+              }
 
-              selected.group.position.set(-18, 14, handTarget3D.z);
-              selected.velocity.set(0, 0, 0); 
+              // 애초에 손가락 z축(handTarget3D.z) 위치에서 완전히 새로운 객체로 생성
+              specialButterfly = buildButterfly(targetData, isUserButterfly, false, true, handTarget3D.z);
           }
       } else {
-          // 손가락 인식이 순간 끊기거나 1프레임 튀었을 때 바로 취소하지 않고 450ms 완충
-          if (landingButterflyId && !releaseLandingTimer) {
+          // 손가락 인식이 순간 끊겼을 때 450ms 완충 후 퇴장
+          if (specialButterfly && !releaseLandingTimer) {
               releaseLandingTimer = setTimeout(() => {
-                  const allFlock = [...defaultFlock, ...userFlock];
-                  const selected = allFlock.find(b => b.id === landingButterflyId);
-                  if (selected) {
-                      selected.specialState = 'leaving';
+                  if (specialButterfly) {
+                      specialButterfly.specialState = 'leaving';
                   }
-                  landingButterflyId = null;
                   resetLandingCards();
                   releaseLandingTimer = null;
               }, 450);
           }
       }
 
+      // 뒤쪽 일반 나비들 업데이트
       for (let i = 0; i < defaultFlock.length; i++) updateMotion(defaultFlock[i], time);
       for (let i = 0; i < userFlock.length; i++) updateMotion(userFlock[i], time);
+      
+      // 손가락 전용 나비 업데이트
+      if (specialButterfly) updateMotion(specialButterfly, time);
       
       prevHandTarget3D.copy(handTarget3D); 
       renderer.render(scene, camera);
@@ -916,11 +934,15 @@
           const supabaseInstance = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
           function addUserButterfly(data, isDelayedArrival = false) {
+            // 사용자 나비 데이터 리스트에 보관 (손가락 나비가 가져다 씀)
+            rawUserDataList.push(data);
+            if (rawUserDataList.length > 50) rawUserDataList.shift();
+
             if (userFlock.length >= MAX_USER_BUTTERFLIES) {
               const oldest = userFlock.shift();
               if (oldest && oldest.group) scene.remove(oldest.group);
             }
-            userFlock.push(buildButterfly(data, true, isDelayedArrival));
+            userFlock.push(buildButterfly(data, true, isDelayedArrival, false));
           }
 
           supabaseInstance.from('butterflies').select('*').order('created_at', { ascending: false }).limit(MAX_USER_BUTTERFLIES)
@@ -985,7 +1007,6 @@
               vec.unproject(camera);
               vec.sub(camera.position).normalize();
               
-              // 🌟 [수정]: 더욱 정밀하고 흔들림 없는 손가락 펴짐 판정 (검지 중심)
               const isIndexOpen = Math.hypot(lm[8].x - wrist.x, lm[8].y - wrist.y) > Math.hypot(lm[6].x - wrist.x, lm[6].y - wrist.y) * 1.05;
               const isMiddleOpen = Math.hypot(lm[12].x - wrist.x, lm[12].y - wrist.y) > Math.hypot(lm[10].x - wrist.x, lm[10].y - wrist.y) * 1.05;
               const isRingOpen = Math.hypot(lm[16].x - wrist.x, lm[16].y - wrist.y) > Math.hypot(lm[14].x - wrist.x, lm[14].y - wrist.y) * 1.05;
@@ -1007,7 +1028,7 @@
                   targetHandPos3D.copy(camera.position).add(vec.multiplyScalar(distance));
                   resetLandingCards();
 
-              // 🌟 [수정]: 검지가 펴져 있고, 나머지 손가락이 1개 이하로만 애매하게 펴진 경우 완벽히 land_one으로 고정
+              // 검지가 펴져 있고, 나머지 손가락이 1개 이하로만 애매하게 펴진 경우 완벽히 land_one으로 고정
               } else if (isIndexOpen && openCount <= 2 && (!isMiddleOpen || !isRingOpen)) {
                   interactionMode = 'land_one';
                   handPointer.style.background = 'radial-gradient(circle, rgba(255, 255, 255, 0.95) 0%, rgba(150, 200, 255, 0.4) 40%, rgba(255, 255, 255, 0) 70%)';
