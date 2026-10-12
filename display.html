@@ -907,7 +907,7 @@
           } 
       }
 
-      // 🦋 [핵심 반영: 단순 상하 연동 삭제 -> 상하 지그재그 회피 파동 & 박수치기 추진력]
+      // 🦋 [핵심 반영: 중앙 수렴 방지 및 화면 전체 분산 비행]
       if (!isFollowing && !b.isAscendingArrival) {
           b.state = 'flying';
           const t = time * 1.4 + b.seed;
@@ -916,8 +916,8 @@
           const zigzagWave = Math.sin(t * 2.8) * Math.cos(t * 1.3 + b.seed * 0.3) * 0.0085;
           b.velocity.y += zigzagWave;
 
-          // 2. 박수치기(Clap & Fling)에 의한 간헐적 추진력 & 순간 양력 부여
-          b.velocity.y += flingLift - 0.0016; // 순간 양력 후 공기 저항 감속
+          // 2. 박수치기(Clap & Fling)에 의한 추진력 및 순수 양력 균형 (Y축 중심 복원력 완전 제거)
+          b.velocity.y += (flingLift - 0.0010 * b.flapAmp);
           if (Math.abs(b.velocity.x) > 0.001) {
             b.velocity.x += Math.sign(b.velocity.x) * flingImpulse;
           }
@@ -931,6 +931,39 @@
               b.velocity.x += (Math.random() - 0.5) * 0.045;
               b.velocity.y += (Math.random() - 0.5) * 0.035;
               b.velocity.z += (Math.random() - 0.5) * 0.025; 
+          }
+
+          // 🌟 5. [중앙 뭉침 해소] 중앙 부근 분산력 (중심 r < 8.0 영역에서 외곽으로 흩어지는 척력)
+          const distCenterSq = b.group.position.x * b.group.position.x + b.group.position.y * b.group.position.y;
+          if (distCenterSq < 64.0) {
+              const distCenter = Math.sqrt(distCenterSq);
+              const pushFactor = (1.0 - distCenter / 8.0) * 0.0045;
+              if (distCenter > 0.1) {
+                  b.velocity.x += (b.group.position.x / distCenter) * pushFactor;
+                  b.velocity.y += (b.group.position.y / distCenter) * pushFactor;
+              } else {
+                  b.velocity.x += Math.cos(b.seed) * pushFactor;
+                  b.velocity.y += Math.sin(b.seed) * pushFactor;
+              }
+          }
+
+          // 🌟 6. [중앙 뭉침 해소] 나비 간 상호 반발력 (Separation: 서로 너무 가까워지면 밀어내어 분산)
+          const sepDist = 3.5;
+          const sepDistSq = sepDist * sepDist;
+          for (let i = 0; i < defaultFlock.length; i++) {
+              const other = defaultFlock[i];
+              if (other === b) continue;
+              const dx = b.group.position.x - other.group.position.x;
+              const dy = b.group.position.y - other.group.position.y;
+              const dz = b.group.position.z - other.group.position.z;
+              const dSq = dx * dx + dy * dy + dz * dz;
+              if (dSq < sepDistSq && dSq > 0.001) {
+                  const d = Math.sqrt(dSq);
+                  const force = (1.0 - d / sepDist) * 0.003;
+                  b.velocity.x += (dx / d) * force;
+                  b.velocity.y += (dy / d) * force;
+                  b.velocity.z += (dz / d) * force;
+              }
           }
       }
 
@@ -949,12 +982,12 @@
       
       b.group.position.add(b.velocity);
 
-      // 🌟 카메라와 가까운 영역에 머물도록 Z축 벽 방어
+      // 🌟 카메라와 가까운 영역에 머물도록 Z축 벽 방어 (외곽 공간을 넓게 쓰도록 범위 확대 및 완화)
       if (!b.isSpecialLanding) {
-          if (b.group.position.x > 15) b.velocity.x -= 0.02;
-          if (b.group.position.x < -15) b.velocity.x += 0.02;
-          if (b.group.position.y > 9) b.velocity.y -= 0.02;
-          if (b.group.position.y < -9) b.velocity.y += 0.02;
+          if (b.group.position.x > 16) b.velocity.x -= 0.015;
+          if (b.group.position.x < -16) b.velocity.x += 0.015;
+          if (b.group.position.y > 10) b.velocity.y -= 0.015;
+          if (b.group.position.y < -10) b.velocity.y += 0.015;
           
           if (b.group.position.z > 2.0) b.velocity.z -= 0.025;
           if (b.group.position.z < -6.5) b.velocity.z += 0.035;
