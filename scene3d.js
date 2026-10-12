@@ -16,10 +16,10 @@ function setupCommon3DScene(container, camZ, lookY) {
   }
   container.appendChild(renderer.domElement);
 
-  // 🌟 나비 만들기와 동일한 균일한 정면 조명 배치
-  var amb = new THREE.AmbientLight(0xffffff, 0.95);
+  // 🌟 자체 발광감을 극대화하기 위한 균일 조명
+  var amb = new THREE.AmbientLight(0xffffff, 1.2);
   scene.add(amb);
-  var dir = new THREE.DirectionalLight(0xffffff, 0.85);
+  var dir = new THREE.DirectionalLight(0xffffff, 1.0);
   dir.position.set(0, 5, 10);
   scene.add(dir);
 
@@ -85,11 +85,14 @@ function initLoading3DScene() {
   if (!res) return;
   loadingScene = res.scene; loadingCamera = res.camera; loadingRenderer = res.renderer;
 
-  var whiteMat = new THREE.MeshStandardMaterial({ color: 0xffffff, side: THREE.DoubleSide, roughness: 0.35, metalness: 0.0 });
+  // 🌟 1번 사진처럼 눈부시게 빛나는 화이트 자체 발광 재질
+  var whiteMat = new THREE.MeshBasicMaterial({ 
+    color: 0xffffff, 
+    side: THREE.DoubleSide 
+  });
+  
   loadingGroup = new THREE.Group();
-  // 나비가 서 있지 않고 앞쪽으로 확실하게 숙여지며 오른쪽으로 기울어지도록 회전값 설정
   loadingGroup.rotation.set(0.98, 2.45, -0.55);
-
   loadingGroup.position.set(-0.08, -0.22, 0);
 
   loadButterflyModel(loadingGroup, selectedButterflyShape, selectedAntennaType, { matL: whiteMat, matR: whiteMat }, whiteMat, 0.45, function(l, r) {
@@ -141,7 +144,7 @@ function createWingMaterials(textureURL, patternPath3D) {
     hasPat = true;
   }
 
-  // 🌟 나비 만들기와 100% 동일한 텍스처 평면 투영 및 무늬 합성 셰이더
+  // 🌟 [수정]: 1번 사진처럼 나비 자체가 빛나도록(Self-Emissive Glow) 구현한 셰이더
   function createCustomWingShader() {
     return new THREE.ShaderMaterial({
       uniforms: {
@@ -152,12 +155,17 @@ function createWingMaterials(textureURL, patternPath3D) {
       vertexShader: [
         'varying vec2 vProjectedUv;',
         'varying vec2 vModelUv;',
+        'varying vec3 vNormal;',
+        'varying vec3 vViewPosition;',
         'void main() {',
         '  vModelUv = uv;',
+        '  vNormal = normalize(normalMatrix * normal);',
         '  float u = (position.x + 2.4) / 4.8;',
         '  float v = (position.y + 2.4) / 4.8;',
         '  vProjectedUv = vec2(clamp(u, 0.0, 1.0), clamp(1.0 - v, 0.0, 1.0));',
-        '  gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);',
+        '  vec4 mvPosition = modelViewMatrix * vec4(position, 1.0);',
+        '  vViewPosition = -mvPosition.xyz;',
+        '  gl_Position = projectionMatrix * mvPosition;',
         '}'
       ].join('\n'),
       fragmentShader: [
@@ -166,6 +174,8 @@ function createWingMaterials(textureURL, patternPath3D) {
         'uniform float hasPattern;',
         'varying vec2 vProjectedUv;',
         'varying vec2 vModelUv;',
+        'varying vec3 vNormal;',
+        'varying vec3 vViewPosition;',
         'void main() {',
         '  vec4 photoCol = texture2D(photoMap, vProjectedUv);',
         '  vec4 finalCol = photoCol;',
@@ -173,7 +183,15 @@ function createWingMaterials(textureURL, patternPath3D) {
         '    vec4 patCol = texture2D(patMap, vModelUv);',
         '    finalCol.rgb = mix(finalCol.rgb, finalCol.rgb * patCol.rgb, patCol.a * 0.95);',
         '  }',
-        '  gl_FragColor = finalCol;',
+        '  // 🌟 자체 발광 광도 증폭: 사진 속 색상/패턴 질감을 유지하면서 밝기를 끌어올림',
+        '  finalCol.rgb = finalCol.rgb * 1.45;',
+        '  // 🌟 시선 각도에 따른 은은한 발광 코어 및 화이트 블룸 합성',
+        '  vec3 viewDir = normalize(vViewPosition);',
+        '  vec3 norm = normalize(vNormal);',
+        '  float rim = 1.0 - max(dot(viewDir, norm), 0.0);',
+        '  rim = pow(rim, 2.0);',
+        '  finalCol.rgb = mix(finalCol.rgb, vec3(1.0), rim * 0.35 + 0.15);',
+        '  gl_FragColor = vec4(clamp(finalCol.rgb, 0.0, 1.0), finalCol.a);',
         '}'
       ].join('\n'),
       side: THREE.DoubleSide
@@ -197,7 +215,8 @@ function initShare3DScene() {
 
   var texUrl = currentExtractedTexture || createFallbackDummyTexture('#ffffff', '#cfcfcf');
   var wingMats = createWingMaterials(texUrl, currentSelected3DPatternPath);
-  var whiteMat = new THREE.MeshStandardMaterial({ color: 0xffffff, side: THREE.DoubleSide, roughness: 0.35, metalness: 0.0 });
+  // 🌟 몸체 자체 발광 BasicMaterial 적용
+  var whiteMat = new THREE.MeshBasicMaterial({ color: 0xffffff, side: THREE.DoubleSide });
 
   shareGroup = new THREE.Group();
   shareGroup.rotation.set(0.25, -0.8, 0.35);
@@ -282,8 +301,8 @@ function initFullButterflyViewer(textureURL) {
   }
   container.appendChild(fullRenderer.domElement);
 
-  fullScene.add(new THREE.AmbientLight(0xffffff, 0.95));
-  var dirLight = new THREE.DirectionalLight(0xffffff, 0.85);
+  fullScene.add(new THREE.AmbientLight(0xffffff, 1.2));
+  var dirLight = new THREE.DirectionalLight(0xffffff, 1.0);
   dirLight.position.set(0, 5, 10); fullScene.add(dirLight);
 
   var wingMats = createWingMaterials(textureURL, currentSelected3DPatternPath);
@@ -297,7 +316,8 @@ function initFullButterflyViewer(textureURL) {
   isFlyingAway = false; isFlyingTransitionTriggered = false; hasTriggeredDBSave = false; resetChargeState();
   flyStartPhase = 0; flyStartTime = 0;
 
-  var whiteMat = new THREE.MeshStandardMaterial({ color: 0xffffff, side: THREE.DoubleSide, roughness: 0.35, metalness: 0.0 });
+  // 🌟 자체 발광 화이트 재질 (1번 사진 느낌의 순백 고휘도)
+  var whiteMat = new THREE.MeshBasicMaterial({ color: 0xffffff, side: THREE.DoubleSide });
   var targetAnt = 'Antenna_' + selectedAntennaType;
 
   if (window.THREE && THREE.GLTFLoader) {
@@ -364,37 +384,30 @@ function initFullButterflyViewer(textureURL) {
     }
 
     if (!isFlyingAway) {
-      // 솟아오르는 이동 애니메이션 (0초 ~ 3.0초)
       if (elapsedSec < 3.0) {
         var progress = Math.min(1.0, elapsedSec / 3.0);
         var easeOut = 1.0 - Math.pow(1.0 - progress, 3);
         fullGroup.position.y = -6.5 * (1.0 - easeOut);
       } else {
-        // 정지 후 사뿐히 떠 있는 자연스러운 미세 부유감 유지
         fullGroup.position.y = Math.sin((elapsedSec - 3.0) * 1.5) * 0.04;
       }
 
-      // 🌟 [물 흐르듯 감속 후 위로 170도(약 10도 V자) 살짝 접힌 상태로 안착]
-      var restingAngle = 0.18; // 170도 살짝 접힌 상태 (수평 0도 대비 약 10도 상향)
+      var restingAngle = 0.18;
       var flapAngle;
 
       if (t < 1.0) {
-        // 1단계: 솟아오르는 초반 활발한 비행 날갯짓
         var phase = t * 16.0;
         flapAngle = restingAngle + 0.35 + Math.sin(phase) * 0.75;
       } else if (t < 3.6) {
-        // 2단계: 1.0초~3.6초 구간 동안 속도와 진폭이 연속적으로 부드럽게 감쇠
-        var decayProgress = (t - 1.0) / 2.6; // 0 -> 1
-        var smoothWeight = Math.cos(decayProgress * (Math.PI / 2)); // 1 -> 0
-        var amp = 0.75 * Math.pow(smoothWeight, 2); // 진폭이 0으로 부드럽게 감쇠
-        var centerOffset = 0.35 * smoothWeight;     // 중심 각도도 restingAngle(0.18)로 수렴
+        var decayProgress = (t - 1.0) / 2.6;
+        var smoothWeight = Math.cos(decayProgress * (Math.PI / 2));
+        var amp = 0.75 * Math.pow(smoothWeight, 2);
+        var centerOffset = 0.35 * smoothWeight;
         
-        // 주파수 16.0 -> 0.0 적분 연속 위상 함수
         var u = t - 1.0;
         var phase = 16.0 + (16.0 * 2.6 * 2.0 / Math.PI) * Math.sin((u / 2.6) * (Math.PI / 2));
         flapAngle = restingAngle + centerOffset + Math.sin(phase) * amp;
       } else {
-        // 3단계: 완전 안착 (끊김 없이 정확히 170도 살짝 접힌 자세 유지)
         flapAngle = restingAngle;
       }
 
@@ -612,7 +625,6 @@ function stopModal3DScene() {
   if (container) container.innerHTML = '';
 }
 
-// 🌟 [수정]: 나비 만들기의 3D 뷰어(initFullButterflyViewer)와 100% 동일한 방식으로 무늬/텍스처를 전달받아 렌더링
 function openSpecimen3DModal(item, textureUrl) {
   var modal = document.getElementById('specimen-detail-modal');
   var nameEl = document.getElementById('modal-butterfly-name');
@@ -630,14 +642,12 @@ function openSpecimen3DModal(item, textureUrl) {
   if (dateEl) dateEl.innerText = item.date || "2026. 10. 24";
   if (modal) modal.classList.remove('hidden');
 
-  // 이전 렌더러 및 날개 객체 완전 정리 (메모리 및 컨텍스트 누수 차단)
   stopModal3DScene();
 
   var res = setupCommon3DScene(container, 7.3, -0.35);
   if (!res) return;
   modalThreeScene = res.scene; modalThreeCamera = res.camera; modalThreeRenderer = res.renderer;
 
-  // 🌟 [수정]: 나비 만들기의 get3DPatternPath 로직을 100% 동일하게 활용하여 각 나비의 3D 무늬 경로를 취득
   var itemPattern3DPath = null;
   if (typeof get3DPatternPath === 'function') {
     itemPattern3DPath = get3DPatternPath(item.wingId, item.patternId);
@@ -651,9 +661,8 @@ function openSpecimen3DModal(item, textureUrl) {
     itemPattern3DPath = '3DButterfly_pattern/' + shapePrefix + '_pattern_3D_' + patNum + '.png';
   }
 
-  // 🌟 나비 만들기와 100% 동일한 텍스처 셰이더 및 화이트 메시 재질 적용
   var wingMats = createWingMaterials(textureUrl, itemPattern3DPath);
-  var whiteMat = new THREE.MeshStandardMaterial({ color: 0xffffff, side: THREE.DoubleSide, roughness: 0.35, metalness: 0.0 });
+  var whiteMat = new THREE.MeshBasicMaterial({ color: 0xffffff, side: THREE.DoubleSide });
 
   modalGroup = new THREE.Group();
   modalGroup.position.set(0, -0.85, 0);
@@ -665,8 +674,7 @@ function openSpecimen3DModal(item, textureUrl) {
 
   var clock = new THREE.Clock();
   (function modalAnimate() {
-    modalAnimFrameId = requestAnimationFrame(animateLoading);
-    // 🌟 프리뷰와 동일한 속도 및 3축 회전 완벽 보존 적용
+    modalAnimFrameId = requestAnimationFrame(modalAnimate);
     var t = clock.getElapsedTime(), flap = 0.524 + Math.sin(t * 7.2) * 0.873;
     if (modalWingL && modalWingR) { 
       var uL = modalWingL.userData;
