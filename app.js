@@ -585,7 +585,7 @@ if (btnOpeningNext) {
     if (openingCurrentStep === 1) {
       openingCurrentStep = 2;
       if (elOpeningCocoonGroup) { elOpeningCocoonGroup.classList.remove('hidden'); }
-      if (elOpeningStep3CocoonGroup) { elOpeningStep3CocoonGroup.classList.add('hidden'); }
+      if (elOpeningStep3CocoonGroup) { elOpeningStep3CocoonGroup.classList.remove('hidden'); }
       if (elOpeningNextGroup) { elOpeningNextGroup.classList.remove('visible'); elOpeningNextGroup.classList.add('hidden'); }
       typeWriterText(elOpeningText, "꺼내어 보이지 못한 채,<br>응어리진 무언가... 쉽게 털어놓지 못할 것도 있겠지요.", function() {
         btnOpeningNext.innerHTML = "다음";
@@ -1530,7 +1530,6 @@ function renderFilteredGallery(searchQuery) {
   var q = (searchQuery || "").trim().toLowerCase();
   var filteredData = specimenButterfliesData.filter(function(item) {
     if (!q) return true;
-    // 🌟 [수정]: 고민 키워드를 제외하고 오직 나비 이름(item.name)으로만 검색
     return (item.name || "").toLowerCase().indexOf(q) > -1;
   });
 
@@ -1582,7 +1581,9 @@ function renderFilteredGallery(searchQuery) {
       if (specimenContainer) specimenContainer.querySelectorAll('.specimen-pill-label').forEach(function(l) { l.classList.remove('active-touched'); });
       var curLbl = card.querySelector('.specimen-pill-label');
       if (curLbl) curLbl.classList.add('active-touched');
-      openSpecimen3DModal(item, item.textureUrl || createFallbackDummyTexture('#ffffff', '#e0e0e0'));
+      if (typeof openSpecimen3DModal === 'function') {
+        openSpecimen3DModal(item, item.textureUrl || createFallbackDummyTexture('#ffffff', '#e0e0e0'));
+      }
     };
     specimenContainer.appendChild(card);
     cardElements.push(card);
@@ -1596,7 +1597,6 @@ function renderFilteredGallery(searchQuery) {
 
 var gallerySearchInput = document.getElementById('gallery-search-input');
 if (gallerySearchInput) {
-  // 🌟 [수정]: 검색창 placeholder 문구를 '나비 이름을 검색해보세요'로 지정
   gallerySearchInput.placeholder = "나비 이름을 검색해보세요";
   gallerySearchInput.oninput = function(e) { renderFilteredGallery(e.target.value); };
 }
@@ -1604,7 +1604,6 @@ if (gallerySearchInput) {
 async function initSpecimenGallery() {
   if (gallerySearchInput) {
     gallerySearchInput.value = "";
-    // 🌟 [수정]: 화면 진입 시 안내 문구 재확인 적용
     gallerySearchInput.placeholder = "나비 이름을 검색해보세요";
   }
   var client = getSupabaseClient();
@@ -1637,7 +1636,10 @@ if (btnCloseSpecimenModal) {
   btnCloseSpecimenModal.onclick = function() {
     var modal = document.getElementById('specimen-detail-modal');
     if (modal) modal.classList.add('hidden');
-    if (modalAnimFrameId) { cancelAnimationFrame(modalAnimFrameId); modalAnimFrameId = null; }
+    if (typeof modalAnimFrameId !== 'undefined' && modalAnimFrameId) {
+      cancelAnimationFrame(modalAnimFrameId);
+      modalAnimFrameId = null;
+    }
   };
 }
 
@@ -1690,7 +1692,7 @@ window.addEventListener('resize', function() {
         shareCamera.updateProjectionMatrix();
         shareRenderer.setSize(sw, sh);
       }
-    } else if (activeScreen.id === 'screen-gallery' && modalThreeCamera && modalThreeRenderer) {
+    } else if (activeScreen.id === 'screen-gallery' && typeof modalThreeCamera !== 'undefined' && modalThreeCamera && typeof modalThreeRenderer !== 'undefined' && modalThreeRenderer) {
       var modalCont = document.getElementById('specimen-three-container');
       if (modalCont) {
         var mw = modalCont.clientWidth || window.innerWidth;

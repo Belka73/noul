@@ -16,10 +16,11 @@ function setupCommon3DScene(container, camZ, lookY) {
   }
   container.appendChild(renderer.domElement);
 
-  var amb = new THREE.AmbientLight(0xffffff, 1.0);
+  // 🌟 나비 만들기와 동일한 균일한 정면 조명 배치
+  var amb = new THREE.AmbientLight(0xffffff, 0.95);
   scene.add(amb);
-  var dir = new THREE.DirectionalLight(0xffffff, 0.9);
-  dir.position.set(3, 6, 8);
+  var dir = new THREE.DirectionalLight(0xffffff, 0.85);
+  dir.position.set(0, 5, 10);
   scene.add(dir);
 
   return { scene: scene, camera: camera, renderer: renderer };
@@ -80,7 +81,7 @@ function initLoading3DScene() {
   if (!res) return;
   loadingScene = res.scene; loadingCamera = res.camera; loadingRenderer = res.renderer;
 
-  var whiteMat = new THREE.MeshStandardMaterial({ color: 0xffffff, side: THREE.DoubleSide, roughness: 0.35 });
+  var whiteMat = new THREE.MeshStandardMaterial({ color: 0xffffff, side: THREE.DoubleSide, roughness: 0.35, metalness: 0.0 });
   loadingGroup = new THREE.Group();
   loadingGroup.rotation.set(0.25, -0.8, 0.35);
 
@@ -133,6 +134,7 @@ function createWingMaterials(textureURL, patternPath3D) {
     hasPat = true;
   }
 
+  // 🌟 나비 만들기와 100% 동일한 텍스처 평면 투영 및 무늬 합성 셰이더
   function createCustomWingShader() {
     return new THREE.ShaderMaterial({
       uniforms: {
@@ -188,7 +190,7 @@ function initShare3DScene() {
 
   var texUrl = currentExtractedTexture || createFallbackDummyTexture('#ffffff', '#cfcfcf');
   var wingMats = createWingMaterials(texUrl, currentSelected3DPatternPath);
-  var whiteMat = new THREE.MeshStandardMaterial({ color: 0xffffff, side: THREE.DoubleSide, roughness: 0.35 });
+  var whiteMat = new THREE.MeshStandardMaterial({ color: 0xffffff, side: THREE.DoubleSide, roughness: 0.35, metalness: 0.0 });
 
   shareGroup = new THREE.Group();
   shareGroup.rotation.set(0.25, -0.8, 0.35);
@@ -227,7 +229,6 @@ var isUserDragging = false, lastPointerX = 0, lastPointerY = 0, previewStartTime
 var isPressingScreen = false, pressStartTime = 0, isChargeTriggered = false, chargeProgress = 0, chargeVibrateInterval = null;
 var particleCanvas = null, pctx = null, energyParticles = [], isFlyingTransitionTriggered = false;
 
-// 🌟 중복 저장 방지 플래그
 var hasTriggeredDBSave = false;
 
 function triggerDeviceVibrate(durationMs, intensity) {
@@ -239,7 +240,6 @@ function triggerDeviceVibrate(durationMs, intensity) {
   } catch(e) {}
 }
 
-// 🌟 Supabase 단 1회 안전 저장 헬퍼
 function safeTriggerDBSave() {
   if (hasTriggeredDBSave) return;
   hasTriggeredDBSave = true;
@@ -396,7 +396,6 @@ function initFullButterflyViewer(textureURL) {
       }
       fullGroup.position.y += 0.09; fullGroup.position.z -= 0.04;
 
-      // 🌟 [안전 개선] 나비가 화면 상단으로 나갈 때 확실하게 저장 트리거 보장
       if (fullGroup.position.y > 4.6 && !isFlyingTransitionTriggered) {
         isFlyingTransitionTriggered = true;
         clearTimeout(flightSafetyTimer);
@@ -547,7 +546,6 @@ function bindInteractiveEvents(targetEl) {
       isFlyingAway = true;
       triggerDeviceVibrate(180, 1.0);
 
-      // 🌟 [안전 개선] 위로 날려보내는 스와이프 발생 즉시 선제적 저장 트리거
       safeTriggerDBSave();
 
       var footerUI = document.getElementById('preview-footer-ui');
@@ -575,6 +573,7 @@ function bindInteractiveEvents(targetEl) {
 
 var modalThreeScene, modalThreeCamera, modalThreeRenderer, modalGroup, modalWingL, modalWingR, modalAnimFrameId = null;
 
+// 🌟 [수정]: 나비 만들기의 3D 뷰어(initFullButterflyViewer)와 100% 동일한 방식으로 무늬/텍스처를 전달받아 렌더링
 function openSpecimen3DModal(item, textureUrl) {
   var modal = document.getElementById('specimen-detail-modal');
   var nameEl = document.getElementById('modal-butterfly-name');
@@ -597,7 +596,7 @@ function openSpecimen3DModal(item, textureUrl) {
   if (!res) return;
   modalThreeScene = res.scene; modalThreeCamera = res.camera; modalThreeRenderer = res.renderer;
 
-  // 🌟 [수정]: 클릭한 나비의 고유 형태와 무늬에 해당하는 3D 패턴 경로를 정확히 계산하여 전달
+  // 🌟 [수정]: 나비 만들기의 get3DPatternPath 로직을 100% 동일하게 활용하여 각 나비의 3D 무늬 경로를 취득
   var itemPattern3DPath = null;
   if (typeof get3DPatternPath === 'function') {
     itemPattern3DPath = get3DPatternPath(item.wingId, item.patternId);
@@ -611,13 +610,14 @@ function openSpecimen3DModal(item, textureUrl) {
     itemPattern3DPath = '3DButterfly_pattern/' + shapePrefix + '_pattern_3D_' + patNum + '.png';
   }
 
+  // 🌟 나비 만들기와 100% 동일한 텍스처 셰이더 및 화이트 메시 재질 적용
   var wingMats = createWingMaterials(textureUrl, itemPattern3DPath);
-  var whiteMat = new THREE.MeshStandardMaterial({ color: 0xffffff, side: THREE.DoubleSide, roughness: 0.3 });
+  var whiteMat = new THREE.MeshStandardMaterial({ color: 0xffffff, side: THREE.DoubleSide, roughness: 0.35, metalness: 0.0 });
 
   modalGroup = new THREE.Group();
   modalGroup.position.set(0, -0.35, 0);
 
-  loadButterflyModel(modalGroup, item.wingId, item.antId, wingMats, whiteMat, 0.88, function(l, r) {
+  loadButterflyModel(modalGroup, item.wingId, item.antId, wingMats, whiteMat, 0.85, function(l, r) {
     modalWingL = l; modalWingR = r;
   });
   modalThreeScene.add(modalGroup);
@@ -666,7 +666,7 @@ window.addEventListener('resize', function() {
         shareCamera.updateProjectionMatrix();
         shareRenderer.setSize(sw, sh);
       }
-    } else if (activeScreen.id === 'screen-gallery' && modalThreeCamera && modalThreeRenderer) {
+    } else if (activeScreen.id === 'screen-gallery' && typeof modalThreeCamera !== 'undefined' && modalThreeCamera && typeof modalThreeRenderer !== 'undefined' && modalThreeRenderer) {
       var modalCont = document.getElementById('specimen-three-container');
       if (modalCont) {
         var mw = modalCont.clientWidth || window.innerWidth;
