@@ -152,17 +152,21 @@
   </main>
 
   <script>
-    // 1. Supabase 클라이언트 설정
+    // 1. Supabase 클라이언트 설정 (중복 선언 방지 수정 완료)
     const SUPABASE_URL = 'https://djmdzsbfsobsutphragw.supabase.co';
     const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRqbWR6c2Jmc29ic3V0cGhyYWd3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODk4ODQ3NTgsImV4cCI6MjEwNTQ2MDc1OH0.BC7llaSjbq6cYhDlRqrwJaycpQ6gSNcp5LgYBeM6WEM';
-    let supabase = null;
+    let supabaseInstance = null;
     try {
-      if (window.supabase) {
-        supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+      if (window.supabase && !window._supabaseClientInstance) {
+        supabaseInstance = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+        window._supabaseClientInstance = supabaseInstance;
+      } else {
+        supabaseInstance = window._supabaseClientInstance || (window.supabase ? window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY) : null);
       }
     } catch (e) {
       console.warn("Supabase 초기화 경고:", e);
     }
+    const supabase = supabaseInstance;
 
     // 2. URL 파라미터 기본값
     const urlParams = new URLSearchParams(window.location.search);
@@ -208,7 +212,7 @@
       else if (shapePrefix === 'dawn-ray' || shapePrefix === 'dawn') shapePrefix = 'dawn-ray';
       else if (shapePrefix === 'wave-fin' || shapePrefix === 'wave') shapePrefix = 'wave-fin';
 
-      return './3DButterfly_pattern/' + shapePrefix + '_pattern_3D_' + patNum + '.png';
+      return '3DButterfly_pattern/' + shapePrefix + '_pattern_3D_' + patNum + '.png';
     }
 
     function createWingMaterials(texUrl, patPath) {
@@ -314,7 +318,7 @@
       const targetAntPrefix = 'Antenna_' + (targetAnt || 'ball');
 
       const gltfLoader = new THREE.GLTFLoader();
-      const modelPath = './3DButterfly/' + targetShape + '.glb';
+      const modelPath = '3DButterfly/' + targetShape + '.glb';
 
       gltfLoader.load(
         modelPath,
@@ -334,7 +338,6 @@
                 child.material = whiteMat;
               } else if (n.startsWith('Antenna_')) {
                 child.material = whiteMat;
-                // 선택된 안테나 타입만 보이도록 처리
                 child.visible = n.startsWith(targetAntPrefix);
               }
             }
