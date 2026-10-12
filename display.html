@@ -600,12 +600,12 @@
         // 🌟 멀리 가지 않고 카메라와 가까운 앞쪽 영역에 스폰 (Z: 0.0 ~ -6.5)
         group.position.set(
           (Math.random() - 0.5) * 20, 
-          (Math.random() - 0.5) * 13, 
+          (Math.random() - 0.5) * 10 - 1.0, 
           0.0 - Math.random() * 6.5
         );
         initialVelocity = new THREE.Vector3(
           (Math.random() - 0.5) * 0.07, 
-          (Math.random() - 0.5) * 0.07, 
+          (Math.random() - 0.5) * 0.04, 
           (Math.random() - 0.5) * 0.025
         );
         group.scale.set(targetScale, targetScale, targetScale);
@@ -724,7 +724,7 @@
     const handPointer = document.getElementById('hand-pointer');
 
     /* ========================================================
-       🌟 [생체역학 리팩토링] Clap & Fling, 와류 비틀림, 회피 파동 물리 엔진
+       🌟 [수정 반영] 화면 이탈 방지 + 상하 균형 잡힌 생체역학 회피 비행
        ======================================================== */
     function updateMotion(b, time) {
       let currentTargetScale = b.targetScale;
@@ -789,8 +789,8 @@
           const wingAngleY = (asymmetricWave * 0.86) * b.flapAmp;
 
           // 🌟 3. 날개 펄럭임에 맞춰 Z/X축 미세 비틀림(Twist)을 부여하여 유연한 탄성 휨 착시 연출
-          const wingTwistZ = Math.cos(phase) * 0.22 * b.flapAmp; // 날개 끝단 위상 지연 휨
-          const wingPitchX = -Math.sin(phase) * 0.16 * b.flapAmp; // 받음각(Attack Angle) 동적 변화
+          const wingTwistZ = Math.cos(phase) * 0.22 * b.flapAmp;
+          const wingPitchX = -Math.sin(phase) * 0.16 * b.flapAmp;
 
           b.leftWing.rotation.y = baseRotL + (0.50 + wingAngleY);
           b.rightWing.rotation.y = baseRotR - (0.50 + wingAngleY);
@@ -799,19 +799,18 @@
           b.leftWing.rotation.x = wingPitchX;
           b.rightWing.rotation.x = wingPitchX;
 
-          // 🌟 1. Clap & Fling 원리: 날개가 아래로 쳐내려갈 때의 순간 각속도 추출
+          // 🌟 [수정: 상하 양력 밸런스 정밀 균형화]
           const strokeVelocity = -Math.cos(phase);
           if (strokeVelocity > 0.1) {
-              // Downstroke: 앞전 와류(LEV)와 공기 제트 분출에 따른 강한 상승 양력 + 전진 추력
-              downstrokeForce = Math.pow(strokeVelocity, 2.2) * 0.0075 * b.flapAmp;
-              pitchAttitude = strokeVelocity * 0.25 * b.flapAmp; // 머리가 들림
+              // 과도한 상향 누적 방지를 위해 힘을 0.0075 -> 0.0038로 완화
+              downstrokeForce = Math.pow(strokeVelocity, 2.2) * 0.0038 * b.flapAmp;
+              pitchAttitude = strokeVelocity * 0.22 * b.flapAmp;
           } else {
-              // Upstroke: 양력이 급감하고 중력/공기 저항으로 자연 하강 및 감속
-              upstrokeDrag = Math.abs(strokeVelocity) * 0.0035 * b.flapAmp;
-              pitchAttitude = strokeVelocity * 0.18 * b.flapAmp; // 머리가 숙여짐
+              // 하강 저항 및 중력 침강력을 균형 있게 적용하여 상향 쏠림 차단
+              upstrokeDrag = Math.abs(strokeVelocity) * 0.0036 * b.flapAmp;
+              pitchAttitude = strokeVelocity * 0.18 * b.flapAmp;
           }
 
-          // 몸통 미세 비틀림(Micro Roll)
           b.innerGroup.rotation.z = Math.sin(phase * 1.5 + b.seed) * 0.05 * b.flapAmp;
       }
 
@@ -929,35 +928,40 @@
           } 
       }
 
-      // 🌟 1 & 4. [유기적 비행 물리: 위상 동기화 추진력 및 다중 조화 파동 회피 비행]
+      // 🌟 [핵심 물리: 화면 중앙 가시권 유지 + 상하 지그재그 유영]
       if (!isFollowing && !b.isAscendingArrival) {
           b.state = 'flying';
           const t = time * 1.2 + b.seed;
 
-          // 1단계: 날갯짓 위상과 직접 결합된 수직 리프트/드래그
-          b.velocity.y += downstrokeForce; // Downstroke 급격한 상승
-          b.velocity.y -= upstrokeDrag;    // Upstroke 침강
+          // 1. 날갯짓 위상 동기화 양력/침강
+          b.velocity.y += downstrokeForce;
+          b.velocity.y -= upstrokeDrag;
 
-          // 전진 벡터 방향으로의 순간 추진력 (Clap & Fling 전진 가속)
+          // 2. Clap & Fling 전진 추진
           const forwardSpeed = Math.hypot(b.velocity.x, b.velocity.z);
           if (forwardSpeed > 0.001) {
-              b.velocity.x += (b.velocity.x / forwardSpeed) * downstrokeForce * 0.45;
-              b.velocity.z += (b.velocity.z / forwardSpeed) * downstrokeForce * 0.45;
+              b.velocity.x += (b.velocity.x / forwardSpeed) * downstrokeForce * 0.35;
+              b.velocity.z += (b.velocity.z / forwardSpeed) * downstrokeForce * 0.35;
           }
 
-          // 🌟 4단계: 뚝뚝 끊기는 Math.random() 틱 제거 -> 부드러운 다중 조화 파동(Harmonic Wave)
-          // 서로 다른 비동기 주파수의 합성으로 포식자 회피 지그재그 궤적 생성
+          // 3. 다중 조화 파동 (상하/좌우 회피 지그재그)
           const harmonicX = Math.sin(t * 1.7) * 0.0028 + Math.sin(t * 3.1 + b.seed * 0.5) * 0.0018;
-          const harmonicY = Math.sin(t * 2.3 + 1.2) * 0.0035 + Math.cos(t * 4.7) * 0.0015;
+          const harmonicY = (Math.sin(t * 2.3 + 1.2) * 0.0035 + Math.cos(t * 4.7) * 0.0015);
           const harmonicZ = Math.cos(t * 1.4) * 0.0022 + Math.sin(t * 2.9 + b.seed) * 0.0012;
 
           b.velocity.x += harmonicX;
           b.velocity.y += harmonicY;
           b.velocity.z += harmonicZ;
 
-          // 공기 항력 감쇠 (자연스러운 점성 저항)
+          // 🌟 4. [화면 가시권 유지 복원력: Home-Seeking Elastic Force]
+          // Y축 중심(0.0)에서 멀어질수록 반대 방향으로 끌어당겨 화면 정중앙 시야에 머물게 함
+          const targetCenterY = 0.0;
+          const centerDiffY = targetCenterY - b.group.position.y;
+          b.velocity.y += centerDiffY * 0.0045; // 부드럽게 화면 중심선으로 복귀
+
+          // 점성 감쇠
           b.velocity.x *= 0.988;
-          b.velocity.y *= 0.982;
+          b.velocity.y *= 0.975; // Y축 감쇠를 강화하여 위로 쏠리는 관성 차단
           b.velocity.z *= 0.988;
       }
 
@@ -976,33 +980,39 @@
       
       b.group.position.add(b.velocity);
 
-      // 🌟 카메라와 가까운 영역에 머물도록 Z축 벽 방어
+      // 🌟 [강력한 화면 이탈 방지 경계벽]
       if (!b.isSpecialLanding) {
-          if (b.group.position.x > 15) b.velocity.x -= 0.02;
-          if (b.group.position.x < -15) b.velocity.x += 0.02;
-          if (b.group.position.y > 9) b.velocity.y -= 0.02;
-          if (b.group.position.y < -9) b.velocity.y += 0.02;
+          // X축 좌우 경계
+          if (b.group.position.x > 14) b.velocity.x -= 0.035;
+          if (b.group.position.x < -14) b.velocity.x += 0.035;
+
+          // 🌟 Y축 상하 경계 강화 (화면 밖 위로 올라가는 것 완전 차단)
+          if (b.group.position.y > 5.5) {
+              b.velocity.y -= 0.06; // 상단 도달 시 아래로 강하게 반전
+              if (b.velocity.y > 0) b.velocity.y *= 0.5;
+          }
+          if (b.group.position.y < -5.5) {
+              b.velocity.y += 0.06; // 하단 도달 시 위로 반전
+              if (b.velocity.y < 0) b.velocity.y *= 0.5;
+          }
           
-          if (b.group.position.z > 2.0) b.velocity.z -= 0.025;
+          // Z축 심도 경계
+          if (b.group.position.z > 2.0) b.velocity.z -= 0.03;
           if (b.group.position.z < -6.5) b.velocity.z += 0.035;
       }
 
-      // 🌟 2. [생동감 있는 3차원 자세 제어: Pitch/Roll/Yaw의 부드러운 Slerp 동기화]
+      // 🌟 2. 3차원 자세 제어 (Pitch/Roll/Yaw Slerp)
       if (b.velocity.lengthSq() > 0.00001 && b.state === 'flying' && !isFollowing) {
         _vTargetPos.copy(b.group.position).add(b.velocity);
         dummyObj.position.copy(b.group.position);
         dummyObj.lookAt(_vTargetPos);
 
-        // 진행 선회각에 비례하는 역동적 뱅킹 롤(Roll)
         const rollAngle = (b.velocity.x * -24.0) + Math.sin(time * 3.8 + b.seed) * 0.14;
-        
-        // 날갯짓에 따른 머리 들림/숙임(Pitch Attitude)과 상승/하강 속도 결합
-        const pitchAngle = pitchAttitude + (b.velocity.y * 4.2);
+        const pitchAngle = pitchAttitude + (b.velocity.y * 3.5);
 
         dummyObj.rotateZ(rollAngle); 
         dummyObj.rotateX(pitchAngle);
 
-        // 급정거와 튐 없는 부드러운 구면 선형 보간 (Slerp)
         b.group.quaternion.slerp(dummyObj.quaternion, 0.15);
       }
     }
