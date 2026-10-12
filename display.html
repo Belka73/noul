@@ -724,7 +724,7 @@
     const handPointer = document.getElementById('hand-pointer');
 
     /* ========================================================
-       🌟 [수정 반영] 박수치기 효과(Clap & Fling) 및 상하 지그재그 회피 비행
+       🌟 [생체역학 리팩토링] Clap & Fling, 와류 비틀림, 회피 파동 물리 엔진
        ======================================================== */
     function updateMotion(b, time) {
       let currentTargetScale = b.targetScale;
@@ -755,9 +755,10 @@
       const baseRotL = (b.leftWing.userData && b.leftWing.userData.baseRotY) || 0;
       const baseRotR = (b.rightWing.userData && b.rightWing.userData.baseRotY) || 0;
 
-      // 🦋 박수치기 효과 (Clap and Fling) 임펄스 계산
-      let flingImpulse = 0; 
-      let flingLift = 0;
+      // 1. 생체 역학적 날갯짓 위상(Phase) 및 물리 에너지 연산
+      let downstrokeForce = 0; 
+      let upstrokeDrag = 0;
+      let pitchAttitude = 0;
 
       if (b.state === 'landing_rest') {
           b.flapAmp *= 0.92; 
@@ -766,6 +767,10 @@
           const restFold = -1.25; 
           b.leftWing.rotation.y = baseRotL + flap + restFold * (1 - b.flapAmp);
           b.rightWing.rotation.y = baseRotR - flap - restFold * (1 - b.flapAmp);
+          b.leftWing.rotation.z = 0;
+          b.rightWing.rotation.z = 0;
+          b.leftWing.rotation.x = 0;
+          b.rightWing.rotation.x = 0;
           b.innerGroup.rotation.z = Math.sin(time * 2.0 + b.seed) * 0.04;
       } else {
           b.flapAmp += (1.0 - b.flapAmp) * 0.1; 
@@ -777,20 +782,37 @@
           }
 
           const phase = (time * currentFlapSpeed + b.seed) % (Math.PI * 2);
-          const wingWave = Math.sin(phase);
 
-          // 비대칭 날갯짓: 등 뒤에서 거의 맞닿았다가(Clap) 빠르게 쳐내림(Fling)
-          const flapAngle = (wingWave * 0.88) * b.flapAmp;
-          b.leftWing.rotation.y = baseRotL + (0.50 + flapAngle);
-          b.rightWing.rotation.y = baseRotR - (0.50 + flapAngle);
+          // 비대칭 스트로크 파형 (Downstroke는 급격하고 빠름, Upstroke는 부드럽고 여유로움)
+          const rawWave = Math.sin(phase);
+          const asymmetricWave = rawWave + 0.30 * Math.sin(phase * 2);
+          const wingAngleY = (asymmetricWave * 0.86) * b.flapAmp;
 
-          // 🌟 박수치기(Clap & Fling) 순간 추진력: 날개가 활짝 펴지며 공기를 뿜는 순간의 임펄스
-          const downstrokeVelocity = Math.max(0, -Math.cos(phase));
-          flingImpulse = Math.pow(downstrokeVelocity, 2.5) * 0.0055 * b.flapAmp;
-          flingLift = Math.pow(downstrokeVelocity, 2.0) * 0.0040 * b.flapAmp;
+          // 🌟 3. 날개 펄럭임에 맞춰 Z/X축 미세 비틀림(Twist)을 부여하여 유연한 탄성 휨 착시 연출
+          const wingTwistZ = Math.cos(phase) * 0.22 * b.flapAmp; // 날개 끝단 위상 지연 휨
+          const wingPitchX = -Math.sin(phase) * 0.16 * b.flapAmp; // 받음각(Attack Angle) 동적 변화
 
-          // 와류에 의한 미세 비틀림 롤
-          b.innerGroup.rotation.z = Math.sin(phase * 1.5 + b.seed) * 0.06 * b.flapAmp;
+          b.leftWing.rotation.y = baseRotL + (0.50 + wingAngleY);
+          b.rightWing.rotation.y = baseRotR - (0.50 + wingAngleY);
+          b.leftWing.rotation.z = wingTwistZ;
+          b.rightWing.rotation.z = -wingTwistZ;
+          b.leftWing.rotation.x = wingPitchX;
+          b.rightWing.rotation.x = wingPitchX;
+
+          // 🌟 1. Clap & Fling 원리: 날개가 아래로 쳐내려갈 때의 순간 각속도 추출
+          const strokeVelocity = -Math.cos(phase);
+          if (strokeVelocity > 0.1) {
+              // Downstroke: 앞전 와류(LEV)와 공기 제트 분출에 따른 강한 상승 양력 + 전진 추력
+              downstrokeForce = Math.pow(strokeVelocity, 2.2) * 0.0075 * b.flapAmp;
+              pitchAttitude = strokeVelocity * 0.25 * b.flapAmp; // 머리가 들림
+          } else {
+              // Upstroke: 양력이 급감하고 중력/공기 저항으로 자연 하강 및 감속
+              upstrokeDrag = Math.abs(strokeVelocity) * 0.0035 * b.flapAmp;
+              pitchAttitude = strokeVelocity * 0.18 * b.flapAmp; // 머리가 숙여짐
+          }
+
+          // 몸통 미세 비틀림(Micro Roll)
+          b.innerGroup.rotation.z = Math.sin(phase * 1.5 + b.seed) * 0.05 * b.flapAmp;
       }
 
       let isFollowing = false;
@@ -907,31 +929,36 @@
           } 
       }
 
-      // 🦋 [핵심 반영: 단순 상하 연동 삭제 -> 상하 지그재그 회피 파동 & 박수치기 추진력]
+      // 🌟 1 & 4. [유기적 비행 물리: 위상 동기화 추진력 및 다중 조화 파동 회피 비행]
       if (!isFollowing && !b.isAscendingArrival) {
           b.state = 'flying';
-          const t = time * 1.4 + b.seed;
+          const t = time * 1.2 + b.seed;
 
-          // 1. 상하 지그재그 파동 (직선 비행을 깨뜨리고 예측할 수 없게 출렁이는 궤적)
-          const zigzagWave = Math.sin(t * 2.8) * Math.cos(t * 1.3 + b.seed * 0.3) * 0.0085;
-          b.velocity.y += zigzagWave;
+          // 1단계: 날갯짓 위상과 직접 결합된 수직 리프트/드래그
+          b.velocity.y += downstrokeForce; // Downstroke 급격한 상승
+          b.velocity.y -= upstrokeDrag;    // Upstroke 침강
 
-          // 2. 박수치기(Clap & Fling)에 의한 간헐적 추진력 & 순간 양력 부여
-          b.velocity.y += flingLift - 0.0016; // 순간 양력 후 공기 저항 감속
-          if (Math.abs(b.velocity.x) > 0.001) {
-            b.velocity.x += Math.sign(b.velocity.x) * flingImpulse;
+          // 전진 벡터 방향으로의 순간 추진력 (Clap & Fling 전진 가속)
+          const forwardSpeed = Math.hypot(b.velocity.x, b.velocity.z);
+          if (forwardSpeed > 0.001) {
+              b.velocity.x += (b.velocity.x / forwardSpeed) * downstrokeForce * 0.45;
+              b.velocity.z += (b.velocity.z / forwardSpeed) * downstrokeForce * 0.45;
           }
 
-          // 3. 포식자를 따돌리기 위한 매 날갯짓 비틀림 및 미세 난류 기류
-          b.velocity.x += Math.sin(t * 1.9 + b.seed) * 0.0035;
-          b.velocity.z += Math.cos(t * 1.6 + b.seed) * 0.0022;
+          // 🌟 4단계: 뚝뚝 끊기는 Math.random() 틱 제거 -> 부드러운 다중 조화 파동(Harmonic Wave)
+          // 서로 다른 비동기 주파수의 합성으로 포식자 회피 지그재그 궤적 생성
+          const harmonicX = Math.sin(t * 1.7) * 0.0028 + Math.sin(t * 3.1 + b.seed * 0.5) * 0.0018;
+          const harmonicY = Math.sin(t * 2.3 + 1.2) * 0.0035 + Math.cos(t * 4.7) * 0.0015;
+          const harmonicZ = Math.cos(t * 1.4) * 0.0022 + Math.sin(t * 2.9 + b.seed) * 0.0012;
 
-          // 4. 불규칙한 방향 선회 (와류 위치 변경)
-          if (Math.random() < 0.035) {
-              b.velocity.x += (Math.random() - 0.5) * 0.045;
-              b.velocity.y += (Math.random() - 0.5) * 0.035;
-              b.velocity.z += (Math.random() - 0.5) * 0.025; 
-          }
+          b.velocity.x += harmonicX;
+          b.velocity.y += harmonicY;
+          b.velocity.z += harmonicZ;
+
+          // 공기 항력 감쇠 (자연스러운 점성 저항)
+          b.velocity.x *= 0.988;
+          b.velocity.y *= 0.982;
+          b.velocity.z *= 0.988;
       }
 
       let maxSpeed = 0.13;
@@ -960,21 +987,23 @@
           if (b.group.position.z < -6.5) b.velocity.z += 0.035;
       }
 
-      // 🦋 3. 지그재그 궤적과 와류에 맞춘 역동적인 3축 기체 회전 (Yaw/Roll/Pitch)
+      // 🌟 2. [생동감 있는 3차원 자세 제어: Pitch/Roll/Yaw의 부드러운 Slerp 동기화]
       if (b.velocity.lengthSq() > 0.00001 && b.state === 'flying' && !isFollowing) {
         _vTargetPos.copy(b.group.position).add(b.velocity);
         dummyObj.position.copy(b.group.position);
         dummyObj.lookAt(_vTargetPos);
 
-        // 지그재그로 급격히 방향을 틀 때 기체가 자연스럽게 기우는 은행각
-        const rollAngle = (b.velocity.x * -22.0) + Math.sin(time * 4.5 + b.seed) * 0.20;
-        // 상하 요동치는 수직 속도에 맞춘 기수 피치 연동
-        const pitchAngle = (b.velocity.y * 5.0) + Math.sin(time * 3.0 + b.seed) * 0.10;
+        // 진행 선회각에 비례하는 역동적 뱅킹 롤(Roll)
+        const rollAngle = (b.velocity.x * -24.0) + Math.sin(time * 3.8 + b.seed) * 0.14;
+        
+        // 날갯짓에 따른 머리 들림/숙임(Pitch Attitude)과 상승/하강 속도 결합
+        const pitchAngle = pitchAttitude + (b.velocity.y * 4.2);
 
         dummyObj.rotateZ(rollAngle); 
         dummyObj.rotateX(pitchAngle);
 
-        b.group.quaternion.slerp(dummyObj.quaternion, 0.18);
+        // 급정거와 튐 없는 부드러운 구면 선형 보간 (Slerp)
+        b.group.quaternion.slerp(dummyObj.quaternion, 0.15);
       }
     }
 
