@@ -87,8 +87,8 @@ function initLoading3DScene() {
 
   var whiteMat = new THREE.MeshStandardMaterial({ color: 0xffffff, side: THREE.DoubleSide, roughness: 0.35, metalness: 0.0 });
   loadingGroup = new THREE.Group();
-  // 나비의 등판이 카메라를 향하면서 오른쪽으로 기울어지도록 회전값 설정
-  loadingGroup.rotation.set(0.25, 2.34, -0.35);
+  // 나비의 등판이 보이면서 오른쪽으로 기울고 앞쪽으로 더 숙여지도록 회전값 설정 (X: 0.58)
+  loadingGroup.rotation.set(0.58, 2.34, -0.35);
 
   loadingGroup.position.set(-0.08, -0.22, 0);
 
