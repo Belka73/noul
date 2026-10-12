@@ -87,9 +87,10 @@ function initLoading3DScene() {
 
   var whiteMat = new THREE.MeshStandardMaterial({ color: 0xffffff, side: THREE.DoubleSide, roughness: 0.35, metalness: 0.0 });
   loadingGroup = new THREE.Group();
-  loadingGroup.rotation.set(0.25, -0.8, 0.35);
+  // 오른쪽으로 기울어지도록 Y와 Z 각도 및 X 위치를 반전 조정
+  loadingGroup.rotation.set(0.25, 0.8, -0.35);
 
-  loadingGroup.position.set(0.08, -0.22, 0);
+  loadingGroup.position.set(-0.08, -0.22, 0);
 
   loadButterflyModel(loadingGroup, selectedButterflyShape, selectedAntennaType, { matL: whiteMat, matR: whiteMat }, whiteMat, 0.45, function(l, r) {
     loadingWingL = l; loadingWingR = r;
@@ -106,9 +107,9 @@ function initLoading3DScene() {
       loadingWingL.rotation.set(uL.baseRotX || 0, (uL.baseRotY || 0) + flap, uL.baseRotZ || 0); 
       loadingWingR.rotation.set(uR.baseRotX || 0, (uR.baseRotY || 0) - flap, uR.baseRotZ || 0); 
     }
-    loadingGroup.position.x = 0.08;
+    loadingGroup.position.x = -0.08;
     loadingGroup.position.y = -0.22 + Math.sin(t * 2.2) * 0.08;
-    loadingGroup.rotation.z = 0.35 + Math.sin(t * 1.5) * 0.04;
+    loadingGroup.rotation.z = -0.35 + Math.sin(t * 1.5) * 0.04;
     loadingRenderer.render(loadingScene, loadingCamera);
   })();
 }
@@ -556,7 +557,7 @@ function bindInteractiveEvents(targetEl) {
     isUserDragging = false;
     var swipeDeltaY = touchStartY - clientY;
     var chargeWidget = document.getElementById('energy-charge-widget');
-    if (chargeWidget) { chargeWidget.classList.add('hidden'); chargeWidget.style.setProperty('display', 'none', 'important'); }
+    if (chargeWidget) { chargeWidget.classList.add('hidden'); chargeWidget.style.display = 'none'; }
     if (chargeVibrateInterval) { clearInterval(chargeVibrateInterval); chargeVibrateInterval = null; }
 
     if (isChargeTriggered && chargeProgress >= 1.0 && swipeDeltaY > 40 && !isFlyingAway) {
