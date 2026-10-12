@@ -89,7 +89,11 @@ function showScreen(screenId) {
       } else if (screenId === 'screen-top7-bridge') {
         stopBubblePhysics(); stopLoading3DScene(); stopShare3DScene(); stopTop7PhysicsScene(); initTop7BridgeScreen();
       } else if (screenId === 'screen-survey-concern-top7') {
-        stopBubblePhysics(); stopLoading3DScene(); stopShare3DScene(); updateTop7PickedSubtitle(); initTop7PhysicsScene();
+        stopBubblePhysics(); stopLoading3DScene(); stopShare3DScene(); updateTop7PickedSubtitle();
+        // 🌟 실제 데이터 집계 후 동적으로 공 물리 화면 초기화
+        fetchTopKeywordsData().then(function(realTopList) {
+          initTop7PhysicsScene(realTopList);
+        });
       } else if (screenId === 'screen-post-concern-bridge') {
         stopBubblePhysics(); stopLoading3DScene(); stopShare3DScene(); stopTop7PhysicsScene(); initPostConcernBridgeScreen();
       } else if (screenId === 'screen-capture-guide') {
@@ -1199,6 +1203,18 @@ var top7Boundaries = [];
 var top7GyroHandler = null;
 var top7SpawnTimeouts = [];
 
+// 🌟 순위별 크기 및 스타일 사전 정의 템플릿 (1위~7위)
+var top7StyleTemplate = [
+  { rank: 1, radius: 108, fill: "#f8f8f8", textColor: "#111111", subColor: "#555555" },
+  { rank: 2, radius: 88, fill: "#1c1c1c", textColor: "#ffffff", subColor: "#a3a3a3" },
+  { rank: 3, radius: 82, fill: "#1c1c1c", textColor: "#ffffff", subColor: "#a3a3a3" },
+  { rank: 4, radius: 66, fill: "#1c1c1c", textColor: "#ffffff", subColor: "#a3a3a3" },
+  { rank: 5, radius: 62, fill: "#1c1c1c", textColor: "#ffffff", subColor: "#a3a3a3" },
+  { rank: 6, radius: 60, fill: "#1c1c1c", textColor: "#ffffff", subColor: "#a3a3a3" },
+  { rank: 7, radius: 58, fill: "#1c1c1c", textColor: "#ffffff", subColor: "#a3a3a3" }
+];
+
+// 기본 폴백 데이터 (DB가 비었거나 로딩 실패 시 사용)
 var top7KeywordData = [
   { rank: 1, keyword: "완벽주의 강박", percent: "28.4%", radius: 108, fill: "#f8f8f8", textColor: "#111111", subColor: "#555555" },
   { rank: 2, keyword: "비교중독", percent: "19.2%", radius: 88, fill: "#1c1c1c", textColor: "#ffffff", subColor: "#a3a3a3" },
@@ -1209,6 +1225,79 @@ var top7KeywordData = [
   { rank: 7, keyword: "번아웃 무기력", percent: "6.4%", radius: 58, fill: "#1c1c1c", textColor: "#ffffff", subColor: "#a3a3a3" }
 ];
 
+// 🌟 [실제 데이터 집계]: Supabase butterflies 테이블 및 현재 유저 q2 선택 항목 취합 후 상위 n개(최대 7개) 동적 생성
+async function fetchTopKeywordsData() {
+  try {
+    var client = getSupabaseClient();
+    var freqMap = {};
+    var totalCount = 0;
+
+    // 1. 현재 세션 사용자가 고른 q2 고민 먼저 반영
+    var currentSelections = [].concat(userSelections.q2 || []);
+    if (userSelections.q2_custom && userSelections.q2_custom.trim()) {
+      var c = userSelections.q2_custom.trim();
+      if (currentSelections.indexOf(c) === -1) currentSelections.push(c);
+    }
+    currentSelections.forEach(function(k) {
+      if (!k) return;
+      freqMap[k] = (freqMap[k] || 0) + 1;
+      totalCount++;
+    });
+
+    // 2. Supabase DB에서 누적된 모든 사용자의 q2 데이터 취합
+    if (client) {
+      var { data, error } = await client.from('butterflies').select('q2');
+      if (!error && Array.isArray(data)) {
+        data.forEach(function(row) {
+          if (Array.isArray(row.q2)) {
+            row.q2.forEach(function(k) {
+              if (!k) return;
+              freqMap[k] = (freqMap[k] || 0) + 1;
+              totalCount++;
+            });
+          }
+        });
+      }
+    }
+
+    var sortedKeywords = Object.keys(freqMap).map(function(k) {
+      return { keyword: k, count: freqMap[k] };
+    }).sort(function(a, b) {
+      return b.count - a.count;
+    });
+
+    // 데이터가 아예 없을 경우 기존 폴백 반환
+    if (sortedKeywords.length === 0 || totalCount === 0) {
+      return top7KeywordData;
+    }
+
+    // 🌟 [동적 개수 생성]: 데이터가 7개 미만이면 존재하는 개수만큼만, 7개 이상이면 상위 7개만 추출
+    var targetCount = Math.min(7, sortedKeywords.length);
+    var resultList = [];
+
+    for (var i = 0; i < targetCount; i++) {
+      var item = sortedKeywords[i];
+      var tmpl = top7StyleTemplate[i] || top7StyleTemplate[top7StyleTemplate.length - 1];
+      var pct = ((item.count / totalCount) * 100).toFixed(1) + "%";
+
+      resultList.push({
+        rank: i + 1,
+        keyword: item.keyword,
+        percent: pct,
+        radius: tmpl.radius,
+        fill: tmpl.fill,
+        textColor: tmpl.textColor,
+        subColor: tmpl.subColor
+      });
+    }
+
+    return resultList;
+  } catch (err) {
+    console.warn("키워드 집계 중 오류 발생, 기본값 사용:", err);
+    return top7KeywordData;
+  }
+}
+
 function updateTop7PickedSubtitle() {
   var subtitleEl = document.getElementById('top7-user-picked-subtitle');
   if (subtitleEl) {
@@ -1217,7 +1306,7 @@ function updateTop7PickedSubtitle() {
   }
 }
 
-function initTop7PhysicsScene() {
+function initTop7PhysicsScene(customKeywordList) {
   stopTop7PhysicsScene();
   var container = document.getElementById('top7-physics-container');
   var canvas = document.getElementById('top7-physics-canvas');
@@ -1262,7 +1351,12 @@ function initTop7PhysicsScene() {
 
   var scaleRatio = Math.min(1.05, Math.max(0.85, width / 390));
 
-  top7KeywordData.forEach(function(item, idx) {
+  // 🌟 실제 전달받은 데이터 목록 사용 (부족할 경우 존재하는 만큼만 스폰)
+  var spawnDataset = Array.isArray(customKeywordList) && customKeywordList.length > 0 
+    ? customKeywordList 
+    : top7KeywordData;
+
+  spawnDataset.forEach(function(item, idx) {
     var timer = setTimeout(function() {
       if (!top7Engine) return;
 
