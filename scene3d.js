@@ -615,7 +615,7 @@ function openSpecimen3DModal(item, textureUrl) {
   var whiteMat = new THREE.MeshStandardMaterial({ color: 0xffffff, side: THREE.DoubleSide, roughness: 0.35, metalness: 0.0 });
 
   modalGroup = new THREE.Group();
-  modalGroup.position.set(0, -0.35, 0);
+  modalGroup.position.set(0, -0.85, 0);
 
   loadButterflyModel(modalGroup, item.wingId, item.antId, wingMats, whiteMat, 0.85, function(l, r) {
     modalWingL = l; modalWingR = r;
