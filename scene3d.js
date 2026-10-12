@@ -230,6 +230,7 @@ var isPressingScreen = false, pressStartTime = 0, isChargeTriggered = false, cha
 var particleCanvas = null, pctx = null, energyParticles = [], isFlyingTransitionTriggered = false;
 
 var hasTriggeredDBSave = false;
+var flyStartPhase = 0, flyStartTime = 0;
 
 function triggerDeviceVibrate(durationMs, intensity) {
   try {
@@ -285,6 +286,7 @@ function initFullButterflyViewer(textureURL) {
 
   previewStartTime = performance.now();
   isFlyingAway = false; isFlyingTransitionTriggered = false; hasTriggeredDBSave = false; resetChargeState();
+  flyStartPhase = 0; flyStartTime = 0;
 
   var whiteMat = new THREE.MeshStandardMaterial({ color: 0xffffff, side: THREE.DoubleSide, roughness: 0.35, metalness: 0.0 });
   var targetAnt = 'Antenna_' + selectedAntennaType;
@@ -328,13 +330,10 @@ function initFullButterflyViewer(textureURL) {
   initEnergyParticleSystem();
   var clock = new THREE.Clock();
 
-  var flapPhase = 0;
-
   (function animate() {
     animFrameId = requestAnimationFrame(animate);
-    var dt = clock.getDelta();
-    if (dt > 0.1) dt = 0.1;
 
+    var t = clock.getElapsedTime();
     var now = performance.now(), elapsedSec = (now - previewStartTime) / 1000;
 
     if (!isUserDragging) {
@@ -356,38 +355,50 @@ function initFullButterflyViewer(textureURL) {
     }
 
     if (!isFlyingAway) {
-      var currentSpeed = 7.2;
       var flapCenterOffset = 0.524;
       var flapAmp = 0.873;
 
       if (elapsedSec < 3.0) {
         var progress = Math.min(1.0, elapsedSec / 3.0);
         var easeOut = 1.0 - Math.pow(1.0 - progress, 3);
-        
         fullGroup.position.y = -6.5 * (1.0 - easeOut);
-        
-        if (elapsedSec < 1.5) {
-          currentSpeed = 17.5;
-        } else {
-          var slowFactor = (elapsedSec - 1.5) / 1.5;
-          var slowEase = 1.0 - Math.cos((slowFactor * Math.PI) / 2);
-          currentSpeed = 17.5 - (17.5 - 7.2) * slowEase;
-        }
       } else {
         fullGroup.position.y = 0;
-        currentSpeed = 7.2;
       }
 
-      flapPhase += dt * currentSpeed;
-      var flapAngle = flapCenterOffset + Math.sin(flapPhase) * flapAmp;
+      // 🌟 [시간 기반 동기화 정규화]: dt 누적 제거 및 절대 경과 시간 t 기반 완전 연속 함수 적용
+      var currentPhase;
+      if (t <= 1.5) {
+        currentPhase = 17.5 * t;
+      } else if (t <= 3.0) {
+        var u = t - 1.5;
+        currentPhase = 26.25 + 7.2 * u + (10.3 * 3.0 / Math.PI) * Math.sin((u / 1.5) * (Math.PI / 2));
+      } else {
+        currentPhase = 7.2 * t + 25.28578;
+      }
+
+      var flapAngle = flapCenterOffset + Math.sin(currentPhase) * flapAmp;
 
       if (leftWingMesh && rightWingMesh) {
         leftWingMesh.rotation.set(initialRotL.x, initialRotL.y + flapAngle, initialRotL.z);
         rightWingMesh.rotation.set(initialRotR.x, initialRotR.y - flapAngle, initialRotR.z);
       }
     } else {
-      flapPhase += dt * 30.0;
-      var flyAngle = 0.524 + Math.sin(flapPhase) * 0.873;
+      if (!flyStartTime) {
+        flyStartTime = t;
+        if (t <= 1.5) {
+          flyStartPhase = 17.5 * t;
+        } else if (t <= 3.0) {
+          var uPart = t - 1.5;
+          flyStartPhase = 26.25 + 7.2 * uPart + (10.3 * 3.0 / Math.PI) * Math.sin((uPart / 1.5) * (Math.PI / 2));
+        } else {
+          flyStartPhase = 7.2 * t + 25.28578;
+        }
+      }
+
+      var flyPhase = flyStartPhase + (t - flyStartTime) * 30.0;
+      var flyAngle = 0.524 + Math.sin(flyPhase) * 0.873;
+
       if (leftWingMesh && rightWingMesh) {
         leftWingMesh.rotation.set(initialRotL.x, initialRotL.y + flyAngle, initialRotL.z);
         rightWingMesh.rotation.set(initialRotR.x, initialRotR.y - flyAngle, initialRotR.z);
