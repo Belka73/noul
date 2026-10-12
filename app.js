@@ -603,8 +603,9 @@ if (btnOpeningNext) {
   btnOpeningNext.onclick = function() {
     if (openingCurrentStep === 1) {
       openingCurrentStep = 2;
+      // 🌟 [수정]: 2단계에서는 사람 이미지만 보이고 고치 이미지는 확실히 숨깁니다.
       if (elOpeningCocoonGroup) { elOpeningCocoonGroup.classList.remove('hidden'); }
-      if (elOpeningStep3CocoonGroup) { elOpeningStep3CocoonGroup.classList.remove('hidden'); }
+      if (elOpeningStep3CocoonGroup) { elOpeningStep3CocoonGroup.classList.add('hidden'); }
       if (elOpeningNextGroup) { elOpeningNextGroup.classList.remove('visible'); elOpeningNextGroup.classList.add('hidden'); }
       typeWriterText(elOpeningText, "꺼내어 보이지 못한 채,<br>응어리진 무언가... 쉽게 털어놓지 못할 것도 있겠지요.", function() {
         btnOpeningNext.innerHTML = "다음";
@@ -613,6 +614,7 @@ if (btnOpeningNext) {
       updateDevScreenBadge();
     } else if (openingCurrentStep === 2) {
       openingCurrentStep = 3;
+      // 🌟 3단계에서는 사람 이미지를 숨기고 고치 이미지만 표시합니다.
       if (elOpeningCocoonGroup) { elOpeningCocoonGroup.classList.add('hidden'); }
       if (elOpeningStep3CocoonGroup) { elOpeningStep3CocoonGroup.classList.remove('hidden'); }
       if (elOpeningNextGroup) { elOpeningNextGroup.classList.remove('visible'); elOpeningNextGroup.classList.add('hidden'); }
@@ -1016,9 +1018,9 @@ if (btnSurveyNext) {
         var c = userSelections.q2_custom.trim();
         if (userSelections.q2.indexOf(c) === -1) userSelections.q2.unshift(c);
       }
-      showScreen('screen-survey-core-concern');
+      showScreen('screen-survey-core-concern'); 
     } else if (currentStepIdx === 2) {
-      showScreen('screen-post-concern-bridge');
+      showScreen('screen-post-concern-bridge'); 
     }
   };
 }
