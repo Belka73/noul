@@ -1515,6 +1515,12 @@ var specimenButterfliesData = [];
 var specimenContainer = document.getElementById('specimen-items-container');
 var gallerySpawnTimers = [];
 
+function getPatternObjectForSpecimen(wingId, patternId) {
+  if (typeof wingPatternDataset === 'undefined') return null;
+  var patterns = wingPatternDataset[wingId] || wingPatternDataset['crescent'] || [];
+  return patterns.find(function(p) { return p.id === patternId; }) || null;
+}
+
 function renderFilteredGallery(searchQuery) {
   if (!specimenContainer) return;
   specimenContainer.innerHTML = '';
@@ -1537,16 +1543,37 @@ function renderFilteredGallery(searchQuery) {
   filteredData.forEach(function(item) {
     var wing = butterflyPathData[item.wingId] || wingDataset[0];
     var ant = antennaDataset.find(function(a) { return a.id === item.antId; }) || antennaDataset[0];
+    var pat = getPatternObjectForSpecimen(item.wingId, item.patternId);
+    var tex = item.textureUrl || createFallbackDummyTexture('#ffffff', '#e5e7eb');
     var card = document.createElement('div');
     card.className = 'specimen-card-item';
     var rawName = item.name || "나비";
     var displayName = rawName.length > 10 ? rawName.slice(0, 10) + '...' : rawName;
 
+    var clipId = 'specimen-wing-clip-' + item.id;
+    var wingPath = wing.wingD || wing.d;
+    var bodyPath = wing.bodyD || "";
+
+    var patternSvg = "";
+    if (pat && pat.path) {
+      patternSvg = '<image href="' + pat.path + '" x="0" y="0" width="' + wing.w + '" height="' + wing.h + '" preserveAspectRatio="none" style="mix-blend-mode: multiply;" opacity="0.95"/>';
+    }
+
     card.innerHTML = 
       '<div class="specimen-butterfly-wrap"><div class="specimen-pin-head"></div>' +
       '<svg class="specimen-shadow-drop" width="130" height="110" viewBox="0 0 ' + wing.w + ' ' + wing.h + '" style="overflow: visible;">' +
-      '<path d="' + wing.d + '" fill="#ffffff" stroke="none"/><g transform="translate(' + wing.headX + ',' + wing.headY + ')" color="#ffffff">' +
-      ant.render((110 / Math.max(wing.w, wing.h)) * 0.95) + '</g></svg></div>' +
+        '<defs>' +
+          '<clipPath id="' + clipId + '">' +
+            '<path d="' + wingPath + '" fill-rule="nonzero"/>' +
+          '</clipPath>' +
+        '</defs>' +
+        '<g clip-path="url(#' + clipId + ')">' +
+          '<image href="' + tex + '" x="0" y="0" width="' + wing.w + '" height="' + wing.h + '" preserveAspectRatio="none"/>' +
+          patternSvg +
+        '</g>' +
+        (bodyPath ? '<path d="' + bodyPath + '" fill="#ffffff"/>' : '') +
+        (ant ? '<g transform="translate(' + wing.headX + ',' + wing.headY + ')" color="#ffffff">' + ant.render(10.5) + '</g>' : '') +
+      '</svg></div>' +
       '<div class="specimen-pill-label"><span class="label-text" title="' + rawName + '">' + displayName + '</span></div>';
 
     card.onclick = function(e) {
@@ -1578,8 +1605,15 @@ async function initSpecimenGallery() {
       if (res.data && res.data.length > 0) {
         specimenButterfliesData = res.data.map(function(item) {
           return {
-            id: item.id, name: item.name || "나비", wingId: item.wing_shape || "crescent", antId: item.antenna_type || "ball",
-            q1: [], core_concern: item.core_concern || "", memo: item.memo || "", textureUrl: item.texture_url || null,
+            id: item.id,
+            name: item.name || "나비",
+            wingId: item.wing_shape || "crescent",
+            antId: item.antenna_type || "ball",
+            patternId: item.pattern_id || (item.wing_shape ? item.wing_shape + '_none' : 'crescent_none'),
+            q1: [],
+            core_concern: item.core_concern || "",
+            memo: item.memo || "",
+            textureUrl: item.texture_url || null,
             date: item.created_at ? new Date(item.created_at).toISOString().slice(0, 10).replace(/-/g, '. ') : "2026. 10. 24"
           };
         });

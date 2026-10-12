@@ -113,16 +113,21 @@ function stopLoading3DScene() {
 }
 
 function createWingMaterials(textureURL, patternPath3D) {
-  var patPath = patternPath3D || (typeof currentSelected3DPatternPath !== 'undefined' ? currentSelected3DPatternPath : null);
+  var patPath = (typeof patternPath3D !== 'undefined')
+    ? patternPath3D
+    : (typeof currentSelected3DPatternPath !== 'undefined' ? currentSelected3DPatternPath : null);
 
-  var photoTex = new THREE.TextureLoader().load(textureURL);
+  var texLoader = new THREE.TextureLoader();
+  texLoader.setCrossOrigin('anonymous');
+
+  var photoTex = texLoader.load(textureURL);
   photoTex.flipY = false;
   if (THREE.sRGBEncoding) photoTex.encoding = THREE.sRGBEncoding;
 
   var patTex = null;
   var hasPat = false;
   if (patPath) {
-    patTex = new THREE.TextureLoader().load(patPath);
+    patTex = texLoader.load(patPath);
     patTex.flipY = false;
     if (THREE.sRGBEncoding) patTex.encoding = THREE.sRGBEncoding;
     hasPat = true;
@@ -592,7 +597,21 @@ function openSpecimen3DModal(item, textureUrl) {
   if (!res) return;
   modalThreeScene = res.scene; modalThreeCamera = res.camera; modalThreeRenderer = res.renderer;
 
-  var wingMats = createWingMaterials(textureUrl, currentSelected3DPatternPath);
+  // 🌟 [수정]: 클릭한 나비의 고유 형태와 무늬에 해당하는 3D 패턴 경로를 정확히 계산하여 전달
+  var itemPattern3DPath = null;
+  if (typeof get3DPatternPath === 'function') {
+    itemPattern3DPath = get3DPatternPath(item.wingId, item.patternId);
+  } else if (item.patternId && item.patternId.indexOf('none') === -1) {
+    var parts = item.patternId.split('_');
+    var patNum = parts[parts.length - 1] || "1";
+    var shapePrefix = item.wingId || 'crescent';
+    if (shapePrefix === 'moon-halo' || shapePrefix === 'moon') shapePrefix = 'moon-halo';
+    else if (shapePrefix === 'dawn-ray' || shapePrefix === 'dawn') shapePrefix = 'dawn-ray';
+    else if (shapePrefix === 'wave-fin' || shapePrefix === 'wave') shapePrefix = 'wave-fin';
+    itemPattern3DPath = '3DButterfly_pattern/' + shapePrefix + '_pattern_3D_' + patNum + '.png';
+  }
+
+  var wingMats = createWingMaterials(textureUrl, itemPattern3DPath);
   var whiteMat = new THREE.MeshStandardMaterial({ color: 0xffffff, side: THREE.DoubleSide, roughness: 0.3 });
 
   modalGroup = new THREE.Group();
