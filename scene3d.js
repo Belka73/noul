@@ -87,8 +87,8 @@ function initLoading3DScene() {
 
   var whiteMat = new THREE.MeshStandardMaterial({ color: 0xffffff, side: THREE.DoubleSide, roughness: 0.35, metalness: 0.0 });
   loadingGroup = new THREE.Group();
-  // 나비의 등판이 보이면서 오른쪽으로 기울고 앞쪽으로 더 숙여지도록 회전값 설정 (X: 0.58)
-  loadingGroup.rotation.set(0.58, 2.34, -0.35);
+  // 나비가 서 있지 않고 앞쪽으로 확실하게 숙여지며 오른쪽으로 기울어지도록 회전값 설정
+  loadingGroup.rotation.set(0.98, 2.45, -0.55);
 
   loadingGroup.position.set(-0.08, -0.22, 0);
 
@@ -109,7 +109,7 @@ function initLoading3DScene() {
     }
     loadingGroup.position.x = -0.08;
     loadingGroup.position.y = -0.22 + Math.sin(t * 2.2) * 0.08;
-    loadingGroup.rotation.z = -0.35 + Math.sin(t * 1.5) * 0.04;
+    loadingGroup.rotation.z = -0.55 + Math.sin(t * 1.5) * 0.04;
     loadingRenderer.render(loadingScene, loadingCamera);
   })();
 }
@@ -662,7 +662,7 @@ function openSpecimen3DModal(item, textureUrl) {
 
   var clock = new THREE.Clock();
   (function modalAnimate() {
-    modalAnimFrameId = requestAnimationFrame(modalAnimate);
+    modalAnimFrameId = requestAnimationFrame(animateLoading);
     // 🌟 프리뷰와 동일한 7.2 속도 및 3축 회전 완벽 보존 적용
     var t = clock.getElapsedTime(), flap = 0.524 + Math.sin(t * 7.2) * 0.873;
     if (modalWingL && modalWingR) { 
