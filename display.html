@@ -724,7 +724,7 @@
     const handPointer = document.getElementById('hand-pointer');
 
     /* ========================================================
-       🌟 [수정 반영] 날갯짓과 몸체 상하 요동(Bobbing Wave) 완벽 연동
+       🌟 [수정 반영] 날개 쳐짐/접힘에 따른 상하 요동 정방향 연동
        ======================================================== */
     function updateMotion(b, time) {
       let currentTargetScale = b.targetScale;
@@ -755,7 +755,7 @@
       const baseRotL = (b.leftWing.userData && b.leftWing.userData.baseRotY) || 0;
       const baseRotR = (b.rightWing.userData && b.rightWing.userData.baseRotY) || 0;
 
-      // 🦋 관찰 사실 반영: 날개가 처질 때(Downstroke) 내려가고, 위로 접힐 때(Upstroke) 몸체가 위로 솟구침
+      // 🦋 요청 반영: 날개가 아래로 처질 때(Downstroke) 몸이 올라가고, 위로 접힐 때(Upstroke) 몸이 내려감
       let verticalWaveForce = 0; 
       let pitchDynamic = 0;
 
@@ -778,21 +778,21 @@
 
           const phase = (time * currentFlapSpeed + b.seed) % (Math.PI * 2);
           
-          // flapAngle > 0: 날개가 위로 접히는 상태 (Upstroke / Fold)
-          // flapAngle < 0: 날개가 아래로 처지는 상태 (Downstroke / Dip)
+          // wingWave > 0: 날개가 위로 모여 접히는 상태 (Upstroke / Fold)
+          // wingWave < 0: 날개가 아래로 처지며 내려치는 상태 (Downstroke / Dip)
           const wingWave = Math.sin(phase);
           const flapAngle = wingWave * 0.85 * b.flapAmp;
 
           b.leftWing.rotation.y = baseRotL + (0.50 + flapAngle);
           b.rightWing.rotation.y = baseRotR - (0.50 + flapAngle);
 
-          // 🌟 [핵심 물리 연동]
-          // wingWave가 양수(날개가 위로 모여 접힘)일 때 -> 몸이 위로 솟구침 (+verticalWaveForce)
-          // wingWave가 음수(날개가 아래로 처짐)일 때 -> 몸이 아래로 처짐 (-verticalWaveForce)
-          verticalWaveForce = wingWave * 0.0075 * b.flapAmp;
+          // 🌟 [핵심 물리 연동: 반대로 수정]
+          // 날개가 아래로 쳐질 때 (wingWave < 0) -> 양력이 생겨 몸이 위로 올라감 (+verticalWaveForce)
+          // 날개가 위로 접힐 때 (wingWave > 0) -> 몸이 아래로 내려감 (-verticalWaveForce)
+          verticalWaveForce = -wingWave * 0.0075 * b.flapAmp;
 
-          // 머리 기울기(Pitch): 위로 솟구칠 때 머리가 살짝 들리고, 아래로 가라앉을 때 숙여짐
-          pitchDynamic = wingWave * 0.22 * b.flapAmp;
+          // 머리 기울기(Pitch): 날개를 치며 솟구칠 때 머리가 살짝 들리고, 날개를 접으며 내려갈 때 숙여짐
+          pitchDynamic = -wingWave * 0.22 * b.flapAmp;
 
           // 날갯짓에 따른 미세 롤링
           b.innerGroup.rotation.z = Math.cos(phase) * 0.05 * b.flapAmp;
@@ -914,12 +914,12 @@
           } 
       }
 
-      // 🦋 [유기적 비행 물리: 직선 비행 제거 및 뚜렷한 상하 파동 주입]
+      // 🦋 [유기적 비행 물리: 날갯짓에 따른 위/아래 요동 결합]
       if (!isFollowing && !b.isAscendingArrival) {
           b.state = 'flying';
           const t = time * 0.70 + b.seed;
 
-          // 1. 날개 위상과 100% 동기화된 상하 요동 (위, 아래, 위, 아래 파동)
+          // 1. 날개 아래로 칠 때 상승, 접힐 때 하강 (상하 파동)
           b.velocity.y += verticalWaveForce;
 
           // 2. 가속-감속 리듬 (추진력 변화)
