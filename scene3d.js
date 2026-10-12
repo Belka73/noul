@@ -43,14 +43,18 @@ function loadButterflyModel(group, shapeId, antId, wingMaterials, whiteMat, scal
         var n = child.name || '';
         if (n.indexOf('Wing_L') === 0 || n.startsWith('Wing_L')) {
           wL = child;
+          wL.userData.baseRotX = child.rotation.x;
           wL.userData.baseRotY = child.rotation.y;
+          wL.userData.baseRotZ = child.rotation.z;
           child.material = matL;
           child.castShadow = true;
           child.receiveShadow = true;
         }
         else if (n.indexOf('Wing_R') === 0 || n.startsWith('Wing_R')) {
           wR = child;
+          wR.userData.baseRotX = child.rotation.x;
           wR.userData.baseRotY = child.rotation.y;
+          wR.userData.baseRotZ = child.rotation.z;
           child.material = matR;
           child.castShadow = true;
           child.receiveShadow = true;
@@ -97,8 +101,10 @@ function initLoading3DScene() {
     loadingAnimFrameId = requestAnimationFrame(animateLoading);
     var t = clock.getElapsedTime(), flap = 0.524 + Math.sin(t * 8.5) * 0.873;
     if (loadingWingL && loadingWingR) { 
-      loadingWingL.rotation.y = (loadingWingL.userData.baseRotY || 0) + flap; 
-      loadingWingR.rotation.y = (loadingWingR.userData.baseRotY || 0) - flap; 
+      var uL = loadingWingL.userData;
+      var uR = loadingWingR.userData;
+      loadingWingL.rotation.set(uL.baseRotX || 0, (uL.baseRotY || 0) + flap, uL.baseRotZ || 0); 
+      loadingWingR.rotation.set(uR.baseRotX || 0, (uR.baseRotY || 0) - flap, uR.baseRotZ || 0); 
     }
     loadingGroup.position.x = 0.08;
     loadingGroup.position.y = -0.22 + Math.sin(t * 2.2) * 0.08;
@@ -206,8 +212,10 @@ function initShare3DScene() {
     shareAnimFrameId = requestAnimationFrame(animateShare);
     var t = clock.getElapsedTime(), flap = 0.524 + Math.sin(t * 8.5) * 0.873;
     if (shareWingL && shareWingR) { 
-      shareWingL.rotation.y = (shareWingL.userData.baseRotY || 0) + flap; 
-      shareWingR.userData && (shareWingR.rotation.y = (shareWingR.userData.baseRotY || 0) - flap); 
+      var uL = shareWingL.userData;
+      var uR = shareWingR.userData;
+      shareWingL.rotation.set(uL.baseRotX || 0, (uL.baseRotY || 0) + flap, uL.baseRotZ || 0); 
+      shareWingR.rotation.set(uR.baseRotX || 0, (uR.baseRotY || 0) - flap, uR.baseRotZ || 0); 
     }
     shareGroup.position.y = 0.45 + Math.sin(t * 2.2) * 0.08;
     shareGroup.rotation.z = 0.35 + Math.sin(t * 1.5) * 0.04;
@@ -582,6 +590,24 @@ function bindInteractiveEvents(targetEl) {
 
 var modalThreeScene, modalThreeCamera, modalThreeRenderer, modalGroup, modalWingL, modalWingR, modalAnimFrameId = null;
 
+function stopModal3DScene() {
+  if (modalAnimFrameId) {
+    cancelAnimationFrame(modalAnimFrameId);
+    modalAnimFrameId = null;
+  }
+  if (modalThreeRenderer) {
+    try {
+      modalThreeRenderer.dispose();
+      if (modalThreeRenderer.forceContextLoss) modalThreeRenderer.forceContextLoss();
+    } catch(e) {}
+    modalThreeRenderer = null;
+  }
+  modalWingL = null;
+  modalWingR = null;
+  var container = document.getElementById('specimen-three-container');
+  if (container) container.innerHTML = '';
+}
+
 // 🌟 [수정]: 나비 만들기의 3D 뷰어(initFullButterflyViewer)와 100% 동일한 방식으로 무늬/텍스처를 전달받아 렌더링
 function openSpecimen3DModal(item, textureUrl) {
   var modal = document.getElementById('specimen-detail-modal');
@@ -600,7 +626,9 @@ function openSpecimen3DModal(item, textureUrl) {
   if (dateEl) dateEl.innerText = item.date || "2026. 10. 24";
   if (modal) modal.classList.remove('hidden');
 
-  if (modalAnimFrameId) { cancelAnimationFrame(modalAnimFrameId); modalAnimFrameId = null; }
+  // 이전 렌더러 및 날개 객체 완전 정리 (메모리 및 컨텍스트 누수 차단)
+  stopModal3DScene();
+
   var res = setupCommon3DScene(container, 7.3, -0.35);
   if (!res) return;
   modalThreeScene = res.scene; modalThreeCamera = res.camera; modalThreeRenderer = res.renderer;
@@ -634,10 +662,13 @@ function openSpecimen3DModal(item, textureUrl) {
   var clock = new THREE.Clock();
   (function modalAnimate() {
     modalAnimFrameId = requestAnimationFrame(modalAnimate);
-    var t = clock.getElapsedTime(), flap = 0.524 + Math.sin(t * 7.8) * 0.873;
+    // 🌟 프리뷰와 동일한 7.2 속도 및 3축 회전 완벽 보존 적용
+    var t = clock.getElapsedTime(), flap = 0.524 + Math.sin(t * 7.2) * 0.873;
     if (modalWingL && modalWingR) { 
-      modalWingL.rotation.y = (modalWingL.userData.baseRotY || 0) + flap; 
-      modalWingR.rotation.y = (modalWingR.userData.baseRotY || 0) - flap; 
+      var uL = modalWingL.userData;
+      var uR = modalWingR.userData;
+      modalWingL.rotation.set(uL.baseRotX || 0, (uL.baseRotY || 0) + flap, uL.baseRotZ || 0); 
+      modalWingR.rotation.set(uR.baseRotX || 0, (uR.baseRotY || 0) - flap, uR.baseRotZ || 0); 
     }
     modalThreeRenderer.render(modalThreeScene, modalThreeCamera);
   })();
