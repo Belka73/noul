@@ -577,8 +577,8 @@
       }
 
       let initialVelocity;
-      // 🌟 앞쪽에서 큼직하고 시원하게 보이도록 기본 스케일 상향 (0.34 ~ 0.44)
-      let targetScale = 0.34 + Math.random() * 0.10;
+      // 🌟 영상처럼 화면에 큼직하고 존재감 있게 보이도록 스케일 설정 (0.36 ~ 0.46)
+      let targetScale = 0.36 + Math.random() * 0.10;
 
       if (isFingerTarget) {
         group.position.set(-18, 14, customZ);
@@ -586,20 +586,20 @@
         targetScale = 0.54;
         group.scale.set(0.54, 0.54, 0.54);
       } else if (isDelayedArrival) {
-        group.position.set((Math.random() - 0.5) * 4, -7.0, 1.5);
-        initialVelocity = new THREE.Vector3((Math.random() - 0.5) * 0.03, 0.09, -0.015);
+        group.position.set((Math.random() - 0.5) * 4, -7.5, 1.2);
+        initialVelocity = new THREE.Vector3((Math.random() - 0.5) * 0.02, 0.08, -0.015);
         group.scale.set(0.01, 0.01, 0.01);
       } else {
-        // 🌟 멀리 가지 않고 카메라와 가까운 앞쪽 영역에 스폰 (Z: 0.0 ~ -6.5)
+        // 🌟 너무 뒤로 빠지지 않고 관람객 앞쪽 시야에 층을 이루어 스폰 (Z: 0.5 ~ -6.5)
         group.position.set(
-          (Math.random() - 0.5) * 20, 
-          (Math.random() - 0.5) * 13, 
-          0.0 - Math.random() * 6.5
+          (Math.random() - 0.5) * 18, 
+          (Math.random() - 0.5) * 14, 
+          0.5 - Math.random() * 7.0
         );
         initialVelocity = new THREE.Vector3(
-          (Math.random() - 0.5) * 0.07, 
-          (Math.random() - 0.5) * 0.07, 
-          (Math.random() - 0.5) * 0.025
+          (Math.random() - 0.5) * 0.04, 
+          0.02 + Math.random() * 0.04, // 기본 완만한 상승 기류
+          (Math.random() - 0.5) * 0.02
         );
         group.scale.set(targetScale, targetScale, targetScale);
       }
@@ -610,8 +610,11 @@
         id: Math.random().toString(36).substring(7),
         group, innerGroup, leftWing, rightWing,
         velocity: initialVelocity,
-        speed: 24.0 + Math.random() * 8.0, 
+        // 🌟 영상처럼 느리고 우아한 날갯짓 (10.0 ~ 15.0)
+        speed: 10.5 + Math.random() * 4.5, 
         seed: Math.random() * 1000,
+        spiralOffset: Math.random() * Math.PI * 2,
+        tumbleSeed: Math.random() * 100,
         flapAmp: 1.0, 
         state: 'flying',
         targetScale: targetScale,
@@ -745,7 +748,7 @@
       const baseRotL = (b.leftWing.userData && b.leftWing.userData.baseRotY) || 0;
       const baseRotR = (b.rightWing.userData && b.rightWing.userData.baseRotY) || 0;
 
-      // 🌟 생체 리듬 기반 펄럭임 및 날갯짓 위상 연동
+      // 🌟 영상 스타일: 느리고 우아하며 여운이 남는 날갯짓 궤적
       let flapSin = 0;
       if (b.state === 'landing_rest') {
           b.flapAmp *= 0.92; 
@@ -754,15 +757,15 @@
           b.leftWing.rotation.y = baseRotL + flap + restFold * (1 - b.flapAmp);
           b.rightWing.rotation.y = baseRotR - flap - restFold * (1 - b.flapAmp);
       } else {
-          b.flapAmp += (1.0 - b.flapAmp) * 0.1; 
+          b.flapAmp += (1.0 - b.flapAmp) * 0.08; 
           let currentFlapSpeed = b.speed;
           if (b.isSpecialLanding && b.specialState === 'approaching') {
             currentFlapSpeed = b.speed * 1.35;
-          } else if (b.isAscendingArrival) {
-            currentFlapSpeed = b.speed * 1.25;
           }
-          flapSin = Math.sin(time * currentFlapSpeed + b.seed);
-          const flap = (0.524 + flapSin * 0.873) * b.flapAmp;
+          // 날개를 접을 때보다 펴서 활공하는 구간이 더 긴 우아한 곡선
+          const rawPhase = time * currentFlapSpeed + b.seed;
+          flapSin = Math.sin(rawPhase);
+          const flap = (0.42 + Math.pow(Math.max(0, flapSin), 1.3) * 0.95 - Math.max(0, -flapSin) * 0.45) * b.flapAmp;
           b.leftWing.rotation.y = baseRotL + flap;
           b.rightWing.rotation.y = baseRotR - flap;
       }
@@ -788,7 +791,7 @@
                   b.state = 'flying';
                   _vDir.subVectors(handTarget3D, b.group.position);
                   _vDir.z = 0; 
-                  _vDir.normalize().multiplyScalar(0.26);
+                  _vDir.normalize().multiplyScalar(0.24);
                   b.velocity.lerp(_vDir, 0.08); 
                   b.velocity.z = 0; 
                   
@@ -857,8 +860,6 @@
               
               _vDir.subVectors(_vTargetPos, b.group.position).normalize().multiplyScalar(0.22);
               b.velocity.lerp(_vDir, 0.10);
-              b.velocity.x += (Math.random() - 0.5) * 0.008;
-              b.velocity.y += (Math.random() - 0.5) * 0.008;
 
               _vTargetPos.copy(b.group.position).add(b.velocity);
               dummyObj.position.copy(b.group.position);
@@ -867,7 +868,6 @@
               dummyObj.rotateZ(rollAngle); 
               b.group.quaternion.slerp(dummyObj.quaternion, 0.12);
           }
-          // 🌟 interactionMode가 'scatter'이면서 'land_one'이 아닐 때만 부드럽게 흩어짐
           else if (interactionMode === 'scatter' && !specialButterfly) {
               const dist = b.group.position.distanceTo(handTarget3D);
               if (dist < 26.0) {
@@ -882,76 +882,90 @@
           } 
       }
 
-      // 🌟 [유기적 비행 물리 연산]
+      // 🌟 [영상 반영]: 전체 군집이 은은한 나선 기류를 타고 피어오르는 물리 연산
       if (!isFollowing && !b.isAscendingArrival) {
           b.state = 'flying';
-          const t = time * 0.55 + b.seed;
+          const t = time * 0.35 + b.seed * 0.01;
 
-          // 1. 날갯짓 동기화 수직 리프트(Bobbing)
-          if (flapSin > 0) {
-            b.velocity.y += flapSin * 0.0032; 
+          // 1. 거대한 나선 기류 벡터 (소용돌이 치듯 은은하게 돎)
+          const spiralAngle = t * 1.2 + b.spiralOffset;
+          const vortexRadius = 5.5 + Math.sin(t * 0.8 + b.seed) * 2.5;
+          const targetX = Math.cos(spiralAngle) * vortexRadius;
+          const targetZ = Math.sin(spiralAngle) * (vortexRadius * 0.35) - 3.0;
+
+          // 나선 궤도 중심 쪽으로 부드럽게 유도
+          b.velocity.x += (targetX - b.group.position.x) * 0.0009;
+          b.velocity.z += (targetZ - b.group.position.z) * 0.0012;
+
+          // 2. 일정한 상승 기류 (아래에서 위로 은은하게 피어오름)
+          b.velocity.y += 0.0018; 
+
+          // 3. 날갯짓 타이밍에 맞춘 가벼운 도약 (Bobbing)
+          if (flapSin > 0.3) {
+            b.velocity.y += flapSin * 0.0022;
           } else {
-            b.velocity.y -= 0.0016;
+            b.velocity.y -= 0.0011;
           }
 
-          // 2. 가속-감속 템포(Burst & Glide)
-          const surgeCycle = Math.sin(t * 1.8);
-          const surgeFactor = surgeCycle > 0.35 ? 1.025 : 0.985;
-          b.velocity.x *= surgeFactor;
-          b.velocity.y *= surgeFactor;
-
-          // 3. 미세한 공기 대류 노이즈 및 방향 전환
-          b.velocity.x += Math.sin(t * 1.4) * 0.0028;
-          b.velocity.y += Math.cos(t * 1.1) * 0.0020;
-          b.velocity.z += Math.sin(t * 1.6) * 0.0014;
-
-          if (Math.random() < 0.02) {
-              b.velocity.x += (Math.random() - 0.5) * 0.045;
-              b.velocity.y += (Math.random() - 0.5) * 0.045;
-              b.velocity.z += (Math.random() - 0.5) * 0.025; 
-          }
+          // 4. 유기적인 미풍 노이즈
+          b.velocity.x += Math.sin(time * 0.8 + b.seed) * 0.0015;
+          b.velocity.z += Math.cos(time * 0.7 + b.seed) * 0.0012;
       }
 
-      let maxSpeed = 0.11;
+      let maxSpeed = 0.085;
       if (b.isSpecialLanding) {
-          maxSpeed = 0.26;
+          maxSpeed = 0.24;
       } else if (isFollowing && interactionMode === 'scatter') {
           maxSpeed = 0.12; 
       } else if (isFollowing && interactionMode === 'fist_gather') {
-          maxSpeed = 0.28;
+          maxSpeed = 0.26;
       }
 
       if (b.velocity.length() > maxSpeed) {
-          b.velocity.multiplyScalar(0.92);
+          b.velocity.multiplyScalar(0.94);
       }
       
       b.group.position.add(b.velocity);
 
-      // 🌟 카메라와 가까운 영역에 머물도록 Z축 벽 강화 (너무 뒤로 가거나 너무 앞으로 튀어나오지 않게 방어)
+      // 🌟 [공간 루프 및 카메라 전면 고정]: 위로 날아오른 나비가 다시 아래에서 자연스럽게 순환
       if (!b.isSpecialLanding) {
-          if (b.group.position.x > 15) b.velocity.x -= 0.02;
-          if (b.group.position.x < -15) b.velocity.x += 0.02;
-          if (b.group.position.y > 9) b.velocity.y -= 0.02;
-          if (b.group.position.y < -9) b.velocity.y += 0.02;
+          // 화면 위로 벗어나면 아래쪽에서 다시 솟아오름 (영상처럼 지속적인 비행 흐름 유지)
+          if (b.group.position.y > 11.5) {
+              b.group.position.y = -11.5;
+              b.group.position.x = (Math.random() - 0.5) * 16;
+              b.group.position.z = 0.0 - Math.random() * 5.5;
+              b.velocity.y = 0.03 + Math.random() * 0.03;
+          }
+          if (b.group.position.y < -12.5) {
+              b.velocity.y += 0.02;
+          }
+
+          if (b.group.position.x > 15) b.velocity.x -= 0.015;
+          if (b.group.position.x < -15) b.velocity.x += 0.015;
           
-          // 카메라 바로 앞(Z > 2.0)이면 뒤로 살짝 밀기
-          if (b.group.position.z > 2.0) b.velocity.z -= 0.025;
-          // 뒤쪽으로 멀어져 작아지는 것 방지 (Z < -6.5이면 앞으로 밀어내기)
+          // 카메라와 가까운 거리 유지 (절대 뒤로 멀어지지 않음)
+          if (b.group.position.z > 1.8) b.velocity.z -= 0.025;
           if (b.group.position.z < -6.5) b.velocity.z += 0.035;
       }
 
-      // 4. 나풀거리는 은행각(Bank Roll) 및 피치 회전
+      // 🌟 5. [영상 반영]: 입체적인 텀블링과 갸우뚱 회전 (배를 보이거나 날개를 기울이는 회전)
       if (b.velocity.lengthSq() > 0.00001 && b.state === 'flying' && !isFollowing) {
         _vTargetPos.copy(b.group.position).add(b.velocity);
         dummyObj.position.copy(b.group.position);
         dummyObj.lookAt(_vTargetPos);
 
-        const rollAngle = (b.velocity.x * -22.0) + Math.sin(time * 3.5 + b.seed) * 0.28;
-        const pitchAngle = flapSin * 0.12;
-        dummyObj.rotateZ(rollAngle); 
-        dummyObj.rotateX(pitchAngle);
+        // 이동 방향 외에 바람에 나풀거리며 날개 단면을 드러내는 텀블링 각도 주입
+        const tumbleTime = time * 1.2 + b.tumbleSeed;
+        const bankRoll = (b.velocity.x * -28.0) + Math.sin(tumbleTime) * 0.65;
+        const tumblePitch = Math.cos(tumbleTime * 0.8) * 0.35 + (flapSin * 0.15);
+        const yawSway = Math.sin(tumbleTime * 0.5) * 0.25;
 
-        b.group.quaternion.slerp(dummyObj.quaternion, 0.12);
+        dummyObj.rotateZ(bankRoll); 
+        dummyObj.rotateX(tumblePitch);
+        dummyObj.rotateY(yawSway);
+
+        // 부드럽고 우아하게 회전 보간
+        b.group.quaternion.slerp(dummyObj.quaternion, 0.065);
       }
     }
 
