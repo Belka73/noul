@@ -1067,8 +1067,17 @@ html, body {
   outline: none !important;
 }
 
+/* 🌟 1. 프리뷰 화면(screen-preview) 3D 나비 외곽 순백 소프트 글로우 */
 #three-container,
-#three-container canvas,
+#three-container canvas {
+  touch-action: none !important;
+  -webkit-touch-callout: none !important;
+  outline: none !important;
+  -webkit-tap-highlight-color: transparent !important;
+  filter: drop-shadow(0 0 18px rgba(255, 255, 255, 0.85)) drop-shadow(0 0 45px rgba(255, 255, 255, 0.45));
+  will-change: filter;
+}
+
 #energy-particles-canvas {
   touch-action: none !important;
   -webkit-touch-callout: none !important;
@@ -1153,13 +1162,14 @@ html, body {
   will-change: width, height, transform;
 }
 
+/* 🌟 2. 로딩 화면(screen-loading) 3D 나비 외곽 순백 소프트 글로우 */
 .loading-three-canvas-layer {
   position: absolute;
   inset: 0;
   width: 100%;
   height: 100%;
   z-index: 2;
-  filter: blur(8px) brightness(0.95);
+  filter: blur(8px) brightness(1.25) drop-shadow(0 0 25px rgba(255, 255, 255, 0.9));
   transform: scale(1.08);
   pointer-events: none;
 }
@@ -1418,6 +1428,18 @@ html, body {
   position: relative;
   background: radial-gradient(circle at 50% 60%, rgba(255, 255, 255, 0.09) 0%, rgba(0, 0, 0, 0) 70%);
   flex-shrink: 0;
+}
+
+/* 🌟 3. 나비 둘러보기 3D 모달(#specimen-three-container canvas) 외곽 순백 소프트 글로우 */
+#specimen-three-container canvas {
+  filter: drop-shadow(0 0 18px rgba(255, 255, 255, 0.85)) drop-shadow(0 0 40px rgba(255, 255, 255, 0.42));
+  will-change: filter;
+}
+
+/* 🌟 4. 공유 화면(#share-three-container canvas) 3D 나비 외곽 순백 소프트 글로우 */
+#share-three-container canvas {
+  filter: drop-shadow(0 0 18px rgba(255, 255, 255, 0.85)) drop-shadow(0 0 40px rgba(255, 255, 255, 0.42));
+  will-change: filter;
 }
 
 .specimen-stage-date-top {

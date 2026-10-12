@@ -85,7 +85,7 @@ function initLoading3DScene() {
   if (!res) return;
   loadingScene = res.scene; loadingCamera = res.camera; loadingRenderer = res.renderer;
 
-  // 🌟 1번 사진처럼 눈부시게 빛나는 화이트 자체 발광 재질
+  // 🌟 자체 발광 화이트 재질
   var whiteMat = new THREE.MeshBasicMaterial({ 
     color: 0xffffff, 
     side: THREE.DoubleSide 
@@ -144,7 +144,7 @@ function createWingMaterials(textureURL, patternPath3D) {
     hasPat = true;
   }
 
-  // 🌟 [수정]: 1번 사진처럼 나비 자체가 빛나도록(Self-Emissive Glow) 구현한 셰이더
+  // 🌟 모든 3D 나비에 100% 동일하게 적용되는 자체 발광(Self-Emissive Glow) 셰이더
   function createCustomWingShader() {
     return new THREE.ShaderMaterial({
       uniforms: {
@@ -183,7 +183,7 @@ function createWingMaterials(textureURL, patternPath3D) {
         '    vec4 patCol = texture2D(patMap, vModelUv);',
         '    finalCol.rgb = mix(finalCol.rgb, finalCol.rgb * patCol.rgb, patCol.a * 0.95);',
         '  }',
-        '  // 🌟 자체 발광 광도 증폭: 사진 속 색상/패턴 질감을 유지하면서 밝기를 끌어올림',
+        '  // 🌟 자체 발광 광도 증폭: 사진 고유 색상 질감을 살리며 눈부신 화이트 톤으로 끌어올림',
         '  finalCol.rgb = finalCol.rgb * 1.45;',
         '  // 🌟 시선 각도에 따른 은은한 발광 코어 및 화이트 블룸 합성',
         '  vec3 viewDir = normalize(vViewPosition);',
@@ -215,7 +215,6 @@ function initShare3DScene() {
 
   var texUrl = currentExtractedTexture || createFallbackDummyTexture('#ffffff', '#cfcfcf');
   var wingMats = createWingMaterials(texUrl, currentSelected3DPatternPath);
-  // 🌟 몸체 자체 발광 BasicMaterial 적용
   var whiteMat = new THREE.MeshBasicMaterial({ color: 0xffffff, side: THREE.DoubleSide });
 
   shareGroup = new THREE.Group();
@@ -316,7 +315,6 @@ function initFullButterflyViewer(textureURL) {
   isFlyingAway = false; isFlyingTransitionTriggered = false; hasTriggeredDBSave = false; resetChargeState();
   flyStartPhase = 0; flyStartTime = 0;
 
-  // 🌟 자체 발광 화이트 재질 (1번 사진 느낌의 순백 고휘도)
   var whiteMat = new THREE.MeshBasicMaterial({ color: 0xffffff, side: THREE.DoubleSide });
   var targetAnt = 'Antenna_' + selectedAntennaType;
 
@@ -625,6 +623,7 @@ function stopModal3DScene() {
   if (container) container.innerHTML = '';
 }
 
+// 🌟 나비 둘러보기 3D 모달: 프리뷰 및 로딩 화면과 완벽히 동일한 자체 발광 규격 적용
 function openSpecimen3DModal(item, textureUrl) {
   var modal = document.getElementById('specimen-detail-modal');
   var nameEl = document.getElementById('modal-butterfly-name');
@@ -661,6 +660,7 @@ function openSpecimen3DModal(item, textureUrl) {
     itemPattern3DPath = '3DButterfly_pattern/' + shapePrefix + '_pattern_3D_' + patNum + '.png';
   }
 
+  // 🌟 프리뷰/공유 화면과 100% 동일한 자체 발광 재질 세팅
   var wingMats = createWingMaterials(textureUrl, itemPattern3DPath);
   var whiteMat = new THREE.MeshBasicMaterial({ color: 0xffffff, side: THREE.DoubleSide });
 
