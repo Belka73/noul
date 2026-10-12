@@ -364,30 +364,39 @@ function initFullButterflyViewer(textureURL) {
     }
 
     if (!isFlyingAway) {
-      var flapCenterOffset = 0.524;
-      var flapAmp = 0.873;
-
+      // 솟아오르는 이동 애니메이션 (0초 ~ 3.0초)
       if (elapsedSec < 3.0) {
         var progress = Math.min(1.0, elapsedSec / 3.0);
         var easeOut = 1.0 - Math.pow(1.0 - progress, 3);
         fullGroup.position.y = -6.5 * (1.0 - easeOut);
       } else {
-        fullGroup.position.y = 0;
+        // 정지 후 사뿐히 떠 있는 자연스러운 미세 부유감 유지
+        fullGroup.position.y = Math.sin((elapsedSec - 3.0) * 1.5) * 0.04;
       }
 
-      // 🌟 [부드러운 감속 위상 함수]: 초반 17.0 -> 정지 후 3.8로 매우 여유롭고 자연스럽게 감속
-      var currentPhase;
-      if (t <= 1.2) {
-        currentPhase = 17.0 * t;
-      } else if (t <= 3.2) {
-        var u = t - 1.2;
-        // 1.2초~3.2초 구간 2초 동안 17.0에서 3.8로 코사인 기반 완만한 감속 (적분 연속성 유지)
-        currentPhase = 20.4 + 3.8 * u + (13.2 * 2.0 / Math.PI) * Math.sin((u / 2.0) * (Math.PI / 2));
+      // 🌟 [물 흐르듯 감속 후 위로 170도(약 10도 V자) 살짝 접힌 상태로 안착]
+      var restingAngle = 0.18; // 170도 살짝 접힌 상태 (수평 0도 대비 약 10도 상향)
+      var flapAngle;
+
+      if (t < 1.0) {
+        // 1단계: 솟아오르는 초반 활발한 비행 날갯짓
+        var phase = t * 16.0;
+        flapAngle = restingAngle + 0.35 + Math.sin(phase) * 0.75;
+      } else if (t < 3.6) {
+        // 2단계: 1.0초~3.6초 구간 동안 속도와 진폭이 연속적으로 부드럽게 감쇠
+        var decayProgress = (t - 1.0) / 2.6; // 0 -> 1
+        var smoothWeight = Math.cos(decayProgress * (Math.PI / 2)); // 1 -> 0
+        var amp = 0.75 * Math.pow(smoothWeight, 2); // 진폭이 0으로 부드럽게 감쇠
+        var centerOffset = 0.35 * smoothWeight;     // 중심 각도도 restingAngle(0.18)로 수렴
+        
+        // 주파수 16.0 -> 0.0 적분 연속 위상 함수
+        var u = t - 1.0;
+        var phase = 16.0 + (16.0 * 2.6 * 2.0 / Math.PI) * Math.sin((u / 2.6) * (Math.PI / 2));
+        flapAngle = restingAngle + centerOffset + Math.sin(phase) * amp;
       } else {
-        currentPhase = 3.8 * t + 30.24338;
+        // 3단계: 완전 안착 (끊김 없이 정확히 170도 살짝 접힌 자세 유지)
+        flapAngle = restingAngle;
       }
-
-      var flapAngle = flapCenterOffset + Math.sin(currentPhase) * flapAmp;
 
       if (leftWingMesh && rightWingMesh) {
         leftWingMesh.rotation.set(initialRotL.x, initialRotL.y + flapAngle, initialRotL.z);
@@ -396,14 +405,7 @@ function initFullButterflyViewer(textureURL) {
     } else {
       if (!flyStartTime) {
         flyStartTime = t;
-        if (t <= 1.2) {
-          flyStartPhase = 17.0 * t;
-        } else if (t <= 3.2) {
-          var uPart = t - 1.2;
-          flyStartPhase = 20.4 + 3.8 * uPart + (13.2 * 2.0 / Math.PI) * Math.sin((uPart / 2.0) * (Math.PI / 2));
-        } else {
-          flyStartPhase = 3.8 * t + 30.24338;
-        }
+        flyStartPhase = 0;
       }
 
       var flyPhase = flyStartPhase + (t - flyStartTime) * 30.0;
