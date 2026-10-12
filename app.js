@@ -1530,7 +1530,8 @@ function renderFilteredGallery(searchQuery) {
   var q = (searchQuery || "").trim().toLowerCase();
   var filteredData = specimenButterfliesData.filter(function(item) {
     if (!q) return true;
-    return (item.name || "").toLowerCase().indexOf(q) > -1 || (item.core_concern || "").toLowerCase().indexOf(q) > -1;
+    // 🌟 [수정]: 고민 키워드를 제외하고 오직 나비 이름(item.name)으로만 검색
+    return (item.name || "").toLowerCase().indexOf(q) > -1;
   });
 
   if (filteredData.length === 0) {
@@ -1594,10 +1595,18 @@ function renderFilteredGallery(searchQuery) {
 }
 
 var gallerySearchInput = document.getElementById('gallery-search-input');
-if (gallerySearchInput) gallerySearchInput.oninput = function(e) { renderFilteredGallery(e.target.value); };
+if (gallerySearchInput) {
+  // 🌟 [수정]: 검색창 placeholder 문구를 '나비 이름을 검색해보세요'로 지정
+  gallerySearchInput.placeholder = "나비 이름을 검색해보세요";
+  gallerySearchInput.oninput = function(e) { renderFilteredGallery(e.target.value); };
+}
 
 async function initSpecimenGallery() {
-  if (gallerySearchInput) gallerySearchInput.value = "";
+  if (gallerySearchInput) {
+    gallerySearchInput.value = "";
+    // 🌟 [수정]: 화면 진입 시 안내 문구 재확인 적용
+    gallerySearchInput.placeholder = "나비 이름을 검색해보세요";
+  }
   var client = getSupabaseClient();
   if (client) {
     try {
