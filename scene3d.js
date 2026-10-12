@@ -144,7 +144,7 @@ function createWingMaterials(textureURL, patternPath3D) {
     hasPat = true;
   }
 
-  // 🌟 모든 3D 나비에 100% 동일하게 적용되는 자체 발광(Self-Emissive Glow) 셰이더
+  // 🌟 모든 3D 나비에 적용되는 셰이더: 얇고 또렷한 윤곽 발광
   function createCustomWingShader() {
     return new THREE.ShaderMaterial({
       uniforms: {
@@ -183,14 +183,14 @@ function createWingMaterials(textureURL, patternPath3D) {
         '    vec4 patCol = texture2D(patMap, vModelUv);',
         '    finalCol.rgb = mix(finalCol.rgb, finalCol.rgb * patCol.rgb, patCol.a * 0.95);',
         '  }',
-        '  // 🌟 자체 발광 광도 증폭: 사진 고유 색상 질감을 살리며 눈부신 화이트 톤으로 끌어올림',
-        '  finalCol.rgb = finalCol.rgb * 1.45;',
-        '  // 🌟 시선 각도에 따른 은은한 발광 코어 및 화이트 블룸 합성',
+        '  // 🌟 자체 발광 광도 증폭',
+        '  finalCol.rgb = finalCol.rgb * 1.35;',
+        '  // 🌟 림라이트를 얇고 선명하게 집중 (pow 3.8)',
         '  vec3 viewDir = normalize(vViewPosition);',
         '  vec3 norm = normalize(vNormal);',
         '  float rim = 1.0 - max(dot(viewDir, norm), 0.0);',
-        '  rim = pow(rim, 2.0);',
-        '  finalCol.rgb = mix(finalCol.rgb, vec3(1.0), rim * 0.35 + 0.15);',
+        '  rim = pow(rim, 3.8);',
+        '  finalCol.rgb = mix(finalCol.rgb, vec3(1.0), rim * 0.4 + 0.12);',
         '  gl_FragColor = vec4(clamp(finalCol.rgb, 0.0, 1.0), finalCol.a);',
         '}'
       ].join('\n'),
@@ -623,7 +623,7 @@ function stopModal3DScene() {
   if (container) container.innerHTML = '';
 }
 
-// 🌟 나비 둘러보기 3D 모달: 프리뷰 및 로딩 화면과 완벽히 동일한 자체 발광 규격 적용
+// 🌟 나비 둘러보기 3D 모달: 날갯짓을 훨씬 더 느리고 부드럽게 감속 (t * 3.2)
 function openSpecimen3DModal(item, textureUrl) {
   var modal = document.getElementById('specimen-detail-modal');
   var nameEl = document.getElementById('modal-butterfly-name');
@@ -660,7 +660,6 @@ function openSpecimen3DModal(item, textureUrl) {
     itemPattern3DPath = '3DButterfly_pattern/' + shapePrefix + '_pattern_3D_' + patNum + '.png';
   }
 
-  // 🌟 프리뷰/공유 화면과 100% 동일한 자체 발광 재질 세팅
   var wingMats = createWingMaterials(textureUrl, itemPattern3DPath);
   var whiteMat = new THREE.MeshBasicMaterial({ color: 0xffffff, side: THREE.DoubleSide });
 
@@ -675,7 +674,8 @@ function openSpecimen3DModal(item, textureUrl) {
   var clock = new THREE.Clock();
   (function modalAnimate() {
     modalAnimFrameId = requestAnimationFrame(modalAnimate);
-    var t = clock.getElapsedTime(), flap = 0.524 + Math.sin(t * 7.2) * 0.873;
+    // 🌟 [수정]: 날갯짓 속도를 7.2에서 3.2로 대폭 낮추어 천천히 부드럽게 날갯짓하도록 설정
+    var t = clock.getElapsedTime(), flap = 0.524 + Math.sin(t * 3.2) * 0.873;
     if (modalWingL && modalWingR) { 
       var uL = modalWingL.userData;
       var uR = modalWingR.userData;
