@@ -375,15 +375,16 @@ function initFullButterflyViewer(textureURL) {
         fullGroup.position.y = 0;
       }
 
-      // 🌟 [시간 기반 동기화 정규화]: dt 누적 제거 및 절대 경과 시간 t 기반 완전 연속 함수 적용
+      // 🌟 [부드러운 감속 위상 함수]: 초반 17.0 -> 정지 후 3.8로 매우 여유롭고 자연스럽게 감속
       var currentPhase;
-      if (t <= 1.5) {
-        currentPhase = 17.5 * t;
-      } else if (t <= 3.0) {
-        var u = t - 1.5;
-        currentPhase = 26.25 + 7.2 * u + (10.3 * 3.0 / Math.PI) * Math.sin((u / 1.5) * (Math.PI / 2));
+      if (t <= 1.2) {
+        currentPhase = 17.0 * t;
+      } else if (t <= 3.2) {
+        var u = t - 1.2;
+        // 1.2초~3.2초 구간 2초 동안 17.0에서 3.8로 코사인 기반 완만한 감속 (적분 연속성 유지)
+        currentPhase = 20.4 + 3.8 * u + (13.2 * 2.0 / Math.PI) * Math.sin((u / 2.0) * (Math.PI / 2));
       } else {
-        currentPhase = 7.2 * t + 25.28578;
+        currentPhase = 3.8 * t + 30.24338;
       }
 
       var flapAngle = flapCenterOffset + Math.sin(currentPhase) * flapAmp;
@@ -395,13 +396,13 @@ function initFullButterflyViewer(textureURL) {
     } else {
       if (!flyStartTime) {
         flyStartTime = t;
-        if (t <= 1.5) {
-          flyStartPhase = 17.5 * t;
-        } else if (t <= 3.0) {
-          var uPart = t - 1.5;
-          flyStartPhase = 26.25 + 7.2 * uPart + (10.3 * 3.0 / Math.PI) * Math.sin((uPart / 1.5) * (Math.PI / 2));
+        if (t <= 1.2) {
+          flyStartPhase = 17.0 * t;
+        } else if (t <= 3.2) {
+          var uPart = t - 1.2;
+          flyStartPhase = 20.4 + 3.8 * uPart + (13.2 * 2.0 / Math.PI) * Math.sin((uPart / 2.0) * (Math.PI / 2));
         } else {
-          flyStartPhase = 7.2 * t + 25.28578;
+          flyStartPhase = 3.8 * t + 30.24338;
         }
       }
 
@@ -663,7 +664,7 @@ function openSpecimen3DModal(item, textureUrl) {
   var clock = new THREE.Clock();
   (function modalAnimate() {
     modalAnimFrameId = requestAnimationFrame(animateLoading);
-    // 🌟 프리뷰와 동일한 7.2 속도 및 3축 회전 완벽 보존 적용
+    // 🌟 프리뷰와 동일한 속도 및 3축 회전 완벽 보존 적용
     var t = clock.getElapsedTime(), flap = 0.524 + Math.sin(t * 7.2) * 0.873;
     if (modalWingL && modalWingR) { 
       var uL = modalWingL.userData;
