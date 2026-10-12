@@ -31,20 +31,6 @@
       position: absolute; inset: 0; z-index: 10;
     }
 
-    /* 🌟 자연광 햇살 오버레이 레이어 (CSS 그라디언트 + 블렌딩) */
-    #natural-sunlight-overlay {
-      position: absolute;
-      inset: 0;
-      z-index: 15;
-      pointer-events: none;
-      mix-blend-mode: screen;
-      opacity: 0.75;
-      background: 
-        radial-gradient(ellipse 70% 50% at 15% 0%, rgba(255, 235, 175, 0.45) 0%, rgba(255, 200, 110, 0.22) 40%, rgba(0, 0, 0, 0) 75%),
-        radial-gradient(circle at 85% 10%, rgba(135, 206, 235, 0.22) 0%, rgba(70, 140, 200, 0.08) 50%, rgba(0, 0, 0, 0) 80%),
-        linear-gradient(to bottom, rgba(255, 240, 200, 0.12) 0%, rgba(0, 0, 0, 0) 55%, rgba(0, 0, 0, 0.4) 100%);
-    }
-
     #hand-pointer {
       position: absolute; 
       width: 52px; height: 52px;
@@ -243,7 +229,6 @@
   <video id="webcam-video" playsinline autoplay muted></video>
   <div id="video-dark-overlay"></div>
   <div id="three-canvas-container"></div>
-  <div id="natural-sunlight-overlay"></div>
   <div id="hand-pointer"></div>
 
   <!-- 1단계: 고민 안내 카드 -->
@@ -436,11 +421,11 @@
     }
     container.appendChild(renderer.domElement);
 
-    // 🌟 자연광 분위기를 위한 따스한 골든 햇살 + 하늘 반사 조명 구성
-    const ambLight = new THREE.AmbientLight(0xfff5e6, 1.25);
+    // 🌟 원본 순백 조명
+    const ambLight = new THREE.AmbientLight(0xffffff, 1.2);
     scene.add(ambLight);
-    const dirLight = new THREE.DirectionalLight(0xffeedd, 1.15);
-    dirLight.position.set(-6, 10, 8);
+    const dirLight = new THREE.DirectionalLight(0xffffff, 1.0);
+    dirLight.position.set(0, 5, 10);
     scene.add(dirLight);
 
     const textureLoader = new THREE.TextureLoader();
@@ -448,106 +433,6 @@
     const leftGeom = createStableWingGeom(false);
     const rightGeom = createStableWingGeom(true);
     const bodyGeom = createBodyGeom();
-
-    /* ========================================================
-       🌟 원경 배경 나비 100마리 스프라이트 파티클 시스템
-       ======================================================== */
-    function createBackgroundButterflyTexture() {
-      const c = document.createElement('canvas');
-      c.width = 64; c.height = 64;
-      const ctx = c.getContext('2d');
-      ctx.clearRect(0, 0, 64, 64);
-      
-      // 따뜻한 호박석/골든빛 자연광 나비 실루엣
-      ctx.fillStyle = '#ffcf77';
-      ctx.shadowColor = 'rgba(255, 235, 175, 0.9)';
-      ctx.shadowBlur = 8;
-
-      // 왼쪽 날개
-      ctx.beginPath();
-      ctx.ellipse(22, 28, 15, 11, -0.35, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.beginPath();
-      ctx.ellipse(25, 42, 10, 8, 0.25, 0, Math.PI * 2);
-      ctx.fill();
-
-      // 오른쪽 날개
-      ctx.beginPath();
-      ctx.ellipse(42, 28, 15, 11, 0.35, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.beginPath();
-      ctx.ellipse(39, 42, 10, 8, -0.25, 0, Math.PI * 2);
-      ctx.fill();
-
-      // 몸통
-      ctx.fillStyle = '#ffffff';
-      ctx.beginPath();
-      ctx.ellipse(32, 34, 2.5, 12, 0, 0, Math.PI * 2);
-      ctx.fill();
-
-      return new THREE.CanvasTexture(c);
-    }
-
-    const bgButterflyTex = createBackgroundButterflyTexture();
-    const bgSprites = [];
-    const BG_SPRITE_COUNT = 100;
-
-    for (let i = 0; i < BG_SPRITE_COUNT; i++) {
-      const mat = new THREE.SpriteMaterial({
-        map: bgButterflyTex,
-        transparent: true,
-        opacity: 0.65 + Math.random() * 0.3,
-        depthWrite: false,
-        blending: THREE.NormalBlending
-      });
-      const sprite = new THREE.Sprite(mat);
-      
-      // 깊은 배경 공간에 흩뿌림 (Z: -12 ~ -28)
-      const baseScale = 0.55 + Math.random() * 0.45;
-      sprite.scale.set(baseScale, baseScale, 1.0);
-      sprite.position.set(
-        (Math.random() - 0.5) * 44,
-        (Math.random() - 0.5) * 26,
-        -12.0 - Math.random() * 16.0
-      );
-
-      scene.add(sprite);
-      bgSprites.push({
-        sprite,
-        baseScale,
-        vx: (Math.random() - 0.5) * 0.035,
-        vy: (Math.random() - 0.5) * 0.035,
-        vz: (Math.random() - 0.5) * 0.015,
-        speed: 18.0 + Math.random() * 14.0,
-        seed: Math.random() * 1000
-      });
-    }
-
-    function updateBackgroundSprites(time) {
-      for (let i = 0; i < bgSprites.length; i++) {
-        const item = bgSprites[i];
-        const s = item.sprite;
-        const t = time * 0.6 + item.seed;
-
-        // 초경량 수직 스케일 스쿼시 & 스트레치 (날갯짓 펄럭임 효과)
-        const flap = Math.sin(time * item.speed + item.seed);
-        const squishY = item.baseScale * (0.35 + Math.abs(flap) * 0.65);
-        s.scale.y = squishY;
-
-        // 유기적인 나풀거림 이동
-        s.position.x += item.vx + Math.sin(t * 1.5) * 0.012;
-        s.position.y += item.vy + Math.cos(t * 1.2) * 0.012 + (flap > 0 ? 0.006 : -0.003);
-        s.position.z += item.vz;
-
-        // 원경 바운더리 체크 및 루프
-        if (s.position.x > 24) s.position.x = -24;
-        if (s.position.x < -24) s.position.x = 24;
-        if (s.position.y > 15) s.position.y = -15;
-        if (s.position.y < -15) s.position.y = 15;
-        if (s.position.z > -10) s.position.z = -28;
-        if (s.position.z < -30) s.position.z = -12;
-      }
-    }
 
     /* ========================================================
        🌟 궤적 파티클
@@ -737,7 +622,7 @@
       return butterflyRecord;
     }
 
-    // 🌟 요청 반영: 전경 3D GLTF 나비 수를 기본 50마리로 증량
+    // 🌟 3D GLTF 나비 기본 50마리 유지
     for (let i = 0; i < 50; i++) {
       defaultFlock.push(buildButterfly({}, false, false, false));
     }
@@ -1068,8 +953,6 @@
       const dt = clock.getDelta();
       const time = clock.getElapsedTime();
 
-      // 원경 배경 나비 100마리 펄럭임 및 이동 업데이트
-      updateBackgroundSprites(time);
       updateTrailParticles(dt);
 
       if (isHandDetected) {
