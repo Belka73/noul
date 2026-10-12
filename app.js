@@ -1655,7 +1655,9 @@ if (btnCloseSpecimenModal) {
   btnCloseSpecimenModal.onclick = function() {
     var modal = document.getElementById('specimen-detail-modal');
     if (modal) modal.classList.add('hidden');
-    if (typeof modalAnimFrameId !== 'undefined' && modalAnimFrameId) {
+    if (typeof stopModal3DScene === 'function') {
+      stopModal3DScene();
+    } else if (typeof modalAnimFrameId !== 'undefined' && modalAnimFrameId) {
       cancelAnimationFrame(modalAnimFrameId);
       modalAnimFrameId = null;
     }
