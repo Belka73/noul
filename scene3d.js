@@ -144,7 +144,7 @@ function createWingMaterials(textureURL, patternPath3D) {
     hasPat = true;
   }
 
-  // 🌟 모든 3D 나비에 적용되는 셰이더: 얇고 또렷한 윤곽 발광
+  // 🌟 모든 3D 나비에 적용되는 셰이더: GPU 부하 없이 순수 셰이더로 자체발광 및 외곽 순백 오라 구현
   function createCustomWingShader() {
     return new THREE.ShaderMaterial({
       uniforms: {
@@ -184,13 +184,13 @@ function createWingMaterials(textureURL, patternPath3D) {
         '    finalCol.rgb = mix(finalCol.rgb, finalCol.rgb * patCol.rgb, patCol.a * 0.95);',
         '  }',
         '  // 🌟 자체 발광 광도 증폭',
-        '  finalCol.rgb = finalCol.rgb * 1.35;',
-        '  // 🌟 림라이트를 얇고 선명하게 집중 (pow 3.8)',
+        '  finalCol.rgb = finalCol.rgb * 1.4;',
+        '  // 🌟 외곽 림라이트를 얇고 선명한 순백 오라로 연산 (부드러운 그라디언트 + 또렷한 경계)',
         '  vec3 viewDir = normalize(vViewPosition);',
         '  vec3 norm = normalize(vNormal);',
         '  float rim = 1.0 - max(dot(viewDir, norm), 0.0);',
-        '  rim = pow(rim, 3.8);',
-        '  finalCol.rgb = mix(finalCol.rgb, vec3(1.0), rim * 0.4 + 0.12);',
+        '  float sharpRim = pow(rim, 2.5);',
+        '  finalCol.rgb = mix(finalCol.rgb, vec3(1.0), sharpRim * 0.6 + 0.15);',
         '  gl_FragColor = vec4(clamp(finalCol.rgb, 0.0, 1.0), finalCol.a);',
         '}'
       ].join('\n'),
@@ -674,7 +674,7 @@ function openSpecimen3DModal(item, textureUrl) {
   var clock = new THREE.Clock();
   (function modalAnimate() {
     modalAnimFrameId = requestAnimationFrame(modalAnimate);
-    // 🌟 [수정]: 날갯짓 속도를 7.2에서 3.2로 대폭 낮추어 천천히 부드럽게 날갯짓하도록 설정
+    // 🌟 날갯짓 속도를 7.2에서 3.2로 대폭 낮추어 천천히 부드럽게 날갯짓하도록 설정
     var t = clock.getElapsedTime(), flap = 0.524 + Math.sin(t * 3.2) * 0.873;
     if (modalWingL && modalWingR) { 
       var uL = modalWingL.userData;
