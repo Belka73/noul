@@ -202,11 +202,30 @@ function startAnswerShowcaseSequence() {
 function playCompleteScreenSequence() {
   clearTimeout(completeTypeTimer); clearTimeout(autoTransitionTimer);
   var titleEl = document.getElementById('complete-typing-title');
+  var nextGroup = document.getElementById('complete-next-group');
+  var btnNext = document.getElementById('btn-complete-next');
+  
+  if (nextGroup) {
+    nextGroup.classList.add('hidden');
+    nextGroup.classList.remove('visible');
+  }
   if (!titleEl) return;
+  
   var rawName = userSelections.q7_name ? userSelections.q7_name.trim() : "나비";
-  typeWriterText(titleEl, "하늘로 '" + rawName + "'이<br>너울 속으로 날아 올랐습니다.", function() {
-    autoTransitionTimer = setTimeout(function() { transitionToScreenWithFade('screen-share'); }, 2000);
+  typeWriterText(titleEl, "하늘로 '" + rawName + "'이<br>너울 속으로 날아 올랐습니다.<br><br>지금, 스크린을 확인해 보세요.", function() {
+    if (btnNext) btnNext.innerHTML = "다음";
+    if (nextGroup) {
+      nextGroup.classList.remove('hidden');
+      nextGroup.classList.add('visible');
+    }
   });
+}
+
+var btnCompleteNext = document.getElementById('btn-complete-next');
+if (btnCompleteNext) {
+  btnCompleteNext.onclick = function() {
+    transitionToScreenWithFade('screen-share');
+  };
 }
 
 function playShareScreenSequence() {
