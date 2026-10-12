@@ -604,7 +604,7 @@
         id: Math.random().toString(36).substring(7),
         group, innerGroup, leftWing, rightWing,
         velocity: initialVelocity,
-        speed: 28.0 + Math.random() * 6.0, 
+        speed: 24.0 + Math.random() * 8.0, 
         seed: Math.random() * 1000,
         flapAmp: 1.0, 
         state: 'flying',
@@ -738,6 +738,8 @@
       const baseRotL = (b.leftWing.userData && b.leftWing.userData.baseRotY) || 0;
       const baseRotR = (b.rightWing.userData && b.rightWing.userData.baseRotY) || 0;
 
+      // 🌟 생체 리듬 기반 펄럭임 및 날갯짓 위상 연동
+      let flapSin = 0;
       if (b.state === 'landing_rest') {
           b.flapAmp *= 0.92; 
           const flap = Math.sin(time * (b.speed * 0.8) + b.seed) * 0.16 * b.flapAmp;
@@ -752,7 +754,8 @@
           } else if (b.isAscendingArrival) {
             currentFlapSpeed = b.speed * 1.25;
           }
-          const flap = (0.524 + Math.sin(time * currentFlapSpeed + b.seed) * 0.873) * b.flapAmp;
+          flapSin = Math.sin(time * currentFlapSpeed + b.seed);
+          const flap = (0.524 + flapSin * 0.873) * b.flapAmp;
           b.leftWing.rotation.y = baseRotL + flap;
           b.rightWing.rotation.y = baseRotR - flap;
       }
@@ -872,21 +875,37 @@
           } 
       }
 
+      // 🌟 [실제 나비떼 유기적 비행 물리 연산]: 렉 없는 순수 스칼라/벡터 계산
       if (!isFollowing && !b.isAscendingArrival) {
           b.state = 'flying';
-          const t = time * 0.5 + b.seed;
-          b.velocity.x += Math.sin(t * 1.4) * 0.002;
-          b.velocity.y += Math.cos(t * 1.2) * 0.002;
-          b.velocity.z += Math.sin(t * 1.5) * 0.001;
+          const t = time * 0.55 + b.seed;
 
-          if (Math.random() < 0.015) {
-              b.velocity.x += (Math.random() - 0.5) * 0.05;
-              b.velocity.y += (Math.random() - 0.5) * 0.05;
-              b.velocity.z += (Math.random() - 0.5) * 0.02; 
+          // 1. 날갯짓 동기화 수직 리프트(Bobbing): 날개를 아래로 칠 때 솟구치고 접을 때 낙하
+          if (flapSin > 0) {
+            b.velocity.y += flapSin * 0.0032; 
+          } else {
+            b.velocity.y -= 0.0016;
+          }
+
+          // 2. 가속-감속 템포(Burst & Glide): 파닥거리며 치고 나가다가 잠시 활공
+          const surgeCycle = Math.sin(t * 1.8);
+          const surgeFactor = surgeCycle > 0.35 ? 1.025 : 0.985;
+          b.velocity.x *= surgeFactor;
+          b.velocity.y *= surgeFactor;
+
+          // 3. 미세한 공기 대류 노이즈 및 방향 전환
+          b.velocity.x += Math.sin(t * 1.4) * 0.0028;
+          b.velocity.y += Math.cos(t * 1.1) * 0.0020;
+          b.velocity.z += Math.sin(t * 1.6) * 0.0014;
+
+          if (Math.random() < 0.02) {
+              b.velocity.x += (Math.random() - 0.5) * 0.045;
+              b.velocity.y += (Math.random() - 0.5) * 0.045;
+              b.velocity.z += (Math.random() - 0.5) * 0.025; 
           }
       }
 
-      let maxSpeed = 0.10;
+      let maxSpeed = 0.11;
       if (b.isSpecialLanding) {
           maxSpeed = 0.26;
       } else if (isFollowing && interactionMode === 'scatter') {
@@ -910,13 +929,19 @@
           if (b.group.position.z < -16.0) b.velocity.z += 0.02;
       }
 
+      // 4. 나풀거리는 은행각(Bank Roll) 및 피치 회전
       if (b.velocity.lengthSq() > 0.00001 && b.state === 'flying' && !isFollowing) {
         _vTargetPos.copy(b.group.position).add(b.velocity);
         dummyObj.position.copy(b.group.position);
         dummyObj.lookAt(_vTargetPos);
-        const rollAngle = (b.velocity.x * -18) + Math.sin(time * 2 + b.seed) * 0.4;
+
+        // 회전 시 날개 면적에 의한 롤링과 미세한 나풀거림 주입
+        const rollAngle = (b.velocity.x * -22.0) + Math.sin(time * 3.5 + b.seed) * 0.28;
+        const pitchAngle = flapSin * 0.12; // 날갯짓에 따른 앞뒤 끄덕임
         dummyObj.rotateZ(rollAngle); 
-        b.group.quaternion.slerp(dummyObj.quaternion, 0.08);
+        dummyObj.rotateX(pitchAngle);
+
+        b.group.quaternion.slerp(dummyObj.quaternion, 0.12);
       }
     }
 
@@ -1166,4 +1191,4 @@
     }, 2000);
   </script>
 </body>
-</html>v 
+</html>
