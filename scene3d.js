@@ -95,7 +95,7 @@ function initLoading3DScene() {
   var clock = new THREE.Clock();
   (function animateLoading() {
     loadingAnimFrameId = requestAnimationFrame(animateLoading);
-    var t = clock.getElapsedTime(), flap = Math.sin(t * 7.5) * 0.42;
+    var t = clock.getElapsedTime(), flap = 0.524 + Math.sin(t * 8.5) * 0.873;
     if (loadingWingL && loadingWingR) { 
       loadingWingL.rotation.y = (loadingWingL.userData.baseRotY || 0) + flap; 
       loadingWingR.rotation.y = (loadingWingR.userData.baseRotY || 0) - flap; 
@@ -204,7 +204,7 @@ function initShare3DScene() {
   var clock = new THREE.Clock();
   (function animateShare() {
     shareAnimFrameId = requestAnimationFrame(animateShare);
-    var t = clock.getElapsedTime(), flap = Math.sin(t * 7.5) * 0.42;
+    var t = clock.getElapsedTime(), flap = 0.524 + Math.sin(t * 8.5) * 0.873;
     if (shareWingL && shareWingR) { 
       shareWingL.rotation.y = (shareWingL.userData.baseRotY || 0) + flap; 
       shareWingR.userData && (shareWingR.rotation.y = (shareWingR.userData.baseRotY || 0) - flap); 
@@ -356,8 +356,9 @@ function initFullButterflyViewer(textureURL) {
     }
 
     if (!isFlyingAway) {
-      var currentSpeed = 4.8;
-      var currentAmp = 0.26;
+      var currentSpeed = 7.2;
+      var flapCenterOffset = 0.524;
+      var flapAmp = 0.873;
 
       if (elapsedSec < 3.0) {
         var progress = Math.min(1.0, elapsedSec / 3.0);
@@ -367,29 +368,26 @@ function initFullButterflyViewer(textureURL) {
         
         if (elapsedSec < 1.5) {
           currentSpeed = 17.5;
-          currentAmp = 0.52;
         } else {
           var slowFactor = (elapsedSec - 1.5) / 1.5;
           var slowEase = 1.0 - Math.cos((slowFactor * Math.PI) / 2);
-          currentSpeed = 17.5 - (17.5 - 4.8) * slowEase;
-          currentAmp = 0.52 - (0.52 - 0.26) * slowEase;
+          currentSpeed = 17.5 - (17.5 - 7.2) * slowEase;
         }
       } else {
         fullGroup.position.y = 0;
-        currentSpeed = 4.8;
-        currentAmp = 0.26;
+        currentSpeed = 7.2;
       }
 
       flapPhase += dt * currentSpeed;
-      var flapAngle = Math.sin(flapPhase) * currentAmp;
+      var flapAngle = flapCenterOffset + Math.sin(flapPhase) * flapAmp;
 
       if (leftWingMesh && rightWingMesh) {
         leftWingMesh.rotation.set(initialRotL.x, initialRotL.y + flapAngle, initialRotL.z);
         rightWingMesh.rotation.set(initialRotR.x, initialRotR.y - flapAngle, initialRotR.z);
       }
     } else {
-      flapPhase += dt * 26.0;
-      var flyAngle = Math.sin(flapPhase) * 0.72;
+      flapPhase += dt * 30.0;
+      var flyAngle = 0.524 + Math.sin(flapPhase) * 0.873;
       if (leftWingMesh && rightWingMesh) {
         leftWingMesh.rotation.set(initialRotL.x, initialRotL.y + flyAngle, initialRotL.z);
         rightWingMesh.rotation.set(initialRotR.x, initialRotR.y - flyAngle, initialRotR.z);
@@ -625,7 +623,7 @@ function openSpecimen3DModal(item, textureUrl) {
   var clock = new THREE.Clock();
   (function modalAnimate() {
     modalAnimFrameId = requestAnimationFrame(modalAnimate);
-    var t = clock.getElapsedTime(), flap = Math.sin(t * 6.5) * 0.45;
+    var t = clock.getElapsedTime(), flap = 0.524 + Math.sin(t * 7.8) * 0.873;
     if (modalWingL && modalWingR) { 
       modalWingL.rotation.y = (modalWingL.userData.baseRotY || 0) + flap; 
       modalWingR.rotation.y = (modalWingR.userData.baseRotY || 0) - flap; 

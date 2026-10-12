@@ -385,7 +385,7 @@
     function animate() {
       requestAnimationFrame(animate);
       const t = clock.getElapsedTime();
-      const flap = Math.sin(t * 6.5) * 0.45;
+      const flap = 0.524 + Math.sin(t * 8.0) * 0.873;
 
       if (wingL && wingR) {
         wingL.rotation.y = flap;

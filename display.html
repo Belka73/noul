@@ -579,7 +579,7 @@
         id: Math.random().toString(36).substring(7),
         group, innerGroup, leftWing, rightWing,
         velocity: initialVelocity,
-        speed: 24.0 + Math.random() * 6.0, 
+        speed: 28.0 + Math.random() * 6.0, 
         seed: Math.random() * 1000,
         flapAmp: 1.0, 
         state: 'flying',
@@ -727,7 +727,7 @@
           } else if (b.isAscendingArrival) {
             currentFlapSpeed = b.speed * 1.25;
           }
-          const flap = Math.sin(time * currentFlapSpeed + b.seed) * 0.72 * b.flapAmp;
+          const flap = (0.524 + Math.sin(time * currentFlapSpeed + b.seed) * 0.873) * b.flapAmp;
           b.leftWing.rotation.y = baseRotL + flap;
           b.rightWing.rotation.y = baseRotR - flap;
       }
