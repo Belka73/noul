@@ -279,6 +279,7 @@
       const geom = new THREE.ShapeGeometry(shape, 12);
       geom.computeVertexNormals();
       geom.computeBoundingBox();
+      geom.computeBoundingSphere();
       const bb = geom.boundingBox;
       const sizeX = bb.max.x - bb.min.x || 1;
       const sizeY = bb.max.y - bb.min.y || 1;
@@ -300,7 +301,9 @@
         new THREE.Vector2(0.12, -0.4), new THREE.Vector2(0.08, -0.7),
         new THREE.Vector2(0.001, -0.9)
       ];
-      return new THREE.LatheGeometry(points, 8);
+      const geom = new THREE.LatheGeometry(points, 8);
+      geom.computeBoundingSphere();
+      return geom;
     }
 
     function createAntenna(isRight, mat) {
@@ -310,8 +313,11 @@
         new THREE.Vector3(0, 0, 0), new THREE.Vector3(s * 0.2, 0.5, 0.1),
         new THREE.Vector3(s * 0.5, 0.9, 0.2), new THREE.Vector3(s * 0.65, 1.2, 0.3)
       );
-      group.add(new THREE.Mesh(new THREE.TubeGeometry(curve, 8, 0.035, 4, false), mat));
+      const tube = new THREE.Mesh(new THREE.TubeGeometry(curve, 8, 0.035, 4, false), mat);
+      tube.frustumCulled = false;
+      group.add(tube);
       const tip = new THREE.Mesh(new THREE.SphereGeometry(0.09, 6, 6), mat);
+      tip.frustumCulled = false;
       tip.position.set(s * 0.65, 1.2, 0.3);
       group.add(tip);
       return group;
@@ -474,12 +480,18 @@
     function buildButterfly(data = {}, isUser = false, isDelayedArrival = false, isFingerTarget = false, customZ = 0) {
       const group = new THREE.Group();
       const innerGroup = new THREE.Group(); 
+      group.frustumCulled = false;
+      innerGroup.frustumCulled = false;
       
-      const whiteMat = new THREE.MeshBasicMaterial({ color: 0xffffff });
+      const whiteMat = new THREE.MeshBasicMaterial({ color: 0xffffff, side: THREE.DoubleSide });
       let leftWing = new THREE.Mesh(leftGeom, whiteMat);
       let rightWing = new THREE.Mesh(rightGeom, whiteMat);
       const defaultBody = new THREE.Mesh(bodyGeom, whiteMat);
       
+      leftWing.frustumCulled = false;
+      rightWing.frustumCulled = false;
+      defaultBody.frustumCulled = false;
+
       innerGroup.add(leftWing);
       innerGroup.add(rightWing);
       innerGroup.add(defaultBody);
@@ -505,9 +517,21 @@
           let newWingL = null, newWingR = null;
           model.traverse(function(child) {
             if (child.isMesh) {
+              child.frustumCulled = false;
+              if (child.material) {
+                child.material.side = THREE.DoubleSide;
+              }
               const name = child.name;
-              if (name.startsWith('Wing_L')) { newWingL = child; child.material = wingMats.matL; }
-              else if (name.startsWith('Wing_R')) { newWingR = child; child.material = wingMats.matR; }
+              if (name.startsWith('Wing_L')) { 
+                newWingL = child; 
+                newWingL.userData.baseRotY = child.rotation.y;
+                child.material = wingMats.matL; 
+              }
+              else if (name.startsWith('Wing_R')) { 
+                newWingR = child; 
+                newWingR.userData.baseRotY = child.rotation.y;
+                child.material = wingMats.matR; 
+              }
               else if (name.startsWith('Body')) { child.material = whiteMat; }
               else if (name.startsWith('Antenna_')) { child.material = whiteMat; child.visible = name.startsWith(targetAntennaPrefix); }
             }
@@ -686,12 +710,15 @@
         );
       }
 
+      const baseRotL = (b.leftWing.userData && b.leftWing.userData.baseRotY) || 0;
+      const baseRotR = (b.rightWing.userData && b.rightWing.userData.baseRotY) || 0;
+
       if (b.state === 'landing_rest') {
           b.flapAmp *= 0.92; 
           const flap = Math.sin(time * (b.speed * 0.8) + b.seed) * 0.16 * b.flapAmp;
           const restFold = -1.25; 
-          b.leftWing.rotation.y = flap + restFold * (1 - b.flapAmp);
-          b.rightWing.rotation.y = -flap - restFold * (1 - b.flapAmp);
+          b.leftWing.rotation.y = baseRotL + flap + restFold * (1 - b.flapAmp);
+          b.rightWing.rotation.y = baseRotR - flap - restFold * (1 - b.flapAmp);
       } else {
           b.flapAmp += (1.0 - b.flapAmp) * 0.1; 
           let currentFlapSpeed = b.speed;
@@ -701,8 +728,8 @@
             currentFlapSpeed = b.speed * 1.25;
           }
           const flap = Math.sin(time * currentFlapSpeed + b.seed) * 0.72 * b.flapAmp;
-          b.leftWing.rotation.y = flap;
-          b.rightWing.rotation.y = -flap;
+          b.leftWing.rotation.y = baseRotL + flap;
+          b.rightWing.rotation.y = baseRotR - flap;
       }
 
       let isFollowing = false;
