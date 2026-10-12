@@ -323,7 +323,7 @@
       return group;
     }
 
-    /* 🌟 앱(scene3d.js)과 100% 동일한 날개 평면 투영 셰이더 생성기 */
+    /* 🌟 앱(scene3d.js)과 동일한 최적화 자체발광 및 외곽 순백 오라 셰이더 생성기 */
     function createWingMaterials(textureURL, patternPath3D) {
       const photoTex = textureLoader.load(textureURL);
       photoTex.flipY = false;
@@ -348,12 +348,17 @@
           vertexShader: [
             'varying vec2 vProjectedUv;',
             'varying vec2 vModelUv;',
+            'varying vec3 vNormal;',
+            'varying vec3 vViewPosition;',
             'void main() {',
             '  vModelUv = uv;',
+            '  vNormal = normalize(normalMatrix * normal);',
             '  float u = (position.x + 2.4) / 4.8;',
             '  float v = (position.y + 2.4) / 4.8;',
             '  vProjectedUv = vec2(clamp(u, 0.0, 1.0), clamp(1.0 - v, 0.0, 1.0));',
-            '  gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);',
+            '  vec4 mvPosition = modelViewMatrix * vec4(position, 1.0);',
+            '  vViewPosition = -mvPosition.xyz;',
+            '  gl_Position = projectionMatrix * mvPosition;',
             '}'
           ].join('\n'),
           fragmentShader: [
@@ -362,6 +367,8 @@
             'uniform float hasPattern;',
             'varying vec2 vProjectedUv;',
             'varying vec2 vModelUv;',
+            'varying vec3 vNormal;',
+            'varying vec3 vViewPosition;',
             'void main() {',
             '  vec4 photoCol = texture2D(photoMap, vProjectedUv);',
             '  vec4 finalCol = photoCol;',
@@ -369,7 +376,15 @@
             '    vec4 patCol = texture2D(patMap, vModelUv);',
             '    finalCol.rgb = mix(finalCol.rgb, finalCol.rgb * patCol.rgb, patCol.a * 0.95);',
             '  }',
-            '  gl_FragColor = finalCol;',
+            '  // 🌟 자체 발광 광도 증폭',
+            '  finalCol.rgb = finalCol.rgb * 1.4;',
+            '  // 🌟 외곽 림라이트를 얇고 선명한 순백 오라로 연산',
+            '  vec3 viewDir = normalize(vViewPosition);',
+            '  vec3 norm = normalize(vNormal);',
+            '  float rim = 1.0 - max(dot(viewDir, norm), 0.0);',
+            '  float sharpRim = pow(rim, 2.5);',
+            '  finalCol.rgb = mix(finalCol.rgb, vec3(1.0), sharpRim * 0.6 + 0.15);',
+            '  gl_FragColor = vec4(clamp(finalCol.rgb, 0.0, 1.0), finalCol.a);',
             '}'
           ].join('\n'),
           side: THREE.DoubleSide
@@ -401,7 +416,17 @@
     const renderer = new THREE.WebGLRenderer({ alpha: true, antialias: false, powerPreference: "high-performance" });
     renderer.setSize(window.innerWidth, window.innerHeight);
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.25));
+    if (THREE.sRGBEncoding) {
+      renderer.outputEncoding = THREE.sRGBEncoding;
+    }
     container.appendChild(renderer.domElement);
+
+    // 🌟 원본 순백 조명
+    const ambLight = new THREE.AmbientLight(0xffffff, 1.2);
+    scene.add(ambLight);
+    const dirLight = new THREE.DirectionalLight(0xffffff, 1.0);
+    dirLight.position.set(0, 5, 10);
+    scene.add(dirLight);
 
     const textureLoader = new THREE.TextureLoader();
     const gltfLoader = new THREE.GLTFLoader();
@@ -552,24 +577,30 @@
       }
 
       let initialVelocity;
-      let targetScale = 0.22 + Math.random() * 0.08;
+      // 🌟 앞쪽에서 큼직하고 시원하게 보이도록 기본 스케일 상향 (0.34 ~ 0.44)
+      let targetScale = 0.34 + Math.random() * 0.10;
 
       if (isFingerTarget) {
         group.position.set(-18, 14, customZ);
         initialVelocity = new THREE.Vector3(0, 0, 0);
-        targetScale = 0.52;
-        group.scale.set(0.52, 0.52, 0.52);
+        targetScale = 0.54;
+        group.scale.set(0.54, 0.54, 0.54);
       } else if (isDelayedArrival) {
-        group.position.set((Math.random() - 0.5) * 5, -8.0, 1.0);
-        initialVelocity = new THREE.Vector3((Math.random() - 0.5) * 0.03, 0.09, -0.02);
+        group.position.set((Math.random() - 0.5) * 4, -7.0, 1.5);
+        initialVelocity = new THREE.Vector3((Math.random() - 0.5) * 0.03, 0.09, -0.015);
         group.scale.set(0.01, 0.01, 0.01);
       } else {
+        // 🌟 멀리 가지 않고 카메라와 가까운 앞쪽 영역에 스폰 (Z: 0.0 ~ -6.5)
         group.position.set(
-          (Math.random() - 0.5) * 26, 
-          (Math.random() - 0.5) * 16, 
-          -4.0 - Math.random() * 12.0
+          (Math.random() - 0.5) * 20, 
+          (Math.random() - 0.5) * 13, 
+          0.0 - Math.random() * 6.5
         );
-        initialVelocity = new THREE.Vector3((Math.random() - 0.5) * 0.07, (Math.random() - 0.5) * 0.07, (Math.random() - 0.5) * 0.04);
+        initialVelocity = new THREE.Vector3(
+          (Math.random() - 0.5) * 0.07, 
+          (Math.random() - 0.5) * 0.07, 
+          (Math.random() - 0.5) * 0.025
+        );
         group.scale.set(targetScale, targetScale, targetScale);
       }
 
@@ -579,7 +610,7 @@
         id: Math.random().toString(36).substring(7),
         group, innerGroup, leftWing, rightWing,
         velocity: initialVelocity,
-        speed: 28.0 + Math.random() * 6.0, 
+        speed: 24.0 + Math.random() * 8.0, 
         seed: Math.random() * 1000,
         flapAmp: 1.0, 
         state: 'flying',
@@ -597,7 +628,8 @@
       return butterflyRecord;
     }
 
-    for (let i = 0; i < 15; i++) {
+    // 🌟 요청 반영: 전경 나비 수를 30마리로 조정
+    for (let i = 0; i < 30; i++) {
       defaultFlock.push(buildButterfly({}, false, false, false));
     }
 
@@ -688,7 +720,7 @@
       let currentTargetScale = b.targetScale;
       
       if (b.isSpecialLanding && (b.specialState === 'approaching' || b.specialState === 'landed')) {
-        const landingBaseScale = 0.52;
+        const landingBaseScale = 0.54;
         const effectivePerspective = Math.max(0.85, handPerspectiveScale);
         currentTargetScale = landingBaseScale * effectivePerspective;
       }
@@ -713,6 +745,8 @@
       const baseRotL = (b.leftWing.userData && b.leftWing.userData.baseRotY) || 0;
       const baseRotR = (b.rightWing.userData && b.rightWing.userData.baseRotY) || 0;
 
+      // 🌟 생체 리듬 기반 펄럭임 및 날갯짓 위상 연동
+      let flapSin = 0;
       if (b.state === 'landing_rest') {
           b.flapAmp *= 0.92; 
           const flap = Math.sin(time * (b.speed * 0.8) + b.seed) * 0.16 * b.flapAmp;
@@ -727,7 +761,8 @@
           } else if (b.isAscendingArrival) {
             currentFlapSpeed = b.speed * 1.25;
           }
-          const flap = (0.524 + Math.sin(time * currentFlapSpeed + b.seed) * 0.873) * b.flapAmp;
+          flapSin = Math.sin(time * currentFlapSpeed + b.seed);
+          const flap = (0.524 + flapSin * 0.873) * b.flapAmp;
           b.leftWing.rotation.y = baseRotL + flap;
           b.rightWing.rotation.y = baseRotR - flap;
       }
@@ -832,7 +867,7 @@
               dummyObj.rotateZ(rollAngle); 
               b.group.quaternion.slerp(dummyObj.quaternion, 0.12);
           }
-          // 🌟 interactionMode가 'scatter'이면서 'land_one'이 아닐 때만 극히 약하게 물러남
+          // 🌟 interactionMode가 'scatter'이면서 'land_one'이 아닐 때만 부드럽게 흩어짐
           else if (interactionMode === 'scatter' && !specialButterfly) {
               const dist = b.group.position.distanceTo(handTarget3D);
               if (dist < 26.0) {
@@ -847,21 +882,37 @@
           } 
       }
 
+      // 🌟 [유기적 비행 물리 연산]
       if (!isFollowing && !b.isAscendingArrival) {
           b.state = 'flying';
-          const t = time * 0.5 + b.seed;
-          b.velocity.x += Math.sin(t * 1.4) * 0.002;
-          b.velocity.y += Math.cos(t * 1.2) * 0.002;
-          b.velocity.z += Math.sin(t * 1.5) * 0.001;
+          const t = time * 0.55 + b.seed;
 
-          if (Math.random() < 0.015) {
-              b.velocity.x += (Math.random() - 0.5) * 0.05;
-              b.velocity.y += (Math.random() - 0.5) * 0.05;
-              b.velocity.z += (Math.random() - 0.5) * 0.02; 
+          // 1. 날갯짓 동기화 수직 리프트(Bobbing)
+          if (flapSin > 0) {
+            b.velocity.y += flapSin * 0.0032; 
+          } else {
+            b.velocity.y -= 0.0016;
+          }
+
+          // 2. 가속-감속 템포(Burst & Glide)
+          const surgeCycle = Math.sin(t * 1.8);
+          const surgeFactor = surgeCycle > 0.35 ? 1.025 : 0.985;
+          b.velocity.x *= surgeFactor;
+          b.velocity.y *= surgeFactor;
+
+          // 3. 미세한 공기 대류 노이즈 및 방향 전환
+          b.velocity.x += Math.sin(t * 1.4) * 0.0028;
+          b.velocity.y += Math.cos(t * 1.1) * 0.0020;
+          b.velocity.z += Math.sin(t * 1.6) * 0.0014;
+
+          if (Math.random() < 0.02) {
+              b.velocity.x += (Math.random() - 0.5) * 0.045;
+              b.velocity.y += (Math.random() - 0.5) * 0.045;
+              b.velocity.z += (Math.random() - 0.5) * 0.025; 
           }
       }
 
-      let maxSpeed = 0.10;
+      let maxSpeed = 0.11;
       if (b.isSpecialLanding) {
           maxSpeed = 0.26;
       } else if (isFollowing && interactionMode === 'scatter') {
@@ -876,22 +927,31 @@
       
       b.group.position.add(b.velocity);
 
+      // 🌟 카메라와 가까운 영역에 머물도록 Z축 벽 강화 (너무 뒤로 가거나 너무 앞으로 튀어나오지 않게 방어)
       if (!b.isSpecialLanding) {
-          if (b.group.position.x > 16) b.velocity.x -= 0.02;
-          if (b.group.position.x < -16) b.velocity.x += 0.02;
-          if (b.group.position.y > 10) b.velocity.y -= 0.02;
-          if (b.group.position.y < -10) b.velocity.y += 0.02;
-          if (b.group.position.z > -2.0) b.velocity.z -= 0.02;
-          if (b.group.position.z < -16.0) b.velocity.z += 0.02;
+          if (b.group.position.x > 15) b.velocity.x -= 0.02;
+          if (b.group.position.x < -15) b.velocity.x += 0.02;
+          if (b.group.position.y > 9) b.velocity.y -= 0.02;
+          if (b.group.position.y < -9) b.velocity.y += 0.02;
+          
+          // 카메라 바로 앞(Z > 2.0)이면 뒤로 살짝 밀기
+          if (b.group.position.z > 2.0) b.velocity.z -= 0.025;
+          // 뒤쪽으로 멀어져 작아지는 것 방지 (Z < -6.5이면 앞으로 밀어내기)
+          if (b.group.position.z < -6.5) b.velocity.z += 0.035;
       }
 
+      // 4. 나풀거리는 은행각(Bank Roll) 및 피치 회전
       if (b.velocity.lengthSq() > 0.00001 && b.state === 'flying' && !isFollowing) {
         _vTargetPos.copy(b.group.position).add(b.velocity);
         dummyObj.position.copy(b.group.position);
         dummyObj.lookAt(_vTargetPos);
-        const rollAngle = (b.velocity.x * -18) + Math.sin(time * 2 + b.seed) * 0.4;
+
+        const rollAngle = (b.velocity.x * -22.0) + Math.sin(time * 3.5 + b.seed) * 0.28;
+        const pitchAngle = flapSin * 0.12;
         dummyObj.rotateZ(rollAngle); 
-        b.group.quaternion.slerp(dummyObj.quaternion, 0.08);
+        dummyObj.rotateX(pitchAngle);
+
+        b.group.quaternion.slerp(dummyObj.quaternion, 0.12);
       }
     }
 
@@ -979,7 +1039,7 @@
             .then(({ data }) => { if (data) data.reverse().forEach(item => addUserButterfly(item, false)); })
             .catch(e => console.warn("Supabase 데이터 에러 무시"));
 
-          // 🌟 실시간 즉시 연출 수신 (10초 지연 제거)
+          // 🌟 실시간 즉시 연출 수신
           supabaseInstance.channel('public:butterflies')
             .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'butterflies' }, (payload) => {
               addUserButterfly(payload.new, true);
@@ -1009,7 +1069,6 @@
             minTrackingConfidence: 0.5 
           });
 
-          // 🌟 상태 잠금(Hysteresis) 버퍼: 산란(scatter)으로 쉽게 넘어가지 못하게 프레임 카운터 적용
           let scatterFrameCount = 0;
           
           hands.onResults((results) => {
@@ -1033,39 +1092,31 @@
 
               const dist3D = (p1, p2) => Math.hypot(p1.x - p2.x, p1.y - p2.y, (p1.z || 0) - (p2.z || 0));
 
-              // 각 손끝과 손목 거리
               const indexDist = dist3D(lm[8], wrist);
               const middleDist = dist3D(lm[12], wrist);
               const ringDist = dist3D(lm[16], wrist);
               const pinkyDist = dist3D(lm[20], wrist);
 
-              // 각 손가락 마디 간 굽힘 체크 (손끝과 뿌리마디)
               const indexFolded = dist3D(lm[8], lm[5]) < dist3D(lm[6], lm[5]) * 1.12;
               const middleFolded = dist3D(lm[12], lm[9]) < dist3D(lm[10], lm[9]) * 1.15;
               const ringFolded = dist3D(lm[16], lm[13]) < dist3D(lm[14], lm[13]) * 1.15;
               const pinkyFolded = dist3D(lm[20], lm[17]) < dist3D(lm[18], lm[17]) * 1.15;
 
-              // 🌟 [원리 1]: 검지가 중지·약지보다 명확히 손목에서 멀리 나와 있으면 무조건 검지 손가락
               const isIndexDominant = (indexDist > middleDist * 1.12) && (indexDist > ringDist * 1.2);
               const isOtherTwoFolded = (middleFolded ? 1 : 0) + (ringFolded ? 1 : 0) + (pinkyFolded ? 1 : 0) >= 2;
               const isPointGesture = !indexFolded && (isIndexDominant || isOtherTwoFolded);
 
-              // 🌟 [원리 2]: 5손가락 전체가 하나도 접히지 않고 완전히 펼쳐진 상태
               const isTrueScatter = !indexFolded && !middleFolded && !ringFolded && !pinkyFolded && !isPointGesture;
-
-              // 🌟 [원리 3]: 검지까지 다 접힌 완벽한 주먹
               const isTrueFist = indexFolded && middleFolded && ringFolded && pinkyFolded && !isPointGesture;
 
               const prevMode = interactionMode;
 
-              // 🌟 1순위: 검지 가리키기 (land_one) - 최우선 잠금, scatter 카운터 즉시 리셋
               if (isPointGesture) {
                   scatterFrameCount = 0;
                   interactionMode = 'land_one';
                   const distance = (8 - camera.position.z) / vec.z; 
                   targetHandPos3D.copy(camera.position).add(vec.multiplyScalar(distance));
 
-              // 🌟 2순위: 5손가락을 펴는 산란은 연속 4프레임 이상 확실하게 유지되어야만 발동 (오인식 튐 원천 방지)
               } else if (isTrueScatter) {
                   scatterFrameCount++;
                   if (scatterFrameCount > 3) {
@@ -1075,7 +1126,6 @@
                       resetLandingCards();
                   }
 
-              // 🌟 3순위: 주먹 쥐기
               } else if (isTrueFist) {
                   scatterFrameCount = 0;
                   interactionMode = 'fist_gather';
@@ -1090,7 +1140,6 @@
                   }
               } else {
                   scatterFrameCount = 0;
-                  // 모호한 중간 단계에서는 scatter로 절대 가지 않고 land_one 유지 또는 none
                   if (interactionMode !== 'land_one') {
                       interactionMode = 'none';
                       fistButterflies = [];
