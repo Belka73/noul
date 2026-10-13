@@ -58,7 +58,7 @@
       border: 1px solid rgba(255, 255, 255, 0.8);
     }
 
-    /* 1단계: 고민 안내 카드 - translate3d로 GPU 레이어에서만 부드럽게 이동 */
+    /* 1단계: 고민 안내 카드 */
     #floating-concern-card {
       position: absolute;
       top: 0; left: 0;
@@ -132,7 +132,7 @@
       content: '';
       position: absolute;
       inset: -10px;
-      background: radial-gradient(ellipse 65% 55% at center, rgba(255, 255, 255, 0.98) 0%, rgba(255, 255, 255, 0.88) 45%, rgba(255, 255, 255, 0) 100%);
+      background: radial-gradient(ellipse 65% 55% at center, rgba(255, 255, 255, 0.98) 0%, rgba(255, 255, 255, 0.88) 45%, rgba(0, 0, 0, 0) 100%);
       z-index: -1;
       border-radius: 50%;
     }
@@ -263,6 +263,9 @@
       'starlight',
       'wave-fin'
     ];
+
+    // 🌟 기본 나비 전용 형태 목록 (초승 나비, 달무리 나비로만 한정)
+    const DEFAULT_BUTTERFLY_SHAPES = ['crescent', 'moon-halo'];
 
     // 🌟 완전 불투명 고성능 단일 순백 재질 (ShaderMaterial 완전 대체 및 드로우 콜 최소화)
     const sharedWhiteMat = new THREE.MeshBasicMaterial({ 
@@ -445,7 +448,7 @@
 
     const defaultFlock = [];
     const userFlock = [];
-    // 🌟 성능 최적화: 유저 나비 최대 개수를 8마리로 제한하여 총 15마리 안팎으로 60 FPS 유지
+    // 🌟 성능 최적화: 유저 나비 최대 개수를 8마리로 제한하여 60 FPS 유지
     const MAX_USER_BUTTERFLIES = 8;
     const rawUserDataList = [];
 
@@ -467,8 +470,8 @@
       innerGroup.rotation.x = Math.PI / 2;
       group.add(innerGroup);
 
-      // 🌟 형태 배정 및 기본 더듬이(구슬 더듬이 'ball') 적용
-      const shapeId = data.wing_shape || BUTTERFLY_SHAPES[Math.floor(Math.random() * BUTTERFLY_SHAPES.length)];
+      // 🌟 형태 배정 (기본값은 초승나비/달무리나비 중 하나, 기본 더듬이는 구슬 더듬이 'ball' 적용)
+      const shapeId = data.wing_shape || DEFAULT_BUTTERFLY_SHAPES[Math.floor(Math.random() * DEFAULT_BUTTERFLY_SHAPES.length)];
       const antId = data.antenna_type || 'ball';
       const targetAntennaPrefix = 'Antenna_' + antId;
 
@@ -542,7 +545,7 @@
       const flapSpeed = (targetBPM / 60) * 2 * Math.PI * 2;
       const initialSpeed = 0.085 + Math.random() * 0.025;
 
-      // 🌟 [요청 반영]: 손가락으로 오는 나비의 크기 축소 (0.88 -> 0.44)
+      // 🌟 손가락으로 오는 나비의 크기 축소 (0.88 -> 0.44)
       if (isFingerTarget) {
         group.position.set(-18, 14, customZ);
         initialVelocity = new THREE.Vector3(0, 0, 0);
@@ -602,9 +605,10 @@
       return butterflyRecord;
     }
 
-    // 🌟 기본 나비 7마리 생성 (7가지 3D 형태 1마리씩 분배 + 구슬 더듬이 'ball' 통일)
-    for (let i = 0; i < BUTTERFLY_SHAPES.length; i++) {
-      defaultFlock.push(buildButterfly({ wing_shape: BUTTERFLY_SHAPES[i], antenna_type: 'ball' }, false, false, false));
+    // 🌟 [요청 반영]: 기본 나비들을 초승나비('crescent') 혹은 달무리나비('moon-halo')로만 구성 (구슬 더듬이 'ball' 통일)
+    for (let i = 0; i < 8; i++) {
+      const assignedShape = DEFAULT_BUTTERFLY_SHAPES[i % DEFAULT_BUTTERFLY_SHAPES.length];
+      defaultFlock.push(buildButterfly({ wing_shape: assignedShape, antenna_type: 'ball' }, false, false, false));
     }
 
     const clock = new THREE.Clock();
@@ -695,7 +699,7 @@
     function updateMotion(b, time) {
       let currentTargetScale = b.targetScale;
       
-      // 🌟 [요청 반영]: 손끝 착석 시 기준 스케일 축소 (0.88 -> 0.44)
+      // 🌟 손끝 착석 시 기준 스케일 (0.44)
       if (b.isSpecialLanding && (b.specialState === 'approaching' || b.specialState === 'landed')) {
         const landingBaseScale = 0.44;
         const effectivePerspective = Math.max(0.85, handPerspectiveScale);
@@ -1002,7 +1006,7 @@
       const dt = clock.getDelta();
       const time = clock.getElapsedTime();
 
-      // 🌟 [최적화]: DOM Reflow를 완전 제거하고 GPU 가속 transform만 사용
+      // 🌟 DOM Reflow 완전 제거 (translate3d로만 60fps 부드러운 위치 추적)
       if (isHandDetected) {
         handTarget3D.lerp(targetHandPos3D, 0.25);
         currentScreenX += (targetScreenX - currentScreenX) * 0.3;
@@ -1034,7 +1038,7 @@
                   isUserButterfly = true;
               } else {
                   targetData = {
-                    wing_shape: BUTTERFLY_SHAPES[Math.floor(Math.random() * BUTTERFLY_SHAPES.length)],
+                    wing_shape: DEFAULT_BUTTERFLY_SHAPES[Math.floor(Math.random() * DEFAULT_BUTTERFLY_SHAPES.length)],
                     antenna_type: 'ball'
                   };
               }
@@ -1084,7 +1088,7 @@
             const butterfly = buildButterfly(data, true, isDelayedArrival, false);
             userFlock.push(butterfly);
 
-            // 허용 최대 마리 수 초과 시 가장 오래된 나비 제거
+            // 허용 최대 마리 수(8마리) 초과 시 가장 오래된 나비 제거
             if (userFlock.length > MAX_USER_BUTTERFLIES) {
               const oldest = userFlock.shift();
               if (oldest && oldest.group) {
@@ -1123,7 +1127,7 @@
     }, 1500);
 
     /* ========================================================
-       3. 네이티브 웹캠 최적화 + 제스처 인식 (메인 스레드 렌더링 100% 보호)
+       3. 네이티브 웹캠 초경량화 + 제스처 인식 (메인 스레드 렌더링 100% 보호)
        ======================================================== */
     setTimeout(() => {
       try {
