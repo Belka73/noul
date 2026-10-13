@@ -560,7 +560,7 @@
       const aL = createAntenna(false, sharedWhiteMat); aL.position.set(-0.05, 0.7, 0.15); innerGroup.add(aL);
       const aR = createAntenna(true, sharedWhiteMat); aR.position.set(0.05, 0.7, 0.15); innerGroup.add(aR);
 
-      // 🌟 등이 위(+Y), 머리가 앞(+Z)을 향하는 기본 정렬
+      // 🌟 등이 위(+Y), 머리가 앞(+Z)을 향하는 기본 정렬[cite: 2]
       innerGroup.rotation.set(isCeremony ? 0 : Math.PI / 2, isCeremony ? 0 : Math.PI, 0);
       group.add(innerGroup);
 
@@ -635,13 +635,12 @@
       let initialVelocity;
       let targetScale = 0.62 + Math.random() * 0.14;
 
-      const initialYaw = Math.random() * Math.PI * 2;
-      // 🌟 [수정 반영] 초기 Pitch를 넉넉하게 주어 생성 즉시 대각선 및 상하로 날아가도록 설정
-      const initialPitch = (Math.random() - 0.5) * 0.85; 
-      
       const targetBPM = 120;
       const flapSpeed = (targetBPM / 60) * 2 * Math.PI * 2;
       const initialSpeed = 0.110 + Math.random() * 0.025;
+
+      let initScreenAngle = Math.random() * Math.PI * 2;
+      let initDepthAngle = (Math.random() - 0.5) * 0.35;
 
       if (isCeremony) {
         group.position.set(0, -7.5, 8.0);
@@ -649,26 +648,69 @@
         targetScale = 0.65;
         group.scale.set(0.65, 0.65, 0.65);
         group.rotation.set(0, 0, 0);
+        initScreenAngle = Math.PI / 2;
       } else if (isFingerTarget) {
-        group.position.set(-14.0, 8.5, 8.0);
-        initialVelocity = new THREE.Vector3(0.11, -0.055, 0);
+        // 🌟 [수정 반영] 손가락 나비도 상(Top), 하(Bottom), 좌(Left), 우(Right) 4면에서 무작위로 날아옴
+        const spawnSide = Math.floor(Math.random() * 4);
+        if (spawnSide === 0) { // 상 (Top)
+          group.position.set((Math.random() - 0.5) * 14, 8.5, 8.0);
+          initialVelocity = new THREE.Vector3(0, -0.12, 0);
+          initScreenAngle = -Math.PI / 2;
+        } else if (spawnSide === 1) { // 하 (Bottom)
+          group.position.set((Math.random() - 0.5) * 14, -8.5, 8.0);
+          initialVelocity = new THREE.Vector3(0, 0.12, 0);
+          initScreenAngle = Math.PI / 2;
+        } else if (spawnSide === 2) { // 좌 (Left)
+          group.position.set(-14.0, (Math.random() - 0.5) * 10, 8.0);
+          initialVelocity = new THREE.Vector3(0.12, 0, 0);
+          initScreenAngle = 0;
+        } else { // 우 (Right)
+          group.position.set(14.0, (Math.random() - 0.5) * 10, 8.0);
+          initialVelocity = new THREE.Vector3(-0.12, 0, 0);
+          initScreenAngle = Math.PI;
+        }
         targetScale = 0.58;
         group.scale.set(0.58, 0.58, 0.58);
       } else if (isDelayedArrival) {
-        group.position.set(0, -7.0, 1.5);
-        initialVelocity = new THREE.Vector3(0.045, 0.09, -0.01);
+        const fromTop = Math.random() < 0.5;
+        group.position.set((Math.random() - 0.5) * 10, fromTop ? 8.0 : -7.5, 1.5);
+        initialVelocity = new THREE.Vector3(0.04, fromTop ? -0.09 : 0.09, -0.01);
+        initScreenAngle = fromTop ? -Math.PI / 2 : Math.PI / 2;
         group.scale.set(0.01, 0.01, 0.01);
       } else {
-        group.position.set(
-          (Math.random() - 0.5) * 16, 
-          (Math.random() - 0.5) * 7.5, 
-          -0.5 - Math.random() * 5.0
-        );
-        const cosP = Math.cos(initialPitch);
+        // 🌟 [수정 반영] 상, 하, 좌, 우 및 화면 내부에서 고르게 생성
+        const spawnMode = Math.floor(Math.random() * 5);
+        let spawnX = 0, spawnY = 0;
+
+        if (spawnMode === 0) { // 상 (Top -> 아래/대각선으로 진입)
+          spawnX = (Math.random() - 0.5) * 18;
+          spawnY = 6.8 + Math.random() * 1.5;
+          initScreenAngle = -Math.PI / 2 + (Math.random() - 0.5) * 1.2;
+        } else if (spawnMode === 1) { // 하 (Bottom -> 위/대각선으로 진입)
+          spawnX = (Math.random() - 0.5) * 18;
+          spawnY = -6.8 - Math.random() * 1.5;
+          initScreenAngle = Math.PI / 2 + (Math.random() - 0.5) * 1.2;
+        } else if (spawnMode === 2) { // 좌 (Left -> 우/대각선으로 진입)
+          spawnX = -13.5 - Math.random() * 2.0;
+          spawnY = (Math.random() - 0.5) * 10;
+          initScreenAngle = 0 + (Math.random() - 0.5) * 1.2;
+        } else if (spawnMode === 3) { // 우 (Right -> 좌/대각선으로 진입)
+          spawnX = 13.5 + Math.random() * 2.0;
+          spawnY = (Math.random() - 0.5) * 10;
+          initScreenAngle = Math.PI + (Math.random() - 0.5) * 1.2;
+        } else { // 화면 내부 (전방위 360도 자유 비행)
+          spawnX = (Math.random() - 0.5) * 16;
+          spawnY = (Math.random() - 0.5) * 8.5;
+          initScreenAngle = Math.random() * Math.PI * 2;
+        }
+
+        group.position.set(spawnX, spawnY, -0.5 - Math.random() * 5.0);
+
+        const cosD = Math.cos(initDepthAngle);
         initialVelocity = new THREE.Vector3(
-          cosP * Math.cos(initialYaw) * initialSpeed,
-          Math.sin(initialPitch) * initialSpeed,
-          cosP * Math.sin(initialYaw) * initialSpeed
+          cosD * Math.cos(initScreenAngle) * initialSpeed,
+          cosD * Math.sin(initScreenAngle) * initialSpeed,
+          Math.sin(initDepthAngle) * initialSpeed
         );
         group.scale.set(targetScale, targetScale, targetScale);
       }
@@ -697,14 +739,13 @@
         memo: data.memo || "너의 찬란한 날갯짓을 응원해.",
         core_concern: data.core_concern || (Array.isArray(data.q2) && data.q2.length > 0 ? data.q2[0] : "완벽주의 강박"),
         concern_reason: data.concern_reason || "항상 잘 해내야 한다는 마음이 앞서서요.",
-        yaw: initialYaw,
-        pitch: initialPitch,
+        screenAngle: initScreenAngle, // 🌟 화면 2D 평면 전방위 비행 각도 (상, 하, 대각선, 좌, 우)
+        depthAngle: initDepthAngle,   // 🌟 화면 깊이 방향 완만한 틸트
         speedBase: initialSpeed,
-        turnRateYaw: 0,
-        turnRatePitch: 0,
-        yawBias: (Math.random() - 0.5) * 0.035,
-        pitchBias: (Math.random() - 0.5) * 0.040, // 🌟 상하 성향 바이어스 강화
-        rollBias: (Math.random() - 0.5) * 0.12,
+        turnRateAngle: 0,
+        turnRateDepth: 0,
+        angleBias: (Math.random() - 0.5) * 0.035,
+        rollBias: (Math.random() - 0.5) * 0.10,
         dirChangeTimer: Math.random() * 3.0,
         strokePower: 0,
         prevBobY: 0
@@ -840,7 +881,7 @@
     const handPointer = document.getElementById('hand-pointer');
 
     /* ========================================================
-       🌟 이동 및 날개짓 물리 연산 (상하/대각선 3차원 유영 적용)
+       🌟 이동 및 날개짓 물리 연산 (상하/대각선 360도 전방위 유영 엔진)
        ======================================================== */
     function updateMotion(b, dt, time) {
       let currentTargetScale = b.targetScale;
@@ -993,8 +1034,9 @@
                   b.innerGroup.rotation.x = Math.PI / 2;
                   b.innerGroup.rotation.y = Math.PI;
                   b.speedBase = 0.110;
-                  b.yaw = Math.random() * Math.PI * 2;
-                  b.pitch = (Math.random() - 0.5) * 0.6;
+                  // 🌟 무리 합류 시 상하/대각선 전방위 각도 부여
+                  b.screenAngle = Math.random() * Math.PI * 2;
+                  b.depthAngle = (Math.random() - 0.5) * 0.35;
                   userFlock.push(b);
 
                   if (userFlock.length > MAX_USER_BUTTERFLIES) {
@@ -1129,17 +1171,17 @@
           } 
       }
 
+      // 🌟 [수정 반영] 상, 하, 대각선, 좌, 우 360도 전방위 유영 로직
       if (!isFollowing && !b.isAscendingArrival) {
           b.state = 'flying';
 
-          if (b.yaw === undefined) {
-              b.yaw = Math.atan2(b.velocity.z, b.velocity.x) || (Math.random() * Math.PI * 2);
-              b.pitch = (Math.random() - 0.5) * 0.65;
+          if (b.screenAngle === undefined) {
+              b.screenAngle = Math.atan2(b.velocity.y, b.velocity.x) || (Math.random() * Math.PI * 2);
+              b.depthAngle = (b.velocity.z / (b.speedBase || 0.11)) * 0.4 || 0;
               b.speedBase = 0.110 + (b.seed % 100) * 0.00025;
-              b.turnRateYaw = 0;
-              b.turnRatePitch = 0;
-              b.yawBias = (Math.random() - 0.5) * 0.035;
-              b.pitchBias = (Math.random() - 0.5) * 0.035;
+              b.turnRateAngle = 0;
+              b.turnRateDepth = 0;
+              b.angleBias = (Math.random() - 0.5) * 0.035;
               b.rollBias = (Math.random() - 0.5) * 0.10;
               b.dirChangeTimer = Math.random() * 3.0;
           }
@@ -1147,68 +1189,60 @@
           b.dirChangeTimer += dt;
           if (b.dirChangeTimer > 2.2 + (b.seed % 1.8)) {
               b.dirChangeTimer = 0;
-              b.yawBias = (Math.random() - 0.5) * 0.045;   
-              b.pitchBias = (Math.random() - 0.5) * 0.040; 
+              b.angleBias = (Math.random() - 0.5) * 0.045; // 🌟 유기적 커브 선회
           }
 
-          // 🌟 3차원 유기적 궤적: Yaw와 Pitch의 풍부한 회전
-          const organicYawTurn = Math.sin(time * 0.55 + b.seed) * 0.032 
-                               + Math.cos(time * 0.85 + b.seed * 1.4) * 0.026 
-                               + (b.yawBias || 0);
+          // 화면 상의 S자 유영 및 회전 파동
+          const organicTurn = Math.sin(time * 0.55 + b.seed) * 0.035 
+                            + Math.cos(time * 0.85 + b.seed * 1.4) * 0.028 
+                            + (b.angleBias || 0);
 
-          // 🌟 [수정 반영] 상하 피치 유영 대폭 강화 (최대 ±0.52 rad, 약 ±30도 진폭으로 시원하게 오르내림)
-          const wavePitch = Math.sin(time * 0.65 + b.seed * 2.2) * 0.48 
-                          + Math.cos(time * 1.10 + b.seed * 0.8) * 0.16;
-          const organicPitchTurn = (wavePitch - b.pitch) * 0.075 + (b.pitchBias || 0);
+          let steerX = 0, steerY = 0, steerZ = 0;
+          // 화면 경계 판정
+          if (b.group.position.x > 11.5) steerX = -1;
+          else if (b.group.position.x < -11.5) steerX = 1;
 
-          let steerX = 0, steerZ = 0, steerY = 0;
-          // 좌우 벽 도달 시
-          if (b.group.position.x > 12.0) {
-            steerX = -0.065;
-            // 🌟 벽에 부딪힐 때 단순히 좌우 반사만 하지 않고 위/아래 대각선으로 입체 반사 유도
-            steerY = (b.group.position.y > 0 ? -0.045 : 0.045);
-          } else if (b.group.position.x < -12.0) {
-            steerX = 0.065;
-            steerY = (b.group.position.y > 0 ? -0.045 : 0.045);
-          }
+          if (b.group.position.y > 5.0) steerY = -1;
+          else if (b.group.position.y < -5.0) steerY = 1;
 
-          if (b.group.position.z > 2.0) steerZ = -0.060;
-          else if (b.group.position.z < -6.5) steerZ = 0.060;
+          if (b.group.position.z > 1.2) steerZ = -1;
+          else if (b.group.position.z < -6.0) steerZ = 1;
 
-          if (b.group.position.y > 4.8) steerY = -0.065;
-          else if (b.group.position.y < -4.8) steerY = 0.065;
+          // 🌟 벽 충돌 시 상하/대각선 방향으로 부드럽게 반사되어 핑퐁 현상 제거
+          if (steerX !== 0 || steerY !== 0) {
+              const targetY = steerY !== 0 ? steerY : Math.sin(b.screenAngle);
+              const targetX = steerX !== 0 ? steerX : Math.cos(b.screenAngle);
+              const desiredAngle = Math.atan2(targetY, targetX);
 
-          if (steerX !== 0 || steerZ !== 0) {
-              const desiredYaw = Math.atan2(steerZ || Math.sin(b.yaw), steerX || Math.cos(b.yaw));
-              let diffYaw = desiredYaw - b.yaw;
-              while (diffYaw < -Math.PI) diffYaw += Math.PI * 2;
-              while (diffYaw > Math.PI) diffYaw -= Math.PI * 2;
-              b.turnRateYaw = (b.turnRateYaw || 0) * 0.84 + diffYaw * 0.075 * 0.16;
+              let diffAngle = desiredAngle - b.screenAngle;
+              while (diffAngle < -Math.PI) diffAngle += Math.PI * 2;
+              while (diffAngle > Math.PI) diffAngle -= Math.PI * 2;
+              b.turnRateAngle = (b.turnRateAngle || 0) * 0.84 + diffAngle * 0.08 * 0.18;
           } else {
-              b.turnRateYaw = (b.turnRateYaw || 0) * 0.86 + organicYawTurn * 0.14;
+              b.turnRateAngle = (b.turnRateAngle || 0) * 0.86 + organicTurn * 0.15;
           }
 
-          if (steerY !== 0) {
-              const targetPitch = steerY > 0 ? 0.48 : -0.48;
-              b.turnRatePitch = (b.turnRatePitch || 0) * 0.84 + (targetPitch - b.pitch) * 0.11 * 0.16;
+          // 깊이(Z) 경계 회항
+          if (steerZ !== 0) {
+              const targetDepth = steerZ > 0 ? 0.35 : -0.35;
+              b.turnRateDepth = (b.turnRateDepth || 0) * 0.84 + (targetDepth - (b.depthAngle || 0)) * 0.08 * 0.16;
           } else {
-              // 🌟 상하 반응성을 기존 0.12에서 0.16으로 올려 Y축 이동 기여도 대폭 상향
-              b.turnRatePitch = (b.turnRatePitch || 0) * 0.84 + organicPitchTurn * 0.16;
+              const organicDepth = Math.sin(time * 0.45 + b.seed * 2.1) * 0.30;
+              b.turnRateDepth = (b.turnRateDepth || 0) * 0.88 + (organicDepth - (b.depthAngle || 0)) * 0.05 * 0.14;
           }
 
-          b.yaw += b.turnRateYaw;
-          // 🌟 Pitch를 ±0.60(약 ±35도)로 제어하여 절대 뒤로 돌지 않으며 위아래/대각선으로 활발히 비행
-          b.pitch = Math.max(-0.60, Math.min(0.60, b.pitch + b.turnRatePitch));
+          b.screenAngle += b.turnRateAngle;
+          b.depthAngle = Math.max(-0.45, Math.min(0.45, (b.depthAngle || 0) + b.turnRateDepth));
 
           const currentStroke = b.strokePower || 0;
           const forwardSurge = 1.0 + (currentStroke * 0.55);
           const currentSpeed = b.speedBase * forwardSurge;
 
-          // 🌟 3차원 속도 성분 분배 (Y축 속도가 0에 머물지 않고 능동적으로 발생)
-          const cosP = Math.cos(b.pitch);
-          b.velocity.x = cosP * Math.cos(b.yaw) * currentSpeed;
-          b.velocity.z = cosP * Math.sin(b.yaw) * currentSpeed;
-          b.velocity.y = Math.sin(b.pitch) * currentSpeed;
+          // 🌟 [수정 반영] 상, 하, 좌, 우, 대각선 모든 방향으로 온전한 속도 배분 (좌우 편중 100% 해소)
+          const cosD = Math.cos(b.depthAngle);
+          b.velocity.x = cosD * Math.cos(b.screenAngle) * currentSpeed;
+          b.velocity.y = cosD * Math.sin(b.screenAngle) * currentSpeed;
+          b.velocity.z = Math.sin(b.depthAngle) * currentSpeed;
       }
 
       let maxSpeed = 0.27;
@@ -1230,7 +1264,7 @@
       _vStep.copy(b.velocity).multiplyScalar(timeFactor);
       b.group.position.add(_vStep);
 
-      // 🌟 머리가 진행 방향을 100% 가리키는 정방향 비행 유지[cite: 2]
+      // 🌟 [정방향 보장] 머리가 진행 방향을 100% 가리키는 정방향 비행 및 선회 뱅킹
       if (b.velocity.lengthSq() > 0.00001 && b.state === 'flying' && !isFollowing) {
         _vTargetPos.set(
           b.group.position.x + b.velocity.x,
@@ -1241,13 +1275,11 @@
         dummyObj.position.copy(b.group.position);
         dummyObj.lookAt(_vTargetPos); 
 
-        const turnBank = Math.max(-0.55, Math.min(0.55, -(b.turnRateYaw || 0) * 14.0));
-        const normVx = Math.max(-1.0, Math.min(1.0, b.velocity.x / (b.speedBase || 0.11)));
-        const cameraFacingTilt = normVx * 0.35;
-        const wobbleRoll = Math.sin(time * 1.5 + b.seed * 2.5) * 0.14 + (b.rollBias || 0);
+        const turnBank = Math.max(-0.6, Math.min(0.6, -(b.turnRateAngle || 0) * 15.0));
+        const wobbleRoll = Math.sin(time * 1.5 + b.seed * 2.5) * 0.12 + (b.rollBias || 0);
         const strokeWobble = Math.sin(phase) * 0.04;
 
-        const rollAngle = Math.max(-0.75, Math.min(0.75, turnBank + cameraFacingTilt + wobbleRoll + strokeWobble));
+        const rollAngle = Math.max(-0.75, Math.min(0.75, turnBank + wobbleRoll + strokeWobble));
 
         dummyObj.rotateZ(rollAngle);
 
