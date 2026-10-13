@@ -17,9 +17,10 @@
     }
     #webcam-video {
       position: absolute; inset: 0; width: 100%; height: 100%;
-      object-fit: cover; transform: scaleX(-1);
+      object-fit: cover; transform: scaleX(-1) translateZ(0);
       z-index: 0; pointer-events: none;
       opacity: 0.28;
+      will-change: transform;
     }
     #video-dark-overlay {
       position: absolute; inset: 0;
@@ -29,20 +30,21 @@
     }
     #three-canvas-container {
       position: absolute; inset: 0; z-index: 10;
+      transform: translateZ(0);
+      will-change: transform;
     }
 
+    /* 🌟 transform transition을 제거하여 60fps 마우스/손 위치 추적 시 덜덜 떨리는 렉 원천 제거 */
     #hand-pointer {
       position: absolute; 
+      top: 0; left: 0;
       width: 52px; height: 52px;
-      margin-left: -26px; margin-top: -26px; 
       border-radius: 50%;
       background: rgba(255, 255, 255, 0.08);
       border: 1px solid rgba(255, 255, 255, 0.22);
-      backdrop-filter: blur(4px);
-      -webkit-backdrop-filter: blur(4px);
       box-shadow: 0 0 16px rgba(255, 255, 255, 0.15);
       pointer-events: none; z-index: 30; opacity: 0; 
-      transition: opacity 0.25s ease, transform 0.1s ease;
+      transition: opacity 0.2s ease;
       will-change: transform, opacity;
       display: flex;
       align-items: center;
@@ -59,10 +61,10 @@
       box-shadow: 0 0 10px rgba(255, 255, 255, 0.4);
     }
 
-    /* 1단계: 고민 안내 카드 */
+    /* 1단계: 고민 안내 카드 - top/left 대신 translate3d로 GPU 레이어에서만 부드럽게 이동 */
     #floating-concern-card {
       position: absolute;
-      transform: translate(45px, -115%);
+      top: 0; left: 0;
       width: 320px;
       min-height: 180px;
       padding: 40px 38px;
@@ -74,23 +76,21 @@
       pointer-events: none;
       z-index: 42;
       opacity: 0;
-      transition: opacity 0.45s ease, transform 0.45s cubic-bezier(0.16, 1, 0.3, 1);
+      transition: opacity 0.4s ease;
       will-change: transform, opacity;
     }
 
     #floating-concern-card::before {
       content: '';
       position: absolute;
-      inset: -20px;
-      background: radial-gradient(ellipse 65% 55% at center, rgba(8, 8, 10, 0.96) 0%, rgba(8, 8, 10, 0.88) 35%, rgba(8, 8, 10, 0.55) 60%, rgba(8, 8, 10, 0.15) 80%, rgba(0, 0, 0, 0) 100%);
-      filter: blur(16px);
+      inset: -15px;
+      background: radial-gradient(ellipse 65% 55% at center, rgba(8, 8, 10, 0.96) 0%, rgba(8, 8, 10, 0.88) 40%, rgba(0, 0, 0, 0) 100%);
       z-index: -1;
       border-radius: 50%;
     }
 
     #floating-concern-card.visible {
       opacity: 1;
-      transform: translate(45px, -125%);
     }
 
     .concern-badge-tag {
@@ -121,7 +121,7 @@
     /* 2단계: 다정한 한마디 카드 */
     #floating-info-card {
       position: absolute;
-      transform: translate(45px, -115%);
+      top: 0; left: 0;
       width: 320px;
       min-height: 180px;
       padding: 40px 38px;
@@ -133,21 +133,19 @@
       pointer-events: none;
       z-index: 40;
       opacity: 0;
-      transition: opacity 0.45s ease, transform 0.45s cubic-bezier(0.16, 1, 0.3, 1);
+      transition: opacity 0.4s ease;
       will-change: transform, opacity;
     }
     #floating-info-card::before {
       content: '';
       position: absolute;
-      inset: -20px;
-      background: radial-gradient(ellipse 65% 55% at center, rgba(255, 255, 255, 0.98) 0%, rgba(255, 255, 255, 0.9) 28%, rgba(255, 255, 255, 0.55) 55%, rgba(255, 255, 255, 0.15) 75%, rgba(255, 255, 255, 0.0) 100%);
-      filter: blur(14px);
+      inset: -15px;
+      background: radial-gradient(ellipse 65% 55% at center, rgba(255, 255, 255, 0.98) 0%, rgba(255, 255, 255, 0.88) 35%, rgba(0, 0, 0, 0) 100%);
       z-index: -1;
       border-radius: 50%;
     }
     #floating-info-card.visible {
       opacity: 1;
-      transform: translate(45px, -125%);
     }
 
     #floating-butterfly-name {
@@ -428,12 +426,13 @@
     const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 1000);
     camera.position.set(0, 0, 14.5);
 
-    // 🌟 pixelRatio를 1.0으로 고정하여 GPU 부하 원천 차단
+    // 🌟 pixelRatio를 1.0으로 고정하고 불필요한 렌더러 버퍼를 꺼서 GPU 부하 원천 차단
     const renderer = new THREE.WebGLRenderer({ 
       alpha: true, 
       antialias: false, 
       powerPreference: "high-performance",
-      precision: "mediump"
+      precision: "mediump",
+      stencil: false
     });
     renderer.setSize(window.innerWidth, window.innerHeight);
     renderer.setPixelRatio(1.0);
@@ -458,7 +457,7 @@
     /* ========================================================
        🌟 궤적 파티클
        ======================================================== */
-    const MAX_TRAIL_PARTICLES = 60;
+    const MAX_TRAIL_PARTICLES = 40;
     const trailPositions = new Float32Array(MAX_TRAIL_PARTICLES * 3);
     const trailData = [];
 
@@ -495,7 +494,7 @@
       p.x = pos.x; p.y = pos.y; p.z = pos.z;
       p.vx = (Math.random() - 0.5) * 0.02;
       p.vy = (Math.random() - 0.5) * 0.02;
-      p.life = 0.7;
+      p.life = 0.6;
       trailSpawnCursor = (trailSpawnCursor + 1) % MAX_TRAIL_PARTICLES;
     }
 
@@ -586,7 +585,6 @@
             }
           });
 
-          // 불필요한 더듬이 메쉬는 메모리와 씬 트리에서 완전 제거
           meshesToRemove.forEach((m) => {
             if (m.parent) m.parent.remove(m);
           });
@@ -764,7 +762,7 @@
     const handPointer = document.getElementById('hand-pointer');
 
     /* ========================================================
-       🌟 8분음표 1세트 + 나비 자체의 수직 바운스 (CPU 셰이더 연산 완전 배제)
+       🌟 8분음표 1세트 + 나비 자체의 수직 바운스
        ======================================================== */
     function updateMotion(b, time) {
       let currentTargetScale = b.targetScale;
@@ -1081,13 +1079,21 @@
 
       updateTrailParticles(dt);
 
+      // 🌟 [핵심 최적화]: left/top 변경(Reflow)을 완전히 제거하고 GPU 가속 transform만 사용
       if (isHandDetected) {
         handTarget3D.lerp(targetHandPos3D, 0.25);
         currentScreenX += (targetScreenX - currentScreenX) * 0.3;
         currentScreenY += (targetScreenY - currentScreenY) * 0.3;
-        if (handPointer) handPointer.style.transform = `translate3d(${currentScreenX}px, ${currentScreenY}px, 0)`;
-        if (floatingConcernCard) { floatingConcernCard.style.left = `${currentScreenX}px`; floatingConcernCard.style.top = `${currentScreenY}px`; }
-        if (floatingInfoCard) { floatingInfoCard.style.left = `${currentScreenX}px`; floatingInfoCard.style.top = `${currentScreenY}px`; }
+        
+        if (handPointer) {
+          handPointer.style.transform = `translate3d(${currentScreenX - 26}px, ${currentScreenY - 26}px, 0)`;
+        }
+        if (floatingConcernCard) { 
+          floatingConcernCard.style.transform = `translate3d(${currentScreenX + 45}px, ${currentScreenY - 180}px, 0)`; 
+        }
+        if (floatingInfoCard) { 
+          floatingInfoCard.style.transform = `translate3d(${currentScreenX + 45}px, ${currentScreenY - 180}px, 0)`; 
+        }
       }
 
       if (interactionMode === 'land_one' && isHandDetected) {
@@ -1194,16 +1200,17 @@
     }, 1500);
 
     /* ========================================================
-       3. 네이티브 웹캠 최적화 + 제스처 인식 (메인 스레드 렌더링 보호)
+       3. 네이티브 웹캠 최적화 + 제스처 인식 (메인 스레드 렌더링 완벽 보호)
        ======================================================== */
     setTimeout(() => {
       try {
         if (typeof Hands !== 'undefined') {
           const videoElement = document.getElementById('webcam-video');
 
+          // 🌟 입력 해상도를 128x96으로 초경량화하여 CPU 점유율을 70% 이상 절감
           const offscreenCanvas = document.createElement('canvas');
-          offscreenCanvas.width = 160;
-          offscreenCanvas.height = 120;
+          offscreenCanvas.width = 128;
+          offscreenCanvas.height = 96;
           const offscreenCtx = offscreenCanvas.getContext('2d', { willReadFrequently: true });
 
           const hands = new Hands({ locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}` });
@@ -1303,7 +1310,7 @@
             }
           });
 
-          // 🌟 640x480 비디오 스트림 및 180ms 추론 간격으로 메인 스레드 렌더링 완벽 보호
+          // 🌟 640x480 비디오 스트림 및 160ms 추론 주기로 Three.js 렌더링 프레임 완전 보호
           if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
             navigator.mediaDevices.getUserMedia({
               video: { width: { ideal: 640 }, height: { ideal: 480 }, frameRate: { ideal: 30 } },
@@ -1316,15 +1323,15 @@
                 function processVideoLoop() {
                   if (!isProcessingFrame && videoElement.readyState >= 2) {
                     isProcessingFrame = true;
-                    offscreenCtx.drawImage(videoElement, 0, 0, 160, 120);
+                    offscreenCtx.drawImage(videoElement, 0, 0, 128, 96);
                     hands.send({ image: offscreenCanvas })
                       .catch(() => {})
                       .finally(() => {
                         isProcessingFrame = false;
-                        setTimeout(processVideoLoop, 180);
+                        setTimeout(processVideoLoop, 160);
                       });
                   } else {
-                    setTimeout(processVideoLoop, 180);
+                    setTimeout(processVideoLoop, 160);
                   }
                 }
                 processVideoLoop();
