@@ -275,7 +275,7 @@
       'wave-fin'
     ];
 
-    // 🌟 완전 불투명 고성능 단일 순백 재질 (커스텀 셰이더 대체 및 Overdraw 완벽 차단)
+    // 🌟 완전 불투명 고성능 단일 순백 재질 (ShaderMaterial 완전 대체 및 드로우 콜 최소화)
     const sharedWhiteMat = new THREE.MeshBasicMaterial({ 
       color: 0xffffff, 
       side: THREE.DoubleSide, 
@@ -336,7 +336,7 @@
       return group;
     }
 
-    /* 🌟 커스텀 셰이더(ShaderMaterial)를 완전히 제거하고 Three.js 고성능 표준 재질(MeshBasicMaterial) 적용 */
+    /* 🌟 커스텀 셰이더(ShaderMaterial)를 완전히 제거하고 100% 불투명 표준 MeshBasicMaterial 적용 */
     function createStandardWingMaterial(textureURL) {
       const photoTex = textureLoader.load(textureURL);
       photoTex.flipY = false;
@@ -350,7 +350,7 @@
       });
     }
 
-    /* 🌟 날개 메쉬 지오메트리에 평면 투영 UV를 1회 직접 주입 (매 프레임 셰이더 계산 제거) */
+    /* 🌟 날개 메쉬 지오메트리에 평면 투영 UV를 1회 주입하여 커스텀 셰이더 연산 완전 대체 */
     function applyProjectedUVsToGeometry(geometry) {
       if (!geometry || !geometry.attributes || !geometry.attributes.position) return;
       const pos = geometry.attributes.position;
@@ -368,35 +368,58 @@
       geometry.attributes.uv.needsUpdate = true;
     }
 
-    /* 🌟 GLTF 모델 원본 캐시 및 성공 경로 기억 (404 네트워크 지연 영구 차단) */
+    /* 🌟 프로미스 기반 모델 캐시 및 상위폴더 포함 경로 메모이제이션 (404 네트워크 지연 영구 차단) */
     const modelCache = {};
-    let cachedWorkingBasePath = null;
+    const pendingModelPromises = {};
+    let workingBasePath = null;
 
-    function loadGLTFWithFastCache(loader, modelName, onLoad) {
+    const candidateBases = [
+      '3DButterfly/',
+      './3DButterfly/',
+      '../3DButterfly/',
+      'index/3DButterfly/',
+      '../index/3DButterfly/'
+    ];
+
+    function getModelPromise(modelName) {
       if (modelCache[modelName]) {
-        onLoad(modelCache[modelName].clone(true));
-        return;
+        return Promise.resolve(modelCache[modelName]);
+      }
+      if (pendingModelPromises[modelName]) {
+        return pendingModelPromises[modelName];
       }
 
-      const candidateBases = cachedWorkingBasePath 
-        ? [cachedWorkingBasePath]
-        : ['3DButterfly/', './3DButterfly/', '../3DButterfly/', '../index/3DButterfly/'];
+      const bases = workingBasePath ? [workingBasePath] : candidateBases;
 
-      let idx = 0;
-      function tryLoad() {
-        if (idx >= candidateBases.length) return;
-        const base = candidateBases[idx++];
-        const fullPath = base + modelName + '.glb';
+      pendingModelPromises[modelName] = new Promise((resolve, reject) => {
+        let idx = 0;
+        function tryNext() {
+          if (idx >= bases.length) {
+            delete pendingModelPromises[modelName];
+            reject(new Error(`모델 탐색 실패: ${modelName}`));
+            return;
+          }
+          const base = bases[idx++];
+          const fullPath = base + modelName + '.glb';
 
-        loader.load(fullPath, (gltf) => {
-          cachedWorkingBasePath = base; // 성공한 경로 메모이제이션
-          modelCache[modelName] = gltf.scene;
-          onLoad(gltf.scene.clone(true));
-        }, undefined, () => {
-          tryLoad();
-        });
-      }
-      tryLoad();
+          gltfLoader.load(
+            fullPath,
+            (gltf) => {
+              workingBasePath = base;
+              modelCache[modelName] = gltf.scene;
+              delete pendingModelPromises[modelName];
+              resolve(gltf.scene);
+            },
+            undefined,
+            () => {
+              tryNext();
+            }
+          );
+        }
+        tryNext();
+      });
+
+      return pendingModelPromises[modelName];
     }
 
     const container = document.getElementById('three-canvas-container');
@@ -405,8 +428,13 @@
     const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 1000);
     camera.position.set(0, 0, 14.5);
 
-    // 🌟 pixelRatio를 1.0으로 고정하여 거대 나비 렌더링 시 GPU 부하 원천 차단
-    const renderer = new THREE.WebGLRenderer({ alpha: true, antialias: false, powerPreference: "high-performance" });
+    // 🌟 pixelRatio를 1.0으로 고정하여 GPU 부하 원천 차단
+    const renderer = new THREE.WebGLRenderer({ 
+      alpha: true, 
+      antialias: false, 
+      powerPreference: "high-performance",
+      precision: "mediump"
+    });
     renderer.setSize(window.innerWidth, window.innerHeight);
     renderer.setPixelRatio(1.0);
     if (THREE.sRGBEncoding) {
@@ -521,15 +549,18 @@
       const textureURL = data.texture_url || data.image_url;
       const hasTexture = !!(isUser && textureURL);
 
-      // 🌟 커스텀 셰이더 대신 순수 표준 MeshBasicMaterial 적용
+      // 🌟 셰이더 없이 100% 표준 MeshBasicMaterial 사용
       const wingMat = hasTexture ? createStandardWingMaterial(textureURL) : sharedWhiteMat;
 
       if (gltfLoader) {
-        loadGLTFWithFastCache(gltfLoader, shapeId, function(model) {
+        getModelPromise(shapeId).then((cachedScene) => {
+          const model = cachedScene.clone(true);
           let newWingL = null, newWingR = null;
+          const meshesToRemove = [];
+
           model.traverse(function(child) {
             if (child.isMesh) {
-              const name = child.name;
+              const name = child.name || '';
               if (name.startsWith('Wing_L')) { 
                 newWingL = child; 
                 newWingL.userData.baseRotY = child.rotation.y;
@@ -546,10 +577,18 @@
                 child.material = sharedWhiteMat; 
               }
               else if (name.startsWith('Antenna_')) { 
-                child.material = sharedWhiteMat; 
-                child.visible = name.startsWith(targetAntennaPrefix); 
+                if (name.startsWith(targetAntennaPrefix)) {
+                  child.material = sharedWhiteMat;
+                } else {
+                  meshesToRemove.push(child);
+                }
               }
             }
+          });
+
+          // 불필요한 더듬이 메쉬는 메모리와 씬 트리에서 완전 제거
+          meshesToRemove.forEach((m) => {
+            if (m.parent) m.parent.remove(m);
           });
 
           if (newWingL && newWingR) {
@@ -563,7 +602,7 @@
             butterflyRecord.leftWing = newWingL;
             butterflyRecord.rightWing = newWingR;
           }
-        });
+        }).catch(() => {});
       }
 
       let initialVelocity;
@@ -1155,7 +1194,7 @@
     }, 1500);
 
     /* ========================================================
-       3. 네이티브 웹캠 최적화 + 제스처 인식
+       3. 네이티브 웹캠 최적화 + 제스처 인식 (메인 스레드 렌더링 보호)
        ======================================================== */
     setTimeout(() => {
       try {
@@ -1163,8 +1202,8 @@
           const videoElement = document.getElementById('webcam-video');
 
           const offscreenCanvas = document.createElement('canvas');
-          offscreenCanvas.width = 192;
-          offscreenCanvas.height = 144;
+          offscreenCanvas.width = 160;
+          offscreenCanvas.height = 120;
           const offscreenCtx = offscreenCanvas.getContext('2d', { willReadFrequently: true });
 
           const hands = new Hands({ locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}` });
@@ -1264,7 +1303,7 @@
             }
           });
 
-          // 🌟 640x480으로 최적화하여 1080p 디코딩 및 CPU 캔버스 복사 부하 원천 차단
+          // 🌟 640x480 비디오 스트림 및 180ms 추론 간격으로 메인 스레드 렌더링 완벽 보호
           if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
             navigator.mediaDevices.getUserMedia({
               video: { width: { ideal: 640 }, height: { ideal: 480 }, frameRate: { ideal: 30 } },
@@ -1277,15 +1316,15 @@
                 function processVideoLoop() {
                   if (!isProcessingFrame && videoElement.readyState >= 2) {
                     isProcessingFrame = true;
-                    offscreenCtx.drawImage(videoElement, 0, 0, 192, 144);
+                    offscreenCtx.drawImage(videoElement, 0, 0, 160, 120);
                     hands.send({ image: offscreenCanvas })
                       .catch(() => {})
                       .finally(() => {
                         isProcessingFrame = false;
-                        setTimeout(processVideoLoop, 100);
+                        setTimeout(processVideoLoop, 180);
                       });
                   } else {
-                    setTimeout(processVideoLoop, 100);
+                    setTimeout(processVideoLoop, 180);
                   }
                 }
                 processVideoLoop();
