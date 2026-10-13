@@ -276,6 +276,9 @@
     ];
     const ANTENNA_TYPES = ['ball', 'crescent', 'star'];
 
+    // 🌟 완전 불투명 공용 화이트 재질 (Overdraw 원천 차단)
+    const sharedWhiteMat = new THREE.MeshBasicMaterial({ color: 0xffffff, side: THREE.DoubleSide, transparent: false, depthWrite: true });
+
     function createStableWingGeom(isRight) {
       const shape = new THREE.Shape();
       const s = isRight ? 1 : -1;
@@ -334,7 +337,7 @@
       return group;
     }
 
-    /* 🌟 반투명 투과광 및 선명한 실루엣 (+ 불투명도 보존 백색 글로우 오라 번짐 셰이더) */
+    /* 🌟 반투명 백색 오라를 완전히 제거하고 100% 완전 불투명(Early-Z)으로 최적화한 날개 재질 */
     function createWingMaterials(textureURL, patternPath3D) {
       const photoTex = textureLoader.load(textureURL);
       photoTex.flipY = false;
@@ -349,39 +352,30 @@
         hasPat = true;
       }
 
-      function createCustomWingShader() {
+      function createCleanWingShader() {
         return new THREE.ShaderMaterial({
           uniforms: {
             photoMap: { value: photoTex },
             patMap: { value: patTex || new THREE.Texture() },
-            hasPattern: { value: hasPat ? 1.0 : 0.0 },
-            uMotionBlur: { value: 0.0 }
+            hasPattern: { value: hasPat ? 1.0 : 0.0 }
           },
           vertexShader: [
             'varying vec2 vProjectedUv;',
             'varying vec2 vModelUv;',
-            'varying vec3 vNormal;',
-            'varying vec3 vViewPosition;',
             'void main() {',
             '  vModelUv = uv;',
-            '  vNormal = normalize(normalMatrix * normal);',
             '  float u = (position.x + 2.4) / 4.8;',
             '  float v = (position.y + 2.4) / 4.8;',
             '  vProjectedUv = vec2(clamp(u, 0.0, 1.0), clamp(1.0 - v, 0.0, 1.0));',
-            '  vec4 mvPosition = modelViewMatrix * vec4(position, 1.0);',
-            '  vViewPosition = -mvPosition.xyz;',
-            '  gl_Position = projectionMatrix * mvPosition;',
+            '  gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);',
             '}'
           ].join('\n'),
           fragmentShader: [
             'uniform sampler2D photoMap;',
             'uniform sampler2D patMap;',
             'uniform float hasPattern;',
-            'uniform float uMotionBlur;',
             'varying vec2 vProjectedUv;',
             'varying vec2 vModelUv;',
-            'varying vec3 vNormal;',
-            'varying vec3 vViewPosition;',
             'void main() {',
             '  vec4 photoCol = texture2D(photoMap, vProjectedUv);',
             '  vec4 finalCol = photoCol;',
@@ -389,31 +383,16 @@
             '    vec4 patCol = texture2D(patMap, vModelUv);',
             '    finalCol.rgb = mix(finalCol.rgb, finalCol.rgb * patCol.rgb, patCol.a * 0.95);',
             '  }',
-            '  vec3 viewDir = normalize(vViewPosition);',
-            '  vec3 norm = normalize(vNormal);',
-            '  // 1. 역광 투과광 연산',
-            '  float backScatter = pow(clamp(dot(norm, -viewDir) + 0.35, 0.0, 1.0), 1.8);',
-            '  finalCol.rgb += finalCol.rgb * backScatter * (0.45 + uMotionBlur * 0.25);',
-            '  // 2. 자체 발광 광도 증폭',
-            '  finalCol.rgb = finalCol.rgb * (1.3 + uMotionBlur * 0.3);',
-            '  // 3. 선명한 테두리 대비 및 순백 글로우',
-            '  float rim = 1.0 - abs(dot(viewDir, norm));',
-            '  float rimExp = mix(3.2, 1.25, uMotionBlur);',
-            '  float edgeGlow = pow(rim, rimExp);',
-            '  finalCol.rgb = mix(finalCol.rgb, vec3(1.0), edgeGlow * mix(0.4, 0.85, uMotionBlur));',
-            '  finalCol.rgb += vec3(edgeGlow * uMotionBlur * 0.3);',
-            '  // 4. 반투명도 설정',
-            '  float alphaVal = clamp(finalCol.a * 0.90, 0.0, 1.0);',
-            '  gl_FragColor = vec4(clamp(finalCol.rgb, 0.0, 1.0), alphaVal);',
+            '  gl_FragColor = vec4(clamp(finalCol.rgb, 0.0, 1.0), 1.0);',
             '}'
           ].join('\n'),
           side: THREE.DoubleSide,
-          transparent: true,
-          depthWrite: false
+          transparent: false,
+          depthWrite: true
         });
       }
 
-      return { matL: createCustomWingShader(), matR: createCustomWingShader() };
+      return { matL: createCleanWingShader(), matR: createCleanWingShader() };
     }
 
     function get3DPatternPath(shapeKey, patId) {
@@ -429,8 +408,15 @@
       return '3DButterfly_pattern/' + shapePrefix + '_pattern_3D_' + patNum + '.png';
     }
 
-    /* 🌟 상위폴더 index > 3DButterfly 경로를 포함한 다중 경로 자동 폴백 로더 */
+    /* 🌟 성능 최적화: GLTF 3D 모델 원본 캐시 맵 (중복 다운로드 및 파싱 제거) */
+    const modelCache = {};
+
     function loadGLTFWithFallback(loader, modelName, onLoad, onError) {
+      if (modelCache[modelName]) {
+        onLoad(modelCache[modelName].clone(true));
+        return;
+      }
+
       const candidatePaths = [
         '../index/3DButterfly/' + modelName + '.glb',
         '../3DButterfly/' + modelName + '.glb',
@@ -444,7 +430,10 @@
           return;
         }
         const path = candidatePaths[pIdx++];
-        loader.load(path, onLoad, undefined, () => {
+        loader.load(path, (gltf) => {
+          modelCache[modelName] = gltf.scene;
+          onLoad(gltf.scene.clone(true));
+        }, undefined, () => {
           tryNext();
         });
       }
@@ -457,9 +446,10 @@
     const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 1000);
     camera.position.set(0, 0, 14.5);
 
+    // 🌟 성능 최적화: pixelRatio를 1.0으로 고정하여 GPU 오버드로 방어
     const renderer = new THREE.WebGLRenderer({ alpha: true, antialias: false, powerPreference: "high-performance" });
     renderer.setSize(window.innerWidth, window.innerHeight);
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.25));
+    renderer.setPixelRatio(1.0);
     if (THREE.sRGBEncoding) {
       renderer.outputEncoding = THREE.sRGBEncoding;
     }
@@ -552,10 +542,9 @@
       group.frustumCulled = false;
       innerGroup.frustumCulled = false;
       
-      const whiteMat = new THREE.MeshBasicMaterial({ color: 0xffffff, side: THREE.DoubleSide });
-      let leftWing = new THREE.Mesh(leftGeom, whiteMat);
-      let rightWing = new THREE.Mesh(rightGeom, whiteMat);
-      const defaultBody = new THREE.Mesh(bodyGeom, whiteMat);
+      let leftWing = new THREE.Mesh(leftGeom, sharedWhiteMat);
+      let rightWing = new THREE.Mesh(rightGeom, sharedWhiteMat);
+      const defaultBody = new THREE.Mesh(bodyGeom, sharedWhiteMat);
       
       leftWing.frustumCulled = false;
       rightWing.frustumCulled = false;
@@ -565,8 +554,8 @@
       innerGroup.add(rightWing);
       innerGroup.add(defaultBody);
       
-      const aL = createAntenna(false, whiteMat); aL.position.set(-0.05, 0.7, 0.15); innerGroup.add(aL);
-      const aR = createAntenna(true, whiteMat); aR.position.set(0.05, 0.7, 0.15); innerGroup.add(aR);
+      const aL = createAntenna(false, sharedWhiteMat); aL.position.set(-0.05, 0.7, 0.15); innerGroup.add(aL);
+      const aR = createAntenna(true, sharedWhiteMat); aR.position.set(0.05, 0.7, 0.15); innerGroup.add(aR);
 
       innerGroup.rotation.x = Math.PI / 2;
       group.add(innerGroup);
@@ -584,12 +573,11 @@
         let patPath = get3DPatternPath(shapeId, data.pattern_id);
         wingMats = createWingMaterials(textureURL, patPath);
       } else {
-        wingMats = { matL: whiteMat, matR: whiteMat };
+        wingMats = { matL: sharedWhiteMat, matR: sharedWhiteMat };
       }
 
       if (gltfLoader) {
-        loadGLTFWithFallback(gltfLoader, shapeId, function(gltf) {
-          const model = gltf.scene;
+        loadGLTFWithFallback(gltfLoader, shapeId, function(model) {
           let newWingL = null, newWingR = null;
           model.traverse(function(child) {
             if (child.isMesh) {
@@ -608,8 +596,8 @@
                 newWingR.userData.baseRotY = child.rotation.y;
                 child.material = wingMats.matR; 
               }
-              else if (name.startsWith('Body')) { child.material = whiteMat; }
-              else if (name.startsWith('Antenna_')) { child.material = whiteMat; child.visible = name.startsWith(targetAntennaPrefix); }
+              else if (name.startsWith('Body')) { child.material = sharedWhiteMat; }
+              else if (name.startsWith('Antenna_')) { child.material = sharedWhiteMat; child.visible = name.startsWith(targetAntennaPrefix); }
             }
           });
 
@@ -822,7 +810,6 @@
 
       let phase = 0;
       let strokePower = 0;
-      let wingBlurFactor = 0.0;
 
       if (b.state === 'landing_rest') {
           b.flapAmp *= 0.92; 
@@ -834,7 +821,6 @@
           b.innerGroup.rotation.z = Math.sin(time * 2.0 + b.seed) * 0.04;
           b.innerGroup.rotation.x = Math.PI / 2;
           b.innerGroup.position.set(0, 0, 0);
-          wingBlurFactor = 0.0;
       } else {
           b.flapAmp += (1.0 - b.flapAmp) * 0.1; 
           let currentFlapSpeed = b.speed;
@@ -854,16 +840,13 @@
             const smoothUp = 0.5 - 0.5 * Math.cos(tUp * Math.PI);
             wingWave = 1.0 - 2.0 * smoothUp;
             strokePower = 0;
-            wingBlurFactor = Math.sin(tUp * Math.PI) * 0.45;
           } else {
             const tDown = (normPhase - 0.50) / 0.50;
             const smoothDown = 0.5 - 0.5 * Math.cos(tDown * Math.PI);
             wingWave = -1.0 + 2.0 * smoothDown;
             strokePower = Math.sin(tDown * Math.PI) * 0.55;
-            wingBlurFactor = Math.sin(tDown * Math.PI) * 0.45;
           }
           b.strokePower = strokePower;
-          wingBlurFactor *= b.flapAmp;
 
           const wingFold = (-0.50 + wingWave * 0.75) * b.flapAmp;
           b.leftWing.rotation.y = baseRotL + wingFold;
@@ -879,13 +862,6 @@
       const deltaBobY = currentBobY - (b.prevBobY || 0);
       b.prevBobY = currentBobY;
       b.group.position.y += deltaBobY;
-
-      if (b.leftWing && b.leftWing.material && b.leftWing.material.uniforms && b.leftWing.material.uniforms.uMotionBlur) {
-        b.leftWing.material.uniforms.uMotionBlur.value = wingBlurFactor;
-      }
-      if (b.rightWing && b.rightWing.material && b.rightWing.material.uniforms && b.rightWing.material.uniforms.uMotionBlur) {
-        b.rightWing.material.uniforms.uMotionBlur.value = wingBlurFactor;
-      }
 
       let isFollowing = false;
 
