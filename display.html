@@ -616,7 +616,6 @@
     const _vLeave = new THREE.Vector3(22, 1.2, 0);
     const _vStep = new THREE.Vector3();
 
-    // Z축 깊이를 8.0으로 일관되게 초기화하여 좌표 점프 방지
     let handTarget3D = new THREE.Vector3(999, 999, 8.0);
     let targetHandPos3D = new THREE.Vector3(999, 999, 8.0);
     let prevHandTarget3D = new THREE.Vector3(999, 999, 8.0);
@@ -694,7 +693,6 @@
        8분음표 1세트 + 델타타임 보정 이동 물리 (크기 100% 완전 고정)
        ======================================================== */
     function updateMotion(b, dt, time) {
-      // 손가락 나비는 손의 위치/각도와 상관없이 언제나 b.targetScale(0.58) 단 하나의 크기로 완전 고정
       if (b.isSpecialLanding) {
         b.group.scale.set(b.targetScale, b.targetScale, b.targetScale);
       } else if (b.isAscendingArrival) {
@@ -1000,7 +998,7 @@
       const dt = Math.min(rawDt, 0.033);
       const time = clock.getElapsedTime();
 
-      // 🌟 [수정 반영]: 말풍선 카드의 X축 오프셋을 +35px에서 +80px로 변경하여 오른쪽으로 이동
+      // 🌟 [수정 반영]: 말풍선 카드의 X축 오프셋을 +80px에서 +165px로 대폭 늘려 나비 날개 가림 완벽 해결
       if (isHandDetected) {
         handTarget3D.lerp(targetHandPos3D, 0.30);
         currentScreenX += (targetScreenX - currentScreenX) * 0.35;
@@ -1010,10 +1008,10 @@
           handPointer.style.transform = `translate3d(${currentScreenX - 26}px, ${currentScreenY - 26}px, 0)`;
         }
         if (floatingConcernCard && floatingConcernCard.classList.contains('visible')) { 
-          floatingConcernCard.style.transform = `translate3d(${currentScreenX + 80}px, ${currentScreenY - 145}px, 0)`; 
+          floatingConcernCard.style.transform = `translate3d(${currentScreenX + 165}px, ${currentScreenY - 145}px, 0)`; 
         }
         if (floatingInfoCard && floatingInfoCard.classList.contains('visible')) { 
-          floatingInfoCard.style.transform = `translate3d(${currentScreenX + 80}px, ${currentScreenY - 145}px, 0)`; 
+          floatingInfoCard.style.transform = `translate3d(${currentScreenX + 165}px, ${currentScreenY - 145}px, 0)`; 
         }
       }
 
@@ -1213,7 +1211,6 @@
               isHandDetected = false;
               interactionMode = 'none';
               fistButterflies = [];
-              handPerspectiveScale = 1.0;
               resetLandingCards();
             }
           });
