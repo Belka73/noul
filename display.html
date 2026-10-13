@@ -473,7 +473,7 @@
     }
 
     /* ========================================================
-       🌟 [요청 반영] 세레머니 나비 날개짓 전용 파티클 시스템
+       🌟 세레머니 나비 날개짓 전용 파티클 시스템
        ======================================================== */
     const CEREMONY_PARTICLES = 36;
     const ceremonyParticlePositions = new Float32Array(CEREMONY_PARTICLES * 3);
@@ -646,7 +646,6 @@
       const flapSpeed = (targetBPM / 60) * 2 * Math.PI * 2;
       const initialSpeed = 0.085 + Math.random() * 0.025;
 
-      // 🌟 세레머니 나비: 하단(y=-7.5)에서 서서히 상승 시작, 등이 완벽히 보이도록 회전각 (0,0,0) 고정
       if (isCeremony) {
         group.position.set(0, -7.5, 8.0);
         initialVelocity = new THREE.Vector3(0, 0.032, 0);
@@ -717,7 +716,6 @@
       return butterflyRecord;
     }
 
-    // 기본 나비 8마리 생성 (초승나비 'crescent', 달무리나비 'moon-halo', 구슬 더듬이 'ball')
     for (let i = 0; i < 8; i++) {
       const assignedShape = DEFAULT_BUTTERFLY_SHAPES[i % DEFAULT_BUTTERFLY_SHAPES.length];
       defaultFlock.push(buildButterfly({ wing_shape: assignedShape, antenna_type: 'ball' }, false, false, false));
@@ -776,7 +774,6 @@
       step();
     }
 
-    // 🌟 손 제스처 전용 리셋 (세레머니 중일 때는 다정한 한마디 카드를 절대 건드리지 않음)
     function resetHandCards() {
       clearTimeout(landingStorySequenceTimer);
       if (floatingConcernCard) floatingConcernCard.classList.remove('visible');
@@ -809,7 +806,6 @@
       }, 4200);
     }
 
-    // 🌟 나비 바로 아래 정확한 위치 배치 + 5초 유지 + 1초 뒤 날아감
     function triggerCeremonyCardSequence(b) {
       clearTimeout(ceremonyCardTimer);
       if (activeTypingTimeout) clearTimeout(activeTypingTimeout);
@@ -847,7 +843,7 @@
     const handPointer = document.getElementById('hand-pointer');
 
     /* ========================================================
-       🌟 이동 및 날개짓 물리 연산 (최적화 버전)
+       이동 및 날개짓 물리 연산
        ======================================================== */
     function updateMotion(b, dt, time) {
       let currentTargetScale = b.targetScale;
@@ -935,7 +931,6 @@
 
       let isFollowing = false;
 
-      // 세레머니 나비 비행
       if (b.isCeremony) {
           isFollowing = true;
 
@@ -1016,7 +1011,6 @@
               }
           }
       }
-      // 손가락 나비 비행
       else if (b.isSpecialLanding) {
           isFollowing = true;
 
@@ -1407,18 +1401,22 @@
               }
             }).subscribe();
         }
-      } catch (err) {
-        console.error("Supabase 초기화 오류:", err);
-      }
+      } catch (err) {}
     }, 1500);
 
     /* ========================================================
-       3. 네이티브 웹캠 최적화 + 제스처 인식 (CPU-GPU 병목 제거)
+       3. 네이티브 웹캠 최적화 + 제스처 인식 (GPU 다운스케일 + 쿨다운)
        ======================================================== */
     setTimeout(() => {
       try {
         if (typeof Hands !== 'undefined') {
           const videoElement = document.getElementById('webcam-video');
+
+          // 🌟 GPU 가속 초경량 캔버스 (willReadFrequently 없이 순수 GPU 텍스처로 즉시 다운스케일)
+          const downscaleCanvas = document.createElement('canvas');
+          downscaleCanvas.width = 160;
+          downscaleCanvas.height = 120;
+          const downscaleCtx = downscaleCanvas.getContext('2d');
 
           const hands = new Hands({ locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}` });
           hands.setOptions({ 
@@ -1517,21 +1515,21 @@
               videoElement.onloadedmetadata = () => {
                 videoElement.play();
                 let isProcessingFrame = false;
-                let lastProcessTime = 0;
 
+                // 🌟 GPU 다운스케일(160x120) + 추론 완료 후 120ms 쿨다운 루프
                 function processVideoLoop() {
-                  const now = performance.now();
-                  if (!isProcessingFrame && videoElement.readyState >= 2 && (now - lastProcessTime > 100)) {
+                  if (!isProcessingFrame && videoElement.readyState >= 2) {
                     isProcessingFrame = true;
-                    lastProcessTime = now;
-                    hands.send({ image: videoElement })
+                    downscaleCtx.drawImage(videoElement, 0, 0, 160, 120);
+                    hands.send({ image: downscaleCanvas })
                       .catch(() => {})
                       .finally(() => {
                         isProcessingFrame = false;
-                        setTimeout(processVideoLoop, 30);
+                        // 🌟 완료 후 정확히 120ms 동안 메인 스레드를 Three.js 60fps 렌더링에 완전히 양보
+                        setTimeout(processVideoLoop, 120);
                       });
                   } else {
-                    setTimeout(processVideoLoop, 30);
+                    setTimeout(processVideoLoop, 40);
                   }
                 }
                 processVideoLoop();
