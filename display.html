@@ -44,6 +44,8 @@
       pointer-events: none; z-index: 30; opacity: 0; 
       transition: opacity 0.2s ease;
       will-change: transform, opacity;
+      contain: layout style;
+      backface-visibility: hidden;
       display: flex;
       align-items: center;
       justify-content: center;
@@ -75,6 +77,8 @@
       opacity: 0;
       transition: opacity 0.35s ease;
       will-change: transform, opacity;
+      contain: layout style;
+      backface-visibility: hidden;
     }
 
     #floating-concern-card::before {
@@ -133,6 +137,8 @@
       opacity: 0;
       transition: opacity 0.35s ease;
       will-change: transform, opacity;
+      contain: layout style;
+      backface-visibility: hidden;
     }
     #floating-info-card::before {
       content: '';
@@ -338,12 +344,17 @@
       return group;
     }
 
+    const textureCache = {};
     function createStandardWingMaterial(textureURL) {
-      const photoTex = textureLoader.load(textureURL);
-      photoTex.flipY = false;
-      photoTex.generateMipmaps = false;
-      photoTex.minFilter = THREE.LinearFilter;
-      if (THREE.sRGBEncoding) photoTex.encoding = THREE.sRGBEncoding;
+      let photoTex = textureCache[textureURL];
+      if (!photoTex) {
+        photoTex = textureLoader.load(textureURL);
+        photoTex.flipY = false;
+        photoTex.generateMipmaps = false;
+        photoTex.minFilter = THREE.LinearFilter;
+        if (THREE.sRGBEncoding) photoTex.encoding = THREE.sRGBEncoding;
+        textureCache[textureURL] = photoTex;
+      }
 
       return new THREE.MeshBasicMaterial({
         map: photoTex,
@@ -461,7 +472,9 @@
             child.geometry.dispose();
           }
           if (child.material && child.material !== sharedWhiteMat) {
-            if (child.material.map) child.material.map.dispose();
+            if (child.material.map && !Object.values(textureCache).includes(child.material.map)) {
+              child.material.map.dispose();
+            }
             child.material.dispose();
           }
         }
@@ -650,7 +663,7 @@
         group.rotation.set(0, 0, 0);
         initScreenAngle = Math.PI / 2;
       } else if (isFingerTarget) {
-        // 🌟 [수정 반영] 손가락 나비도 상(Top), 하(Bottom), 좌(Left), 우(Right) 4면에서 무작위로 날아옴
+        // 🌟 손가락 나비 4면 진입 로직[cite: 2]
         const spawnSide = Math.floor(Math.random() * 4);
         if (spawnSide === 0) { // 상 (Top)
           group.position.set((Math.random() - 0.5) * 14, 8.5, 8.0);
@@ -678,27 +691,27 @@
         initScreenAngle = fromTop ? -Math.PI / 2 : Math.PI / 2;
         group.scale.set(0.01, 0.01, 0.01);
       } else {
-        // 🌟 [수정 반영] 상, 하, 좌, 우 및 화면 내부에서 고르게 생성
+        // 🌟 상, 하, 좌, 우 및 화면 내부 고른 생성[cite: 2]
         const spawnMode = Math.floor(Math.random() * 5);
         let spawnX = 0, spawnY = 0;
 
-        if (spawnMode === 0) { // 상 (Top -> 아래/대각선으로 진입)
+        if (spawnMode === 0) {
           spawnX = (Math.random() - 0.5) * 18;
           spawnY = 6.8 + Math.random() * 1.5;
           initScreenAngle = -Math.PI / 2 + (Math.random() - 0.5) * 1.2;
-        } else if (spawnMode === 1) { // 하 (Bottom -> 위/대각선으로 진입)
+        } else if (spawnMode === 1) {
           spawnX = (Math.random() - 0.5) * 18;
           spawnY = -6.8 - Math.random() * 1.5;
           initScreenAngle = Math.PI / 2 + (Math.random() - 0.5) * 1.2;
-        } else if (spawnMode === 2) { // 좌 (Left -> 우/대각선으로 진입)
+        } else if (spawnMode === 2) {
           spawnX = -13.5 - Math.random() * 2.0;
           spawnY = (Math.random() - 0.5) * 10;
           initScreenAngle = 0 + (Math.random() - 0.5) * 1.2;
-        } else if (spawnMode === 3) { // 우 (Right -> 좌/대각선으로 진입)
+        } else if (spawnMode === 3) {
           spawnX = 13.5 + Math.random() * 2.0;
           spawnY = (Math.random() - 0.5) * 10;
           initScreenAngle = Math.PI + (Math.random() - 0.5) * 1.2;
-        } else { // 화면 내부 (전방위 360도 자유 비행)
+        } else {
           spawnX = (Math.random() - 0.5) * 16;
           spawnY = (Math.random() - 0.5) * 8.5;
           initScreenAngle = Math.random() * Math.PI * 2;
@@ -739,8 +752,8 @@
         memo: data.memo || "너의 찬란한 날갯짓을 응원해.",
         core_concern: data.core_concern || (Array.isArray(data.q2) && data.q2.length > 0 ? data.q2[0] : "완벽주의 강박"),
         concern_reason: data.concern_reason || "항상 잘 해내야 한다는 마음이 앞서서요.",
-        screenAngle: initScreenAngle, // 🌟 화면 2D 평면 전방위 비행 각도 (상, 하, 대각선, 좌, 우)
-        depthAngle: initDepthAngle,   // 🌟 화면 깊이 방향 완만한 틸트
+        screenAngle: initScreenAngle,
+        depthAngle: initDepthAngle,
         speedBase: initialSpeed,
         turnRateAngle: 0,
         turnRateDepth: 0,
@@ -777,6 +790,7 @@
     
     let specialButterfly = null;
     let fistButterflies = []; 
+    let isCreatingSpecialButterfly = false;
 
     const floatingConcernCard = document.getElementById('floating-concern-card');
     const floatingConcernTag = document.getElementById('floating-concern-tag');
@@ -881,7 +895,7 @@
     const handPointer = document.getElementById('hand-pointer');
 
     /* ========================================================
-       🌟 이동 및 날개짓 물리 연산 (상하/대각선 360도 전방위 유영 엔진)
+       🌟 이동 및 날개짓 물리 연산 (상하/대각선 360도 전방위 유영 엔진)[cite: 2]
        ======================================================== */
     function updateMotion(b, dt, time) {
       let currentTargetScale = b.targetScale;
@@ -1034,7 +1048,6 @@
                   b.innerGroup.rotation.x = Math.PI / 2;
                   b.innerGroup.rotation.y = Math.PI;
                   b.speedBase = 0.110;
-                  // 🌟 무리 합류 시 상하/대각선 전방위 각도 부여
                   b.screenAngle = Math.random() * Math.PI * 2;
                   b.depthAngle = (Math.random() - 0.5) * 0.35;
                   userFlock.push(b);
@@ -1171,7 +1184,6 @@
           } 
       }
 
-      // 🌟 [수정 반영] 상, 하, 대각선, 좌, 우 360도 전방위 유영 로직
       if (!isFollowing && !b.isAscendingArrival) {
           b.state = 'flying';
 
@@ -1189,16 +1201,14 @@
           b.dirChangeTimer += dt;
           if (b.dirChangeTimer > 2.2 + (b.seed % 1.8)) {
               b.dirChangeTimer = 0;
-              b.angleBias = (Math.random() - 0.5) * 0.045; // 🌟 유기적 커브 선회
+              b.angleBias = (Math.random() - 0.5) * 0.045;
           }
 
-          // 화면 상의 S자 유영 및 회전 파동
           const organicTurn = Math.sin(time * 0.55 + b.seed) * 0.035 
                             + Math.cos(time * 0.85 + b.seed * 1.4) * 0.028 
                             + (b.angleBias || 0);
 
           let steerX = 0, steerY = 0, steerZ = 0;
-          // 화면 경계 판정
           if (b.group.position.x > 11.5) steerX = -1;
           else if (b.group.position.x < -11.5) steerX = 1;
 
@@ -1208,7 +1218,6 @@
           if (b.group.position.z > 1.2) steerZ = -1;
           else if (b.group.position.z < -6.0) steerZ = 1;
 
-          // 🌟 벽 충돌 시 상하/대각선 방향으로 부드럽게 반사되어 핑퐁 현상 제거
           if (steerX !== 0 || steerY !== 0) {
               const targetY = steerY !== 0 ? steerY : Math.sin(b.screenAngle);
               const targetX = steerX !== 0 ? steerX : Math.cos(b.screenAngle);
@@ -1222,7 +1231,6 @@
               b.turnRateAngle = (b.turnRateAngle || 0) * 0.86 + organicTurn * 0.15;
           }
 
-          // 깊이(Z) 경계 회항
           if (steerZ !== 0) {
               const targetDepth = steerZ > 0 ? 0.35 : -0.35;
               b.turnRateDepth = (b.turnRateDepth || 0) * 0.84 + (targetDepth - (b.depthAngle || 0)) * 0.08 * 0.16;
@@ -1238,7 +1246,6 @@
           const forwardSurge = 1.0 + (currentStroke * 0.55);
           const currentSpeed = b.speedBase * forwardSurge;
 
-          // 🌟 [수정 반영] 상, 하, 좌, 우, 대각선 모든 방향으로 온전한 속도 배분 (좌우 편중 100% 해소)
           const cosD = Math.cos(b.depthAngle);
           b.velocity.x = cosD * Math.cos(b.screenAngle) * currentSpeed;
           b.velocity.y = cosD * Math.sin(b.screenAngle) * currentSpeed;
@@ -1264,7 +1271,6 @@
       _vStep.copy(b.velocity).multiplyScalar(timeFactor);
       b.group.position.add(_vStep);
 
-      // 🌟 [정방향 보장] 머리가 진행 방향을 100% 가리키는 정방향 비행 및 선회 뱅킹
       if (b.velocity.lengthSq() > 0.00001 && b.state === 'flying' && !isFollowing) {
         _vTargetPos.set(
           b.group.position.x + b.velocity.x,
@@ -1321,7 +1327,8 @@
               releaseLandingTimer = null;
           }
 
-          if (!specialButterfly && !activeCeremonyButterfly) {
+          if (!specialButterfly && !activeCeremonyButterfly && !isCreatingSpecialButterfly) {
+              isCreatingSpecialButterfly = true;
               let targetData = {};
               let isUserButterfly = false;
               if (rawUserDataList.length > 0) {
@@ -1335,6 +1342,7 @@
                   };
               }
               specialButterfly = buildButterfly(targetData, isUserButterfly, false, true, 8.0);
+              isCreatingSpecialButterfly = false;
           }
       } else {
           if (specialButterfly && !releaseLandingTimer) {
@@ -1446,17 +1454,12 @@
     }, 1500);
 
     /* ========================================================
-       3. 네이티브 웹캠 최적화 + 제스처 인식 (GPU 다운스케일 + 쿨다운)[cite: 2]
+       3. 네이티브 웹캠 최적화 + 제스처 인식 (GPU 다이렉트 전송)[cite: 2]
        ======================================================== */
     setTimeout(() => {
       try {
         if (typeof Hands !== 'undefined') {
           const videoElement = document.getElementById('webcam-video');
-
-          const downscaleCanvas = document.createElement('canvas');
-          downscaleCanvas.width = 160;
-          downscaleCanvas.height = 120;
-          const downscaleCtx = downscaleCanvas.getContext('2d');
 
           const hands = new Hands({ locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}` });
           hands.setOptions({ 
@@ -1559,12 +1562,11 @@
                 function processVideoLoop() {
                   if (!isProcessingFrame && videoElement.readyState >= 2) {
                     isProcessingFrame = true;
-                    downscaleCtx.drawImage(videoElement, 0, 0, 160, 120);
-                    hands.send({ image: downscaleCanvas })
+                    hands.send({ image: videoElement })
                       .catch(() => {})
                       .finally(() => {
                         isProcessingFrame = false;
-                        setTimeout(processVideoLoop, 120);
+                        setTimeout(processVideoLoop, 80);
                       });
                   } else {
                     setTimeout(processVideoLoop, 40);
