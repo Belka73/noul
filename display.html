@@ -372,7 +372,7 @@
       geometry.attributes.uv.needsUpdate = true;
     }
 
-    /* 🌟 프로미스 기반 모델 캐시 (실제 배포 경로 1순위로 404 원천 차단) */
+    /* 🌟 프로미스 기반 모델 캐시 (실제 배포 경로 1순위로 404 차단) */
     const modelCache = {};
     const modelLoadingPromises = {};
     let resolvedBasePath = null;
@@ -456,7 +456,7 @@
     const bodyGeom = createBodyGeom();
 
     /* ========================================================
-       🌟 세레머니 나비 날개짓 전용 파티클 시스템
+       🌟 [요청 반영] 세레머니 나비 날개짓 전용 파티클 시스템
        ======================================================== */
     const CEREMONY_PARTICLES = 36;
     const ceremonyParticlePositions = new Float32Array(CEREMONY_PARTICLES * 3);
@@ -623,7 +623,7 @@
       const flapSpeed = (targetBPM / 60) * 2 * Math.PI * 2;
       const initialSpeed = 0.085 + Math.random() * 0.025;
 
-      // 🌟 세레머니 나비: 하단(y=-7.5)에서 서서히 상승 시작, 등이 완벽히 보이도록 회전각 (0,0,0) 고정
+      // 🌟 [수정 반영] 세레머니 나비: 하단(y=-7.5)에서 서서히 상승 시작, 등이 완벽히 보이도록 회전각 (0,0,0) 고정
       if (isCeremony) {
         group.position.set(0, -7.5, 8.0);
         initialVelocity = new THREE.Vector3(0, 0.032, 0);
@@ -672,6 +672,7 @@
         isCeremony: isCeremony,
         ceremonyStage: isCeremony ? 'rising' : null,
         ceremonyRestTimer: 0,
+        takeoffTimer: 0,
         name: data.name || (isUser ? "익명의 나비" : "나비"),
         memo: data.memo || "너의 찬란한 날갯짓을 응원해.",
         core_concern: data.core_concern || (Array.isArray(data.q2) && data.q2.length > 0 ? data.q2[0] : "완벽주의 강박"),
@@ -784,18 +785,21 @@
       }, 4200);
     }
 
-    // 🌟 세레머니 나비 중앙 안착 시 다정한 한마디 카드 시퀀스 (5초 유지 -> 사라진 후 1초 뒤 날아감)
+    // 🌟 [수정 반영] 나비 바로 아래 정확한 위치 배치 + 5초 유지 + 1초 뒤 날아감
     function triggerCeremonyCardSequence(b) {
       clearTimeout(ceremonyCardTimer);
       if (activeTypingTimeout) clearTimeout(activeTypingTimeout);
 
-      // 나비 위치(y=0.3) 바로 아래 공간에 3D 좌표 기준 정밀 배치
-      const card3DPos = new THREE.Vector3(0, -1.6, 8.0);
-      card3DPos.project(camera);
-      const cardScreenX = (card3DPos.x * 0.5 + 0.5) * window.innerWidth;
-      const cardScreenY = (-(card3DPos.y) * 0.5 + 0.5) * window.innerHeight;
+      // 나비의 현재 3D 중심 위치를 2D 화면 좌표로 직접 투영
+      const bPos = new THREE.Vector3(0, b.group.position.y, b.group.position.z);
+      bPos.project(camera);
+      const screenCX = (bPos.x * 0.5 + 0.5) * window.innerWidth;
+      const screenCY = (-(bPos.y) * 0.5 + 0.5) * window.innerHeight;
 
-      floatingInfoCard.style.transform = `translate3d(${cardScreenX - 120}px, ${cardScreenY}px, 0)`;
+      // 🌟 나비 날개 하단 바로 아래에 20px의 여백을 두고 정확히 위치시킴
+      const cardTop = screenCY + (window.innerHeight * 0.135);
+
+      floatingInfoCard.style.transform = `translate3d(${screenCX - 120}px, ${cardTop}px, 0)`;
       floatingName.innerText = `‘${b.name}’`;
       floatingInfoCard.classList.add('visible');
 
@@ -806,12 +810,13 @@
           // 5초 후 카드 페이드아웃
           if (floatingInfoCard) floatingInfoCard.classList.remove('visible');
           
-          // 🌟 카드가 사라지고 정확히 1초(1000ms) 뒤 화면 위로 날아감
+          // 🌟 카드가 완전히 사라지고 정확히 1초(1000ms) 뒤 서서히 빨라지는 날갯짓 이륙 시작
           setTimeout(() => {
             if (b && b.isCeremony && b.ceremonyStage === 'resting') {
               b.ceremonyStage = 'flying_up';
+              b.takeoffTimer = 0;
               b.state = 'flying';
-              b.velocity.set(0, 0.08, 0);
+              b.velocity.set(0, 0.008, 0); // 부드러운 초기 부상
             }
           }, 1000);
         }, 5000);
@@ -823,7 +828,7 @@
     const handPointer = document.getElementById('hand-pointer');
 
     /* ========================================================
-       🌟 8분음표 1세트 + 델타타임 보정 이동 물리 (등 정면 노출 & 퇴장 보장)
+       🌟 8분음표 1세트 + 델타타임 보정 이동 물리 (등 정면 노출 & 서서히 빨라지는 이륙)
        ======================================================== */
     function updateMotion(b, dt, time) {
       let currentTargetScale = b.targetScale;
@@ -873,7 +878,15 @@
           if (b.isSpecialLanding && b.specialState === 'approaching') {
             currentFlapSpeed = b.speed * 1.2;
           } else if (b.isCeremony) {
-            currentFlapSpeed = b.speed * 1.05;
+            if (b.ceremonyStage === 'rising') {
+              currentFlapSpeed = b.speed * 0.9;
+            } else if (b.ceremonyStage === 'flying_up') {
+              // 🌟 [수정 반영] 이륙 시 날개짓을 서서히 빠르게 점진 가속 (0.35배에서 1.4배까지 가속)
+              const takeoffProg = Math.min(1.0, (b.takeoffTimer || 0) / 2.8);
+              currentFlapSpeed = b.speed * (0.35 + 1.05 * Math.pow(takeoffProg, 1.3));
+            } else {
+              currentFlapSpeed = b.speed;
+            }
           } else if (b.isAscendingArrival) {
             currentFlapSpeed = b.speed * 1.25;
           }
@@ -913,7 +926,7 @@
 
       let isFollowing = false;
 
-      // 🌟 [세레머니 나비] 하단 서서히 상승 -> 등 정면 노출 정지 -> 5초 유지 -> 1초 뒤 상단 퇴장
+      // 🌟 [세레머니 나비] 서서히 상승 -> 등 정면 노출 정지 -> 5초 유지 -> 서서히 빠른 날개짓으로 이륙
       if (b.isCeremony) {
           isFollowing = true;
 
@@ -930,7 +943,7 @@
               b.group.position.x += (0 - b.group.position.x) * 0.05;
               b.group.position.z = 8.0;
 
-              // 🌟 등이 정면을 완벽히 바라보도록 제어 (옆모습 원천 차단)
+              // 🌟 등이 정면을 완벽히 바라보도록 제어 (옆모습 방지)
               b.innerGroup.rotation.set(0, 0, 0);
               b.group.rotation.set(0.06, 0, Math.sin(time * 2.0 + b.seed) * 0.03);
 
@@ -953,27 +966,32 @@
               b.innerGroup.rotation.set(0, 0, 0);
               b.group.rotation.set(0.04, 0, 0);
 
-              // 🌟 안전 워치독: 12초 이상 멈춰있을 경우 자동 상단 비행 강제 트리거
+              // 안전 워치독 (14초 이상 멈출 경우 자동 이륙)
               b.ceremonyRestTimer = (b.ceremonyRestTimer || 0) + dt;
-              if (b.ceremonyRestTimer > 12.0) {
+              if (b.ceremonyRestTimer > 14.0) {
                   if (floatingInfoCard) floatingInfoCard.classList.remove('visible');
                   b.ceremonyStage = 'flying_up';
+                  b.takeoffTimer = 0;
                   b.state = 'flying';
-                  b.velocity.set(0, 0.08, 0);
+                  b.velocity.set(0, 0.008, 0);
               }
           }
           else if (b.ceremonyStage === 'flying_up') {
               b.state = 'flying';
-              b.velocity.y = Math.min(0.14, b.velocity.y + 0.003);
-              b.velocity.x += Math.sin(time * 2.5 + b.seed) * 0.003;
+              b.takeoffTimer = (b.takeoffTimer || 0) + dt;
+
+              // 🌟 [수정 반영] 비행 속도 점진 가속 (0.008에서 0.108까지 부드럽게 가속)
+              const takeoffProgress = Math.min(1.0, b.takeoffTimer / 2.8);
+              b.velocity.y = 0.008 + 0.10 * Math.pow(takeoffProgress, 1.6);
+              b.velocity.x += Math.sin(time * 2.5 + b.seed) * 0.002;
 
               _vStep.copy(b.velocity).multiplyScalar(dt * 60.0);
               b.group.position.add(_vStep);
 
               b.innerGroup.rotation.set(0, 0, 0);
-              b.group.rotation.set(0.12, 0, b.velocity.x * -5.0);
+              b.group.rotation.set(0.12 * takeoffProgress, 0, b.velocity.x * -5.0);
 
-              // 🌟 상단 밖으로 완전히 벗어나면 퇴장 완료 처리
+              // 🌟 상단 밖으로 완전히 벗어나면 퇴장 완료
               if (b.group.position.y > 8.5) {
                   b.isCeremony = false;
                   b.ceremonyStage = null;
@@ -1243,7 +1261,7 @@
       // 세레머니 나비 전용 파티클 갱신
       updateCeremonyParticles(dt);
 
-      // DOM Reflow 완전 제거 (translate3d로만 60fps 부드러운 위치 추적)[cite: 14]
+      // DOM Reflow 완전 제거 (translate3d로만 60fps 부드러운 위치 추적)
       if (isHandDetected) {
         handTarget3D.lerp(targetHandPos3D, 0.30);
         currentScreenX += (targetScreenX - currentScreenX) * 0.35;
@@ -1255,7 +1273,7 @@
         if (floatingConcernCard && floatingConcernCard.classList.contains('visible')) { 
           floatingConcernCard.style.transform = `translate3d(${currentScreenX + 165}px, ${currentScreenY - 145}px, 0)`; 
         }
-        // 🌟 중앙 세레머니 카드가 활성화되어 있지 않을 때만 손 위치를 따라감
+        // 중앙 세레머니 카드가 활성화되어 있지 않을 때만 손 위치를 따라감
         if (floatingInfoCard && floatingInfoCard.classList.contains('visible') && !activeCeremonyButterfly) { 
           floatingInfoCard.style.transform = `translate3d(${currentScreenX + 165}px, ${currentScreenY - 145}px, 0)`; 
         }
@@ -1267,7 +1285,6 @@
               releaseLandingTimer = null;
           }
 
-          // 🌟 세레머니 중에는 손가락 호출이 겹치지 않도록 보호
           if (!specialButterfly && !activeCeremonyButterfly) {
               let targetData = {};
               let isUserButterfly = false;
