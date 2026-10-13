@@ -129,7 +129,6 @@
       transition: opacity 0.35s ease;
       will-change: transform, opacity;
     }
-
     #floating-info-card::before {
       content: '';
       position: absolute;
@@ -139,7 +138,6 @@
       z-index: -1;
       border-radius: 50%;
     }
-
     #floating-info-card.visible {
       opacity: 1;
     }
@@ -543,7 +541,7 @@
       const flapSpeed = (targetBPM / 60) * 2 * Math.PI * 2;
       const initialSpeed = 0.085 + Math.random() * 0.025;
 
-      // 🌟 [수정 반영]: 손가락 나비는 스폰(좌측 상단)부터 착석까지 Z=8.0 및 scale=0.58 단 하나의 크기로 완전 고정
+      // 손가락 나비는 스폰(좌측 상단)부터 착석까지 Z=8.0 및 scale=0.58 단 하나의 크기로 완전 고정
       if (isFingerTarget) {
         group.position.set(-14.0, 8.5, 8.0);
         initialVelocity = new THREE.Vector3(0.10, -0.05, 0);
@@ -618,7 +616,7 @@
     const _vLeave = new THREE.Vector3(22, 1.2, 0);
     const _vStep = new THREE.Vector3();
 
-    // 🌟 Z축 깊이를 8.0으로 일관되게 초기화하여 좌표 점프 방지
+    // Z축 깊이를 8.0으로 일관되게 초기화하여 좌표 점프 방지
     let handTarget3D = new THREE.Vector3(999, 999, 8.0);
     let targetHandPos3D = new THREE.Vector3(999, 999, 8.0);
     let prevHandTarget3D = new THREE.Vector3(999, 999, 8.0);
@@ -693,10 +691,10 @@
     const handPointer = document.getElementById('hand-pointer');
 
     /* ========================================================
-       🌟 8분음표 1세트 + 델타타임 보정 이동 물리 (크기 100% 완전 고정)
+       8분음표 1세트 + 델타타임 보정 이동 물리 (크기 100% 완전 고정)
        ======================================================== */
     function updateMotion(b, dt, time) {
-      // 🌟 [수정 반영]: 손가락 나비는 손의 위치/각도와 상관없이 언제나 b.targetScale(0.58) 단 하나의 크기로 완전 고정
+      // 손가락 나비는 손의 위치/각도와 상관없이 언제나 b.targetScale(0.58) 단 하나의 크기로 완전 고정
       if (b.isSpecialLanding) {
         b.group.scale.set(b.targetScale, b.targetScale, b.targetScale);
       } else if (b.isAscendingArrival) {
@@ -710,9 +708,9 @@
         if (b.arrivalTimer > 5.5 || b.group.position.y > 0) b.isAscendingArrival = false; 
       } else {
         b.group.scale.set(
-          b.group.scale.x + (b.targetScale - b.group.scale.x) * 0.1,
-          b.group.scale.y + (b.targetScale - b.group.scale.y) * 0.1,
-          b.group.scale.z + (b.targetScale - b.group.scale.z) * 0.1
+          b.group.scale.x + (currentTargetScale - b.group.scale.x) * 0.1,
+          b.group.scale.y + (currentTargetScale - b.group.scale.y) * 0.1,
+          b.group.scale.z + (currentTargetScale - b.group.scale.z) * 0.1
         );
       }
 
@@ -776,7 +774,7 @@
 
       let isFollowing = false;
 
-      // 🌟 손가락 나비 비행 (Z=8.0 고정으로 원근상 크기 급변 방지)
+      // 손가락 나비 비행 (Z=8.0 고정으로 원근상 크기 급변 방지)
       if (b.isSpecialLanding) {
           isFollowing = true;
 
@@ -1002,7 +1000,7 @@
       const dt = Math.min(rawDt, 0.033);
       const time = clock.getElapsedTime();
 
-      // DOM Reflow 완전 제거 (translate3d로만 60fps 부드러운 위치 추적)
+      // 🌟 [수정 반영]: 말풍선 카드의 X축 오프셋을 +35px에서 +80px로 변경하여 오른쪽으로 이동
       if (isHandDetected) {
         handTarget3D.lerp(targetHandPos3D, 0.30);
         currentScreenX += (targetScreenX - currentScreenX) * 0.35;
@@ -1012,10 +1010,10 @@
           handPointer.style.transform = `translate3d(${currentScreenX - 26}px, ${currentScreenY - 26}px, 0)`;
         }
         if (floatingConcernCard && floatingConcernCard.classList.contains('visible')) { 
-          floatingConcernCard.style.transform = `translate3d(${currentScreenX + 35}px, ${currentScreenY - 145}px, 0)`; 
+          floatingConcernCard.style.transform = `translate3d(${currentScreenX + 80}px, ${currentScreenY - 145}px, 0)`; 
         }
         if (floatingInfoCard && floatingInfoCard.classList.contains('visible')) { 
-          floatingInfoCard.style.transform = `translate3d(${currentScreenX + 35}px, ${currentScreenY - 145}px, 0)`; 
+          floatingInfoCard.style.transform = `translate3d(${currentScreenX + 80}px, ${currentScreenY - 145}px, 0)`; 
         }
       }
 
@@ -1215,10 +1213,12 @@
               isHandDetected = false;
               interactionMode = 'none';
               fistButterflies = [];
+              handPerspectiveScale = 1.0;
               resetLandingCards();
             }
           });
 
+          // 🌟 640x480 비디오 직접 전달 + 50ms 쾌속 반응 루프
           if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
             navigator.mediaDevices.getUserMedia({
               video: { width: { ideal: 640 }, height: { ideal: 480 }, frameRate: { ideal: 30 } },
