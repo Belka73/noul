@@ -58,7 +58,7 @@
       border: 1px solid rgba(255, 255, 255, 0.8);
     }
 
-    /* 1단계: 고민 안내 카드 - 크기 축소 (글씨 크기 유지) 및 외곽 방사형 소프트 블러 */
+    /* 1단계: 고민 안내 카드 */
     #floating-concern-card {
       position: absolute;
       top: 0; left: 0;
@@ -111,7 +111,7 @@
       min-height: 34px;
     }
 
-    /* 2단계: 다정한 한마디 카드 - 크기 축소 (글씨 크기 유지) 및 외곽 방사형 소프트 블러 */
+    /* 2단계: 다정한 한마디 카드 */
     #floating-info-card {
       position: absolute;
       top: 0; left: 0;
@@ -362,7 +362,6 @@
       geometry.attributes.uv.needsUpdate = true;
     }
 
-    /* 🌟 프로미스 기반 모델 캐시 (실제 존재하는 배포 경로를 1순위로 배치하여 404 원천 차단) */
     const modelCache = {};
     const modelLoadingPromises = {};
     let resolvedBasePath = null;
@@ -614,7 +613,7 @@
     const _vDir = new THREE.Vector3();
     const _vTargetPos = new THREE.Vector3();
     const _vOrbit = new THREE.Vector3();
-    const _vLeave = new THREE.Vector3(22, 1.2, 0);
+    const _vLeave = new THREE.Vector3(-22, 1.2, 8.0);
     const _vStep = new THREE.Vector3();
 
     let handTarget3D = new THREE.Vector3(999, 999, 8.0);
@@ -691,7 +690,7 @@
     const handPointer = document.getElementById('hand-pointer');
 
     /* ========================================================
-       8분음표 1세트 + 델타타임 보정 이동 물리 (크기 100% 완전 고정)
+       🌟 8분음표 1세트 + 델타타임 보정 이동 물리 (입체적 랜덤 왼쪽 퇴장)
        ======================================================== */
     function updateMotion(b, dt, time) {
       let currentTargetScale = b.targetScale;
@@ -776,7 +775,7 @@
 
       let isFollowing = false;
 
-      // 손가락 나비 비행 (Z=8.0 고정)
+      // 손가락 나비 비행 (접근 및 🌟 입체적 랜덤 왼쪽 퇴장)
       if (b.isSpecialLanding) {
           isFollowing = true;
 
@@ -819,19 +818,37 @@
               b.group.quaternion.slerp(dummyObj.quaternion, 0.18);
           }
 
+          // 🌟 [수정 반영]: 왼쪽(-X)으로 퇴장하되, Z축(깊이감)과 Y축(상하)에 유기적 난류/랜덤 곡선을 주어 입체적으로 비행
           if (b.specialState === 'leaving') {
               b.state = 'flying';
-              _vLeave.set(22.0, b.group.position.y + 1.2, 8.0);
-              _vDir.subVectors(_vLeave, b.group.position).normalize().multiplyScalar(0.25);
-              b.velocity.lerp(_vDir, 0.08); 
-              b.velocity.z = 0; 
+
+              const organicWobbleY = Math.sin(time * 3.2 + b.seed) * 1.6 + Math.cos(time * 6.0 + b.seed * 1.5) * 0.7;
+              const organicWobbleZ = Math.sin(time * 2.5 + b.seed * 1.8) * 3.2; // 카메라 앞으로 다가왔다 멀어지는 Z축 깊이감
+
+              _vLeave.set(
+                  -22.0, 
+                  b.group.position.y + organicWobbleY * 0.35 + 0.3, 
+                  8.0 + organicWobbleZ
+              );
+
+              _vDir.subVectors(_vLeave, b.group.position).normalize().multiplyScalar(0.26);
+              _vDir.y += Math.sin(time * 4.5 + b.seed) * 0.06;
+              _vDir.z += Math.cos(time * 3.8 + b.seed) * 0.08;
+
+              b.velocity.lerp(_vDir, 0.07); 
               
               _vTargetPos.copy(b.group.position).add(b.velocity);
               dummyObj.position.copy(b.group.position);
               dummyObj.lookAt(_vTargetPos);
-              b.group.quaternion.slerp(dummyObj.quaternion, 0.12);
 
-              if (b.group.position.x > 16.0) {
+              const bankRoll = -(b.velocity.y * 10.0) + Math.sin(time * 3.0 + b.seed) * 0.45;
+              dummyObj.rotateZ(Math.max(-1.3, Math.min(1.3, bankRoll)));
+              dummyObj.rotateX(Math.sin(time * 4.0 + b.seed) * 0.15);
+
+              b.group.quaternion.slerp(dummyObj.quaternion, 0.14);
+
+              // 왼쪽 화면 밖(-16.0 이하)으로 완전히 빠져나가면 씬에서 안전하게 제거
+              if (b.group.position.x < -16.0) {
                   scene.remove(b.group);
                   specialButterfly = null;
                   return;
@@ -954,7 +971,7 @@
 
       let maxSpeed = 0.22;
       if (b.isSpecialLanding) {
-          maxSpeed = (b.specialState === 'leaving') ? 0.30 : 0.26;
+          maxSpeed = (b.specialState === 'leaving') ? 0.32 : 0.26;
       } else if (isFollowing && interactionMode === 'scatter') {
           maxSpeed = 0.16; 
       } else if (isFollowing && interactionMode === 'fist_gather') {
@@ -1210,6 +1227,7 @@
               isHandDetected = false;
               interactionMode = 'none';
               fistButterflies = [];
+              handPerspectiveScale = 1.0;
               resetLandingCards();
             }
           });
