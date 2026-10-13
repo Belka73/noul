@@ -279,7 +279,7 @@
     // 기본 나비 전용 형태 목록 (초승 나비, 달무리 나비)
     const DEFAULT_BUTTERFLY_SHAPES = ['crescent', 'moon-halo'];
 
-    // 완전 불투명 고성능 단일 순백 재질
+    // 완전 불투명 고성능 단일 순백 재질[cite: 2]
     const sharedWhiteMat = new THREE.MeshBasicMaterial({ 
       color: 0xffffff, 
       side: THREE.DoubleSide, 
@@ -372,7 +372,7 @@
       geometry.attributes.uv.needsUpdate = true;
     }
 
-    /* 🌟 프로미스 기반 모델 캐시 (실제 배포 경로 1순위로 404 차단) */
+    /* 🌟 프로미스 기반 모델 캐시 (실제 배포 경로 1순위로 404 차단)[cite: 2] */
     const modelCache = {};
     const modelLoadingPromises = {};
     let resolvedBasePath = null;
@@ -455,7 +455,7 @@
     const rightGeom = createStableWingGeom(true);
     const bodyGeom = createBodyGeom();
 
-    /* 🌟 나비 메모리 완전 해제 헬퍼 (VRAM 누수 차단) */
+    /* 🌟 나비 메모리 완전 해제 헬퍼 (VRAM 누수 차단)[cite: 2] */
     function disposeButterfly(b) {
       if (!b || !b.group) return;
       scene.remove(b.group);
@@ -473,7 +473,7 @@
     }
 
     /* ========================================================
-       🌟 세레머니 나비 날개짓 전용 파티클 시스템
+       🌟 세레머니 나비 날개짓 전용 파티클 시스템[cite: 2]
        ======================================================== */
     const CEREMONY_PARTICLES = 36;
     const ceremonyParticlePositions = new Float32Array(CEREMONY_PARTICLES * 3);
@@ -564,7 +564,7 @@
       const aL = createAntenna(false, sharedWhiteMat); aL.position.set(-0.05, 0.7, 0.15); innerGroup.add(aL);
       const aR = createAntenna(true, sharedWhiteMat); aR.position.set(0.05, 0.7, 0.15); innerGroup.add(aR);
 
-      // 🌟 기본 비행 시 등이 위(+Y)를 향하도록 rotation.x = Math.PI / 2, rotation.y = Math.PI 설정 (세레머니 나비는 정면 0)
+      // 🌟 기본 비행 시 등이 위(+Y)를 향하도록 rotation.x = Math.PI / 2, rotation.y = Math.PI 설정 (세레머니 나비는 정면 0)[cite: 2]
       innerGroup.rotation.set(isCeremony ? 0 : Math.PI / 2, isCeremony ? 0 : Math.PI, 0);
       group.add(innerGroup);
 
@@ -642,24 +642,26 @@
       const initialYaw = Math.random() * Math.PI * 2;
       const initialPitch = (Math.random() - 0.5) * 0.80; 
       
-      const targetBPM = 90;
+      // 🌟 [수정 반영] 날개짓 속도 90 -> 145 상향 (초당 약 2.4회 생동감 있는 날갯짓)[cite: 2]
+      const targetBPM = 145;
       const flapSpeed = (targetBPM / 60) * 2 * Math.PI * 2;
-      const initialSpeed = 0.085 + Math.random() * 0.025;
+      // 🌟 [수정 반영] 기본 비행 속도 0.085 -> 0.135 상향 (느릿한 슬로우모션 제거)[cite: 2]
+      const initialSpeed = 0.135 + Math.random() * 0.035;
 
       if (isCeremony) {
         group.position.set(0, -7.5, 8.0);
-        initialVelocity = new THREE.Vector3(0, 0.032, 0);
+        initialVelocity = new THREE.Vector3(0, 0.038, 0);
         targetScale = 0.65;
         group.scale.set(0.65, 0.65, 0.65);
         group.rotation.set(0, 0, 0);
       } else if (isFingerTarget) {
         group.position.set(-14.0, 8.5, 8.0);
-        initialVelocity = new THREE.Vector3(0.10, -0.05, 0);
+        initialVelocity = new THREE.Vector3(0.12, -0.06, 0);
         targetScale = 0.58;
         group.scale.set(0.58, 0.58, 0.58);
       } else if (isDelayedArrival) {
         group.position.set(0, -7.0, 1.5);
-        initialVelocity = new THREE.Vector3(0.04, 0.08, -0.01);
+        initialVelocity = new THREE.Vector3(0.05, 0.10, -0.01);
         group.scale.set(0.01, 0.01, 0.01);
       } else {
         group.position.set(
@@ -702,7 +704,7 @@
         concern_reason: data.concern_reason || "항상 잘 해내야 한다는 마음이 앞서서요.",
         yaw: initialYaw,
         pitch: initialPitch,
-        speedBase: initialSpeed,
+        speedBase: initialSpeed, // 🌟 상향된 기본 비행 속도 적용[cite: 2]
         turnRateYaw: 0,
         turnRatePitch: 0,
         yawBias: (Math.random() - 0.5) * 0.03,
@@ -831,7 +833,7 @@
               b.ceremonyStage = 'flying_up';
               b.takeoffTimer = 0;
               b.state = 'flying';
-              b.velocity.set(0, 0.008, 0);
+              b.velocity.set(0, 0.010, 0);
             }
           }, 1000);
         }, 5000);
@@ -843,7 +845,7 @@
     const handPointer = document.getElementById('hand-pointer');
 
     /* ========================================================
-       이동 및 날개짓 물리 연산
+       이동 및 날개짓 물리 연산 (속도감 최적화)[cite: 2]
        ======================================================== */
     function updateMotion(b, dt, time) {
       let currentTargetScale = b.targetScale;
@@ -874,13 +876,13 @@
 
       let currentFlapSpeed = b.speed;
       if (b.isSpecialLanding && b.specialState === 'approaching') {
-        currentFlapSpeed = b.speed * 1.2;
+        currentFlapSpeed = b.speed * 1.25;
       } else if (b.isCeremony) {
         if (b.ceremonyStage === 'rising') {
-          currentFlapSpeed = b.speed * 0.9;
+          currentFlapSpeed = b.speed * 0.95;
         } else if (b.ceremonyStage === 'flying_up') {
           const takeoffProg = Math.min(1.0, (b.takeoffTimer || 0) / 2.8);
-          currentFlapSpeed = b.speed * (0.35 + 1.05 * Math.pow(takeoffProg, 1.3));
+          currentFlapSpeed = b.speed * (0.45 + 1.05 * Math.pow(takeoffProg, 1.3));
         } else {
           currentFlapSpeed = b.speed;
         }
@@ -942,8 +944,8 @@
 
           if (b.ceremonyStage === 'rising') {
               b.state = 'flying';
-              b.group.position.y += 0.032 * (dt * 60.0);
-              b.group.position.x += (0 - b.group.position.x) * 0.05;
+              b.group.position.y += 0.038 * (dt * 60.0);
+              b.group.position.x += (0 - b.group.position.x) * 0.06;
               b.group.position.z = 8.0;
 
               b.innerGroup.rotation.set(0, 0, 0);
@@ -973,7 +975,7 @@
                   b.ceremonyStage = 'flying_up';
                   b.takeoffTimer = 0;
                   b.state = 'flying';
-                  b.velocity.set(0, 0.008, 0);
+                  b.velocity.set(0, 0.010, 0);
               }
           }
           else if (b.ceremonyStage === 'flying_up') {
@@ -981,8 +983,8 @@
               b.takeoffTimer = (b.takeoffTimer || 0) + dt;
 
               const takeoffProgress = Math.min(1.0, b.takeoffTimer / 2.8);
-              b.velocity.y = 0.008 + 0.10 * Math.pow(takeoffProgress, 1.6);
-              b.velocity.x += Math.sin(time * 2.5 + b.seed) * 0.002;
+              b.velocity.y = 0.010 + 0.12 * Math.pow(takeoffProgress, 1.6);
+              b.velocity.x += Math.sin(time * 2.5 + b.seed) * 0.0025;
 
               _vStep.copy(b.velocity).multiplyScalar(dt * 60.0);
               b.group.position.add(_vStep);
@@ -995,7 +997,7 @@
                   b.ceremonyStage = null;
                   b.innerGroup.rotation.x = Math.PI / 2;
                   b.innerGroup.rotation.y = Math.PI;
-                  b.speedBase = 0.085;
+                  b.speedBase = 0.135; // 🌟 무리 합류 시에도 경쾌한 속도 유지[cite: 2]
                   b.yaw = Math.random() * Math.PI * 2;
                   b.pitch = (Math.random() - 0.5) * 0.6;
                   userFlock.push(b);
@@ -1027,8 +1029,8 @@
                   b.state = 'flying';
                   _vDir.subVectors(handTarget3D, b.group.position);
                   _vDir.z = 0; 
-                  _vDir.normalize().multiplyScalar(0.24);
-                  b.velocity.lerp(_vDir, 0.08); 
+                  _vDir.normalize().multiplyScalar(0.28);
+                  b.velocity.lerp(_vDir, 0.09); 
                   
                   _vTargetPos.copy(b.group.position).add(b.velocity);
                   dummyObj.position.copy(b.group.position);
@@ -1065,11 +1067,11 @@
                   8.0 + organicWobbleZ
               );
 
-              _vDir.subVectors(_vLeave, b.group.position).normalize().multiplyScalar(0.26);
+              _vDir.subVectors(_vLeave, b.group.position).normalize().multiplyScalar(0.30);
               _vDir.y += Math.sin(time * 4.5 + b.seed) * 0.06;
               _vDir.z += Math.cos(time * 3.8 + b.seed) * 0.08;
 
-              b.velocity.lerp(_vDir, 0.07); 
+              b.velocity.lerp(_vDir, 0.08); 
               
               _vTargetPos.copy(b.group.position).add(b.velocity);
               dummyObj.position.copy(b.group.position);
@@ -1094,7 +1096,7 @@
               b.state = 'flying';
               
               const orbitIdx = fistButterflies.indexOf(b.id);
-              const orbitAngle = time * 1.35 + (orbitIdx * ((Math.PI * 2) / fistButterflies.length)) + b.seed * 0.1;
+              const orbitAngle = time * 1.6 + (orbitIdx * ((Math.PI * 2) / fistButterflies.length)) + b.seed * 0.1;
               const orbitRadius = 2.4 + (orbitIdx * 0.45);
               const heightOffset = Math.sin(orbitAngle * 1.1 + orbitIdx) * 1.2;
               const depthOffset = Math.cos(orbitAngle * 0.9 + orbitIdx) * 1.0;
@@ -1106,8 +1108,8 @@
               );
               _vTargetPos.copy(handTarget3D).add(_vOrbit);
               
-              _vDir.subVectors(_vTargetPos, b.group.position).normalize().multiplyScalar(0.22);
-              b.velocity.lerp(_vDir, 0.10);
+              _vDir.subVectors(_vTargetPos, b.group.position).normalize().multiplyScalar(0.26);
+              b.velocity.lerp(_vDir, 0.11);
               b.velocity.x += (Math.random() - 0.5) * 0.008;
               b.velocity.y += (Math.random() - 0.5) * 0.008;
 
@@ -1126,7 +1128,7 @@
                   _vDir.subVectors(b.group.position, handTarget3D);
                   _vDir.z = 0; 
                   _vDir.normalize();
-                  b.velocity.addScaledVector(_vDir, 0.05); 
+                  b.velocity.addScaledVector(_vDir, 0.07); 
                   b.velocity.z *= 0.85; 
               }
           } 
@@ -1138,7 +1140,7 @@
           if (b.yaw === undefined) {
               b.yaw = Math.atan2(b.velocity.z, b.velocity.x) || (Math.random() * Math.PI * 2);
               b.pitch = (Math.random() - 0.5) * 0.80;
-              b.speedBase = 0.085 + (b.seed % 100) * 0.00025;
+              b.speedBase = 0.135 + (b.seed % 100) * 0.0003;
               b.turnRateYaw = 0;
               b.turnRatePitch = 0;
               b.yawBias = (Math.random() - 0.5) * 0.03;
@@ -1163,28 +1165,28 @@
                                  + (b.pitchBias || 0);
 
           let steerX = 0, steerZ = 0, steerY = 0;
-          if (b.group.position.x > 12.5) steerX = -0.055;
-          else if (b.group.position.x < -12.5) steerX = 0.055;
+          if (b.group.position.x > 12.5) steerX = -0.065;
+          else if (b.group.position.x < -12.5) steerX = 0.065;
 
-          if (b.group.position.z > 1.2) steerZ = -0.055;
-          else if (b.group.position.z < -7.0) steerZ = 0.055;
+          if (b.group.position.z > 1.2) steerZ = -0.065;
+          else if (b.group.position.z < -7.0) steerZ = 0.065;
 
-          if (b.group.position.y > 5.5) steerY = -0.050;
-          else if (b.group.position.y < -5.5) steerY = 0.050;
+          if (b.group.position.y > 5.5) steerY = -0.060;
+          else if (b.group.position.y < -5.5) steerY = 0.060;
 
           if (steerX !== 0 || steerZ !== 0) {
               const desiredYaw = Math.atan2(steerZ || Math.sin(b.yaw), steerX || Math.cos(b.yaw));
               let diffYaw = desiredYaw - b.yaw;
               while (diffYaw < -Math.PI) diffYaw += Math.PI * 2;
               while (diffYaw > Math.PI) diffYaw -= Math.PI * 2;
-              b.turnRateYaw = (b.turnRateYaw || 0) * 0.86 + diffYaw * 0.06 * 0.14;
+              b.turnRateYaw = (b.turnRateYaw || 0) * 0.86 + diffYaw * 0.07 * 0.16;
           } else {
               b.turnRateYaw = (b.turnRateYaw || 0) * 0.88 + organicYawTurn * 0.12;
           }
 
           if (steerY !== 0) {
               const targetPitch = steerY > 0 ? 0.55 : -0.55;
-              b.turnRatePitch = (b.turnRatePitch || 0) * 0.86 + (targetPitch - b.pitch) * 0.09 * 0.14;
+              b.turnRatePitch = (b.turnRatePitch || 0) * 0.86 + (targetPitch - b.pitch) * 0.10 * 0.16;
           } else {
               b.turnRatePitch = (b.turnRatePitch || 0) * 0.88 + organicPitchTurn * 0.12;
           }
@@ -1202,15 +1204,16 @@
           b.velocity.y = Math.sin(b.pitch) * currentSpeed;
       }
 
-      let maxSpeed = 0.22;
+      // 🌟 [수정 반영] 속도 상한 0.22 -> 0.32로 상향하여 넉넉하고 시원한 비행 허용[cite: 2]
+      let maxSpeed = 0.32;
       if (b.isSpecialLanding) {
-          maxSpeed = (b.specialState === 'leaving') ? 0.32 : 0.26;
+          maxSpeed = (b.specialState === 'leaving') ? 0.42 : 0.34;
       } else if (b.isCeremony) {
-          maxSpeed = 0.20;
-      } else if (isFollowing && interactionMode === 'scatter') {
-          maxSpeed = 0.16; 
-      } else if (isFollowing && interactionMode === 'fist_gather') {
           maxSpeed = 0.28;
+      } else if (isFollowing && interactionMode === 'scatter') {
+          maxSpeed = 0.24; 
+      } else if (isFollowing && interactionMode === 'fist_gather') {
+          maxSpeed = 0.36;
       }
 
       if (b.velocity.length() > maxSpeed) {
@@ -1222,8 +1225,8 @@
       b.group.position.add(_vStep);
 
       if (!b.isSpecialLanding && !b.isCeremony) {
-          if (b.group.position.z > 2.0) b.velocity.z -= 0.025;
-          if (b.group.position.z < -7.5) b.velocity.z += 0.035;
+          if (b.group.position.z > 2.0) b.velocity.z -= 0.030;
+          if (b.group.position.z < -7.5) b.velocity.z += 0.040;
       }
 
       if (b.velocity.lengthSq() > 0.00001 && b.state === 'flying' && !isFollowing) {
@@ -1252,7 +1255,8 @@
     function animate() {
       requestAnimationFrame(animate);
       const rawDt = clock.getDelta();
-      const dt = Math.min(rawDt, 0.033);
+      // 🌟 [수정 반영] 프레임 변동 시 물리 시계가 반토막 나던 제한을 20fps(0.05초)로 완화[cite: 2]
+      const dt = Math.min(rawDt, 0.05);
       accumulatedTime += dt;
       const time = accumulatedTime;
 
@@ -1322,7 +1326,7 @@
     });
 
     /* ========================================================
-       2. Supabase 실시간 연동 및 동시다발 전송 순차 큐 시스템
+       2. Supabase 실시간 연동 및 동시다발 전송 순차 큐 시스템[cite: 2]
        ======================================================== */
     const ceremonyQueue = [];
     let isCeremonyActive = false;
@@ -1405,14 +1409,13 @@
     }, 1500);
 
     /* ========================================================
-       3. 네이티브 웹캠 최적화 + 제스처 인식 (GPU 다운스케일 + 쿨다운)
+       3. 네이티브 웹캠 최적화 + 제스처 인식 (GPU 다운스케일 + 쿨다운)[cite: 2]
        ======================================================== */
     setTimeout(() => {
       try {
         if (typeof Hands !== 'undefined') {
           const videoElement = document.getElementById('webcam-video');
 
-          // 🌟 GPU 가속 초경량 캔버스 (willReadFrequently 없이 순수 GPU 텍스처로 즉시 다운스케일)
           const downscaleCanvas = document.createElement('canvas');
           downscaleCanvas.width = 160;
           downscaleCanvas.height = 120;
@@ -1516,7 +1519,6 @@
                 videoElement.play();
                 let isProcessingFrame = false;
 
-                // 🌟 GPU 다운스케일(160x120) + 추론 완료 후 120ms 쿨다운 루프
                 function processVideoLoop() {
                   if (!isProcessingFrame && videoElement.readyState >= 2) {
                     isProcessingFrame = true;
@@ -1525,7 +1527,6 @@
                       .catch(() => {})
                       .finally(() => {
                         isProcessingFrame = false;
-                        // 🌟 완료 후 정확히 120ms 동안 메인 스레드를 Three.js 60fps 렌더링에 완전히 양보
                         setTimeout(processVideoLoop, 120);
                       });
                   } else {
