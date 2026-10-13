@@ -34,15 +34,14 @@
       will-change: transform;
     }
 
-    /* 🌟 transform transition을 제거하여 60fps 마우스/손 위치 추적 시 덜덜 떨리는 렉 원천 제거 */
+    /* 포인터 발광 box-shadow 제거 및 GPU 가속 transform 적용 */
     #hand-pointer {
       position: absolute; 
       top: 0; left: 0;
       width: 52px; height: 52px;
       border-radius: 50%;
       background: rgba(255, 255, 255, 0.08);
-      border: 1px solid rgba(255, 255, 255, 0.22);
-      box-shadow: 0 0 16px rgba(255, 255, 255, 0.15);
+      border: 1px solid rgba(255, 255, 255, 0.25);
       pointer-events: none; z-index: 30; opacity: 0; 
       transition: opacity 0.2s ease;
       will-change: transform, opacity;
@@ -56,12 +55,11 @@
       width: 20px;
       height: 20px;
       border-radius: 50%;
-      background: rgba(255, 255, 255, 0.35);
-      border: 1px solid rgba(255, 255, 255, 0.6);
-      box-shadow: 0 0 10px rgba(255, 255, 255, 0.4);
+      background: rgba(255, 255, 255, 0.5);
+      border: 1px solid rgba(255, 255, 255, 0.8);
     }
 
-    /* 1단계: 고민 안내 카드 - top/left 대신 translate3d로 GPU 레이어에서만 부드럽게 이동 */
+    /* 1단계: 고민 안내 카드 - filter: blur 및 text-shadow 발광 제거 */
     #floating-concern-card {
       position: absolute;
       top: 0; left: 0;
@@ -76,15 +74,15 @@
       pointer-events: none;
       z-index: 42;
       opacity: 0;
-      transition: opacity 0.4s ease;
+      transition: opacity 0.35s ease;
       will-change: transform, opacity;
     }
 
     #floating-concern-card::before {
       content: '';
       position: absolute;
-      inset: -15px;
-      background: radial-gradient(ellipse 65% 55% at center, rgba(8, 8, 10, 0.96) 0%, rgba(8, 8, 10, 0.88) 40%, rgba(0, 0, 0, 0) 100%);
+      inset: -10px;
+      background: radial-gradient(ellipse 65% 55% at center, rgba(12, 12, 15, 0.96) 0%, rgba(12, 12, 15, 0.88) 50%, rgba(0, 0, 0, 0) 100%);
       z-index: -1;
       border-radius: 50%;
     }
@@ -101,10 +99,6 @@
       letter-spacing: -0.3px;
       margin-bottom: 8px;
       z-index: 2;
-      text-shadow: 0 0 10px rgba(255, 255, 255, 1.0),
-                   0 0 20px rgba(255, 255, 255, 0.85),
-                   0 0 35px rgba(255, 255, 0.65),
-                   0 0 50px rgba(255, 255, 255, 0.4);
     }
 
     #floating-concern-reason {
@@ -114,11 +108,10 @@
       color: #f0f0f5;
       word-break: keep-all;
       z-index: 2;
-      text-shadow: 0 1px 4px rgba(0, 0, 0, 0.8);
       min-height: 38px;
     }
 
-    /* 2단계: 다정한 한마디 카드 */
+    /* 2단계: 다정한 한마디 카드 - filter: blur 제거 */
     #floating-info-card {
       position: absolute;
       top: 0; left: 0;
@@ -133,14 +126,14 @@
       pointer-events: none;
       z-index: 40;
       opacity: 0;
-      transition: opacity 0.4s ease;
+      transition: opacity 0.35s ease;
       will-change: transform, opacity;
     }
     #floating-info-card::before {
       content: '';
       position: absolute;
-      inset: -15px;
-      background: radial-gradient(ellipse 65% 55% at center, rgba(255, 255, 255, 0.98) 0%, rgba(255, 255, 255, 0.88) 35%, rgba(0, 0, 0, 0) 100%);
+      inset: -10px;
+      background: radial-gradient(ellipse 65% 55% at center, rgba(255, 255, 255, 0.98) 0%, rgba(255, 255, 255, 0.88) 45%, rgba(255, 255, 255, 0) 100%);
       z-index: -1;
       border-radius: 50%;
     }
@@ -208,7 +201,7 @@
       font-size: 13.5px;
       color: #e5e5ea;
       letter-spacing: -0.2px;
-      text-shadow: 0 1px 8px rgba(0, 0, 0, 0.85), 0 2px 14px rgba(0, 0, 0, 0.95);
+      text-shadow: 0 1px 6px rgba(0, 0, 0, 0.9);
     }
     .guide-banner-item strong {
       color: #ffffff;
@@ -218,7 +211,6 @@
       width: 1px;
       height: 13px;
       background: rgba(255, 255, 255, 0.28);
-      box-shadow: 0 0 4px rgba(0, 0, 0, 0.8);
     }
   </style>
 </head>
@@ -273,7 +265,7 @@
       'wave-fin'
     ];
 
-    // 🌟 완전 불투명 고성능 단일 순백 재질 (ShaderMaterial 완전 대체 및 드로우 콜 최소화)
+    // 🌟 완전 불투명 고성능 단일 순백 재질 (자체 발광/셰이더 제거 및 드로우 콜 최소화)
     const sharedWhiteMat = new THREE.MeshBasicMaterial({ 
       color: 0xffffff, 
       side: THREE.DoubleSide, 
@@ -334,7 +326,7 @@
       return group;
     }
 
-    /* 🌟 커스텀 셰이더(ShaderMaterial)를 완전히 제거하고 100% 불투명 표준 MeshBasicMaterial 적용 */
+    /* 🌟 자체 발광/오라/커스텀 셰이더를 일체 삭제하고 100% 완전 불투명 표준 MeshBasicMaterial 적용 */
     function createStandardWingMaterial(textureURL) {
       const photoTex = textureLoader.load(textureURL);
       photoTex.flipY = false;
@@ -348,7 +340,7 @@
       });
     }
 
-    /* 🌟 날개 메쉬 지오메트리에 평면 투영 UV를 1회 주입하여 커스텀 셰이더 연산 완전 대체 */
+    /* 🌟 날개 메쉬 지오메트리에 평면 투영 UV를 1회 직접 주입 (셰이더 연산 완전 대체) */
     function applyProjectedUVsToGeometry(geometry) {
       if (!geometry || !geometry.attributes || !geometry.attributes.position) return;
       const pos = geometry.attributes.position;
@@ -366,10 +358,10 @@
       geometry.attributes.uv.needsUpdate = true;
     }
 
-    /* 🌟 프로미스 기반 모델 캐시 및 상위폴더 포함 경로 메모이제이션 (404 네트워크 지연 영구 차단) */
+    /* 🌟 프로미스 기반 싱글톤 모델 캐시 (20마리 동시 로딩 시 80번의 중복 404 요청 원천 차단) */
     const modelCache = {};
-    const pendingModelPromises = {};
-    let workingBasePath = null;
+    const modelLoadingPromises = {};
+    let resolvedBasePath = null;
 
     const candidateBases = [
       '3DButterfly/',
@@ -379,22 +371,21 @@
       '../index/3DButterfly/'
     ];
 
-    function getModelPromise(modelName) {
+    function getOrLoadModel(modelName) {
       if (modelCache[modelName]) {
         return Promise.resolve(modelCache[modelName]);
       }
-      if (pendingModelPromises[modelName]) {
-        return pendingModelPromises[modelName];
+      if (modelLoadingPromises[modelName]) {
+        return modelLoadingPromises[modelName];
       }
 
-      const bases = workingBasePath ? [workingBasePath] : candidateBases;
+      const bases = resolvedBasePath ? [resolvedBasePath] : candidateBases;
 
-      pendingModelPromises[modelName] = new Promise((resolve, reject) => {
+      modelLoadingPromises[modelName] = new Promise((resolve) => {
         let idx = 0;
         function tryNext() {
           if (idx >= bases.length) {
-            delete pendingModelPromises[modelName];
-            reject(new Error(`모델 탐색 실패: ${modelName}`));
+            resolve(null);
             return;
           }
           const base = bases[idx++];
@@ -403,9 +394,8 @@
           gltfLoader.load(
             fullPath,
             (gltf) => {
-              workingBasePath = base;
+              resolvedBasePath = base;
               modelCache[modelName] = gltf.scene;
-              delete pendingModelPromises[modelName];
               resolve(gltf.scene);
             },
             undefined,
@@ -417,7 +407,7 @@
         tryNext();
       });
 
-      return pendingModelPromises[modelName];
+      return modelLoadingPromises[modelName];
     }
 
     const container = document.getElementById('three-canvas-container');
@@ -426,7 +416,7 @@
     const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 1000);
     camera.position.set(0, 0, 14.5);
 
-    // 🌟 pixelRatio를 1.0으로 고정하고 불필요한 렌더러 버퍼를 꺼서 GPU 부하 원천 차단
+    // 🌟 pixelRatio를 1.0으로 고정하여 GPU 부하 원천 차단
     const renderer = new THREE.WebGLRenderer({ 
       alpha: true, 
       antialias: false, 
@@ -444,7 +434,7 @@
     // 🌟 순백 조명
     const ambLight = new THREE.AmbientLight(0xffffff, 1.2);
     scene.add(ambLight);
-    const dirLight = new THREE.DirectionalLight(0xffffff, 1.0);
+    const dirLight = new THREE.DirectionalLight(0xffffff, 0.9);
     dirLight.position.set(0, 5, 10);
     scene.add(dirLight);
 
@@ -453,69 +443,6 @@
     const leftGeom = createStableWingGeom(false);
     const rightGeom = createStableWingGeom(true);
     const bodyGeom = createBodyGeom();
-
-    /* ========================================================
-       🌟 궤적 파티클
-       ======================================================== */
-    const MAX_TRAIL_PARTICLES = 40;
-    const trailPositions = new Float32Array(MAX_TRAIL_PARTICLES * 3);
-    const trailData = [];
-
-    for (let i = 0; i < MAX_TRAIL_PARTICLES; i++) {
-      trailData.push({ x: 9999, y: 9999, z: 9999, vx: 0, vy: 0, life: 0 });
-      trailPositions[i * 3 + 0] = 9999;
-      trailPositions[i * 3 + 1] = 9999;
-      trailPositions[i * 3 + 2] = 9999;
-    }
-
-    const trailGeom = new THREE.BufferGeometry();
-    trailGeom.setAttribute('position', new THREE.BufferAttribute(trailPositions, 3));
-
-    const pCanvas = document.createElement('canvas');
-    pCanvas.width = 16; pCanvas.height = 16;
-    const pCtx = pCanvas.getContext('2d');
-    const pGrad = pCtx.createRadialGradient(8, 8, 0, 8, 8, 8);
-    pGrad.addColorStop(0, 'rgba(255, 255, 255, 1.0)');
-    pGrad.addColorStop(0.5, 'rgba(230, 245, 255, 0.8)');
-    pGrad.addColorStop(1, 'rgba(255, 255, 255, 0)');
-    pCtx.fillStyle = pGrad;
-    pCtx.fillRect(0, 0, 16, 16);
-    const particleTex = new THREE.CanvasTexture(pCanvas);
-
-    const trailMat = new THREE.PointsMaterial({
-      map: particleTex, size: 0.5, transparent: true, blending: THREE.AdditiveBlending, depthWrite: false, color: 0xffffff
-    });
-    const trailPoints = new THREE.Points(trailGeom, trailMat);
-    scene.add(trailPoints);
-
-    let trailSpawnCursor = 0;
-    function spawnButterflyTrail(pos) {
-      const p = trailData[trailSpawnCursor];
-      p.x = pos.x; p.y = pos.y; p.z = pos.z;
-      p.vx = (Math.random() - 0.5) * 0.02;
-      p.vy = (Math.random() - 0.5) * 0.02;
-      p.life = 0.6;
-      trailSpawnCursor = (trailSpawnCursor + 1) % MAX_TRAIL_PARTICLES;
-    }
-
-    function updateTrailParticles(dt) {
-      let needsUpdate = false;
-      const posAttr = trailGeom.attributes.position;
-      for (let i = 0; i < MAX_TRAIL_PARTICLES; i++) {
-        const p = trailData[i];
-        if (p.life > 0) {
-          p.life -= dt;
-          p.x += p.vx; p.y += p.vy;
-          posAttr.setXYZ(i, p.x, p.y, p.z);
-          needsUpdate = true;
-        } else if (p.x !== 9999) {
-          p.x = 9999;
-          posAttr.setXYZ(i, 9999, 9999, 9999);
-          needsUpdate = true;
-        }
-      }
-      if (needsUpdate) posAttr.needsUpdate = true;
-    }
 
     const defaultFlock = [];
     const userFlock = [];
@@ -548,12 +475,13 @@
       const textureURL = data.texture_url || data.image_url;
       const hasTexture = !!(isUser && textureURL);
 
-      // 🌟 셰이더 없이 100% 표준 MeshBasicMaterial 사용
+      // 🌟 셰이더 및 자체 발광 일체 삭제 -> 100% 표준 MeshBasicMaterial 사용
       const wingMat = hasTexture ? createStandardWingMaterial(textureURL) : sharedWhiteMat;
 
       if (gltfLoader) {
-        getModelPromise(shapeId).then((cachedScene) => {
-          const model = cachedScene.clone(true);
+        getOrLoadModel(shapeId).then((sceneTemplate) => {
+          if (!sceneTemplate) return;
+          const model = sceneTemplate.clone(true);
           let newWingL = null, newWingR = null;
           const meshesToRemove = [];
 
@@ -585,6 +513,7 @@
             }
           });
 
+          // 불필요한 더듬이 메쉬는 메모리와 씬 트리에서 완전 제거
           meshesToRemove.forEach((m) => {
             if (m.parent) m.parent.remove(m);
           });
@@ -600,7 +529,7 @@
             butterflyRecord.leftWing = newWingL;
             butterflyRecord.rightWing = newWingR;
           }
-        }).catch(() => {});
+        });
       }
 
       let initialVelocity;
@@ -613,11 +542,12 @@
       const flapSpeed = (targetBPM / 60) * 2 * Math.PI * 2;
       const initialSpeed = 0.085 + Math.random() * 0.025;
 
+      // 🌟 [요청 반영]: 손가락으로 오는 나비의 크기 축소 (0.88 -> 0.44)
       if (isFingerTarget) {
         group.position.set(-18, 14, customZ);
         initialVelocity = new THREE.Vector3(0, 0, 0);
-        targetScale = 0.88;
-        group.scale.set(0.88, 0.88, 0.88);
+        targetScale = 0.44;
+        group.scale.set(0.44, 0.44, 0.44);
       } else if (isDelayedArrival) {
         group.position.set(0, -7.0, 1.5);
         initialVelocity = new THREE.Vector3(0.04, 0.08, -0.01);
@@ -767,8 +697,9 @@
     function updateMotion(b, time) {
       let currentTargetScale = b.targetScale;
       
+      // 🌟 [요청 반영]: 손끝 착석 시 기준 스케일 축소 (0.88 -> 0.44)
       if (b.isSpecialLanding && (b.specialState === 'approaching' || b.specialState === 'landed')) {
-        const landingBaseScale = 0.88;
+        const landingBaseScale = 0.44;
         const effectivePerspective = Math.max(0.85, handPerspectiveScale);
         currentTargetScale = landingBaseScale * effectivePerspective;
       }
@@ -854,8 +785,6 @@
           isFollowing = true;
 
           if (b.specialState === 'approaching') {
-              spawnButterflyTrail(b.group.position);
-
               const dx = b.group.position.x - handTarget3D.x;
               const dy = b.group.position.y - handTarget3D.y;
               const dist2D = Math.hypot(dx, dy);
@@ -896,8 +825,6 @@
           }
 
           if (b.specialState === 'leaving') {
-              spawnButterflyTrail(b.group.position);
-
               b.state = 'flying';
               _vLeave.z = b.group.position.z;
               _vDir.subVectors(_vLeave, b.group.position).normalize().multiplyScalar(0.18);
@@ -1077,9 +1004,7 @@
       const dt = clock.getDelta();
       const time = clock.getElapsedTime();
 
-      updateTrailParticles(dt);
-
-      // 🌟 [핵심 최적화]: left/top 변경(Reflow)을 완전히 제거하고 GPU 가속 transform만 사용
+      // 🌟 [GPU 최적화]: DOM Reflow(left/top)를 100% 제거하고 translate3d만 사용하여 60fps 부드러운 위치 추적
       if (isHandDetected) {
         handTarget3D.lerp(targetHandPos3D, 0.25);
         currentScreenX += (targetScreenX - currentScreenX) * 0.3;
@@ -1200,14 +1125,14 @@
     }, 1500);
 
     /* ========================================================
-       3. 네이티브 웹캠 최적화 + 제스처 인식 (메인 스레드 렌더링 완벽 보호)
+       3. 네이티브 웹캠 초경량화 + 제스처 인식 (메인 스레드 렌더링 100% 보호)
        ======================================================== */
     setTimeout(() => {
       try {
         if (typeof Hands !== 'undefined') {
           const videoElement = document.getElementById('webcam-video');
 
-          // 🌟 입력 해상도를 128x96으로 초경량화하여 CPU 점유율을 70% 이상 절감
+          // 🌟 128x96 초경량 캔버스로 CPU 점유율을 대폭 낮춰 메인 스레드 60fps 보호
           const offscreenCanvas = document.createElement('canvas');
           offscreenCanvas.width = 128;
           offscreenCanvas.height = 96;
