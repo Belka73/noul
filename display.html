@@ -276,7 +276,7 @@
       'wave-fin'
     ];
 
-    // 기본 나비 전용 형태 목록 (초승 나비, 달무리 나비)
+    // 기본 나비 전용 형태 목록 (초승 나비, 달무리 나비)[cite: 2]
     const DEFAULT_BUTTERFLY_SHAPES = ['crescent', 'moon-halo'];
 
     // 완전 불투명 고성능 단일 순백 재질[cite: 2]
@@ -564,7 +564,7 @@
       const aL = createAntenna(false, sharedWhiteMat); aL.position.set(-0.05, 0.7, 0.15); innerGroup.add(aL);
       const aR = createAntenna(true, sharedWhiteMat); aR.position.set(0.05, 0.7, 0.15); innerGroup.add(aR);
 
-      // 🌟 기본 비행 시 등이 위(+Y)를 향하도록 rotation.x = Math.PI / 2, rotation.y = Math.PI 설정 (세레머니 나비는 정면 0)[cite: 2]
+      // 🌟 기본 비행 시 등이 위(+Y), 머리가 앞(+Z)을 향하도록 기본 정렬[cite: 2]
       innerGroup.rotation.set(isCeremony ? 0 : Math.PI / 2, isCeremony ? 0 : Math.PI, 0);
       group.add(innerGroup);
 
@@ -640,12 +640,10 @@
       let targetScale = 0.62 + Math.random() * 0.14;
 
       const initialYaw = Math.random() * Math.PI * 2;
-      const initialPitch = (Math.random() - 0.5) * 0.80; 
+      const initialPitch = (Math.random() - 0.5) * 0.60; 
       
-      // 🌟 [미세조정 반영] 날개짓 속도 145 -> 120 (초당 2.0회, 너무 빠르지 않고 우아한 날갯짓)
       const targetBPM = 120;
       const flapSpeed = (targetBPM / 60) * 2 * Math.PI * 2;
-      // 🌟 [미세조정 반영] 기본 비행 속도 0.135 -> 0.110 (너무 급박하지 않게 살짝만 감속)
       const initialSpeed = 0.110 + Math.random() * 0.025;
 
       if (isCeremony) {
@@ -704,12 +702,12 @@
         concern_reason: data.concern_reason || "항상 잘 해내야 한다는 마음이 앞서서요.",
         yaw: initialYaw,
         pitch: initialPitch,
-        speedBase: initialSpeed, // 🌟 살짝 감속된 안정적 기본 속도 적용
+        speedBase: initialSpeed,
         turnRateYaw: 0,
         turnRatePitch: 0,
         yawBias: (Math.random() - 0.5) * 0.03,
-        pitchBias: (Math.random() - 0.5) * 0.025,
-        rollBias: (Math.random() - 0.5) * 0.15,
+        pitchBias: (Math.random() - 0.5) * 0.02,
+        rollBias: (Math.random() - 0.5) * 0.10,
         dirChangeTimer: Math.random() * 3.0,
         strokePower: 0,
         prevBobY: 0
@@ -845,7 +843,7 @@
     const handPointer = document.getElementById('hand-pointer');
 
     /* ========================================================
-       이동 및 날개짓 물리 연산 (살짝 감속된 안정적 버전)
+       🌟 이동 및 날개짓 물리 연산 (다양한 각도 & 100% 정방향 비행)
        ======================================================== */
     function updateMotion(b, dt, time) {
       let currentTargetScale = b.targetScale;
@@ -997,9 +995,9 @@
                   b.ceremonyStage = null;
                   b.innerGroup.rotation.x = Math.PI / 2;
                   b.innerGroup.rotation.y = Math.PI;
-                  b.speedBase = 0.110; // 🌟 무리 합류 시에도 안정적 속도 유지
+                  b.speedBase = 0.110;
                   b.yaw = Math.random() * Math.PI * 2;
-                  b.pitch = (Math.random() - 0.5) * 0.6;
+                  b.pitch = (Math.random() - 0.5) * 0.5;
                   userFlock.push(b);
 
                   if (userFlock.length > MAX_USER_BUTTERFLIES) {
@@ -1035,8 +1033,8 @@
                   _vTargetPos.copy(b.group.position).add(b.velocity);
                   dummyObj.position.copy(b.group.position);
                   dummyObj.lookAt(_vTargetPos);
-                  const rollAngle = (b.velocity.x * -8.0);
-                  dummyObj.rotateZ(rollAngle); 
+                  const approachBank = Math.max(-0.6, Math.min(0.6, b.velocity.x * 2.5));
+                  dummyObj.rotateZ(approachBank); 
                   b.group.quaternion.slerp(dummyObj.quaternion, 0.16);
               }
           }
@@ -1077,8 +1075,8 @@
               dummyObj.position.copy(b.group.position);
               dummyObj.lookAt(_vTargetPos);
 
-              const bankRoll = -(b.velocity.y * 6.0) + Math.sin(time * 3.0 + b.seed) * 0.25;
-              dummyObj.rotateZ(Math.max(-0.8, Math.min(0.8, bankRoll)));
+              const bankRoll = Math.max(-0.6, Math.min(0.6, -(b.velocity.y * 4.0) + (b.velocity.x * 1.5)));
+              dummyObj.rotateZ(bankRoll);
               dummyObj.rotateX(Math.sin(time * 4.0 + b.seed) * 0.15);
 
               b.group.quaternion.slerp(dummyObj.quaternion, 0.14);
@@ -1116,8 +1114,8 @@
               _vTargetPos.copy(b.group.position).add(b.velocity);
               dummyObj.position.copy(b.group.position);
               dummyObj.lookAt(_vTargetPos);
-              const rollAngle = (b.velocity.x * -8.0);
-              dummyObj.rotateZ(rollAngle); 
+              const fistBank = Math.max(-0.6, Math.min(0.6, b.velocity.x * 2.5));
+              dummyObj.rotateZ(fistBank); 
               b.group.quaternion.slerp(dummyObj.quaternion, 0.12);
           }
           else if (interactionMode === 'scatter' && !specialButterfly) {
@@ -1139,40 +1137,41 @@
 
           if (b.yaw === undefined) {
               b.yaw = Math.atan2(b.velocity.z, b.velocity.x) || (Math.random() * Math.PI * 2);
-              b.pitch = (Math.random() - 0.5) * 0.80;
+              b.pitch = (Math.random() - 0.5) * 0.50;
               b.speedBase = 0.110 + (b.seed % 100) * 0.00025;
               b.turnRateYaw = 0;
               b.turnRatePitch = 0;
               b.yawBias = (Math.random() - 0.5) * 0.03;
-              b.pitchBias = (Math.random() - 0.5) * 0.025;
-              b.rollBias = (Math.random() - 0.5) * 0.15;
+              b.pitchBias = (Math.random() - 0.5) * 0.02;
+              b.rollBias = (Math.random() - 0.5) * 0.10;
               b.dirChangeTimer = Math.random() * 3.0;
           }
 
           b.dirChangeTimer += dt;
-          if (b.dirChangeTimer > 2.8 + (b.seed % 2.5)) {
+          if (b.dirChangeTimer > 2.6 + (b.seed % 2.0)) {
               b.dirChangeTimer = 0;
               b.yawBias = (Math.random() - 0.5) * 0.035;   
-              b.pitchBias = (Math.random() - 0.5) * 0.032; 
-              b.rollBias = (Math.random() - 0.5) * 0.20;
+              b.pitchBias = (Math.random() - 0.5) * 0.025; 
           }
 
-          const organicYawTurn = Math.sin(time * 0.45 + b.seed) * 0.024 
-                               + Math.cos(time * 0.90 + b.seed * 1.3) * 0.020 
+          // 🌟 3차원 유기적 궤적: 다양한 각도로 유영하는 Yaw / Pitch 파동
+          const organicYawTurn = Math.sin(time * 0.50 + b.seed) * 0.030 
+                               + Math.cos(time * 0.90 + b.seed * 1.3) * 0.025 
                                + (b.yawBias || 0);
 
-          const organicPitchTurn = Math.sin(time * 0.60 + b.seed * 2.1) * 0.024 
-                                 + (b.pitchBias || 0);
+          // 상하 유영(피치) 파동: 오르내림을 주어 다양한 높낮이와 입체 각도 형성
+          const wavePitch = Math.sin(time * 0.70 + b.seed * 2.1) * 0.35;
+          const organicPitchTurn = (wavePitch - b.pitch) * 0.045 + (b.pitchBias || 0);
 
           let steerX = 0, steerZ = 0, steerY = 0;
           if (b.group.position.x > 12.5) steerX = -0.060;
           else if (b.group.position.x < -12.5) steerX = 0.060;
 
-          if (b.group.position.z > 1.2) steerZ = -0.060;
-          else if (b.group.position.z < -7.0) steerZ = 0.060;
+          if (b.group.position.z > 2.2) steerZ = -0.060;
+          else if (b.group.position.z < -6.5) steerZ = 0.060;
 
-          if (b.group.position.y > 5.5) steerY = -0.055;
-          else if (b.group.position.y < -5.5) steerY = 0.055;
+          if (b.group.position.y > 5.0) steerY = -0.055;
+          else if (b.group.position.y < -5.0) steerY = 0.055;
 
           if (steerX !== 0 || steerZ !== 0) {
               const desiredYaw = Math.atan2(steerZ || Math.sin(b.yaw), steerX || Math.cos(b.yaw));
@@ -1185,14 +1184,15 @@
           }
 
           if (steerY !== 0) {
-              const targetPitch = steerY > 0 ? 0.55 : -0.55;
+              const targetPitch = steerY > 0 ? 0.45 : -0.45;
               b.turnRatePitch = (b.turnRatePitch || 0) * 0.86 + (targetPitch - b.pitch) * 0.095 * 0.15;
           } else {
               b.turnRatePitch = (b.turnRatePitch || 0) * 0.88 + organicPitchTurn * 0.12;
           }
 
           b.yaw += b.turnRateYaw;
-          b.pitch = Math.max(-1.15, Math.min(1.15, b.pitch + b.turnRatePitch));
+          // 🌟 Pitch를 -0.65 ~ +0.65(약 ±37도)로 안전하게 클램프하여 뒤집힘 및 후진 원천 차단
+          b.pitch = Math.max(-0.65, Math.min(0.65, b.pitch + b.turnRatePitch));
 
           const currentStroke = b.strokePower || 0;
           const forwardSurge = 1.0 + (currentStroke * 0.55);
@@ -1204,7 +1204,6 @@
           b.velocity.y = Math.sin(b.pitch) * currentSpeed;
       }
 
-      // 🌟 [미세조정 반영] 최고 속도 상한을 0.32 -> 0.27로 완만하게 제어
       let maxSpeed = 0.27;
       if (b.isSpecialLanding) {
           maxSpeed = (b.specialState === 'leaving') ? 0.38 : 0.30;
@@ -1224,11 +1223,7 @@
       _vStep.copy(b.velocity).multiplyScalar(timeFactor);
       b.group.position.add(_vStep);
 
-      if (!b.isSpecialLanding && !b.isCeremony) {
-          if (b.group.position.z > 2.0) b.velocity.z -= 0.028;
-          if (b.group.position.z < -7.5) b.velocity.z += 0.038;
-      }
-
+      // 🌟 [수정 반영] 머리가 100% 진행방향을 이끄는 정방향 비행 + 카메라를 향한 자연스러운 입체 틸트 & 뱅킹
       if (b.velocity.lengthSq() > 0.00001 && b.state === 'flying' && !isFollowing) {
         _vTargetPos.set(
           b.group.position.x + b.velocity.x,
@@ -1237,11 +1232,22 @@
         );
 
         dummyObj.position.copy(b.group.position);
+        // 🌟 진행 방향(_vTargetPos)을 머리가 완벽하게 정방향으로 향하도록 정렬
         dummyObj.lookAt(_vTargetPos); 
 
-        const bankRoll = Math.max(-0.6, Math.min(0.6, -(b.turnRateYaw || 0) * 8.0));
-        const wobbleRoll = Math.sin(time * 1.2 + b.seed * 2.5) * 0.25 + (b.rollBias || 0);
-        const rollAngle = bankRoll + wobbleRoll + Math.sin(phase) * 0.04;
+        // 1. 턴할 때 자연스러운 비행체 뱅킹 (Banking)
+        const turnBank = Math.max(-0.60, Math.min(0.60, -(b.turnRateYaw || 0) * 16.0));
+
+        // 2. 관객(카메라)을 향한 입체 틸트: 좌우 횡단 시 등판이 카메라 쪽으로 24도 가량 자연스럽게 보여 날개 윗면이 환상적으로 보임
+        const normVx = Math.max(-1.0, Math.min(1.0, b.velocity.x / (b.speedBase || 0.11)));
+        const cameraFacingTilt = normVx * 0.42;
+
+        // 3. 유기적인 흔들림 및 날개짓 리듬
+        const wobbleRoll = Math.sin(time * 1.5 + b.seed * 2.5) * 0.15 + (b.rollBias || 0);
+        const strokeWobble = Math.sin(phase) * 0.05;
+
+        // 4. 총 롤 각도 합산 (머리 축 기준 회전이므로 절대 뒤로 날지 않으며 정방향 100% 유지)
+        const rollAngle = Math.max(-0.80, Math.min(0.80, turnBank + cameraFacingTilt + wobbleRoll + strokeWobble));
 
         dummyObj.rotateZ(rollAngle);
 
