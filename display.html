@@ -553,6 +553,88 @@
       if (needsUpdate) posAttr.needsUpdate = true;
     }
 
+    /* ========================================================
+       🌟 손가락 나비 전용 빛 에너지 파티클 시스템 (나비 앱 기 모으기 효과)
+       ======================================================== */
+    const ENERGY_PARTICLES_COUNT = 60;
+    const energyParticlePositions = new Float32Array(ENERGY_PARTICLES_COUNT * 3);
+    const energyParticleData = [];
+
+    for (let i = 0; i < ENERGY_PARTICLES_COUNT; i++) {
+      energyParticleData.push({ x: 9999, y: 9999, z: 9999, vx: 0, vy: 0, vz: 0, life: 0 });
+      energyParticlePositions[i * 3 + 0] = 9999;
+      energyParticlePositions[i * 3 + 1] = 9999;
+      energyParticlePositions[i * 3 + 2] = 9999;
+    }
+
+    const energyParticleGeom = new THREE.BufferGeometry();
+    energyParticleGeom.setAttribute('position', new THREE.BufferAttribute(energyParticlePositions, 3));
+
+    // 나비 앱의 에너지 구체 텍스처 (중심 순백, 외곽 은은한 빛 무리)
+    const eCanvas = document.createElement('canvas');
+    eCanvas.width = 64; eCanvas.height = 64;
+    const eCtx = eCanvas.getContext('2d');
+    const eGrad = eCtx.createRadialGradient(32, 32, 0, 32, 32, 32);
+    eGrad.addColorStop(0, 'rgba(255, 255, 255, 1.0)');
+    eGrad.addColorStop(0.25, 'rgba(255, 255, 245, 0.9)');
+    eGrad.addColorStop(0.55, 'rgba(240, 245, 255, 0.4)');
+    eGrad.addColorStop(0.85, 'rgba(220, 235, 255, 0.12)');
+    eGrad.addColorStop(1, 'rgba(255, 255, 255, 0)');
+    eCtx.fillStyle = eGrad;
+    eCtx.fillRect(0, 0, 64, 64);
+    const energyParticleTex = new THREE.CanvasTexture(eCanvas);
+
+    const energyParticleMat = new THREE.PointsMaterial({
+      map: energyParticleTex,
+      size: 0.85,
+      transparent: true,
+      blending: THREE.AdditiveBlending,
+      depthWrite: false,
+      color: 0xffffff
+    });
+    const energyParticlePoints = new THREE.Points(energyParticleGeom, energyParticleMat);
+    scene.add(energyParticlePoints);
+
+    let energyParticleCursor = 0;
+    function spawnEnergyParticle(pos) {
+      const p = energyParticleData[energyParticleCursor];
+      const angle = Math.random() * Math.PI * 2;
+      const radius = 0.35 + Math.random() * 0.85;
+
+      p.x = pos.x + Math.cos(angle) * radius;
+      p.y = pos.y + Math.sin(angle) * radius;
+      p.z = pos.z + (Math.random() - 0.5) * 0.6;
+
+      // 나비 앱처럼 위로 은은하게 피어오르는 부유 속도
+      p.vx = (Math.random() - 0.5) * 0.018;
+      p.vy = 0.015 + Math.random() * 0.024;
+      p.vz = (Math.random() - 0.5) * 0.015;
+      p.life = 0.95;
+
+      energyParticleCursor = (energyParticleCursor + 1) % ENERGY_PARTICLES_COUNT;
+    }
+
+    function updateEnergyParticles(dt) {
+      let needsUpdate = false;
+      const posAttr = energyParticleGeom.attributes.position;
+      for (let i = 0; i < ENERGY_PARTICLES_COUNT; i++) {
+        const p = energyParticleData[i];
+        if (p.life > 0) {
+          p.life -= dt;
+          p.x += p.vx;
+          p.y += p.vy;
+          p.z += p.vz;
+          posAttr.setXYZ(i, p.x, p.y, p.z);
+          needsUpdate = true;
+        } else if (p.x !== 9999) {
+          p.x = 9999;
+          posAttr.setXYZ(i, 9999, 9999, 9999);
+          needsUpdate = true;
+        }
+      }
+      if (needsUpdate) posAttr.needsUpdate = true;
+    }
+
     const defaultFlock = [];
     const userFlock = [];
     const MAX_USER_BUTTERFLIES = 8;
@@ -1078,6 +1160,12 @@
       else if (b.isSpecialLanding) {
           isFollowing = true;
 
+          // 🌟 [수정 반영]: 등장할 때 및 퇴장할 때 나비 주변에 은은한 빛 파티클 스폰 (나비 앱 효과)
+          if (b.specialState === 'approaching' || b.specialState === 'leaving') {
+              spawnEnergyParticle(b.group.position);
+              if (Math.random() < 0.65) spawnEnergyParticle(b.group.position);
+          }
+
           if (b.specialState === 'approaching') {
               const dx = b.group.position.x - handTarget3D.x;
               const dy = b.group.position.y - handTarget3D.y;
@@ -1316,6 +1404,7 @@
       const time = accumulatedTime;
 
       updateCeremonyParticles(dt);
+      updateEnergyParticles(dt); // 🌟 손가락 나비 전용 빛 에너지 파티클 실시간 갱신
 
       if (isHandDetected) {
         handTarget3D.lerp(targetHandPos3D, 0.30);
@@ -1325,7 +1414,6 @@
         if (handPointer) {
           handPointer.style.transform = `translate3d(${currentScreenX - 26}px, ${currentScreenY - 26}px, 0)`;
         }
-        // 🌟 [수정 반영] 나비 날개와 겹치지 않도록 카드 X축 좌표를 오른쪽으로 이동 (+165px -> +260px)
         if (floatingConcernCard && floatingConcernCard.classList.contains('visible')) { 
           floatingConcernCard.style.transform = `translate3d(${currentScreenX + 260}px, ${currentScreenY - 145}px, 0)`; 
         }
