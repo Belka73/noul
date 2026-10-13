@@ -362,6 +362,7 @@
       geometry.attributes.uv.needsUpdate = true;
     }
 
+    /* 🌟 프로미스 기반 모델 캐시 */
     const modelCache = {};
     const modelLoadingPromises = {};
     let resolvedBasePath = null;
@@ -613,7 +614,7 @@
     const _vDir = new THREE.Vector3();
     const _vTargetPos = new THREE.Vector3();
     const _vOrbit = new THREE.Vector3();
-    const _vLeave = new THREE.Vector3(-22, 1.2, 8.0);
+    const _vLeave = new THREE.Vector3(22.0, 1.2, 8.0); // 🌟 퇴장 방향을 오른쪽(+X)으로 설정
     const _vStep = new THREE.Vector3();
 
     let handTarget3D = new THREE.Vector3(999, 999, 8.0);
@@ -690,7 +691,7 @@
     const handPointer = document.getElementById('hand-pointer');
 
     /* ========================================================
-       🌟 8분음표 1세트 + 델타타임 보정 이동 물리 (입체적 랜덤 왼쪽 퇴장)
+       🌟 8분음표 1세트 + 델타타임 보정 이동 물리 (입체적 랜덤 오른쪽 퇴장)
        ======================================================== */
     function updateMotion(b, dt, time) {
       let currentTargetScale = b.targetScale;
@@ -775,7 +776,7 @@
 
       let isFollowing = false;
 
-      // 손가락 나비 비행 (접근 및 🌟 입체적 랜덤 왼쪽 퇴장)
+      // 손가락 나비 비행 (접근 및 🌟 입체적 랜덤 오른쪽 퇴장)
       if (b.isSpecialLanding) {
           isFollowing = true;
 
@@ -818,7 +819,7 @@
               b.group.quaternion.slerp(dummyObj.quaternion, 0.18);
           }
 
-          // 🌟 [수정 반영]: 왼쪽(-X)으로 퇴장하되, Z축(깊이감)과 Y축(상하)에 유기적 난류/랜덤 곡선을 주어 입체적으로 비행
+          // 🌟 [수정 반영]: 오른쪽(+X)으로 퇴장하되, Z축(깊이감)과 Y축(상하)에 유기적 난류/랜덤 곡선을 주어 입체적으로 비행
           if (b.specialState === 'leaving') {
               b.state = 'flying';
 
@@ -826,7 +827,7 @@
               const organicWobbleZ = Math.sin(time * 2.5 + b.seed * 1.8) * 3.2; // 카메라 앞으로 다가왔다 멀어지는 Z축 깊이감
 
               _vLeave.set(
-                  -22.0, 
+                  22.0, // 오른쪽 방향으로 설정
                   b.group.position.y + organicWobbleY * 0.35 + 0.3, 
                   8.0 + organicWobbleZ
               );
@@ -847,8 +848,8 @@
 
               b.group.quaternion.slerp(dummyObj.quaternion, 0.14);
 
-              // 왼쪽 화면 밖(-16.0 이하)으로 완전히 빠져나가면 씬에서 안전하게 제거
-              if (b.group.position.x < -16.0) {
+              // 🌟 오른쪽 화면 밖(16.0 이상)으로 완전히 빠져나가면 씬에서 안전하게 제거
+              if (b.group.position.x > 16.0) {
                   scene.remove(b.group);
                   specialButterfly = null;
                   return;
@@ -1019,7 +1020,7 @@
       const dt = Math.min(rawDt, 0.033);
       const time = clock.getElapsedTime();
 
-      // DOM Reflow 완전 제거 (translate3d로만 60fps 부드러운 위치 추적)
+      // DOM Reflow 완전 제거 (translate3d로만 60fps 부드러운 위치 추적)[cite: 14]
       if (isHandDetected) {
         handTarget3D.lerp(targetHandPos3D, 0.30);
         currentScreenX += (targetScreenX - currentScreenX) * 0.35;
