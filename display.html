@@ -362,17 +362,17 @@
       geometry.attributes.uv.needsUpdate = true;
     }
 
-    /* 🌟 프로미스 기반 모델 캐시 */
+    /* 🌟 프로미스 기반 모델 캐시 (실제 존재하는 배포 경로를 1순위로 배치하여 404 원천 차단) */
     const modelCache = {};
     const modelLoadingPromises = {};
     let resolvedBasePath = null;
 
     const candidateBases = [
-      '../index/3DButterfly/',
       '3DButterfly/',
       './3DButterfly/',
       '../3DButterfly/',
-      'index/3DButterfly/'
+      'index/3DButterfly/',
+      '../index/3DButterfly/'
     ];
 
     function getOrLoadModel(modelName) {
@@ -542,7 +542,7 @@
       const flapSpeed = (targetBPM / 60) * 2 * Math.PI * 2;
       const initialSpeed = 0.085 + Math.random() * 0.025;
 
-      // 🌟 손가락 나비: 좌측 상단(-14.0, 8.5)에서 Z=8.0 및 scale=0.58 고정 크기로 시작
+      // 손가락 나비는 스폰(좌측 상단 -14.0, 8.5)부터 착석까지 Z=8.0 및 scale=0.58 고정 크기로 시작
       if (isFingerTarget) {
         group.position.set(-14.0, 8.5, 8.0);
         initialVelocity = new THREE.Vector3(0.10, -0.05, 0);
@@ -691,10 +691,9 @@
     const handPointer = document.getElementById('hand-pointer');
 
     /* ========================================================
-       🌟 8분음표 1세트 + 델타타임 보정 이동 물리 (변수 누락 버그 완벽 수정)
+       8분음표 1세트 + 델타타임 보정 이동 물리 (크기 100% 완전 고정)
        ======================================================== */
     function updateMotion(b, dt, time) {
-      // 🌟 [버그 수정 완료]: 누락되었던 currentTargetScale 변수를 안전하게 선언
       let currentTargetScale = b.targetScale;
 
       if (b.isSpecialLanding) {
@@ -1003,7 +1002,7 @@
       const dt = Math.min(rawDt, 0.033);
       const time = clock.getElapsedTime();
 
-      // 🌟 [정상 작동]: 카드 위치를 나비 우측(+165px)으로 오프셋
+      // DOM Reflow 완전 제거 (translate3d로만 60fps 부드러운 위치 추적)
       if (isHandDetected) {
         handTarget3D.lerp(targetHandPos3D, 0.30);
         currentScreenX += (targetScreenX - currentScreenX) * 0.35;
