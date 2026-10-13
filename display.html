@@ -276,7 +276,7 @@
       'wave-fin'
     ];
 
-    // 기본 나비 전용 형태 목록 (초승 나비, 달무리 나비)[cite: 4, 14]
+    // 기본 나비 전용 형태 목록 (초승 나비, 달무리 나비)
     const DEFAULT_BUTTERFLY_SHAPES = ['crescent', 'moon-halo'];
 
     // 완전 불투명 고성능 단일 순백 재질
@@ -378,11 +378,11 @@
     let resolvedBasePath = null;
 
     const candidateBases = [
+      '../index/3DButterfly/',
       '3DButterfly/',
       './3DButterfly/',
       '../3DButterfly/',
-      'index/3DButterfly/',
-      '../index/3DButterfly/'
+      'index/3DButterfly/'
     ];
 
     function getOrLoadModel(modelName) {
@@ -458,7 +458,7 @@
     const bodyGeom = createBodyGeom();
 
     /* ========================================================
-       🌟 [요청 반영] 이 나비(세레머니 나비) 날개짓 전용 초경량 파티클 시스템
+       🌟 세레머니 나비 날개짓 전용 초경량 파티클 시스템
        ======================================================== */
     const CEREMONY_PARTICLES = 36;
     const ceremonyParticlePositions = new Float32Array(CEREMONY_PARTICLES * 3);
@@ -549,7 +549,7 @@
       const aL = createAntenna(false, sharedWhiteMat); aL.position.set(-0.05, 0.7, 0.15); innerGroup.add(aL);
       const aR = createAntenna(true, sharedWhiteMat); aR.position.set(0.05, 0.7, 0.15); innerGroup.add(aR);
 
-      // 🌟 세레머니 나비는 등이 정면(+Z)으로 보이도록 기본 rotation.x = 0 적용
+      // 세레머니 나비는 등이 정면(+Z)으로 보이도록 기본 rotation.x = 0 적용
       innerGroup.rotation.x = isCeremony ? 0 : Math.PI / 2;
       group.add(innerGroup);
 
@@ -625,10 +625,10 @@
       const flapSpeed = (targetBPM / 60) * 2 * Math.PI * 2;
       const initialSpeed = 0.085 + Math.random() * 0.025;
 
-      // 🌟 세레머니 나비: 하단에서 시작, 등이 보이도록 정면 각도 및 단일 크기(0.65) 고정
+      // 🌟 [수정 반영]: 상승 초기 속도를 부드럽게 완화 (0.075 -> 0.035)
       if (isCeremony) {
         group.position.set(0, -7.5, 8.0);
-        initialVelocity = new THREE.Vector3(0, 0.075, 0);
+        initialVelocity = new THREE.Vector3(0, 0.035, 0);
         targetScale = 0.65;
         group.scale.set(0.65, 0.65, 0.65);
         group.rotation.set(0, 0, 0);
@@ -671,7 +671,6 @@
         arrivalTimer: 0,
         isSpecialLanding: isFingerTarget,
         specialState: isFingerTarget ? 'approaching' : null,
-        // 🌟 세레머니 관련 속성
         isCeremony: isCeremony,
         ceremonyStage: isCeremony ? 'rising' : null,
         name: data.name || (isUser ? "익명의 나비" : "나비"),
@@ -694,7 +693,7 @@
       return butterflyRecord;
     }
 
-    // 기본 나비 8마리 생성 (초승나비 'crescent', 달무리나비 'moon-halo', 구슬 더듬이 'ball')[cite: 4, 14]
+    // 기본 나비 8마리 생성 (초승나비 'crescent', 달무리나비 'moon-halo', 구슬 더듬이 'ball')
     for (let i = 0; i < 8; i++) {
       const assignedShape = DEFAULT_BUTTERFLY_SHAPES[i % DEFAULT_BUTTERFLY_SHAPES.length];
       defaultFlock.push(buildButterfly({ wing_shape: assignedShape, antenna_type: 'ball' }, false, false, false));
@@ -782,29 +781,32 @@
       }, 4200);
     }
 
-    // 🌟 세레머니 나비 중앙 안착 시 다정한 한마디 카드 시퀀스 (3초 후 퇴장)
+    // 🌟 [수정 반영]: 문구 5초간 유지 -> 사라진 뒤 1초 후에 화면 위로 비행 시작
     function triggerCeremonyCardSequence(b) {
       resetLandingCards();
       const screenCX = window.innerWidth / 2;
       const screenCY = window.innerHeight / 2;
 
-      // 화면 중앙 나비 바로 아래에 정렬
       floatingInfoCard.style.transform = `translate3d(${screenCX - 120}px, ${screenCY + 45}px, 0)`;
       floatingName.innerText = `‘${b.name}’`;
       floatingInfoCard.classList.add('visible');
 
       const fullMemo = `"${b.memo}"`;
       typeWriterText(floatingMemo, fullMemo, 45, () => {
+        // 타이핑 완료 후 5초간 문구 유지
         ceremonyCardTimer = setTimeout(() => {
+          // 문구 카드 사라짐
           if (floatingInfoCard) floatingInfoCard.classList.remove('visible');
+          
+          // 🌟 문구가 사라지고 정확히 1초(1000ms) 뒤에 나비가 화면 위로 날아감
           setTimeout(() => {
             if (b && b.isCeremony) {
               b.ceremonyStage = 'flying_up';
               b.state = 'flying';
               b.velocity.set((Math.random() - 0.5) * 0.02, 0.085, 0);
             }
-          }, 400);
-        }, 3000);
+          }, 1000);
+        }, 5000);
       });
     }
 
@@ -813,7 +815,7 @@
     const handPointer = document.getElementById('hand-pointer');
 
     /* ========================================================
-       🌟 8분음표 1세트 + 델타타임 보정 이동 물리 (등이 보이게 상승/안착)
+       🌟 8분음표 1세트 + 델타타임 보정 이동 물리 (서서히 상승 속도 조정)
        ======================================================== */
     function updateMotion(b, dt, time) {
       let currentTargetScale = b.targetScale;
@@ -850,7 +852,6 @@
           phase = time * 3.5 + b.seed;
           const restCycle = Math.sin(phase);
 
-          // 🌟 세레머니 나비는 등을 정면으로 보여주며 날개를 활짝 펼치고 우아하게 호흡 (restFold = -0.15)
           const restFold = b.isCeremony ? -0.15 : -1.25;
           const flap = restCycle * (b.isCeremony ? 0.08 : 0.12) * b.flapAmp;
 
@@ -865,7 +866,7 @@
           if (b.isSpecialLanding && b.specialState === 'approaching') {
             currentFlapSpeed = b.speed * 1.2;
           } else if (b.isCeremony) {
-            currentFlapSpeed = b.speed * 1.15;
+            currentFlapSpeed = b.speed * 1.05;
           } else if (b.isAscendingArrival) {
             currentFlapSpeed = b.speed * 1.25;
           }
@@ -905,11 +906,10 @@
 
       let isFollowing = false;
 
-      // 🌟 [세레머니 나비] 하단 -> 중앙 상승 -> 등 보이며 멈춤 -> 상단 비행 퇴장
+      // 🌟 세레머니 나비 비행 (서서히 상승 속도 적용)
       if (b.isCeremony) {
           isFollowing = true;
 
-          // 🌟 날갯짓할 때 파티클 방출
           if (b.ceremonyStage === 'rising' || b.ceremonyStage === 'flying_up') {
               if (Math.sin(phase) > 0.4) spawnCeremonyParticle(b.group.position);
           } else if (b.ceremonyStage === 'resting' && Math.random() < 0.2) {
@@ -918,15 +918,14 @@
 
           if (b.ceremonyStage === 'rising') {
               b.state = 'flying';
-              b.group.position.y += 0.07 * (dt * 60.0);
-              b.group.position.x += (0 - b.group.position.x) * 0.08;
+              // 🌟 [수정 반영]: 0.07 -> 0.035로 속도를 낮춰 서서히 여유롭게 상승
+              b.group.position.y += 0.035 * (dt * 60.0);
+              b.group.position.x += (0 - b.group.position.x) * 0.05;
               b.group.position.z = 8.0;
 
-              // 🌟 등이 완벽하게 정면을 향하도록 회전 제어 (옆모습 절대 금지)
               b.innerGroup.rotation.set(0, 0, 0);
-              b.group.rotation.set(0.08, 0, Math.sin(time * 2.5 + b.seed) * 0.04);
+              b.group.rotation.set(0.08, 0, Math.sin(time * 2.0 + b.seed) * 0.03);
 
-              // 화면 중앙에 도달하면 서서히 멈춤
               if (b.group.position.y >= 0.0) {
                   b.group.position.set(0, 0, 8.0);
                   b.velocity.set(0, 0, 0);
@@ -941,23 +940,20 @@
               b.velocity.set(0, 0, 0);
               b.group.position.set(0, 0, 8.0);
 
-              // 🌟 멈춰 있을 때 등이 정면을 향하고 날개가 양옆으로 펼쳐짐
               b.innerGroup.rotation.set(0, 0, 0);
               b.group.rotation.set(0.05, 0, 0);
           }
           else if (b.ceremonyStage === 'flying_up') {
               b.state = 'flying';
-              b.velocity.y = Math.min(0.16, b.velocity.y + 0.0035);
-              b.velocity.x += Math.sin(time * 3.0 + b.seed) * 0.005;
+              b.velocity.y = Math.min(0.14, b.velocity.y + 0.003);
+              b.velocity.x += Math.sin(time * 2.8 + b.seed) * 0.004;
 
               _vStep.copy(b.velocity).multiplyScalar(dt * 60.0);
               b.group.position.add(_vStep);
 
-              // 등을 정면으로 보여주며 상승
               b.innerGroup.rotation.set(0, 0, 0);
               b.group.rotation.set(0.15, 0, b.velocity.x * -6.0);
 
-              // 🌟 상단 밖으로 완전히 벗어났을 때 (퇴장 완료)
               if (b.group.position.y > 8.5) {
                   b.isCeremony = false;
                   b.ceremonyStage = null;
@@ -975,12 +971,11 @@
                   activeCeremonyButterfly = null;
                   isCeremonyActive = false;
 
-                  // 🌟 [요청 반영]: 나비가 화면 밖으로 나가고 5초 뒤 다음 대기열 나비 시작
                   triggerNextCeremonyWithDelay(5000);
               }
           }
       }
-      // 손가락 나비 비행 (접근 및 입체적 랜덤 오른쪽 퇴장)
+      // 손가락 나비 비행
       else if (b.isSpecialLanding) {
           isFollowing = true;
 
@@ -1224,7 +1219,7 @@
       const dt = Math.min(rawDt, 0.033);
       const time = clock.getElapsedTime();
 
-      // 🌟 세레머니 나비 파티클 갱신
+      // 세레머니 나비 전용 파티클 갱신
       updateCeremonyParticles(dt);
 
       // DOM Reflow 완전 제거 (translate3d로만 60fps 부드러운 위치 추적)
@@ -1239,7 +1234,6 @@
         if (floatingConcernCard && floatingConcernCard.classList.contains('visible')) { 
           floatingConcernCard.style.transform = `translate3d(${currentScreenX + 165}px, ${currentScreenY - 145}px, 0)`; 
         }
-        // 중앙 세레머니 카드가 활성화되어 있지 않을 때만 손 위치를 따라감
         if (floatingInfoCard && floatingInfoCard.classList.contains('visible') && !activeCeremonyButterfly) { 
           floatingInfoCard.style.transform = `translate3d(${currentScreenX + 165}px, ${currentScreenY - 145}px, 0)`; 
         }
@@ -1293,7 +1287,7 @@
     });
 
     /* ========================================================
-       2. Supabase 실시간 연동 및 🌟 [동시다발 전송 순차 큐 시스템]
+       2. Supabase 실시간 연동 및 동시다발 전송 순차 큐 시스템
        ======================================================== */
     const ceremonyQueue = [];
     let isCeremonyActive = false;
@@ -1350,7 +1344,7 @@
             }
           }
 
-          // 초기 로딩된 과거 유저 나비 데이터는 배경 플록으로 생성
+          // 초기 로딩된 과거 유저 나비 데이터는 배경 무리로 생성
           supabaseInstance.from('butterflies')
             .select('*')
             .order('created_at', { ascending: false })
@@ -1366,7 +1360,7 @@
             })
             .catch(e => console.error("Supabase 데이터 연동 실패:", e));
 
-          // 🌟 실시간 신규 나비 수신: 순차 대기열 큐로 전달
+          // 실시간 신규 나비 수신: 순차 대기열 큐로 전달
           supabaseInstance.channel('public:butterflies')
             .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'butterflies' }, (payload) => {
               if (payload && payload.new) {
