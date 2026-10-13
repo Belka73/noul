@@ -557,9 +557,9 @@
     }
 
     /* ========================================================
-       🌟 손가락 나비 전용 빛 에너지 파티클 시스템 (나비 앱 기 모으기 광채)
+       🌟 손가락 나비 전용 팅커벨 요정 가루 파티클 시스템
        ======================================================== */
-    const ENERGY_PARTICLES_COUNT = 120;
+    const ENERGY_PARTICLES_COUNT = 150;
     const energyParticlePositions = new Float32Array(ENERGY_PARTICLES_COUNT * 3);
     const energyParticleData = [];
 
@@ -573,25 +573,24 @@
     const energyParticleGeom = new THREE.BufferGeometry();
     energyParticleGeom.setAttribute('position', new THREE.BufferAttribute(energyParticlePositions, 3));
 
-    // 나비 앱의 에너지 파티클과 똑같은 눈부신 고밀도 방사형 빛 구체 캔버스
+    // 🌟 첨부 사진처럼 눈부신 덩어리가 아닌, 은은하고 부드러운 반투명 미세 먼지/별가루 텍스처
     const eCanvas = document.createElement('canvas');
-    eCanvas.width = 64; eCanvas.height = 64;
+    eCanvas.width = 32; eCanvas.height = 32;
     const eCtx = eCanvas.getContext('2d');
-    const eGrad = eCtx.createRadialGradient(32, 32, 0, 32, 32, 32);
-    eGrad.addColorStop(0, 'rgba(255, 255, 255, 1.0)');
-    eGrad.addColorStop(0.2, 'rgba(255, 255, 240, 0.95)');
-    eGrad.addColorStop(0.45, 'rgba(240, 248, 255, 0.65)');
-    eGrad.addColorStop(0.75, 'rgba(220, 235, 255, 0.25)');
+    const eGrad = eCtx.createRadialGradient(16, 16, 0, 16, 16, 16);
+    eGrad.addColorStop(0, 'rgba(255, 255, 255, 0.85)');
+    eGrad.addColorStop(0.3, 'rgba(255, 255, 255, 0.45)');
+    eGrad.addColorStop(0.7, 'rgba(255, 255, 255, 0.12)');
     eGrad.addColorStop(1, 'rgba(255, 255, 255, 0)');
     eCtx.fillStyle = eGrad;
-    eCtx.fillRect(0, 0, 64, 64);
+    eCtx.fillRect(0, 0, 32, 32);
     const energyParticleTex = new THREE.CanvasTexture(eCanvas);
     energyParticleTex.needsUpdate = true;
 
-    // 🌟 [수정 반영] 입자 크기를 2.2에서 0.42로 대폭 축소하여 섬세한 별가루로 변경
+    // 🌟 [수정 반영] 크기를 0.15로 대폭 축소하여 아주 미세한 점 입자로 표현
     const energyParticleMat = new THREE.PointsMaterial({
       map: energyParticleTex,
-      size: 0.42,
+      size: 0.15,
       transparent: true,
       blending: THREE.AdditiveBlending,
       depthWrite: false,
@@ -602,20 +601,20 @@
     scene.add(energyParticlePoints);
 
     let energyParticleCursor = 0;
+    // 🌟 [수정 반영] 나비 아래쪽에서 생성되어 위로 솔솔 피어오르는 팅커벨 가루 물리 연산
     function spawnEnergyParticle(pos) {
       const p = energyParticleData[energyParticleCursor];
-      const angle = Math.random() * Math.PI * 2;
-      const radius = 0.15 + Math.random() * 0.55;
 
-      p.x = pos.x + Math.cos(angle) * radius;
-      p.y = pos.y + Math.sin(angle) * radius;
-      p.z = (pos.z || 8.0) + (Math.random() - 0.5) * 0.5;
+      // 나비 중심 기준 아래쪽에서 생성 (x는 좌우 폭 내에서 분산, y는 아래쪽으로 오프셋)
+      p.x = pos.x + (Math.random() - 0.5) * 0.9;
+      p.y = pos.y - 0.35 - Math.random() * 0.45;
+      p.z = (pos.z || 8.0) + (Math.random() - 0.5) * 0.35;
 
-      // 나비 앱처럼 위와 사방으로 은은하게 흩날리며 피어오르는 속도
-      p.vx = (Math.random() - 0.5) * 0.022;
-      p.vy = 0.012 + Math.random() * 0.025;
-      p.vz = (Math.random() - 0.5) * 0.018;
-      p.life = 0.85 + Math.random() * 0.35;
+      // 위로 서서히 피어오르는 상승 속도 (vy > 0)
+      p.vx = (Math.random() - 0.5) * 0.014;
+      p.vy = 0.022 + Math.random() * 0.025; // 위쪽으로 상승
+      p.vz = (Math.random() - 0.5) * 0.010;
+      p.life = 0.85 + Math.random() * 0.4;
 
       energyParticleCursor = (energyParticleCursor + 1) % ENERGY_PARTICLES_COUNT;
     }
@@ -628,7 +627,7 @@
         if (p.life > 0) {
           p.life -= dt;
           p.x += p.vx;
-          p.y += p.vy;
+          p.y += p.vy; // 위쪽으로 이동
           p.z += p.vz;
           posAttr.setXYZ(i, p.x, p.y, p.z);
           needsUpdate = true;
@@ -1169,9 +1168,8 @@
       else if (b.isSpecialLanding) {
           isFollowing = true;
 
-          // 등장할 때와 퇴장할 때 초미세 별가루 입자 스폰
+          // 🌟 [수정 반영] 등장할 때와 퇴장할 때 나비 아래쪽에서 팅커벨 가루 스폰
           if (b.specialState === 'approaching' || b.specialState === 'leaving') {
-              spawnEnergyParticle(b.group.position);
               spawnEnergyParticle(b.group.position);
               spawnEnergyParticle(b.group.position);
               if (Math.random() < 0.6) spawnEnergyParticle(b.group.position);
