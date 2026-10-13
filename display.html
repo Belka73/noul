@@ -571,9 +571,9 @@
       innerGroup.rotation.x = Math.PI / 2;
       group.add(innerGroup);
 
-      // 🌟 형태 및 더듬이 종류 선택 (지정되지 않은 경우 7종 및 3종 중 랜덤 배정)
+      // 🌟 형태 선택 및 기본 더듬이(구슬 더듬이 'ball') 적용
       const shapeId = data.wing_shape || BUTTERFLY_SHAPES[Math.floor(Math.random() * BUTTERFLY_SHAPES.length)];
-      const antId = data.antenna_type || ANTENNA_TYPES[Math.floor(Math.random() * ANTENNA_TYPES.length)];
+      const antId = data.antenna_type || 'ball';
       const targetAntennaPrefix = 'Antenna_' + antId;
 
       const textureURL = data.texture_url || data.image_url;
@@ -630,7 +630,7 @@
       }
 
       let initialVelocity;
-      let targetScale = 0.34 + Math.random() * 0.08;
+      let targetScale = 0.62 + Math.random() * 0.14;
 
       const initialYaw = Math.random() * Math.PI * 2;
       const initialPitch = (Math.random() - 0.5) * 0.80; 
@@ -642,8 +642,8 @@
       if (isFingerTarget) {
         group.position.set(-18, 14, customZ);
         initialVelocity = new THREE.Vector3(0, 0, 0);
-        targetScale = 0.54;
-        group.scale.set(0.54, 0.54, 0.54);
+        targetScale = 0.88;
+        group.scale.set(0.88, 0.88, 0.88);
       } else if (isDelayedArrival) {
         group.position.set(0, -7.0, 1.5);
         initialVelocity = new THREE.Vector3(0.04, 0.08, -0.01);
@@ -698,10 +698,10 @@
       return butterflyRecord;
     }
 
-    // 🌟 20마리 기본 나비 생성 (7가지 3D 형태와 3가지 더듬이가 골고루 분배되어 생성됨)
+    // 🌟 20마리 기본 나비 생성 (7가지 3D 형태는 다양하게 유지하되, 더듬이는 모두 'ball'(구슬 더듬이)로 통일)
     for (let i = 0; i < 20; i++) {
       const assignedShape = BUTTERFLY_SHAPES[i % BUTTERFLY_SHAPES.length];
-      const assignedAnt = ANTENNA_TYPES[i % ANTENNA_TYPES.length];
+      const assignedAnt = 'ball';
       defaultFlock.push(buildButterfly({ wing_shape: assignedShape, antenna_type: assignedAnt }, false, false, false));
     }
 
@@ -795,7 +795,7 @@
       let currentTargetScale = b.targetScale;
       
       if (b.isSpecialLanding && (b.specialState === 'approaching' || b.specialState === 'landed')) {
-        const landingBaseScale = 0.54;
+        const landingBaseScale = 0.88;
         const effectivePerspective = Math.max(0.85, handPerspectiveScale);
         currentTargetScale = landingBaseScale * effectivePerspective;
       }
@@ -1143,7 +1143,7 @@
               } else {
                   targetData = {
                     wing_shape: BUTTERFLY_SHAPES[Math.floor(Math.random() * BUTTERFLY_SHAPES.length)],
-                    antenna_type: ANTENNA_TYPES[Math.floor(Math.random() * ANTENNA_TYPES.length)]
+                    antenna_type: 'ball'
                   };
               }
               specialButterfly = buildButterfly(targetData, isUserButterfly, false, true, handTarget3D.z);
