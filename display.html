@@ -34,7 +34,6 @@
       will-change: transform;
     }
 
-    /* 포인터 발광 box-shadow 제거 및 GPU 가속 transform 적용 */
     #hand-pointer {
       position: absolute; 
       top: 0; left: 0;
@@ -59,7 +58,7 @@
       border: 1px solid rgba(255, 255, 255, 0.8);
     }
 
-    /* 1단계: 고민 안내 카드 - filter: blur 및 text-shadow 발광 제거 */
+    /* 1단계: 고민 안내 카드 - translate3d로 GPU 레이어에서만 부드럽게 이동 */
     #floating-concern-card {
       position: absolute;
       top: 0; left: 0;
@@ -111,7 +110,7 @@
       min-height: 38px;
     }
 
-    /* 2단계: 다정한 한마디 카드 - filter: blur 제거 */
+    /* 2단계: 다정한 한마디 카드 */
     #floating-info-card {
       position: absolute;
       top: 0; left: 0;
@@ -265,7 +264,7 @@
       'wave-fin'
     ];
 
-    // 🌟 완전 불투명 고성능 단일 순백 재질 (자체 발광/셰이더 제거 및 드로우 콜 최소화)
+    // 🌟 완전 불투명 고성능 단일 순백 재질 (ShaderMaterial 완전 대체 및 드로우 콜 최소화)
     const sharedWhiteMat = new THREE.MeshBasicMaterial({ 
       color: 0xffffff, 
       side: THREE.DoubleSide, 
@@ -358,7 +357,7 @@
       geometry.attributes.uv.needsUpdate = true;
     }
 
-    /* 🌟 프로미스 기반 싱글톤 모델 캐시 (20마리 동시 로딩 시 80번의 중복 404 요청 원천 차단) */
+    /* 🌟 프로미스 기반 싱글톤 모델 캐시 (중복 네트워크 요청 및 404 지연 원천 차단) */
     const modelCache = {};
     const modelLoadingPromises = {};
     let resolvedBasePath = null;
@@ -446,7 +445,8 @@
 
     const defaultFlock = [];
     const userFlock = [];
-    const MAX_USER_BUTTERFLIES = 30;
+    // 🌟 성능 최적화: 유저 나비 최대 개수를 8마리로 제한하여 총 15마리 안팎으로 60 FPS 유지
+    const MAX_USER_BUTTERFLIES = 8;
     const rawUserDataList = [];
 
     function buildButterfly(data = {}, isUser = false, isDelayedArrival = false, isFingerTarget = false, customZ = 0) {
@@ -602,11 +602,9 @@
       return butterflyRecord;
     }
 
-    // 🌟 20마리 기본 나비 생성 (7가지 3D 형태 다양화 + 구슬 더듬이 'ball' 통일)
-    for (let i = 0; i < 20; i++) {
-      const assignedShape = BUTTERFLY_SHAPES[i % BUTTERFLY_SHAPES.length];
-      const assignedAnt = 'ball';
-      defaultFlock.push(buildButterfly({ wing_shape: assignedShape, antenna_type: assignedAnt }, false, false, false));
+    // 🌟 기본 나비 7마리 생성 (7가지 3D 형태 1마리씩 분배 + 구슬 더듬이 'ball' 통일)
+    for (let i = 0; i < BUTTERFLY_SHAPES.length; i++) {
+      defaultFlock.push(buildButterfly({ wing_shape: BUTTERFLY_SHAPES[i], antenna_type: 'ball' }, false, false, false));
     }
 
     const clock = new THREE.Clock();
@@ -1004,7 +1002,7 @@
       const dt = clock.getDelta();
       const time = clock.getElapsedTime();
 
-      // 🌟 [GPU 최적화]: DOM Reflow(left/top)를 100% 제거하고 translate3d만 사용하여 60fps 부드러운 위치 추적
+      // 🌟 [최적화]: DOM Reflow를 완전 제거하고 GPU 가속 transform만 사용
       if (isHandDetected) {
         handTarget3D.lerp(targetHandPos3D, 0.25);
         currentScreenX += (targetScreenX - currentScreenX) * 0.3;
@@ -1013,10 +1011,10 @@
         if (handPointer) {
           handPointer.style.transform = `translate3d(${currentScreenX - 26}px, ${currentScreenY - 26}px, 0)`;
         }
-        if (floatingConcernCard) { 
+        if (floatingConcernCard && floatingConcernCard.classList.contains('visible')) { 
           floatingConcernCard.style.transform = `translate3d(${currentScreenX + 45}px, ${currentScreenY - 180}px, 0)`; 
         }
-        if (floatingInfoCard) { 
+        if (floatingInfoCard && floatingInfoCard.classList.contains('visible')) { 
           floatingInfoCard.style.transform = `translate3d(${currentScreenX + 45}px, ${currentScreenY - 180}px, 0)`; 
         }
       }
@@ -1125,7 +1123,7 @@
     }, 1500);
 
     /* ========================================================
-       3. 네이티브 웹캠 초경량화 + 제스처 인식 (메인 스레드 렌더링 100% 보호)
+       3. 네이티브 웹캠 최적화 + 제스처 인식 (메인 스레드 렌더링 100% 보호)
        ======================================================== */
     setTimeout(() => {
       try {
@@ -1235,7 +1233,7 @@
             }
           });
 
-          // 🌟 640x480 비디오 스트림 및 160ms 추론 주기로 Three.js 렌더링 프레임 완전 보호
+          // 🌟 640x480 비디오 스트림 및 150ms 추론 주기로 Three.js 렌더링 프레임 완전 보호
           if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
             navigator.mediaDevices.getUserMedia({
               video: { width: { ideal: 640 }, height: { ideal: 480 }, frameRate: { ideal: 30 } },
@@ -1253,10 +1251,10 @@
                       .catch(() => {})
                       .finally(() => {
                         isProcessingFrame = false;
-                        setTimeout(processVideoLoop, 160);
+                        setTimeout(processVideoLoop, 150);
                       });
                   } else {
-                    setTimeout(processVideoLoop, 160);
+                    setTimeout(processVideoLoop, 150);
                   }
                 }
                 processVideoLoop();
