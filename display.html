@@ -564,8 +564,8 @@
       const aL = createAntenna(false, sharedWhiteMat); aL.position.set(-0.05, 0.7, 0.15); innerGroup.add(aL);
       const aR = createAntenna(true, sharedWhiteMat); aR.position.set(0.05, 0.7, 0.15); innerGroup.add(aR);
 
-      // 🌟 세레머니 나비는 등이 정면(+Z)을 향하도록 기본 rotation.x = 0 고정 (옆모습 방지)
-      innerGroup.rotation.x = isCeremony ? 0 : Math.PI / 2;
+      // 🌟 기본 비행 시 등이 위(+Y)를 향하도록 rotation.x = Math.PI / 2, rotation.y = Math.PI 설정 (세레머니 나비는 정면 0)
+      innerGroup.rotation.set(isCeremony ? 0 : Math.PI / 2, isCeremony ? 0 : Math.PI, 0);
       group.add(innerGroup);
 
       const shapeId = data.wing_shape || DEFAULT_BUTTERFLY_SHAPES[Math.floor(Math.random() * DEFAULT_BUTTERFLY_SHAPES.length)];
@@ -685,7 +685,7 @@
         velocity: initialVelocity,
         speed: flapSpeed,
         seed: Math.random() * 1000,
-        wingPhase: Math.random() * Math.PI * 2, // 🌟 끊김 방지용 연속 누적 위상
+        wingPhase: Math.random() * Math.PI * 2,
         flapAmp: 1.0, 
         state: 'flying',
         targetScale: targetScale,
@@ -731,7 +731,7 @@
     const _vOrbit = new THREE.Vector3();
     const _vLeave = new THREE.Vector3(22.0, 1.2, 8.0);
     const _vStep = new THREE.Vector3();
-    const _handUnprojectVec = new THREE.Vector3(); // 🌟 GC 방지용 고정 재사용 벡터
+    const _handUnprojectVec = new THREE.Vector3();
 
     let handTarget3D = new THREE.Vector3(999, 999, 8.0);
     let targetHandPos3D = new THREE.Vector3(999, 999, 8.0);
@@ -782,7 +782,6 @@
       if (floatingConcernCard) floatingConcernCard.classList.remove('visible');
       if (floatingConcernReason) floatingConcernReason.innerHTML = '';
       
-      // 세레머니가 진행 중이 아닐 때만 info 카드를 리셋
       if (!activeCeremonyButterfly) {
         if (activeTypingTimeout) clearTimeout(activeTypingTimeout);
         if (floatingInfoCard) floatingInfoCard.classList.remove('visible');
@@ -815,13 +814,11 @@
       clearTimeout(ceremonyCardTimer);
       if (activeTypingTimeout) clearTimeout(activeTypingTimeout);
 
-      // 나비의 현재 3D 중심 위치를 2D 화면 좌표로 직접 투영
       const bPos = new THREE.Vector3(0, b.group.position.y, b.group.position.z);
       bPos.project(camera);
       const screenCX = (bPos.x * 0.5 + 0.5) * window.innerWidth;
       const screenCY = (-(bPos.y) * 0.5 + 0.5) * window.innerHeight;
 
-      // 나비 날개 하단 바로 아래에 20px의 여백을 두고 정확히 위치시킴
       const cardTop = screenCY + (window.innerHeight * 0.135);
 
       floatingInfoCard.style.transform = `translate3d(${screenCX - 120}px, ${cardTop}px, 0)`;
@@ -910,6 +907,7 @@
           b.rightWing.rotation.y = baseRotR - flap - restFold * (1 - b.flapAmp);
           b.innerGroup.rotation.z = Math.sin(time * 2.0 + b.seed) * 0.02;
           b.innerGroup.rotation.x = b.isCeremony ? 0 : Math.PI / 2;
+          b.innerGroup.rotation.y = b.isCeremony ? 0 : Math.PI;
           b.innerGroup.position.set(0, 0, 0);
           b.strokePower = 0;
       } else {
@@ -924,6 +922,7 @@
           b.rightWing.rotation.y = baseRotR - wingFold;
 
           b.innerGroup.rotation.x = b.isCeremony ? 0 : Math.PI / 2;
+          b.innerGroup.rotation.y = b.isCeremony ? 0 : Math.PI;
           b.innerGroup.position.set(0, 0, 0);
           b.innerGroup.rotation.z = Math.sin(phase) * 0.025 * b.flapAmp;
       }
@@ -1000,6 +999,7 @@
                   b.isCeremony = false;
                   b.ceremonyStage = null;
                   b.innerGroup.rotation.x = Math.PI / 2;
+                  b.innerGroup.rotation.y = Math.PI;
                   b.speedBase = 0.085;
                   b.yaw = Math.random() * Math.PI * 2;
                   b.pitch = (Math.random() - 0.5) * 0.6;
@@ -1253,7 +1253,7 @@
     }
 
     let releaseLandingTimer = null;
-    let accumulatedTime = 0; // 🌟 Clock 중복 호출로 인한 지터 완전 방지 누적 시간
+    let accumulatedTime = 0;
 
     function animate() {
       requestAnimationFrame(animate);
@@ -1262,10 +1262,8 @@
       accumulatedTime += dt;
       const time = accumulatedTime;
 
-      // 세레머니 나비 전용 파티클 갱신
       updateCeremonyParticles(dt);
 
-      // DOM Reflow 완전 제거 (translate3d로 60fps 부드러운 위치 추적)
       if (isHandDetected) {
         handTarget3D.lerp(targetHandPos3D, 0.30);
         currentScreenX += (targetScreenX - currentScreenX) * 0.35;
@@ -1387,7 +1385,6 @@
             }
           }
 
-          // 초기 로딩된 과거 유저 나비 데이터는 배경 무리로 생성
           supabaseInstance.from('butterflies')
             .select('*')
             .order('created_at', { ascending: false })
@@ -1403,7 +1400,6 @@
             })
             .catch(e => console.error("Supabase 데이터 연동 실패:", e));
 
-          // 실시간 신규 나비 수신: 순차 대기열 큐로 전달
           supabaseInstance.channel('public:butterflies')
             .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'butterflies' }, (payload) => {
               if (payload && payload.new) {
@@ -1444,7 +1440,6 @@
               targetScreenY = tip.y * window.innerHeight;
               handPointer.style.opacity = '1';
 
-              // 🌟 고정 재사용 벡터로 가비지 컬렉션(GC) 방지
               _handUnprojectVec.set((1 - tip.x) * 2 - 1, -(tip.y * 2) + 1, 0.5);
               _handUnprojectVec.unproject(camera);
               _handUnprojectVec.sub(camera.position).normalize();
@@ -1524,7 +1519,6 @@
                 let isProcessingFrame = false;
                 let lastProcessTime = 0;
 
-                // 🌟 CPU 강제 래스터화 캔버스 완전 제거 + 비디오 하드웨어 0-copy 직결
                 function processVideoLoop() {
                   const now = performance.now();
                   if (!isProcessingFrame && videoElement.readyState >= 2 && (now - lastProcessTime > 100)) {
