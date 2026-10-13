@@ -912,12 +912,10 @@
         currentFlapSpeed = b.speed * 1.05;
       } else if (b.isCeremony) {
         if (b.ceremonyStage === 'rising') {
-          // 중앙(y=0.3)에 다가갈수록 날개짓 속도(BPM)를 부드럽게 감속
           const dy = Math.max(0, 0.3 - b.group.position.y);
           const speedFactor = Math.min(1.0, Math.max(0.35, dy / 2.0));
           currentFlapSpeed = b.speed * 0.92 * speedFactor;
         } else if (b.ceremonyStage === 'resting') {
-          // 중앙 정지 직후 약 2.2초 동안 날개짓 속도가 서서히 0(완전 안착)으로 감쇠
           const restTime = b.ceremonyRestTimer || 0;
           const settleProgress = Math.min(1.0, restTime / 2.2);
           currentFlapSpeed = b.speed * 0.92 * 0.35 * (1.0 - settleProgress);
@@ -936,16 +934,12 @@
 
       if (b.state === 'landing_rest') {
           if (b.isCeremony) {
-              // 🌟 [수정 반영] 세레머니 나비: 중앙 정지 시 비행 날개짓에서 서서히 잦아들며 멈추는 감쇠 곡선
               const restTime = b.ceremonyRestTimer || 0;
               const settleProg = Math.min(1.0, restTime / 2.2);
-              // 부드러운 안착 S-커브 (Smoothstep)
               const easeSettle = settleProg * settleProg * (3.0 - 2.0 * settleProg);
 
               const wingWave = Math.sin(phase);
-              // 비행 날개짓 각도가 튀지 않고 2.2초에 걸쳐 서서히 페이드아웃
               const activeFold = (0.40 + wingWave * 0.60) * (1.0 - easeSettle);
-              // 안착 후 안정적인 기본 휴식 각도(0.12) 및 잔잔한 미세 호흡
               const restingFold = 0.12 * easeSettle + Math.sin(time * 2.0 + b.seed) * 0.02 * easeSettle;
 
               const finalFold = activeFold + restingFold;
@@ -1011,7 +1005,6 @@
               b.state = 'flying';
               const dy = 0.3 - b.group.position.y;
 
-              // 🌟 [수정 반영] 중앙(y=0.3)에 도달하기 전 2m부터 부드럽게 감속(Easing)하여 자연스럽게 안착
               if (dy > 0.008) {
                   const speedFactor = Math.min(1.0, Math.max(0.12, dy / 2.0));
                   b.group.position.y += 0.034 * speedFactor * (dt * 60.0);
@@ -1332,11 +1325,12 @@
         if (handPointer) {
           handPointer.style.transform = `translate3d(${currentScreenX - 26}px, ${currentScreenY - 26}px, 0)`;
         }
+        // 🌟 [수정 반영] 나비 날개와 겹치지 않도록 카드 X축 좌표를 오른쪽으로 이동 (+165px -> +260px)
         if (floatingConcernCard && floatingConcernCard.classList.contains('visible')) { 
-          floatingConcernCard.style.transform = `translate3d(${currentScreenX + 165}px, ${currentScreenY - 145}px, 0)`; 
+          floatingConcernCard.style.transform = `translate3d(${currentScreenX + 260}px, ${currentScreenY - 145}px, 0)`; 
         }
         if (floatingInfoCard && floatingInfoCard.classList.contains('visible') && !activeCeremonyButterfly) { 
-          floatingInfoCard.style.transform = `translate3d(${currentScreenX + 165}px, ${currentScreenY - 145}px, 0)`; 
+          floatingInfoCard.style.transform = `translate3d(${currentScreenX + 260}px, ${currentScreenY - 145}px, 0)`; 
         }
       }
 
