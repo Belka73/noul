@@ -484,25 +484,25 @@
     }
 
     /* ========================================================
-       🌟 팅커벨 별가루 파티클 공통 텍스처 (사진과 100% 동일한 은은한 미세 점)
+       🌟 팅커벨 별가루 파티클 고화질 텍스처 (사진 100% 매칭: 중심 또렷 + 외곽 은은)
        ======================================================== */
     const dustCanvas = document.createElement('canvas');
-    dustCanvas.width = 16; dustCanvas.height = 16;
+    dustCanvas.width = 32; dustCanvas.height = 32;
     const dustCtx = dustCanvas.getContext('2d');
-    const dustGrad = dustCtx.createRadialGradient(8, 8, 0, 8, 8, 8);
-    dustGrad.addColorStop(0, 'rgba(255, 255, 255, 0.85)');
-    dustGrad.addColorStop(0.35, 'rgba(255, 255, 255, 0.45)');
-    dustGrad.addColorStop(0.75, 'rgba(255, 255, 255, 0.12)');
-    dustGrad.addColorStop(1, 'rgba(255, 255, 255, 0)');
+    const dustGrad = dustCtx.createRadialGradient(16, 16, 0, 16, 16, 16);
+    dustGrad.addColorStop(0, 'rgba(255, 255, 255, 1.0)');
+    dustGrad.addColorStop(0.28, 'rgba(255, 255, 255, 0.95)');
+    dustGrad.addColorStop(0.60, 'rgba(240, 245, 255, 0.40)');
+    dustGrad.addColorStop(1, 'rgba(255, 255, 255, 0.0)');
     dustCtx.fillStyle = dustGrad;
-    dustCtx.fillRect(0, 0, 16, 16);
+    dustCtx.fillRect(0, 0, 32, 32);
     const dustTexture = new THREE.CanvasTexture(dustCanvas);
     dustTexture.needsUpdate = true;
 
     /* ========================================================
-       1) 세레머니 나비용 파티클 시스템 (초미세 상승 별가루)
+       1) 세레머니 나비용 파티클 시스템
        ======================================================== */
-    const CEREMONY_PARTICLES = 120;
+    const CEREMONY_PARTICLES = 160;
     const ceremonyParticlePositions = new Float32Array(CEREMONY_PARTICLES * 3);
     const ceremonyParticleData = [];
 
@@ -516,12 +516,11 @@
     const ceremonyParticleGeom = new THREE.BufferGeometry();
     ceremonyParticleGeom.setAttribute('position', new THREE.BufferAttribute(ceremonyParticlePositions, 3));
 
-    // 🌟 [수정 반영] size를 0.018로 대폭 축소하여 화면 2~3px 별가루로 일치
+    // 🌟 size: 0.11 (화면상 6~9px 크기의 섬세하고 선명한 별가루 입자)
     const ceremonyParticleMat = new THREE.PointsMaterial({
       map: dustTexture,
-      size: 0.018,
+      size: 0.11,
       transparent: true,
-      opacity: 0.75,
       blending: THREE.AdditiveBlending,
       depthWrite: false,
       color: 0xffffff
@@ -531,16 +530,21 @@
     scene.add(ceremonyParticlePoints);
 
     let ceremonyParticleCursor = 0;
-    // 🌟 [수정 반영] 나비 아래쪽에서 생성되어 위로 솔솔 피어오르는 팅커벨 가루
+    // 🌟 나비 아래쪽에서 생성되어 위로 솔솔 피어오르는 팅커벨 가루
     function spawnCeremonyParticle(pos) {
       const p = ceremonyParticleData[ceremonyParticleCursor];
       p.x = pos.x + (Math.random() - 0.5) * 0.85;
-      p.y = pos.y - 0.35 - Math.random() * 0.35; // 나비 아래쪽
-      p.z = (pos.z || 8.0) + (Math.random() - 0.5) * 0.3;
+      p.y = pos.y - 0.40 - Math.random() * 0.35; // 나비 아래쪽
+      p.z = (pos.z || 8.0) + (Math.random() - 0.5) * 0.35;
       p.vx = (Math.random() - 0.5) * 0.012;
-      p.vy = 0.020 + Math.random() * 0.025; // 위쪽으로 상승!
+      p.vy = 0.022 + Math.random() * 0.026; // 위쪽으로 상승
       p.vz = (Math.random() - 0.5) * 0.010;
-      p.life = 0.85 + Math.random() * 0.35;
+      p.life = 0.80 + Math.random() * 0.35;
+
+      const posAttr = ceremonyParticleGeom.attributes.position;
+      posAttr.setXYZ(ceremonyParticleCursor, p.x, p.y, p.z);
+      posAttr.needsUpdate = true;
+
       ceremonyParticleCursor = (ceremonyParticleCursor + 1) % CEREMONY_PARTICLES;
     }
 
@@ -566,9 +570,9 @@
     }
 
     /* ========================================================
-       2) 손가락 나비용 파티클 시스템 (초미세 상승 별가루)
+       2) 손가락 나비용 파티클 시스템
        ======================================================== */
-    const ENERGY_PARTICLES_COUNT = 150;
+    const ENERGY_PARTICLES_COUNT = 180;
     const energyParticlePositions = new Float32Array(ENERGY_PARTICLES_COUNT * 3);
     const energyParticleData = [];
 
@@ -582,12 +586,11 @@
     const energyParticleGeom = new THREE.BufferGeometry();
     energyParticleGeom.setAttribute('position', new THREE.BufferAttribute(energyParticlePositions, 3));
 
-    // 🌟 [수정 반영] size를 0.018로 대폭 축소하여 화면 2~3px 별가루로 일치
+    // 🌟 size: 0.11 (화면상 6~9px 크기의 섬세하고 선명한 별가루 입자)
     const energyParticleMat = new THREE.PointsMaterial({
       map: dustTexture,
-      size: 0.018,
+      size: 0.11,
       transparent: true,
-      opacity: 0.75,
       blending: THREE.AdditiveBlending,
       depthWrite: false,
       color: 0xffffff
@@ -597,16 +600,21 @@
     scene.add(energyParticlePoints);
 
     let energyParticleCursor = 0;
-    // 🌟 [수정 반영] 나비 아래쪽에서 생성되어 위로 솔솔 피어오르는 팅커벨 가루
+    // 🌟 나비 아래쪽에서 생성되어 위로 솔솔 피어오르는 팅커벨 가루
     function spawnEnergyParticle(pos) {
       const p = energyParticleData[energyParticleCursor];
       p.x = pos.x + (Math.random() - 0.5) * 0.85;
-      p.y = pos.y - 0.35 - Math.random() * 0.35; // 나비 아래쪽
-      p.z = (pos.z || 8.0) + (Math.random() - 0.5) * 0.3;
+      p.y = pos.y - 0.40 - Math.random() * 0.35; // 나비 아래쪽
+      p.z = (pos.z || 8.0) + (Math.random() - 0.5) * 0.35;
       p.vx = (Math.random() - 0.5) * 0.012;
-      p.vy = 0.020 + Math.random() * 0.025; // 위쪽으로 상승!
+      p.vy = 0.022 + Math.random() * 0.026; // 위쪽으로 상승
       p.vz = (Math.random() - 0.5) * 0.010;
-      p.life = 0.85 + Math.random() * 0.35;
+      p.life = 0.80 + Math.random() * 0.35;
+
+      const posAttr = energyParticleGeom.attributes.position;
+      posAttr.setXYZ(energyParticleCursor, p.x, p.y, p.z);
+      posAttr.needsUpdate = true;
+
       energyParticleCursor = (energyParticleCursor + 1) % ENERGY_PARTICLES_COUNT;
     }
 
@@ -1074,11 +1082,12 @@
       if (b.isCeremony) {
           isFollowing = true;
 
-          // 🌟 [수정 반영] 세레머니 나비도 아래쪽에서 위로 피어오르는 초미세 팅커벨 가루 스폰
+          // 🌟 세레머니 나비도 아래쪽에서 위로 솔솔 피어오르는 초미세 팅커벨 가루 스폰
           if (b.ceremonyStage === 'rising' || b.ceremonyStage === 'flying_up') {
               spawnCeremonyParticle(b.group.position);
+              spawnCeremonyParticle(b.group.position);
               if (Math.random() < 0.6) spawnCeremonyParticle(b.group.position);
-          } else if (b.ceremonyStage === 'resting' && Math.random() < 0.2) {
+          } else if (b.ceremonyStage === 'resting' && Math.random() < 0.15) {
               spawnCeremonyParticle(b.group.position);
           }
 
@@ -1161,7 +1170,7 @@
       else if (b.isSpecialLanding) {
           isFollowing = true;
 
-          // 🌟 [수정 반영] 손가락 나비도 아래쪽에서 위로 피어오르는 초미세 팅커벨 가루 스폰
+          // 🌟 손가락 나비도 아래쪽에서 위로 솔솔 피어오르는 초미세 팅커벨 가루 스폰
           if (b.specialState === 'approaching' || b.specialState === 'leaving') {
               spawnEnergyParticle(b.group.position);
               spawnEnergyParticle(b.group.position);
