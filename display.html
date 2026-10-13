@@ -103,7 +103,7 @@
       z-index: 2;
       text-shadow: 0 0 10px rgba(255, 255, 255, 1.0),
                    0 0 20px rgba(255, 255, 255, 0.85),
-                   0 0 35px rgba(255, 255, 255, 0.65),
+                   0 0 35px rgba(255, 255, 0.65),
                    0 0 50px rgba(255, 255, 255, 0.4);
     }
 
@@ -140,7 +140,7 @@
       content: '';
       position: absolute;
       inset: -20px;
-      background: radial-gradient(ellipse 65% 55% at center, rgba(255, 255, 255, 0.98) 0%, rgba(255, 255, 255, 0.9) 28%, rgba(255, 255, 255, 0.55) 55%, rgba(255, 255, 255, 0.15) 75%, rgba(255, 255, 255, 0) 100%);
+      background: radial-gradient(ellipse 65% 55% at center, rgba(255, 255, 255, 0.98) 0%, rgba(255, 255, 255, 0.9) 28%, rgba(255, 255, 255, 0.55) 55%, rgba(255, 255, 255, 0.15) 75%, rgba(255, 255, 255, 0.0) 100%);
       filter: blur(14px);
       z-index: -1;
       border-radius: 50%;
@@ -265,6 +265,17 @@
     /* ========================================================
        1. Three.js 설정 및 최적화 지오메트리 구축
        ======================================================== */
+    const BUTTERFLY_SHAPES = [
+      'crescent',
+      'dawn-ray',
+      'ember',
+      'moon-halo',
+      'petal',
+      'starlight',
+      'wave-fin'
+    ];
+    const ANTENNA_TYPES = ['ball', 'crescent', 'star'];
+
     function createStableWingGeom(isRight) {
       const shape = new THREE.Shape();
       const s = isRight ? 1 : -1;
@@ -323,7 +334,7 @@
       return group;
     }
 
-    /* 🌟 영상 속 반투명 투과광 및 선명한 실루엣 그라데이션 셰이더 생성기 */
+    /* 🌟 반투명 투과광 및 선명한 실루엣 (+ 불투명도 보존 백색 글로우 오라 번짐 셰이더) */
     function createWingMaterials(textureURL, patternPath3D) {
       const photoTex = textureLoader.load(textureURL);
       photoTex.flipY = false;
@@ -343,7 +354,8 @@
           uniforms: {
             photoMap: { value: photoTex },
             patMap: { value: patTex || new THREE.Texture() },
-            hasPattern: { value: hasPat ? 1.0 : 0.0 }
+            hasPattern: { value: hasPat ? 1.0 : 0.0 },
+            uMotionBlur: { value: 0.0 }
           },
           vertexShader: [
             'varying vec2 vProjectedUv;',
@@ -365,6 +377,7 @@
             'uniform sampler2D photoMap;',
             'uniform sampler2D patMap;',
             'uniform float hasPattern;',
+            'uniform float uMotionBlur;',
             'varying vec2 vProjectedUv;',
             'varying vec2 vModelUv;',
             'varying vec3 vNormal;',
@@ -378,16 +391,18 @@
             '  }',
             '  vec3 viewDir = normalize(vViewPosition);',
             '  vec3 norm = normalize(vNormal);',
-            '  // 1. 역광 투과광(Translucency/Subsurface Glow) 연산: 얇은 날개를 투과하는 빛',
+            '  // 1. 역광 투과광 연산',
             '  float backScatter = pow(clamp(dot(norm, -viewDir) + 0.35, 0.0, 1.0), 1.8);',
-            '  finalCol.rgb += finalCol.rgb * backScatter * 0.45;',
-            '  // 2. 자체 발광 광도 증폭 (내부 파스텔/네온 채도 보존)',
-            '  finalCol.rgb = finalCol.rgb * 1.3;',
-            '  // 3. 선명한 테두리 대비 및 미세 순백 오라 (하얗게 날아가지 않고 형태감 강조)',
+            '  finalCol.rgb += finalCol.rgb * backScatter * (0.45 + uMotionBlur * 0.25);',
+            '  // 2. 자체 발광 광도 증폭',
+            '  finalCol.rgb = finalCol.rgb * (1.3 + uMotionBlur * 0.3);',
+            '  // 3. 선명한 테두리 대비 및 순백 글로우',
             '  float rim = 1.0 - abs(dot(viewDir, norm));',
-            '  float edgeGlow = pow(rim, 3.2);',
-            '  finalCol.rgb = mix(finalCol.rgb, vec3(1.0), edgeGlow * 0.4);',
-            '  // 4. 반투명도 설정 (영상처럼 배경과 다른 나비 빛이 은은히 비침)',
+            '  float rimExp = mix(3.2, 1.25, uMotionBlur);',
+            '  float edgeGlow = pow(rim, rimExp);',
+            '  finalCol.rgb = mix(finalCol.rgb, vec3(1.0), edgeGlow * mix(0.4, 0.85, uMotionBlur));',
+            '  finalCol.rgb += vec3(edgeGlow * uMotionBlur * 0.3);',
+            '  // 4. 반투명도 설정',
             '  float alphaVal = clamp(finalCol.a * 0.90, 0.0, 1.0);',
             '  gl_FragColor = vec4(clamp(finalCol.rgb, 0.0, 1.0), alphaVal);',
             '}'
@@ -414,6 +429,28 @@
       return '3DButterfly_pattern/' + shapePrefix + '_pattern_3D_' + patNum + '.png';
     }
 
+    /* 🌟 상위폴더 index > 3DButterfly 경로를 포함한 다중 경로 자동 폴백 로더 */
+    function loadGLTFWithFallback(loader, modelName, onLoad, onError) {
+      const candidatePaths = [
+        '../index/3DButterfly/' + modelName + '.glb',
+        '../3DButterfly/' + modelName + '.glb',
+        '3DButterfly/' + modelName + '.glb',
+        './3DButterfly/' + modelName + '.glb'
+      ];
+      let pIdx = 0;
+      function tryNext() {
+        if (pIdx >= candidatePaths.length) {
+          if (onError) onError(new Error("모든 경로에서 모델 로드 실패: " + modelName));
+          return;
+        }
+        const path = candidatePaths[pIdx++];
+        loader.load(path, onLoad, undefined, () => {
+          tryNext();
+        });
+      }
+      tryNext();
+    }
+
     const container = document.getElementById('three-canvas-container');
     const scene = new THREE.Scene();
     
@@ -428,7 +465,7 @@
     }
     container.appendChild(renderer.domElement);
 
-    // 🌟 원본 순백 조명
+    // 🌟 순백 조명
     const ambLight = new THREE.AmbientLight(0xffffff, 1.2);
     scene.add(ambLight);
     const dirLight = new THREE.DirectionalLight(0xffffff, 1.0);
@@ -506,7 +543,7 @@
 
     const defaultFlock = [];
     const userFlock = [];
-    const MAX_USER_BUTTERFLIES = 15;
+    const MAX_USER_BUTTERFLIES = 30;
     const rawUserDataList = [];
 
     function buildButterfly(data = {}, isUser = false, isDelayedArrival = false, isFingerTarget = false, customZ = 0) {
@@ -534,17 +571,24 @@
       innerGroup.rotation.x = Math.PI / 2;
       group.add(innerGroup);
 
-      const shapeId = data.wing_shape || 'crescent';
-      const antId = data.antenna_type || 'ball';
+      // 🌟 형태 및 더듬이 종류 선택 (지정되지 않은 경우 7종 및 3종 중 랜덤 배정)
+      const shapeId = data.wing_shape || BUTTERFLY_SHAPES[Math.floor(Math.random() * BUTTERFLY_SHAPES.length)];
+      const antId = data.antenna_type || ANTENNA_TYPES[Math.floor(Math.random() * ANTENNA_TYPES.length)];
       const targetAntennaPrefix = 'Antenna_' + antId;
-      const modelPath = '3DButterfly/' + shapeId + '.glb';
 
-      // 🌟 앱과 동일한 3D 셰이더 및 모델 로딩 적용
-      if (isUser && data.texture_url && gltfLoader) {
-        const patPath = get3DPatternPath(shapeId, data.pattern_id);
-        const wingMats = createWingMaterials(data.texture_url, patPath);
+      const textureURL = data.texture_url || data.image_url;
+      const hasTexture = !!(isUser && textureURL);
 
-        gltfLoader.load(modelPath, function(gltf) {
+      let wingMats = null;
+      if (hasTexture) {
+        let patPath = get3DPatternPath(shapeId, data.pattern_id);
+        wingMats = createWingMaterials(textureURL, patPath);
+      } else {
+        wingMats = { matL: whiteMat, matR: whiteMat };
+      }
+
+      if (gltfLoader) {
+        loadGLTFWithFallback(gltfLoader, shapeId, function(gltf) {
           const model = gltf.scene;
           let newWingL = null, newWingR = null;
           model.traverse(function(child) {
@@ -580,12 +624,20 @@
             butterflyRecord.leftWing = newWingL;
             butterflyRecord.rightWing = newWingR;
           }
-        }, undefined, function() {});
+        }, function(err) {
+          console.warn("GLTF 로드 폴백 실패, 기본 지오메트리 유지:", err);
+        });
       }
 
       let initialVelocity;
-      // 🌟 앞쪽에서 큼직하고 시원하게 보이도록 기본 스케일 상향 (0.34 ~ 0.44)
-      let targetScale = 0.34 + Math.random() * 0.10;
+      let targetScale = 0.34 + Math.random() * 0.08;
+
+      const initialYaw = Math.random() * Math.PI * 2;
+      const initialPitch = (Math.random() - 0.5) * 0.80; 
+      
+      const targetBPM = 90;
+      const flapSpeed = (targetBPM / 60) * 2 * Math.PI * 2;
+      const initialSpeed = 0.085 + Math.random() * 0.025;
 
       if (isFingerTarget) {
         group.position.set(-18, 14, customZ);
@@ -593,20 +645,20 @@
         targetScale = 0.54;
         group.scale.set(0.54, 0.54, 0.54);
       } else if (isDelayedArrival) {
-        group.position.set((Math.random() - 0.5) * 4, -7.0, 1.5);
-        initialVelocity = new THREE.Vector3((Math.random() - 0.5) * 0.03, 0.09, -0.015);
+        group.position.set(0, -7.0, 1.5);
+        initialVelocity = new THREE.Vector3(0.04, 0.08, -0.01);
         group.scale.set(0.01, 0.01, 0.01);
       } else {
-        // 🌟 멀리 가지 않고 카메라와 가까운 앞쪽 영역에 스폰 (Z: 0.0 ~ -6.5)
         group.position.set(
-          (Math.random() - 0.5) * 20, 
-          (Math.random() - 0.5) * 13, 
-          0.0 - Math.random() * 6.5
+          (Math.random() - 0.5) * 18, 
+          (Math.random() - 0.5) * 7.5, 
+          -0.5 - Math.random() * 5.0
         );
+        const cosP = Math.cos(initialPitch);
         initialVelocity = new THREE.Vector3(
-          (Math.random() - 0.5) * 0.07, 
-          (Math.random() - 0.5) * 0.07, 
-          (Math.random() - 0.5) * 0.025
+          cosP * Math.cos(initialYaw) * initialSpeed,
+          Math.sin(initialPitch) * initialSpeed,
+          cosP * Math.sin(initialYaw) * initialSpeed
         );
         group.scale.set(targetScale, targetScale, targetScale);
       }
@@ -617,7 +669,7 @@
         id: Math.random().toString(36).substring(7),
         group, innerGroup, leftWing, rightWing,
         velocity: initialVelocity,
-        speed: 18.0 + Math.random() * 6.0, 
+        speed: flapSpeed,
         seed: Math.random() * 1000,
         flapAmp: 1.0, 
         state: 'flying',
@@ -629,15 +681,28 @@
         name: data.name || (isUser ? "익명의 나비" : "나비"),
         memo: data.memo || "너의 찬란한 날갯짓을 응원해.",
         core_concern: data.core_concern || (Array.isArray(data.q2) && data.q2.length > 0 ? data.q2[0] : "완벽주의 강박"),
-        concern_reason: data.concern_reason || "항상 잘 해내야 한다는 마음이 앞서서요."
+        concern_reason: data.concern_reason || "항상 잘 해내야 한다는 마음이 앞서서요.",
+        yaw: initialYaw,
+        pitch: initialPitch,
+        speedBase: initialSpeed,
+        turnRateYaw: 0,
+        turnRatePitch: 0,
+        yawBias: (Math.random() - 0.5) * 0.03,
+        pitchBias: (Math.random() - 0.5) * 0.025,
+        rollBias: (Math.random() - 0.5) * 0.55,
+        dirChangeTimer: Math.random() * 3.0,
+        strokePower: 0,
+        prevBobY: 0
       };
 
       return butterflyRecord;
     }
 
-    // 🌟 전경 나비 수 30마리
-    for (let i = 0; i < 30; i++) {
-      defaultFlock.push(buildButterfly({}, false, false, false));
+    // 🌟 20마리 기본 나비 생성 (7가지 3D 형태와 3가지 더듬이가 골고루 분배되어 생성됨)
+    for (let i = 0; i < 20; i++) {
+      const assignedShape = BUTTERFLY_SHAPES[i % BUTTERFLY_SHAPES.length];
+      const assignedAnt = ANTENNA_TYPES[i % ANTENNA_TYPES.length];
+      defaultFlock.push(buildButterfly({ wing_shape: assignedShape, antenna_type: assignedAnt }, false, false, false));
     }
 
     const clock = new THREE.Clock();
@@ -724,7 +789,7 @@
     const handPointer = document.getElementById('hand-pointer');
 
     /* ========================================================
-       🌟 [수정 반영] 박수치기 효과(Clap & Fling) 및 상하 지그재그 회피 비행
+       🌟 8분음표 1세트 + 나비 자체의 수직 바운스
        ======================================================== */
     function updateMotion(b, time) {
       let currentTargetScale = b.targetScale;
@@ -755,9 +820,9 @@
       const baseRotL = (b.leftWing.userData && b.leftWing.userData.baseRotY) || 0;
       const baseRotR = (b.rightWing.userData && b.rightWing.userData.baseRotY) || 0;
 
-      // 🦋 박수치기 효과 (Clap and Fling) 임펄스 계산
-      let flingImpulse = 0; 
-      let flingLift = 0;
+      let phase = 0;
+      let strokePower = 0;
+      let wingBlurFactor = 0.0;
 
       if (b.state === 'landing_rest') {
           b.flapAmp *= 0.92; 
@@ -767,6 +832,9 @@
           b.leftWing.rotation.y = baseRotL + flap + restFold * (1 - b.flapAmp);
           b.rightWing.rotation.y = baseRotR - flap - restFold * (1 - b.flapAmp);
           b.innerGroup.rotation.z = Math.sin(time * 2.0 + b.seed) * 0.04;
+          b.innerGroup.rotation.x = Math.PI / 2;
+          b.innerGroup.position.set(0, 0, 0);
+          wingBlurFactor = 0.0;
       } else {
           b.flapAmp += (1.0 - b.flapAmp) * 0.1; 
           let currentFlapSpeed = b.speed;
@@ -776,26 +844,51 @@
             currentFlapSpeed = b.speed * 1.25;
           }
 
-          const phase = (time * currentFlapSpeed + b.seed) % (Math.PI * 2);
-          const wingWave = Math.sin(phase);
+          phase = (time * currentFlapSpeed + b.seed) % (Math.PI * 2);
+          
+          const normPhase = phase / (Math.PI * 2);
+          let wingWave;
 
-          // 비대칭 날갯짓: 등 뒤에서 거의 맞닿았다가(Clap) 빠르게 쳐내림(Fling)
-          const flapAngle = (wingWave * 0.88) * b.flapAmp;
-          b.leftWing.rotation.y = baseRotL + (0.50 + flapAngle);
-          b.rightWing.rotation.y = baseRotR - (0.50 + flapAngle);
+          if (normPhase < 0.50) {
+            const tUp = normPhase / 0.50;
+            const smoothUp = 0.5 - 0.5 * Math.cos(tUp * Math.PI);
+            wingWave = 1.0 - 2.0 * smoothUp;
+            strokePower = 0;
+            wingBlurFactor = Math.sin(tUp * Math.PI) * 0.45;
+          } else {
+            const tDown = (normPhase - 0.50) / 0.50;
+            const smoothDown = 0.5 - 0.5 * Math.cos(tDown * Math.PI);
+            wingWave = -1.0 + 2.0 * smoothDown;
+            strokePower = Math.sin(tDown * Math.PI) * 0.55;
+            wingBlurFactor = Math.sin(tDown * Math.PI) * 0.45;
+          }
+          b.strokePower = strokePower;
+          wingBlurFactor *= b.flapAmp;
 
-          // 🌟 박수치기(Clap & Fling) 순간 추진력: 날개가 활짝 펴지며 공기를 뿜는 순간의 임펄스
-          const downstrokeVelocity = Math.max(0, -Math.cos(phase));
-          flingImpulse = Math.pow(downstrokeVelocity, 2.5) * 0.0055 * b.flapAmp;
-          flingLift = Math.pow(downstrokeVelocity, 2.0) * 0.0040 * b.flapAmp;
+          const wingFold = (-0.50 + wingWave * 0.75) * b.flapAmp;
+          b.leftWing.rotation.y = baseRotL + wingFold;
+          b.rightWing.rotation.y = baseRotR - wingFold;
 
-          // 와류에 의한 미세 비틀림 롤
-          b.innerGroup.rotation.z = Math.sin(phase * 1.5 + b.seed) * 0.06 * b.flapAmp;
+          b.innerGroup.rotation.x = Math.PI / 2;
+          b.innerGroup.position.set(0, 0, 0);
+          b.innerGroup.rotation.z = (Math.sin(phase * 1.5 + b.seed) * 0.05 + strokePower * 0.035) * b.flapAmp;
+      }
+
+      const bobAmp = 0.09 * b.flapAmp;
+      const currentBobY = Math.cos(phase) * bobAmp;
+      const deltaBobY = currentBobY - (b.prevBobY || 0);
+      b.prevBobY = currentBobY;
+      b.group.position.y += deltaBobY;
+
+      if (b.leftWing && b.leftWing.material && b.leftWing.material.uniforms && b.leftWing.material.uniforms.uMotionBlur) {
+        b.leftWing.material.uniforms.uMotionBlur.value = wingBlurFactor;
+      }
+      if (b.rightWing && b.rightWing.material && b.rightWing.material.uniforms && b.rightWing.material.uniforms.uMotionBlur) {
+        b.rightWing.material.uniforms.uMotionBlur.value = wingBlurFactor;
       }
 
       let isFollowing = false;
 
-      // 🌟 손가락 착석 전용 나비 이동
       if (b.isSpecialLanding) {
           isFollowing = true;
 
@@ -862,7 +955,6 @@
               }
           }
       } 
-      // 🌟 뒤쪽 일반 나비 제어
       else if (isHandDetected) {
           if (interactionMode === 'fist_gather' && fistButterflies.includes(b.id)) {
               isFollowing = true;
@@ -907,71 +999,81 @@
           } 
       }
 
-      // 🦋 [핵심 반영: 중앙 수렴 방지 및 화면 전체 분산 비행]
       if (!isFollowing && !b.isAscendingArrival) {
           b.state = 'flying';
-          const t = time * 1.4 + b.seed;
 
-          // 1. 상하 지그재그 파동 (직선 비행을 깨뜨리고 예측할 수 없게 출렁이는 궤적)
-          const zigzagWave = Math.sin(t * 2.8) * Math.cos(t * 1.3 + b.seed * 0.3) * 0.0085;
-          b.velocity.y += zigzagWave;
-
-          // 2. 박수치기(Clap & Fling)에 의한 추진력 및 순수 양력 균형 (Y축 중심 복원력 완전 제거)
-          b.velocity.y += (flingLift - 0.0010 * b.flapAmp);
-          if (Math.abs(b.velocity.x) > 0.001) {
-            b.velocity.x += Math.sign(b.velocity.x) * flingImpulse;
+          if (b.yaw === undefined) {
+              b.yaw = Math.atan2(b.velocity.z, b.velocity.x) || (Math.random() * Math.PI * 2);
+              b.pitch = (Math.random() - 0.5) * 0.80;
+              b.speedBase = 0.085 + (b.seed % 100) * 0.00025;
+              b.turnRateYaw = 0;
+              b.turnRatePitch = 0;
+              b.yawBias = (Math.random() - 0.5) * 0.03;
+              b.pitchBias = (Math.random() - 0.5) * 0.025;
+              b.rollBias = (Math.random() - 0.5) * 0.55;
+              b.dirChangeTimer = Math.random() * 3.0;
           }
 
-          // 3. 포식자를 따돌리기 위한 매 날갯짓 비틀림 및 미세 난류 기류
-          b.velocity.x += Math.sin(t * 1.9 + b.seed) * 0.0035;
-          b.velocity.z += Math.cos(t * 1.6 + b.seed) * 0.0022;
-
-          // 4. 불규칙한 방향 선회 (와류 위치 변경)
-          if (Math.random() < 0.035) {
-              b.velocity.x += (Math.random() - 0.5) * 0.045;
-              b.velocity.y += (Math.random() - 0.5) * 0.035;
-              b.velocity.z += (Math.random() - 0.5) * 0.025; 
+          b.dirChangeTimer += 0.016;
+          if (b.dirChangeTimer > 2.8 + (b.seed % 2.5)) {
+              b.dirChangeTimer = 0;
+              b.yawBias = (Math.random() - 0.5) * 0.035;   
+              b.pitchBias = (Math.random() - 0.5) * 0.032; 
+              b.rollBias = (Math.random() - 0.5) * 0.65;   
           }
 
-          // 🌟 5. [중앙 뭉침 해소] 중앙 부근 분산력 (중심 r < 8.0 영역에서 외곽으로 흩어지는 척력)
-          const distCenterSq = b.group.position.x * b.group.position.x + b.group.position.y * b.group.position.y;
-          if (distCenterSq < 64.0) {
-              const distCenter = Math.sqrt(distCenterSq);
-              const pushFactor = (1.0 - distCenter / 8.0) * 0.0045;
-              if (distCenter > 0.1) {
-                  b.velocity.x += (b.group.position.x / distCenter) * pushFactor;
-                  b.velocity.y += (b.group.position.y / distCenter) * pushFactor;
-              } else {
-                  b.velocity.x += Math.cos(b.seed) * pushFactor;
-                  b.velocity.y += Math.sin(b.seed) * pushFactor;
-              }
+          const organicYawTurn = Math.sin(time * 0.45 + b.seed) * 0.024 
+                               + Math.cos(time * 0.90 + b.seed * 1.3) * 0.020 
+                               + (b.yawBias || 0);
+
+          const organicPitchTurn = Math.sin(time * 0.60 + b.seed * 2.1) * 0.024 
+                                 + (b.pitchBias || 0);
+
+          let steerX = 0, steerZ = 0, steerY = 0;
+          if (b.group.position.x > 12.5) steerX = -0.055;
+          else if (b.group.position.x < -12.5) steerX = 0.055;
+
+          if (b.group.position.z > 1.2) steerZ = -0.055;
+          else if (b.group.position.z < -7.0) steerZ = 0.055;
+
+          if (b.group.position.y > 5.5) steerY = -0.050;
+          else if (b.group.position.y < -5.5) steerY = 0.050;
+
+          if (steerX !== 0 || steerZ !== 0) {
+              const desiredYaw = Math.atan2(steerZ || Math.sin(b.yaw), steerX || Math.cos(b.yaw));
+              let diffYaw = desiredYaw - b.yaw;
+              while (diffYaw < -Math.PI) diffYaw += Math.PI * 2;
+              while (diffYaw > Math.PI) diffYaw -= Math.PI * 2;
+              b.turnRateYaw = (b.turnRateYaw || 0) * 0.86 + diffYaw * 0.06 * 0.14;
+          } else {
+              b.turnRateYaw = (b.turnRateYaw || 0) * 0.88 + organicYawTurn * 0.12;
           }
 
-          // 🌟 6. [중앙 뭉침 해소] 나비 간 상호 반발력 (Separation: 서로 너무 가까워지면 밀어내어 분산)
-          const sepDist = 3.5;
-          const sepDistSq = sepDist * sepDist;
-          for (let i = 0; i < defaultFlock.length; i++) {
-              const other = defaultFlock[i];
-              if (other === b) continue;
-              const dx = b.group.position.x - other.group.position.x;
-              const dy = b.group.position.y - other.group.position.y;
-              const dz = b.group.position.z - other.group.position.z;
-              const dSq = dx * dx + dy * dy + dz * dz;
-              if (dSq < sepDistSq && dSq > 0.001) {
-                  const d = Math.sqrt(dSq);
-                  const force = (1.0 - d / sepDist) * 0.003;
-                  b.velocity.x += (dx / d) * force;
-                  b.velocity.y += (dy / d) * force;
-                  b.velocity.z += (dz / d) * force;
-              }
+          if (steerY !== 0) {
+              const targetPitch = steerY > 0 ? 0.55 : -0.55;
+              b.turnRatePitch = (b.turnRatePitch || 0) * 0.86 + (targetPitch - b.pitch) * 0.09 * 0.14;
+          } else {
+              b.turnRatePitch = (b.turnRatePitch || 0) * 0.88 + organicPitchTurn * 0.12;
           }
+
+          b.yaw += b.turnRateYaw;
+          b.pitch = Math.max(-1.15, Math.min(1.15, b.pitch + b.turnRatePitch));
+
+          const currentStroke = b.strokePower || 0;
+          const forwardSurge = 1.0 + (currentStroke * 0.55);
+          const currentSpeed = b.speedBase * forwardSurge;
+
+          const cosP = Math.cos(b.pitch);
+          b.velocity.x = cosP * Math.cos(b.yaw) * currentSpeed;
+          b.velocity.z = cosP * Math.sin(b.yaw) * currentSpeed;
+          b.velocity.y = Math.sin(b.pitch) * currentSpeed;
       }
 
-      let maxSpeed = 0.13;
+      let maxSpeed = 0.22;
       if (b.isSpecialLanding) {
           maxSpeed = 0.26;
       } else if (isFollowing && interactionMode === 'scatter') {
-          maxSpeed = 0.12; 
+          maxSpeed = 0.16; 
       } else if (isFollowing && interactionMode === 'fist_gather') {
           maxSpeed = 0.28;
       }
@@ -982,32 +1084,28 @@
       
       b.group.position.add(b.velocity);
 
-      // 🌟 카메라와 가까운 영역에 머물도록 Z축 벽 방어 (외곽 공간을 넓게 쓰도록 범위 확대 및 완화)
       if (!b.isSpecialLanding) {
-          if (b.group.position.x > 16) b.velocity.x -= 0.015;
-          if (b.group.position.x < -16) b.velocity.x += 0.015;
-          if (b.group.position.y > 10) b.velocity.y -= 0.015;
-          if (b.group.position.y < -10) b.velocity.y += 0.015;
-          
           if (b.group.position.z > 2.0) b.velocity.z -= 0.025;
-          if (b.group.position.z < -6.5) b.velocity.z += 0.035;
+          if (b.group.position.z < -7.5) b.velocity.z += 0.035;
       }
 
-      // 🦋 3. 지그재그 궤적과 와류에 맞춘 역동적인 3축 기체 회전 (Yaw/Roll/Pitch)
       if (b.velocity.lengthSq() > 0.00001 && b.state === 'flying' && !isFollowing) {
-        _vTargetPos.copy(b.group.position).add(b.velocity);
+        _vTargetPos.set(
+          b.group.position.x + b.velocity.x,
+          b.group.position.y + b.velocity.y,
+          b.group.position.z + b.velocity.z
+        );
+
         dummyObj.position.copy(b.group.position);
-        dummyObj.lookAt(_vTargetPos);
+        dummyObj.lookAt(_vTargetPos); 
 
-        // 지그재그로 급격히 방향을 틀 때 기체가 자연스럽게 기우는 은행각
-        const rollAngle = (b.velocity.x * -22.0) + Math.sin(time * 4.5 + b.seed) * 0.20;
-        // 상하 요동치는 수직 속도에 맞춘 기수 피치 연동
-        const pitchAngle = (b.velocity.y * 5.0) + Math.sin(time * 3.0 + b.seed) * 0.10;
+        const bankRoll = Math.max(-1.3, Math.min(1.3, -(b.turnRateYaw || 0) * 16.0));
+        const wobbleRoll = Math.sin(time * 1.2 + b.seed * 2.5) * 0.65 + (b.rollBias || 0);
+        const rollAngle = bankRoll + wobbleRoll + Math.sin(phase) * 0.08;
 
-        dummyObj.rotateZ(rollAngle); 
-        dummyObj.rotateX(pitchAngle);
+        dummyObj.rotateZ(rollAngle);
 
-        b.group.quaternion.slerp(dummyObj.quaternion, 0.18);
+        b.group.quaternion.slerp(dummyObj.quaternion, 0.16);
       }
     }
 
@@ -1029,7 +1127,6 @@
         if (floatingInfoCard) { floatingInfoCard.style.left = `${currentScreenX}px`; floatingInfoCard.style.top = `${currentScreenY}px`; }
       }
 
-      // 🌟 손가락 하나 제스처 시 즉시 착석 나비 소환
       if (interactionMode === 'land_one' && isHandDetected) {
           if (releaseLandingTimer) {
               clearTimeout(releaseLandingTimer);
@@ -1043,6 +1140,11 @@
                   const randIdx = Math.floor(Math.random() * rawUserDataList.length);
                   targetData = rawUserDataList[randIdx];
                   isUserButterfly = true;
+              } else {
+                  targetData = {
+                    wing_shape: BUTTERFLY_SHAPES[Math.floor(Math.random() * BUTTERFLY_SHAPES.length)],
+                    antenna_type: ANTENNA_TYPES[Math.floor(Math.random() * ANTENNA_TYPES.length)]
+                  };
               }
               specialButterfly = buildButterfly(targetData, isUserButterfly, false, true, handTarget3D.z);
           }
@@ -1082,30 +1184,54 @@
           const supabaseInstance = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
           function addUserButterfly(data, isDelayedArrival = false) {
+            if (!data) return;
             rawUserDataList.push(data);
             if (rawUserDataList.length > 50) rawUserDataList.shift();
-            if (userFlock.length >= MAX_USER_BUTTERFLIES) {
+
+            // 🌟 3D 나비 객체 생성 및 화면(userFlock) 등록
+            const butterfly = buildButterfly(data, true, isDelayedArrival, false);
+            userFlock.push(butterfly);
+
+            // 허용 최대 마리 수 초과 시 가장 오래된 나비 제거
+            if (userFlock.length > MAX_USER_BUTTERFLIES) {
               const oldest = userFlock.shift();
-              if (oldest && oldest.group) scene.remove(oldest.group);
+              if (oldest && oldest.group) {
+                scene.remove(oldest.group);
+              }
             }
-            userFlock.push(buildButterfly(data, true, isDelayedArrival, false));
           }
 
-          supabaseInstance.from('butterflies').select('*').order('created_at', { ascending: false }).limit(MAX_USER_BUTTERFLIES)
-            .then(({ data }) => { if (data) data.reverse().forEach(item => addUserButterfly(item, false)); })
-            .catch(e => console.warn("Supabase 데이터 에러 무시"));
+          // 초기 저장된 유저 나비 데이터 조회
+          supabaseInstance.from('butterflies')
+            .select('*')
+            .order('created_at', { ascending: false })
+            .limit(MAX_USER_BUTTERFLIES)
+            .then(({ data, error }) => {
+              if (error) {
+                console.error("Supabase 데이터 조회 오류:", error);
+                return;
+              }
+              if (data && data.length > 0) {
+                data.reverse().forEach(item => addUserButterfly(item, false));
+              }
+            })
+            .catch(e => console.error("Supabase 데이터 연동 실패:", e));
 
-          // 🌟 실시간 즉시 연출 수신
+          // 실시간 신규 나비 수신
           supabaseInstance.channel('public:butterflies')
             .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'butterflies' }, (payload) => {
-              addUserButterfly(payload.new, true);
+              if (payload && payload.new) {
+                addUserButterfly(payload.new, true);
+              }
             }).subscribe();
         }
-      } catch (err) {}
+      } catch (err) {
+        console.error("Supabase 초기화 오류:", err);
+      }
     }, 1500);
 
     /* ========================================================
-       3. 네이티브 웹캠 FHD 고화질 + 철통 상태 잠금 알고리즘
+       3. 네이티브 웹캠 FHD 고화질 + 제스처 인식
        ======================================================== */
     setTimeout(() => {
       try {
