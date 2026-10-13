@@ -573,7 +573,7 @@
       const aL = createAntenna(false, sharedWhiteMat); aL.position.set(-0.05, 0.7, 0.15); innerGroup.add(aL);
       const aR = createAntenna(true, sharedWhiteMat); aR.position.set(0.05, 0.7, 0.15); innerGroup.add(aR);
 
-      // 🌟 등이 위(+Y), 머리가 앞(+Z)을 향하는 기본 정렬[cite: 2]
+      // 등이 위(+Y), 머리가 앞(+Z)을 향하는 기본 정렬[cite: 2]
       innerGroup.rotation.set(isCeremony ? 0 : Math.PI / 2, isCeremony ? 0 : Math.PI, 0);
       group.add(innerGroup);
 
@@ -663,25 +663,10 @@
         group.rotation.set(0, 0, 0);
         initScreenAngle = Math.PI / 2;
       } else if (isFingerTarget) {
-        // 🌟 손가락 나비 4면 진입 로직[cite: 2]
-        const spawnSide = Math.floor(Math.random() * 4);
-        if (spawnSide === 0) { // 상 (Top)
-          group.position.set((Math.random() - 0.5) * 14, 8.5, 8.0);
-          initialVelocity = new THREE.Vector3(0, -0.12, 0);
-          initScreenAngle = -Math.PI / 2;
-        } else if (spawnSide === 1) { // 하 (Bottom)
-          group.position.set((Math.random() - 0.5) * 14, -8.5, 8.0);
-          initialVelocity = new THREE.Vector3(0, 0.12, 0);
-          initScreenAngle = Math.PI / 2;
-        } else if (spawnSide === 2) { // 좌 (Left)
-          group.position.set(-14.0, (Math.random() - 0.5) * 10, 8.0);
-          initialVelocity = new THREE.Vector3(0.12, 0, 0);
-          initScreenAngle = 0;
-        } else { // 우 (Right)
-          group.position.set(14.0, (Math.random() - 0.5) * 10, 8.0);
-          initialVelocity = new THREE.Vector3(-0.12, 0, 0);
-          initScreenAngle = Math.PI;
-        }
+        // [수정 반영] 입장 위치: 왼쪽 상단(Top-Left)에서 우하향으로 여유롭게 진입
+        group.position.set(-14.0, 8.5, 8.0);
+        initialVelocity = new THREE.Vector3(0.06, -0.04, 0);
+        initScreenAngle = -Math.PI / 6;
         targetScale = 0.58;
         group.scale.set(0.58, 0.58, 0.58);
       } else if (isDelayedArrival) {
@@ -691,7 +676,6 @@
         initScreenAngle = fromTop ? -Math.PI / 2 : Math.PI / 2;
         group.scale.set(0.01, 0.01, 0.01);
       } else {
-        // 🌟 상, 하, 좌, 우 및 화면 내부 고른 생성[cite: 2]
         const spawnMode = Math.floor(Math.random() * 5);
         let spawnX = 0, spawnY = 0;
 
@@ -778,7 +762,7 @@
     const _vDir = new THREE.Vector3();
     const _vTargetPos = new THREE.Vector3();
     const _vOrbit = new THREE.Vector3();
-    const _vLeave = new THREE.Vector3(22.0, 1.2, 8.0);
+    const _vLeave = new THREE.Vector3(18.0, 10.5, 8.0);
     const _vStep = new THREE.Vector3();
     const _handUnprojectVec = new THREE.Vector3();
 
@@ -791,6 +775,7 @@
     let specialButterfly = null;
     let fistButterflies = []; 
     let isCreatingSpecialButterfly = false;
+    let landOneGestureTimer = null; // [수정 반영] 2초 지연 호출용 타이머
 
     const floatingConcernCard = document.getElementById('floating-concern-card');
     const floatingConcernTag = document.getElementById('floating-concern-tag');
@@ -895,7 +880,7 @@
     const handPointer = document.getElementById('hand-pointer');
 
     /* ========================================================
-       🌟 이동 및 날개짓 물리 연산 (상하/대각선 360도 전방위 유영 엔진)[cite: 2]
+       이동 및 날개짓 물리 연산 (상하/대각선 360도 전방위 유영 엔진)[cite: 2]
        ======================================================== */
     function updateMotion(b, dt, time) {
       let currentTargetScale = b.targetScale;
@@ -926,7 +911,8 @@
 
       let currentFlapSpeed = b.speed;
       if (b.isSpecialLanding && b.specialState === 'approaching') {
-        currentFlapSpeed = b.speed * 1.2;
+        // [수정 반영] 천천히 접근할 때의 자연스러운 날갯짓 속도
+        currentFlapSpeed = b.speed * 1.05;
       } else if (b.isCeremony) {
         if (b.ceremonyStage === 'rising') {
           currentFlapSpeed = b.speed * 0.92;
@@ -1079,8 +1065,9 @@
                   b.state = 'flying';
                   _vDir.subVectors(handTarget3D, b.group.position);
                   _vDir.z = 0; 
-                  _vDir.normalize().multiplyScalar(0.25);
-                  b.velocity.lerp(_vDir, 0.08); 
+                  // [수정 반영] 손끝으로 다가오는 속도를 천천히 감속 (0.25 -> 0.13)
+                  _vDir.normalize().multiplyScalar(0.13);
+                  b.velocity.lerp(_vDir, 0.06); 
                   
                   _vTargetPos.copy(b.group.position).add(b.velocity);
                   dummyObj.position.copy(b.group.position);
@@ -1111,17 +1098,19 @@
               const organicWobbleY = Math.sin(time * 3.2 + b.seed) * 1.6 + Math.cos(time * 6.0 + b.seed * 1.5) * 0.7;
               const organicWobbleZ = Math.sin(time * 2.5 + b.seed * 1.8) * 3.2;
 
+              // [수정 반영] 퇴장 목표 지점을 오른쪽 상단 밖으로 지정
               _vLeave.set(
-                  22.0,
-                  b.group.position.y + organicWobbleY * 0.35 + 0.3, 
+                  18.0,
+                  10.5 + organicWobbleY * 0.25, 
                   8.0 + organicWobbleZ
               );
 
-              _vDir.subVectors(_vLeave, b.group.position).normalize().multiplyScalar(0.28);
-              _vDir.y += Math.sin(time * 4.5 + b.seed) * 0.06;
-              _vDir.z += Math.cos(time * 3.8 + b.seed) * 0.08;
+              // [수정 반영] 나갈 때의 속도를 천천히 감속 (0.28 -> 0.14)
+              _vDir.subVectors(_vLeave, b.group.position).normalize().multiplyScalar(0.14);
+              _vDir.y += Math.sin(time * 4.5 + b.seed) * 0.04;
+              _vDir.z += Math.cos(time * 3.8 + b.seed) * 0.05;
 
-              b.velocity.lerp(_vDir, 0.07); 
+              b.velocity.lerp(_vDir, 0.05); 
               
               _vTargetPos.copy(b.group.position).add(b.velocity);
               dummyObj.position.copy(b.group.position);
@@ -1133,7 +1122,8 @@
 
               b.group.quaternion.slerp(dummyObj.quaternion, 0.14);
 
-              if (b.group.position.x > 16.0) {
+              // [수정 반영] 오른쪽 상단 밖으로 벗어났을 때 안전하게 소멸
+              if (b.group.position.x > 15.0 || b.group.position.y > 9.5) {
                   disposeButterfly(specialButterfly);
                   specialButterfly = null;
                   return;
@@ -1254,7 +1244,8 @@
 
       let maxSpeed = 0.27;
       if (b.isSpecialLanding) {
-          maxSpeed = (b.specialState === 'leaving') ? 0.38 : 0.30;
+          // [수정 반영] 손가락 나비의 최대 속도 상한 완화 (천천히 비행)
+          maxSpeed = (b.specialState === 'leaving') ? 0.18 : 0.15;
       } else if (b.isCeremony) {
           maxSpeed = 0.24;
       } else if (isFollowing && interactionMode === 'scatter') {
@@ -1321,6 +1312,7 @@
         }
       }
 
+      // [수정 반영] 손가락 하나 제스처를 2초 동안 지속했을 때만 소환되도록 변경
       if (interactionMode === 'land_one' && isHandDetected) {
           if (releaseLandingTimer) {
               clearTimeout(releaseLandingTimer);
@@ -1328,23 +1320,35 @@
           }
 
           if (!specialButterfly && !activeCeremonyButterfly && !isCreatingSpecialButterfly) {
-              isCreatingSpecialButterfly = true;
-              let targetData = {};
-              let isUserButterfly = false;
-              if (rawUserDataList.length > 0) {
-                  const randIdx = Math.floor(Math.random() * rawUserDataList.length);
-                  targetData = rawUserDataList[randIdx];
-                  isUserButterfly = true;
-              } else {
-                  targetData = {
-                    wing_shape: DEFAULT_BUTTERFLY_SHAPES[Math.floor(Math.random() * DEFAULT_BUTTERFLY_SHAPES.length)],
-                    antenna_type: 'ball'
-                  };
+              if (!landOneGestureTimer) {
+                  landOneGestureTimer = setTimeout(() => {
+                      if (interactionMode === 'land_one' && isHandDetected && !specialButterfly && !activeCeremonyButterfly && !isCreatingSpecialButterfly) {
+                          isCreatingSpecialButterfly = true;
+                          let targetData = {};
+                          let isUserButterfly = false;
+                          if (rawUserDataList.length > 0) {
+                              const randIdx = Math.floor(Math.random() * rawUserDataList.length);
+                              targetData = rawUserDataList[randIdx];
+                              isUserButterfly = true;
+                          } else {
+                              targetData = {
+                                wing_shape: DEFAULT_BUTTERFLY_SHAPES[Math.floor(Math.random() * DEFAULT_BUTTERFLY_SHAPES.length)],
+                                antenna_type: 'ball'
+                              };
+                          }
+                          specialButterfly = buildButterfly(targetData, isUserButterfly, false, true, 8.0);
+                          isCreatingSpecialButterfly = false;
+                      }
+                      landOneGestureTimer = null;
+                  }, 2000);
               }
-              specialButterfly = buildButterfly(targetData, isUserButterfly, false, true, 8.0);
-              isCreatingSpecialButterfly = false;
           }
       } else {
+          // 2초가 되기 전에 손을 내리거나 다른 제스처로 전환하면 타이머 취소
+          if (landOneGestureTimer) {
+              clearTimeout(landOneGestureTimer);
+              landOneGestureTimer = null;
+          }
           if (specialButterfly && !releaseLandingTimer) {
               releaseLandingTimer = setTimeout(() => {
                   if (specialButterfly) specialButterfly.specialState = 'leaving';
