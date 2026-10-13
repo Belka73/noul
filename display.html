@@ -165,6 +165,7 @@
       color: #08080a;
       margin-bottom: 5px;
       z-index: 2;
+      text-align: center;
     }
 
     #floating-butterfly-memo {
@@ -175,6 +176,7 @@
       word-break: keep-all;
       z-index: 2;
       min-height: 34px;
+      text-align: center;
     }
 
     .typing-cursor {
@@ -519,6 +521,7 @@
       color: 0xffffff
     });
     const ceremonyParticlePoints = new THREE.Points(ceremonyParticleGeom, ceremonyParticleMat);
+    ceremonyParticlePoints.frustumCulled = false;
     scene.add(ceremonyParticlePoints);
 
     let ceremonyParticleCursor = 0;
@@ -554,9 +557,9 @@
     }
 
     /* ========================================================
-       🌟 손가락 나비 전용 빛 에너지 파티클 시스템 (나비 앱 기 모으기 효과)
+       🌟 손가락 나비 전용 빛 에너지 파티클 시스템 (나비 앱 기 모으기 광채)
        ======================================================== */
-    const ENERGY_PARTICLES_COUNT = 60;
+    const ENERGY_PARTICLES_COUNT = 120;
     const energyParticlePositions = new Float32Array(ENERGY_PARTICLES_COUNT * 3);
     const energyParticleData = [];
 
@@ -570,46 +573,49 @@
     const energyParticleGeom = new THREE.BufferGeometry();
     energyParticleGeom.setAttribute('position', new THREE.BufferAttribute(energyParticlePositions, 3));
 
-    // 나비 앱의 에너지 구체 텍스처 (중심 순백, 외곽 은은한 빛 무리)
+    // 나비 앱의 에너지 파티클과 똑같은 눈부신 고밀도 방사형 빛 구체 캔버스
     const eCanvas = document.createElement('canvas');
     eCanvas.width = 64; eCanvas.height = 64;
     const eCtx = eCanvas.getContext('2d');
     const eGrad = eCtx.createRadialGradient(32, 32, 0, 32, 32, 32);
     eGrad.addColorStop(0, 'rgba(255, 255, 255, 1.0)');
-    eGrad.addColorStop(0.25, 'rgba(255, 255, 245, 0.9)');
-    eGrad.addColorStop(0.55, 'rgba(240, 245, 255, 0.4)');
-    eGrad.addColorStop(0.85, 'rgba(220, 235, 255, 0.12)');
+    eGrad.addColorStop(0.2, 'rgba(255, 255, 240, 0.95)');
+    eGrad.addColorStop(0.45, 'rgba(240, 248, 255, 0.65)');
+    eGrad.addColorStop(0.75, 'rgba(220, 235, 255, 0.25)');
     eGrad.addColorStop(1, 'rgba(255, 255, 255, 0)');
     eCtx.fillStyle = eGrad;
     eCtx.fillRect(0, 0, 64, 64);
     const energyParticleTex = new THREE.CanvasTexture(eCanvas);
+    energyParticleTex.needsUpdate = true;
 
     const energyParticleMat = new THREE.PointsMaterial({
       map: energyParticleTex,
-      size: 0.85,
+      size: 2.2, // 또렷하고 찬란하게 빛나는 크기
       transparent: true,
       blending: THREE.AdditiveBlending,
       depthWrite: false,
       color: 0xffffff
     });
     const energyParticlePoints = new THREE.Points(energyParticleGeom, energyParticleMat);
+    // 🌟 Frustum Culling 완벽 해제 (화면 밖 잘림 버그 100% 방지)
+    energyParticlePoints.frustumCulled = false;
     scene.add(energyParticlePoints);
 
     let energyParticleCursor = 0;
     function spawnEnergyParticle(pos) {
       const p = energyParticleData[energyParticleCursor];
       const angle = Math.random() * Math.PI * 2;
-      const radius = 0.35 + Math.random() * 0.85;
+      const radius = 0.2 + Math.random() * 0.95;
 
       p.x = pos.x + Math.cos(angle) * radius;
       p.y = pos.y + Math.sin(angle) * radius;
-      p.z = pos.z + (Math.random() - 0.5) * 0.6;
+      p.z = (pos.z || 8.0) + (Math.random() - 0.5) * 0.8;
 
-      // 나비 앱처럼 위로 은은하게 피어오르는 부유 속도
-      p.vx = (Math.random() - 0.5) * 0.018;
-      p.vy = 0.015 + Math.random() * 0.024;
-      p.vz = (Math.random() - 0.5) * 0.015;
-      p.life = 0.95;
+      // 나비 앱처럼 위와 사방으로 은은하게 흩날리며 피어오르는 속도
+      p.vx = (Math.random() - 0.5) * 0.035;
+      p.vy = 0.020 + Math.random() * 0.035;
+      p.vz = (Math.random() - 0.5) * 0.025;
+      p.life = 0.9 + Math.random() * 0.35;
 
       energyParticleCursor = (energyParticleCursor + 1) % ENERGY_PARTICLES_COUNT;
     }
@@ -927,14 +933,17 @@
       clearTimeout(ceremonyCardTimer);
       if (activeTypingTimeout) clearTimeout(activeTypingTimeout);
 
+      // 🌟 [수정 반영] 나비의 3D 월드 Y좌표를 화면 2D Y좌표로 정확히 투영
       const bPos = new THREE.Vector3(0, b.group.position.y, b.group.position.z);
       bPos.project(camera);
-      const screenCX = (bPos.x * 0.5 + 0.5) * window.innerWidth;
       const screenCY = (-(bPos.y) * 0.5 + 0.5) * window.innerHeight;
 
+      // 나비 아래쪽에 알맞은 간격으로 수직 정렬
       const cardTop = screenCY + (window.innerHeight * 0.135);
 
-      floatingInfoCard.style.transform = `translate3d(${screenCX - 120}px, ${cardTop}px, 0)`;
+      // 🌟 [수정 반영] CSS 엔진의 -50%를 적용하여 화면 정중앙 수직선에 1px 오차 없이 완벽 정렬
+      floatingInfoCard.style.left = '50%';
+      floatingInfoCard.style.transform = `translate3d(-50%, ${cardTop}px, 0)`;
       floatingName.innerText = `‘${b.name}’`;
       floatingInfoCard.classList.add('visible');
 
@@ -1028,9 +1037,7 @@
               b.leftWing.rotation.y = baseRotL + finalFold;
               b.rightWing.rotation.y = baseRotR - finalFold;
 
-              b.innerGroup.rotation.z = Math.sin(time * 2.0 + b.seed) * 0.02 * (1.0 - easeSettle);
-              b.innerGroup.rotation.x = 0;
-              b.innerGroup.rotation.y = 0;
+              b.innerGroup.rotation.set(0, 0, 0);
               b.innerGroup.position.set(0, 0, 0);
               b.strokePower = 0;
           } else {
@@ -1094,10 +1101,13 @@
                   b.group.position.z = 8.0;
 
                   b.innerGroup.rotation.set(0, 0, 0);
-                  b.group.rotation.set(0.06 * speedFactor, 0, Math.sin(time * 2.0 + b.seed) * 0.03 * speedFactor);
+                  b.group.rotation.set(0.06 * speedFactor, 0, 0);
               } else {
                   b.group.position.set(0, 0.3, 8.0);
                   b.velocity.set(0, 0, 0);
+                  // 🌟 [수정 반영] 멈출 때 나비의 회전을 완벽한 수직(0,0,0)으로 고정하여 기울어짐 제거
+                  b.group.rotation.set(0, 0, 0);
+                  b.innerGroup.rotation.set(0, 0, 0);
                   b.ceremonyStage = 'resting';
                   b.ceremonyRestTimer = 0;
                   b.state = 'landing_rest';
@@ -1110,8 +1120,9 @@
               b.velocity.set(0, 0, 0);
               b.group.position.set(0, 0.3, 8.0);
 
+              // 🌟 [수정 반영] 안착 상태 동안에도 기울어짐 없이 똑바로 수직 정면 유지
               b.innerGroup.rotation.set(0, 0, 0);
-              b.group.rotation.set(0.04, 0, 0);
+              b.group.rotation.set(0, 0, 0);
 
               b.ceremonyRestTimer = (b.ceremonyRestTimer || 0) + dt;
               if (b.ceremonyRestTimer > 14.0) {
@@ -1160,10 +1171,12 @@
       else if (b.isSpecialLanding) {
           isFollowing = true;
 
-          // 🌟 [수정 반영]: 등장할 때 및 퇴장할 때 나비 주변에 은은한 빛 파티클 스폰 (나비 앱 효과)
+          // 🌟 [수정 반영] 등장할 때와 퇴장할 때 매 프레임 3~4개의 빛 파티클을 뿜어내어 선명한 빛 잔상 생성
           if (b.specialState === 'approaching' || b.specialState === 'leaving') {
               spawnEnergyParticle(b.group.position);
-              if (Math.random() < 0.65) spawnEnergyParticle(b.group.position);
+              spawnEnergyParticle(b.group.position);
+              spawnEnergyParticle(b.group.position);
+              if (Math.random() < 0.6) spawnEnergyParticle(b.group.position);
           }
 
           if (b.specialState === 'approaching') {
@@ -1404,7 +1417,7 @@
       const time = accumulatedTime;
 
       updateCeremonyParticles(dt);
-      updateEnergyParticles(dt); // 🌟 손가락 나비 전용 빛 에너지 파티클 실시간 갱신
+      updateEnergyParticles(dt);
 
       if (isHandDetected) {
         handTarget3D.lerp(targetHandPos3D, 0.30);
