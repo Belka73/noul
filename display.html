@@ -455,6 +455,23 @@
     const rightGeom = createStableWingGeom(true);
     const bodyGeom = createBodyGeom();
 
+    /* 🌟 나비 메모리 완전 해제 헬퍼 (VRAM 누수 차단) */
+    function disposeButterfly(b) {
+      if (!b || !b.group) return;
+      scene.remove(b.group);
+      b.group.traverse((child) => {
+        if (child.isMesh) {
+          if (child.geometry && child.geometry !== leftGeom && child.geometry !== rightGeom && child.geometry !== bodyGeom) {
+            child.geometry.dispose();
+          }
+          if (child.material && child.material !== sharedWhiteMat) {
+            if (child.material.map) child.material.map.dispose();
+            child.material.dispose();
+          }
+        }
+      });
+    }
+
     /* ========================================================
        🌟 [요청 반영] 세레머니 나비 날개짓 전용 파티클 시스템
        ======================================================== */
@@ -573,13 +590,19 @@
               if (name.startsWith('Wing_L')) { 
                 newWingL = child; 
                 newWingL.userData.baseRotY = child.rotation.y;
-                if (hasTexture) applyProjectedUVsToGeometry(child.geometry);
+                if (hasTexture) {
+                  child.geometry = child.geometry.clone();
+                  applyProjectedUVsToGeometry(child.geometry);
+                }
                 child.material = wingMat; 
               }
               else if (name.startsWith('Wing_R')) { 
                 newWingR = child; 
                 newWingR.userData.baseRotY = child.rotation.y;
-                if (hasTexture) applyProjectedUVsToGeometry(child.geometry);
+                if (hasTexture) {
+                  child.geometry = child.geometry.clone();
+                  applyProjectedUVsToGeometry(child.geometry);
+                }
                 child.material = wingMat; 
               }
               else if (name.startsWith('Body')) { 
@@ -623,7 +646,7 @@
       const flapSpeed = (targetBPM / 60) * 2 * Math.PI * 2;
       const initialSpeed = 0.085 + Math.random() * 0.025;
 
-      // 🌟 [수정 반영] 세레머니 나비: 하단(y=-7.5)에서 서서히 상승 시작, 등이 완벽히 보이도록 회전각 (0,0,0) 고정
+      // 🌟 세레머니 나비: 하단(y=-7.5)에서 서서히 상승 시작, 등이 완벽히 보이도록 회전각 (0,0,0) 고정
       if (isCeremony) {
         group.position.set(0, -7.5, 8.0);
         initialVelocity = new THREE.Vector3(0, 0.032, 0);
@@ -685,7 +708,7 @@
         turnRatePitch: 0,
         yawBias: (Math.random() - 0.5) * 0.03,
         pitchBias: (Math.random() - 0.5) * 0.025,
-        rollBias: (Math.random() - 0.5) * 0.15, // 🌟 0.55 -> 0.15 한쪽 쏠림 방지
+        rollBias: (Math.random() - 0.5) * 0.15,
         dirChangeTimer: Math.random() * 3.0,
         strokePower: 0,
         prevBobY: 0
@@ -708,6 +731,7 @@
     const _vOrbit = new THREE.Vector3();
     const _vLeave = new THREE.Vector3(22.0, 1.2, 8.0);
     const _vStep = new THREE.Vector3();
+    const _handUnprojectVec = new THREE.Vector3(); // 🌟 GC 방지용 고정 재사용 벡터
 
     let handTarget3D = new THREE.Vector3(999, 999, 8.0);
     let targetHandPos3D = new THREE.Vector3(999, 999, 8.0);
@@ -786,7 +810,7 @@
       }, 4200);
     }
 
-    // 🌟 [수정 반영] 나비 바로 아래 정확한 위치 배치 + 5초 유지 + 1초 뒤 날아감
+    // 🌟 나비 바로 아래 정확한 위치 배치 + 5초 유지 + 1초 뒤 날아감
     function triggerCeremonyCardSequence(b) {
       clearTimeout(ceremonyCardTimer);
       if (activeTypingTimeout) clearTimeout(activeTypingTimeout);
@@ -797,7 +821,7 @@
       const screenCX = (bPos.x * 0.5 + 0.5) * window.innerWidth;
       const screenCY = (-(bPos.y) * 0.5 + 0.5) * window.innerHeight;
 
-      // 🌟 나비 날개 하단 바로 아래에 20px의 여백을 두고 정확히 위치시킴
+      // 나비 날개 하단 바로 아래에 20px의 여백을 두고 정확히 위치시킴
       const cardTop = screenCY + (window.innerHeight * 0.135);
 
       floatingInfoCard.style.transform = `translate3d(${screenCX - 120}px, ${cardTop}px, 0)`;
@@ -806,18 +830,15 @@
 
       const fullMemo = `"${b.memo}"`;
       typeWriterText(floatingMemo, fullMemo, 45, () => {
-        // 타이핑 완료 후 정확히 5초(5000ms) 유지
         ceremonyCardTimer = setTimeout(() => {
-          // 5초 후 카드 페이드아웃
           if (floatingInfoCard) floatingInfoCard.classList.remove('visible');
           
-          // 🌟 카드가 완전히 사라지고 정확히 1초(1000ms) 뒤 서서히 빨라지는 날갯짓 이륙 시작
           setTimeout(() => {
             if (b && b.isCeremony && b.ceremonyStage === 'resting') {
               b.ceremonyStage = 'flying_up';
               b.takeoffTimer = 0;
               b.state = 'flying';
-              b.velocity.set(0, 0.008, 0); // 부드러운 초기 부상
+              b.velocity.set(0, 0.008, 0);
             }
           }, 1000);
         }, 5000);
@@ -829,7 +850,7 @@
     const handPointer = document.getElementById('hand-pointer');
 
     /* ========================================================
-       🌟 8분음표 1세트 + 델타타임 보정 이동 물리 (등 정면 노출 & 서서히 빨라지는 이륙)
+       🌟 이동 및 날개짓 물리 연산 (최적화 버전)
        ======================================================== */
     function updateMotion(b, dt, time) {
       let currentTargetScale = b.targetScale;
@@ -856,7 +877,6 @@
       const baseRotL = (b.leftWing.userData && b.leftWing.userData.baseRotY) || 0;
       const baseRotR = (b.rightWing.userData && b.rightWing.userData.baseRotY) || 0;
 
-      // 🌟 [수정 반영] 끊김 없는 연속 누적 날개짓 위상 연산
       if (b.wingPhase === undefined) b.wingPhase = b.seed || 0;
 
       let currentFlapSpeed = b.speed;
@@ -866,7 +886,6 @@
         if (b.ceremonyStage === 'rising') {
           currentFlapSpeed = b.speed * 0.9;
         } else if (b.ceremonyStage === 'flying_up') {
-          // 🌟 이륙 시 날개짓을 서서히 빠르게 점진 가속
           const takeoffProg = Math.min(1.0, (b.takeoffTimer || 0) / 2.8);
           currentFlapSpeed = b.speed * (0.35 + 1.05 * Math.pow(takeoffProg, 1.3));
         } else {
@@ -884,7 +903,6 @@
           const restPhase = (time * 3.5 + b.seed);
           const restCycle = Math.sin(restPhase);
 
-          // 🌟 세레머니 나비는 펼쳐서 호흡(0.12), 손에 앉은 나비는 등 위로 가지런히 접음(1.15)
           const restFold = b.isCeremony ? 0.12 : 1.15;
           const flap = restCycle * (b.isCeremony ? 0.06 : 0.08) * b.flapAmp;
 
@@ -897,20 +915,16 @@
       } else {
           b.flapAmp += (1.0 - b.flapAmp) * 0.1; 
           
-          // 🌟 부드러운 정현파 날개짓 파형
           const wingWave = Math.sin(phase);
           const strokePower = (wingWave < 0) ? Math.sin(-wingWave * Math.PI * 0.5) * 0.55 : 0;
           b.strokePower = strokePower;
 
-          // 🌟 등 위(+Z)로 자연스럽게 모였다가 수평으로 펴지는 정상 날개짓 각도
           const wingFold = (0.40 + wingWave * 0.60) * b.flapAmp;
           b.leftWing.rotation.y = baseRotL + wingFold;
           b.rightWing.rotation.y = baseRotR - wingFold;
 
           b.innerGroup.rotation.x = b.isCeremony ? 0 : Math.PI / 2;
           b.innerGroup.position.set(0, 0, 0);
-          
-          // 🌟 위상 불연속 점프 및 한쪽 쏠림 바이어스 완전 제거 (좌우 대칭 미세 롤 진동)
           b.innerGroup.rotation.z = Math.sin(phase) * 0.025 * b.flapAmp;
       }
 
@@ -922,11 +936,10 @@
 
       let isFollowing = false;
 
-      // 🌟 [세레머니 나비] 서서히 상승 -> 등 정면 노출 정지 -> 5초 유지 -> 서서히 빠른 날개짓으로 이륙
+      // 세레머니 나비 비행
       if (b.isCeremony) {
           isFollowing = true;
 
-          // 날갯짓할 때 파티클 방출
           if (b.ceremonyStage === 'rising' || b.ceremonyStage === 'flying_up') {
               if (Math.sin(phase) > 0.3) spawnCeremonyParticle(b.group.position);
           } else if (b.ceremonyStage === 'resting' && Math.random() < 0.25) {
@@ -939,7 +952,6 @@
               b.group.position.x += (0 - b.group.position.x) * 0.05;
               b.group.position.z = 8.0;
 
-              // 🌟 등이 정면을 완벽히 바라보도록 제어 (옆모습 방지)
               b.innerGroup.rotation.set(0, 0, 0);
               b.group.rotation.set(0.06, 0, Math.sin(time * 2.0 + b.seed) * 0.03);
 
@@ -958,11 +970,9 @@
               b.velocity.set(0, 0, 0);
               b.group.position.set(0, 0.3, 8.0);
 
-              // 등이 정면을 완벽히 바라보며 멈춤
               b.innerGroup.rotation.set(0, 0, 0);
               b.group.rotation.set(0.04, 0, 0);
 
-              // 안전 워치독 (14초 이상 멈출 경우 자동 이륙)
               b.ceremonyRestTimer = (b.ceremonyRestTimer || 0) + dt;
               if (b.ceremonyRestTimer > 14.0) {
                   if (floatingInfoCard) floatingInfoCard.classList.remove('visible');
@@ -976,7 +986,6 @@
               b.state = 'flying';
               b.takeoffTimer = (b.takeoffTimer || 0) + dt;
 
-              // 🌟 [수정 반영] 비행 속도 점진 가속 (0.008에서 0.108까지 부드럽게 가속)
               const takeoffProgress = Math.min(1.0, b.takeoffTimer / 2.8);
               b.velocity.y = 0.008 + 0.10 * Math.pow(takeoffProgress, 1.6);
               b.velocity.x += Math.sin(time * 2.5 + b.seed) * 0.002;
@@ -987,7 +996,6 @@
               b.innerGroup.rotation.set(0, 0, 0);
               b.group.rotation.set(0.12 * takeoffProgress, 0, b.velocity.x * -5.0);
 
-              // 🌟 상단 밖으로 완전히 벗어나면 퇴장 완료
               if (b.group.position.y > 8.5) {
                   b.isCeremony = false;
                   b.ceremonyStage = null;
@@ -999,18 +1007,16 @@
 
                   if (userFlock.length > MAX_USER_BUTTERFLIES) {
                       const oldest = userFlock.shift();
-                      if (oldest && oldest.group) scene.remove(oldest.group);
+                      disposeButterfly(oldest);
                   }
 
                   activeCeremonyButterfly = null;
                   isCeremonyActive = false;
-
-                  // 🌟 화면 밖으로 나가고 5초 뒤 다음 대기열 나비 시작
                   triggerNextCeremonyWithDelay(5000);
               }
           }
       }
-      // 손가락 나비 비행 (접근 및 입체적 랜덤 오른쪽 퇴장)
+      // 손가락 나비 비행
       else if (b.isSpecialLanding) {
           isFollowing = true;
 
@@ -1082,7 +1088,7 @@
               b.group.quaternion.slerp(dummyObj.quaternion, 0.14);
 
               if (b.group.position.x > 16.0) {
-                  scene.remove(b.group);
+                  disposeButterfly(specialButterfly);
                   specialButterfly = null;
                   return;
               }
@@ -1143,7 +1149,7 @@
               b.turnRatePitch = 0;
               b.yawBias = (Math.random() - 0.5) * 0.03;
               b.pitchBias = (Math.random() - 0.5) * 0.025;
-              b.rollBias = (Math.random() - 0.5) * 0.15; // 🌟 0.55 -> 0.15
+              b.rollBias = (Math.random() - 0.5) * 0.15;
               b.dirChangeTimer = Math.random() * 3.0;
           }
 
@@ -1152,7 +1158,7 @@
               b.dirChangeTimer = 0;
               b.yawBias = (Math.random() - 0.5) * 0.035;   
               b.pitchBias = (Math.random() - 0.5) * 0.032; 
-              b.rollBias = (Math.random() - 0.5) * 0.20; // 🌟 0.65 -> 0.20
+              b.rollBias = (Math.random() - 0.5) * 0.20;
           }
 
           const organicYawTurn = Math.sin(time * 0.45 + b.seed) * 0.024 
@@ -1236,7 +1242,6 @@
         dummyObj.position.copy(b.group.position);
         dummyObj.lookAt(_vTargetPos); 
 
-        // 🌟 과도한 롤 쏠림 방지 및 안정적인 수평 복원
         const bankRoll = Math.max(-0.6, Math.min(0.6, -(b.turnRateYaw || 0) * 8.0));
         const wobbleRoll = Math.sin(time * 1.2 + b.seed * 2.5) * 0.25 + (b.rollBias || 0);
         const rollAngle = bankRoll + wobbleRoll + Math.sin(phase) * 0.04;
@@ -1248,17 +1253,19 @@
     }
 
     let releaseLandingTimer = null;
+    let accumulatedTime = 0; // 🌟 Clock 중복 호출로 인한 지터 완전 방지 누적 시간
 
     function animate() {
       requestAnimationFrame(animate);
       const rawDt = clock.getDelta();
       const dt = Math.min(rawDt, 0.033);
-      const time = clock.getElapsedTime();
+      accumulatedTime += dt;
+      const time = accumulatedTime;
 
       // 세레머니 나비 전용 파티클 갱신
       updateCeremonyParticles(dt);
 
-      // DOM Reflow 완전 제거 (translate3d로만 60fps 부드러운 위치 추적)
+      // DOM Reflow 완전 제거 (translate3d로 60fps 부드러운 위치 추적)
       if (isHandDetected) {
         handTarget3D.lerp(targetHandPos3D, 0.30);
         currentScreenX += (targetScreenX - currentScreenX) * 0.35;
@@ -1270,7 +1277,6 @@
         if (floatingConcernCard && floatingConcernCard.classList.contains('visible')) { 
           floatingConcernCard.style.transform = `translate3d(${currentScreenX + 165}px, ${currentScreenY - 145}px, 0)`; 
         }
-        // 중앙 세레머니 카드가 활성화되어 있지 않을 때만 손 위치를 따라감
         if (floatingInfoCard && floatingInfoCard.classList.contains('visible') && !activeCeremonyButterfly) { 
           floatingInfoCard.style.transform = `translate3d(${currentScreenX + 165}px, ${currentScreenY - 145}px, 0)`; 
         }
@@ -1376,7 +1382,7 @@
 
               if (userFlock.length > MAX_USER_BUTTERFLIES) {
                 const oldest = userFlock.shift();
-                if (oldest && oldest.group) scene.remove(oldest.group);
+                disposeButterfly(oldest);
               }
             }
           }
@@ -1411,17 +1417,12 @@
     }, 1500);
 
     /* ========================================================
-       3. 네이티브 웹캠 최적화 + 제스처 인식
+       3. 네이티브 웹캠 최적화 + 제스처 인식 (CPU-GPU 병목 제거)
        ======================================================== */
     setTimeout(() => {
       try {
         if (typeof Hands !== 'undefined') {
           const videoElement = document.getElementById('webcam-video');
-
-          const offscreenCanvas = document.createElement('canvas');
-          offscreenCanvas.width = 160;
-          offscreenCanvas.height = 120;
-          const offscreenCtx = offscreenCanvas.getContext('2d', { willReadFrequently: true });
 
           const hands = new Hands({ locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}` });
           hands.setOptions({ 
@@ -1443,9 +1444,10 @@
               targetScreenY = tip.y * window.innerHeight;
               handPointer.style.opacity = '1';
 
-              const vec = new THREE.Vector3((1 - tip.x) * 2 - 1, -(tip.y * 2) + 1, 0.5);
-              vec.unproject(camera);
-              vec.sub(camera.position).normalize();
+              // 🌟 고정 재사용 벡터로 가비지 컬렉션(GC) 방지
+              _handUnprojectVec.set((1 - tip.x) * 2 - 1, -(tip.y * 2) + 1, 0.5);
+              _handUnprojectVec.unproject(camera);
+              _handUnprojectVec.sub(camera.position).normalize();
 
               const distSq = (p1, p2) => {
                 const dx = p1.x - p2.x, dy = p1.y - p2.y;
@@ -1468,23 +1470,23 @@
               if (isPointGesture) {
                   scatterFrameCount = 0;
                   interactionMode = 'land_one';
-                  const distance = (8 - camera.position.z) / vec.z; 
-                  targetHandPos3D.copy(camera.position).add(vec.multiplyScalar(distance));
+                  const distance = (8 - camera.position.z) / _handUnprojectVec.z; 
+                  targetHandPos3D.copy(camera.position).addScaledVector(_handUnprojectVec, distance);
 
               } else if (isTrueScatter) {
                   scatterFrameCount++;
                   if (scatterFrameCount > 2) {
                       interactionMode = 'scatter';
-                      const distance = (8 - camera.position.z) / vec.z; 
-                      targetHandPos3D.copy(camera.position).add(vec.multiplyScalar(distance));
+                      const distance = (8 - camera.position.z) / _handUnprojectVec.z; 
+                      targetHandPos3D.copy(camera.position).addScaledVector(_handUnprojectVec, distance);
                       resetHandCards();
                   }
 
               } else if (isTrueFist) {
                   scatterFrameCount = 0;
                   interactionMode = 'fist_gather';
-                  const distance = (0 - camera.position.z) / vec.z; 
-                  targetHandPos3D.copy(camera.position).add(vec.multiplyScalar(distance));
+                  const distance = (0 - camera.position.z) / _handUnprojectVec.z; 
+                  targetHandPos3D.copy(camera.position).addScaledVector(_handUnprojectVec, distance);
                   resetHandCards();
 
                   if (prevMode !== 'fist_gather') {
@@ -1522,20 +1524,20 @@
                 let isProcessingFrame = false;
                 let lastProcessTime = 0;
 
+                // 🌟 CPU 강제 래스터화 캔버스 완전 제거 + 비디오 하드웨어 0-copy 직결
                 function processVideoLoop() {
                   const now = performance.now();
-                  if (!isProcessingFrame && videoElement.readyState >= 2 && (now - lastProcessTime > 85)) {
+                  if (!isProcessingFrame && videoElement.readyState >= 2 && (now - lastProcessTime > 100)) {
                     isProcessingFrame = true;
                     lastProcessTime = now;
-                    offscreenCtx.drawImage(videoElement, 0, 0, 160, 120);
-                    hands.send({ image: offscreenCanvas })
+                    hands.send({ image: videoElement })
                       .catch(() => {})
                       .finally(() => {
                         isProcessingFrame = false;
-                        setTimeout(processVideoLoop, 85);
+                        setTimeout(processVideoLoop, 30);
                       });
                   } else {
-                    setTimeout(processVideoLoop, 85);
+                    setTimeout(processVideoLoop, 30);
                   }
                 }
                 processVideoLoop();
