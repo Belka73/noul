@@ -538,8 +538,19 @@
             child.geometry.dispose();
           }
           if (child.material && child.material !== sharedWhiteMat) {
-            if (child.material.map && !Object.values(textureCache).includes(child.material.map)) {
-              child.material.map.dispose();
+            if (child.material.map) {
+              const mapTex = child.material.map;
+              const cacheKeys = Object.keys(textureCache);
+              const matchingKey = cacheKeys.find(k => textureCache[k] === mapTex);
+              const stillInRecentList = matchingKey && rawUserDataList.some(d => (d.texture_url || d.image_url) === matchingKey);
+              const stillInFlock = matchingKey && userFlock.some(uf => uf !== b && uf.textureURL === matchingKey);
+
+              if (!matchingKey) {
+                mapTex.dispose();
+              } else if (!stillInRecentList && !stillInFlock) {
+                mapTex.dispose();
+                delete textureCache[matchingKey];
+              }
             }
             child.material.dispose();
           }
@@ -865,6 +876,7 @@
       const butterflyRecord = {
         id: Math.random().toString(36).substring(7),
         isUser: isUser,
+        textureURL: textureURL || null,
         group, innerGroup, leftWing, rightWing,
         velocity: initialVelocity,
         speed: flapSpeed,
@@ -967,7 +979,10 @@
       
       if (!activeCeremonyButterfly) {
         if (activeTypingTimeout) clearTimeout(activeTypingTimeout);
-        if (floatingInfoCard) floatingInfoCard.classList.remove('visible');
+        if (floatingInfoCard) {
+          floatingInfoCard.classList.remove('visible');
+          floatingInfoCard.style.left = '0px';
+        }
         if (floatingMemo) floatingMemo.innerHTML = '';
       }
     }
@@ -984,6 +999,7 @@
       landingStorySequenceTimer = setTimeout(() => {
         if (floatingConcernCard) floatingConcernCard.classList.remove('visible');
         if (floatingInfoCard && !activeCeremonyButterfly) {
+          floatingInfoCard.style.left = '0px';
           floatingName.innerText = `‘${b.name}’`;
           floatingInfoCard.classList.add('visible');
           const fullMemo = `"${b.memo}"`;
@@ -1214,10 +1230,11 @@
               if (b.group.position.y > 8.5) {
                   b.isCeremony = false;
                   b.ceremonyStage = null;
+                  b.group.position.z = -0.5 - Math.random() * 5.0;
                   b.innerGroup.rotation.x = Math.PI / 2;
                   b.innerGroup.rotation.y = Math.PI;
                   b.speedBase = 0.110;
-                  b.screenAngle = Math.random() * Math.PI * 2;
+                  b.screenAngle = -Math.PI / 2 + (Math.random() - 0.5) * 1.2;
                   b.depthAngle = (Math.random() - 0.5) * 0.35;
                   userFlock.push(b);
 
@@ -1226,6 +1243,7 @@
                       disposeButterfly(oldest);
                   }
 
+                  if (floatingInfoCard) floatingInfoCard.style.left = '0px';
                   activeCeremonyButterfly = null;
                   isCeremonyActive = false;
                   triggerNextCeremonyWithDelay(5000);
@@ -1312,6 +1330,9 @@
               if (b.group.position.x > 15.0 || b.group.position.y > 9.5) {
                   disposeButterfly(specialButterfly);
                   specialButterfly = null;
+                  if (ceremonyQueue.length > 0 && !isCeremonyActive) {
+                      triggerNextCeremonyWithDelay(1000);
+                  }
                   return;
               }
           }
@@ -1490,11 +1511,18 @@
         if (handPointer) {
           handPointer.style.transform = `translate3d(${currentScreenX - 26}px, ${currentScreenY - 26}px, 0)`;
         }
+
+        const handCardX = (currentScreenX + 260 + 280 > window.innerWidth)
+          ? Math.max(20, currentScreenX - 500)
+          : (currentScreenX + 260);
+        const handCardY = Math.max(20, Math.min(window.innerHeight - 180, currentScreenY - 145));
+
         if (floatingConcernCard && floatingConcernCard.classList.contains('visible')) { 
-          floatingConcernCard.style.transform = `translate3d(${currentScreenX + 260}px, ${currentScreenY - 145}px, 0)`; 
+          floatingConcernCard.style.transform = `translate3d(${handCardX}px, ${handCardY}px, 0)`; 
         }
         if (floatingInfoCard && floatingInfoCard.classList.contains('visible') && !activeCeremonyButterfly) { 
-          floatingInfoCard.style.transform = `translate3d(${currentScreenX + 260}px, ${currentScreenY - 145}px, 0)`; 
+          floatingInfoCard.style.left = '0px';
+          floatingInfoCard.style.transform = `translate3d(${handCardX}px, ${handCardY}px, 0)`; 
         }
       }
 
@@ -1585,6 +1613,10 @@
     function startNextCeremonyFromQueue() {
       if (isCeremonyActive) return;
       if (ceremonyQueue.length === 0) return;
+      if (specialButterfly) {
+        triggerNextCeremonyWithDelay(1000);
+        return;
+      }
 
       isCeremonyActive = true;
       const nextData = ceremonyQueue.shift();
@@ -1723,7 +1755,7 @@
                   if (interactionMode !== 'land_one') {
                       interactionMode = 'none';
                       fistButterflies = [];
-                      resetHandCards();
+                      if (!specialButterfly) resetHandCards();
                   }
               }
               isHandDetected = true;
@@ -1733,7 +1765,7 @@
               isHandDetected = false;
               interactionMode = 'none';
               fistButterflies = [];
-              resetHandCards();
+              if (!specialButterfly) resetHandCards();
             }
           });
 
