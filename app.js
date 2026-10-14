@@ -6,14 +6,14 @@ var currentExtractedTexture = window.currentExtractedTexture;
 if (typeof createFallbackDummyTexture === 'undefined') {
   window.createFallbackDummyTexture = function(color1, color2) {
     var c = document.createElement('canvas');
-    c.width = 1000;
-    c.height = 1000;
+    c.width = 1024;
+    c.height = 1024;
     var ctx = c.getContext('2d');
-    var grad = ctx.createLinearGradient(0, 0, 1000, 1000);
+    var grad = ctx.createLinearGradient(0, 0, 1024, 1024);
     grad.addColorStop(0, color1 || '#ffffff');
     grad.addColorStop(1, color2 || '#e5e7eb');
     ctx.fillStyle = grad;
-    ctx.fillRect(0, 0, 1000, 1000);
+    ctx.fillRect(0, 0, 1024, 1024);
     return c.toDataURL('image/png');
   };
 }

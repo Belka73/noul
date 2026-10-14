@@ -154,6 +154,10 @@ function createWingMaterials(textureURL, patternPath3D) {
 
   var photoTex = texLoader.load(textureURL);
   photoTex.flipY = false;
+  photoTex.generateMipmaps = true;
+  photoTex.minFilter = THREE.LinearMipmapLinearFilter;
+  photoTex.magFilter = THREE.LinearFilter;
+  photoTex.anisotropy = 4;
   if (THREE.sRGBEncoding) photoTex.encoding = THREE.sRGBEncoding;
 
   var patTex = null;
@@ -161,6 +165,10 @@ function createWingMaterials(textureURL, patternPath3D) {
   if (patPath) {
     patTex = texLoader.load(patPath);
     patTex.flipY = false;
+    patTex.generateMipmaps = true;
+    patTex.minFilter = THREE.LinearMipmapLinearFilter;
+    patTex.magFilter = THREE.LinearFilter;
+    patTex.anisotropy = 4;
     if (THREE.sRGBEncoding) patTex.encoding = THREE.sRGBEncoding;
     hasPat = true;
   }

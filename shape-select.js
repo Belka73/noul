@@ -3,14 +3,14 @@ var currentExtractedTexture = null;
 
 function createFallbackDummyTexture(color1, color2) {
   var c = document.createElement('canvas');
-  c.width = 1000;
-  c.height = 1000;
+  c.width = 1024;
+  c.height = 1024;
   var ctx = c.getContext('2d');
-  var grad = ctx.createLinearGradient(0, 0, 1000, 1000);
+  var grad = ctx.createLinearGradient(0, 0, 1024, 1024);
   grad.addColorStop(0, color1 || '#ffffff');
   grad.addColorStop(1, color2 || '#e5e7eb');
   ctx.fillStyle = grad;
-  ctx.fillRect(0, 0, 1000, 1000);
+  ctx.fillRect(0, 0, 1024, 1024);
   return c.toDataURL('image/png');
 }
 
@@ -576,11 +576,12 @@ function exportAlignedTexture() {
       return;
     }
 
-    var scaleRatio = 1000 / alignCanvas.width;
+    // 🌟 WebGL 밉맵 및 비등방성 필터링(Anisotropy) 100% 활성화를 위해 2의 거듭제곱 표준 규격(1024x1024)으로 추출
+    var scaleRatio = 1024 / alignCanvas.width;
 
     var finalCanvas = document.createElement('canvas');
-    finalCanvas.width = 1000;
-    finalCanvas.height = 1000;
+    finalCanvas.width = 1024;
+    finalCanvas.height = 1024;
     var fctx = finalCanvas.getContext('2d', { willReadFrequently: true });
 
     var scaledImgX = imgX * scaleRatio;
@@ -595,20 +596,20 @@ function exportAlignedTexture() {
     }
 
     if (isSymmetryEnabled) {
-      var midX = 500;
+      var midX = 512;
       var symCanvas = document.createElement('canvas');
-      symCanvas.width = 1000;
-      symCanvas.height = 1000;
+      symCanvas.width = 1024;
+      symCanvas.height = 1024;
       var sctx = symCanvas.getContext('2d');
 
-      sctx.drawImage(finalCanvas, 0, 0, midX, 1000, 0, 0, midX, 1000);
+      sctx.drawImage(finalCanvas, 0, 0, midX, 1024, 0, 0, midX, 1024);
       sctx.save();
-      sctx.translate(1000, 0);
+      sctx.translate(1024, 0);
       sctx.scale(-1, 1);
-      sctx.drawImage(finalCanvas, 0, 0, midX, 1000, 0, 0, midX, 1000);
+      sctx.drawImage(finalCanvas, 0, 0, midX, 1024, 0, 0, midX, 1024);
       sctx.restore();
 
-      fctx.clearRect(0, 0, 1000, 1000);
+      fctx.clearRect(0, 0, 1024, 1024);
       fctx.drawImage(symCanvas, 0, 0);
     }
 

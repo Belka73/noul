@@ -240,6 +240,10 @@
         console.warn("날개 텍스처 로드 실패, 폴백 사용:", err);
       });
       photoTex.flipY = false;
+      photoTex.generateMipmaps = true;
+      photoTex.minFilter = THREE.LinearMipmapLinearFilter;
+      photoTex.magFilter = THREE.LinearFilter;
+      photoTex.anisotropy = 4;
       if (THREE.sRGBEncoding) photoTex.encoding = THREE.sRGBEncoding;
 
       let patTex = null;
@@ -247,6 +251,10 @@
       if (patPath) {
         patTex = texLoader.load(patPath);
         patTex.flipY = false;
+        patTex.generateMipmaps = true;
+        patTex.minFilter = THREE.LinearMipmapLinearFilter;
+        patTex.magFilter = THREE.LinearFilter;
+        patTex.anisotropy = 4;
         if (THREE.sRGBEncoding) patTex.encoding = THREE.sRGBEncoding;
         hasPat = true;
       }
