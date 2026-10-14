@@ -381,6 +381,7 @@
         uvs.push((pos.getX(i) - bb.min.x) / sizeX, (pos.getY(i) - bb.min.y) / sizeY);
       }
       geom.setAttribute('uv', new THREE.Float32BufferAttribute(uvs, 2));
+      geom.userData.isSharedAsset = true;
       return geom;
     }
 
@@ -392,19 +393,42 @@
         new THREE.Vector2(0.12, -0.4), new THREE.Vector2(0.08, -0.7),
         new THREE.Vector2(0.001, -0.9)
       ];
-      return new THREE.LatheGeometry(points, 5);
+      const geom = new THREE.LatheGeometry(points, 5);
+      geom.userData.isSharedAsset = true;
+      return geom;
     }
+
+    // 🌟 임시 더듬이 지오메트리 공유화 (매 생성 시 메모리 누수 원천 차단)
+    const sharedAntennaTipGeom = new THREE.SphereGeometry(0.09, 4, 4);
+    sharedAntennaTipGeom.userData.isSharedAsset = true;
+
+    const sharedAntennaTubeGeomL = (function() {
+      const curve = new THREE.CubicBezierCurve3(
+        new THREE.Vector3(0, 0, 0), new THREE.Vector3(-0.2, 0.5, 0.1),
+        new THREE.Vector3(-0.5, 0.9, 0.2), new THREE.Vector3(-0.65, 1.2, 0.3)
+      );
+      const geom = new THREE.TubeGeometry(curve, 5, 0.035, 3, false);
+      geom.userData.isSharedAsset = true;
+      return geom;
+    })();
+
+    const sharedAntennaTubeGeomR = (function() {
+      const curve = new THREE.CubicBezierCurve3(
+        new THREE.Vector3(0, 0, 0), new THREE.Vector3(0.2, 0.5, 0.1),
+        new THREE.Vector3(0.5, 0.9, 0.2), new THREE.Vector3(0.65, 1.2, 0.3)
+      );
+      const geom = new THREE.TubeGeometry(curve, 5, 0.035, 3, false);
+      geom.userData.isSharedAsset = true;
+      return geom;
+    })();
 
     function createAntenna(isRight, mat) {
       const group = new THREE.Group();
       const s = isRight ? 1 : -1;
-      const curve = new THREE.CubicBezierCurve3(
-        new THREE.Vector3(0, 0, 0), new THREE.Vector3(s * 0.2, 0.5, 0.1),
-        new THREE.Vector3(s * 0.5, 0.9, 0.2), new THREE.Vector3(s * 0.65, 1.2, 0.3)
-      );
-      const tube = new THREE.Mesh(new THREE.TubeGeometry(curve, 5, 0.035, 3, false), mat);
+      const tubeGeom = isRight ? sharedAntennaTubeGeomR : sharedAntennaTubeGeomL;
+      const tube = new THREE.Mesh(tubeGeom, mat);
       group.add(tube);
-      const tip = new THREE.Mesh(new THREE.SphereGeometry(0.09, 4, 4), mat);
+      const tip = new THREE.Mesh(sharedAntennaTipGeom, mat);
       tip.position.set(s * 0.65, 1.2, 0.3);
       group.add(tip);
       return group;
@@ -471,6 +495,7 @@
         let idx = 0;
         function tryNext() {
           if (idx >= bases.length) {
+            delete modelLoadingPromises[modelName];
             resolve(null);
             return;
           }
@@ -481,6 +506,12 @@
             fullPath,
             (gltf) => {
               resolvedBasePath = base;
+              // 🌟 원본 캐시 모델의 모든 지오메트리가 실수로 dispose되지 않도록 보호 플래그 지정
+              gltf.scene.traverse((child) => {
+                if (child.isMesh && child.geometry) {
+                  child.geometry.userData.isSharedAsset = true;
+                }
+              });
               modelCache[modelName] = gltf.scene;
               resolve(gltf.scene);
             },
@@ -524,38 +555,47 @@
     scene.add(dirLight);
 
     const textureLoader = new THREE.TextureLoader();
+    textureLoader.setCrossOrigin('anonymous');
     const gltfLoader = new THREE.GLTFLoader();
     const leftGeom = createStableWingGeom(false);
     const rightGeom = createStableWingGeom(true);
     const bodyGeom = createBodyGeom();
 
+    // 🌟 미사용 텍스처 캐시 자동 가비지 컬렉션 (장시간 구동 시 VRAM 누적 방지)
+    function cleanupUnusedTextures() {
+      const cacheKeys = Object.keys(textureCache);
+      for (let i = 0; i < cacheKeys.length; i++) {
+        const key = cacheKeys[i];
+        const inRecentList = rawUserDataList.some(d => (d.texture_url || d.image_url) === key);
+        const inFlock = userFlock.some(uf => uf && uf.textureURL === key);
+        const inCeremonyQueue = ceremonyQueue.some(d => (d.texture_url || d.image_url) === key);
+        const inActiveCeremony = activeCeremonyButterfly && activeCeremonyButterfly.textureURL === key;
+        const inSpecial = specialButterfly && specialButterfly.textureURL === key;
+
+        if (!inRecentList && !inFlock && !inCeremonyQueue && !inActiveCeremony && !inSpecial) {
+          const tex = textureCache[key];
+          if (tex) tex.dispose();
+          delete textureCache[key];
+        }
+      }
+    }
+
     function disposeButterfly(b) {
       if (!b || !b.group) return;
+      b.isDisposed = true;
       scene.remove(b.group);
       b.group.traverse((child) => {
         if (child.isMesh) {
-          if (child.geometry && child.geometry !== leftGeom && child.geometry !== rightGeom && child.geometry !== bodyGeom) {
+          // 🌟 오직 개별 복제된 날개 지오메트리(isClonedWing)만 안전하게 해제하고 공유 원본은 절대 건드리지 않음
+          if (child.geometry && child.geometry.userData && child.geometry.userData.isClonedWing === true) {
             child.geometry.dispose();
           }
           if (child.material && child.material !== sharedWhiteMat) {
-            if (child.material.map) {
-              const mapTex = child.material.map;
-              const cacheKeys = Object.keys(textureCache);
-              const matchingKey = cacheKeys.find(k => textureCache[k] === mapTex);
-              const stillInRecentList = matchingKey && rawUserDataList.some(d => (d.texture_url || d.image_url) === matchingKey);
-              const stillInFlock = matchingKey && userFlock.some(uf => uf !== b && uf.textureURL === matchingKey);
-
-              if (!matchingKey) {
-                mapTex.dispose();
-              } else if (!stillInRecentList && !stillInFlock) {
-                mapTex.dispose();
-                delete textureCache[matchingKey];
-              }
-            }
             child.material.dispose();
           }
         }
       });
+      cleanupUnusedTextures();
     }
 
     /* ========================================================
@@ -748,7 +788,7 @@
 
       if (gltfLoader) {
         getOrLoadModel(shapeId).then((sceneTemplate) => {
-          if (!sceneTemplate) return;
+          if (!sceneTemplate || butterflyRecord.isDisposed) return;
           const model = sceneTemplate.clone(true);
           let newWingL = null, newWingR = null;
           const meshesToRemove = [];
@@ -761,6 +801,7 @@
                 newWingL.userData.baseRotY = child.rotation.y;
                 if (hasTexture) {
                   child.geometry = child.geometry.clone();
+                  child.geometry.userData = { isClonedWing: true };
                   applyProjectedUVsToGeometry(child.geometry);
                 }
                 child.material = wingMat; 
@@ -770,6 +811,7 @@
                 newWingR.userData.baseRotY = child.rotation.y;
                 if (hasTexture) {
                   child.geometry = child.geometry.clone();
+                  child.geometry.userData = { isClonedWing: true };
                   applyProjectedUVsToGeometry(child.geometry);
                 }
                 child.material = wingMat; 
@@ -873,9 +915,14 @@
 
       scene.add(group);
 
+      const resolvedReason = data.concern_reason 
+        || (Array.isArray(data.q1) && data.q1.length > 0 && typeof data.q1[0] === 'string' && data.q1[0].trim().length > 0 ? data.q1[0].trim() : null)
+        || "항상 잘 해내야 한다는 마음이 앞서서요.";
+
       const butterflyRecord = {
         id: Math.random().toString(36).substring(7),
         isUser: isUser,
+        isDisposed: false,
         textureURL: textureURL || null,
         group, innerGroup, leftWing, rightWing,
         velocity: initialVelocity,
@@ -889,6 +936,7 @@
         arrivalTimer: 0,
         isSpecialLanding: isFingerTarget,
         specialState: isFingerTarget ? 'approaching' : null,
+        leavingTimer: 0,
         isCeremony: isCeremony,
         ceremonyStage: isCeremony ? 'rising' : null,
         ceremonyRestTimer: 0,
@@ -896,7 +944,7 @@
         name: data.name || (isUser ? "익명의 나비" : "나비"),
         memo: data.memo || "너의 찬란한 날갯짓을 응원해.",
         core_concern: data.core_concern || (Array.isArray(data.q2) && data.q2.length > 0 ? data.q2[0] : "완벽주의 강박"),
-        concern_reason: data.concern_reason || "항상 잘 해내야 한다는 마음이 앞서서요.",
+        concern_reason: resolvedReason,
         screenAngle: initScreenAngle,
         depthAngle: initDepthAngle,
         speedBase: initialSpeed,
@@ -931,6 +979,7 @@
     let targetHandPos3D = new THREE.Vector3(999, 999, 8.0);
     let prevHandTarget3D = new THREE.Vector3(999, 999, 8.0);
     let isHandDetected = false;
+    let lastHandResultTime = 0;
     let interactionMode = 'none';
     
     let specialButterfly = null;
@@ -946,14 +995,22 @@
     const floatingName = document.getElementById('floating-butterfly-name');
     const floatingMemo = document.getElementById('floating-butterfly-memo');
 
+    // 🌟 손가락 교감 타이머와 세레머니 타이머를 완벽 분리하여 서로 충돌하지 않도록 보호
     let landingStorySequenceTimer = null;
-    let activeTypingTimeout = null;
+    let landingReasonDelayTimer = null;
+    let landingMemoDelayTimer = null;
+    let handTypingTimeout = null;
+    let ceremonyTypingTimeout = null;
 
     let activeCeremonyButterfly = null;
     let ceremonyCardTimer = null;
 
-    function typeWriterText(targetElement, fullText, speed = 45, callback = null) {
-      if (activeTypingTimeout) clearTimeout(activeTypingTimeout);
+    function typeWriterText(targetElement, fullText, speed = 45, callback = null, isCeremonyCard = false) {
+      if (isCeremonyCard) {
+        if (ceremonyTypingTimeout) clearTimeout(ceremonyTypingTimeout);
+      } else {
+        if (handTypingTimeout) clearTimeout(handTypingTimeout);
+      }
       targetElement.innerHTML = '';
       let index = 0;
       function step() {
@@ -963,7 +1020,11 @@
           targetElement.innerHTML = `${currentSub}${isDone ? '' : '<span class="typing-cursor"></span>'}`;
           index++;
           if (!isDone) {
-            activeTypingTimeout = setTimeout(step, speed);
+            if (isCeremonyCard) {
+              ceremonyTypingTimeout = setTimeout(step, speed);
+            } else {
+              handTypingTimeout = setTimeout(step, speed);
+            }
           } else if (callback) {
             callback();
           }
@@ -974,11 +1035,14 @@
 
     function resetHandCards() {
       clearTimeout(landingStorySequenceTimer);
+      clearTimeout(landingReasonDelayTimer);
+      clearTimeout(landingMemoDelayTimer);
+      if (handTypingTimeout) clearTimeout(handTypingTimeout);
+
       if (floatingConcernCard) floatingConcernCard.classList.remove('visible');
       if (floatingConcernReason) floatingConcernReason.innerHTML = '';
       
       if (!activeCeremonyButterfly) {
-        if (activeTypingTimeout) clearTimeout(activeTypingTimeout);
         if (floatingInfoCard) {
           floatingInfoCard.classList.remove('visible');
           floatingInfoCard.style.left = '0px';
@@ -993,7 +1057,9 @@
         floatingConcernTag.innerText = `#${b.core_concern}`;
         floatingConcernCard.classList.add('visible');
         const fullReason = `"${b.concern_reason}"`;
-        setTimeout(() => { typeWriterText(floatingConcernReason, fullReason, 45); }, 150);
+        landingReasonDelayTimer = setTimeout(() => {
+          typeWriterText(floatingConcernReason, fullReason, 45, null, false);
+        }, 150);
       }
 
       landingStorySequenceTimer = setTimeout(() => {
@@ -1003,14 +1069,16 @@
           floatingName.innerText = `‘${b.name}’`;
           floatingInfoCard.classList.add('visible');
           const fullMemo = `"${b.memo}"`;
-          setTimeout(() => { typeWriterText(floatingMemo, fullMemo, 45); }, 150);
+          landingMemoDelayTimer = setTimeout(() => {
+            typeWriterText(floatingMemo, fullMemo, 45, null, false);
+          }, 150);
         }
       }, 4200);
     }
 
     function triggerCeremonyCardSequence(b) {
       clearTimeout(ceremonyCardTimer);
-      if (activeTypingTimeout) clearTimeout(activeTypingTimeout);
+      if (ceremonyTypingTimeout) clearTimeout(ceremonyTypingTimeout);
 
       // 나비의 3D 월드 Y좌표를 화면 2D Y좌표로 정확히 투영
       const bPos = new THREE.Vector3(0, b.group.position.y, b.group.position.z);
@@ -1040,7 +1108,7 @@
             }
           }, 1000);
         }, 5000);
-      });
+      }, true);
     }
 
     let currentScreenX = 0, currentScreenY = 0;
@@ -1227,7 +1295,7 @@
               b.innerGroup.rotation.set(0, 0, 0);
               b.group.rotation.set(0.12 * takeoffProgress, 0, b.velocity.x * -5.0);
 
-              if (b.group.position.y > 8.5) {
+              if (b.group.position.y > 8.5 || b.takeoffTimer > 6.5) {
                   b.isCeremony = false;
                   b.ceremonyStage = null;
                   b.group.position.z = -0.5 - Math.random() * 5.0;
@@ -1301,6 +1369,7 @@
 
           if (b.specialState === 'leaving') {
               b.state = 'flying';
+              b.leavingTimer = (b.leavingTimer || 0) + dt;
 
               const organicWobbleY = Math.sin(time * 3.2 + b.seed) * 1.6 + Math.cos(time * 6.0 + b.seed * 1.5) * 0.7;
               const organicWobbleZ = Math.sin(time * 2.5 + b.seed * 1.8) * 3.2;
@@ -1327,7 +1396,7 @@
 
               b.group.quaternion.slerp(dummyObj.quaternion, 0.14);
 
-              if (b.group.position.x > 15.0 || b.group.position.y > 9.5) {
+              if (b.group.position.x > 15.0 || b.group.position.y > 9.5 || b.leavingTimer > 6.0) {
                   disposeButterfly(specialButterfly);
                   specialButterfly = null;
                   if (ceremonyQueue.length > 0 && !isCeremonyActive) {
@@ -1420,9 +1489,7 @@
               const targetX = steerX !== 0 ? steerX : Math.cos(b.screenAngle);
               const desiredAngle = Math.atan2(targetY, targetX);
 
-              let diffAngle = desiredAngle - b.screenAngle;
-              while (diffAngle < -Math.PI) diffAngle += Math.PI * 2;
-              while (diffAngle > Math.PI) diffAngle -= Math.PI * 2;
+              let diffAngle = Math.atan2(Math.sin(desiredAngle - b.screenAngle), Math.cos(desiredAngle - b.screenAngle));
               b.turnRateAngle = (b.turnRateAngle || 0) * 0.84 + diffAngle * 0.08 * 0.18;
           } else {
               b.turnRateAngle = (b.turnRateAngle || 0) * 0.86 + organicTurn * 0.15;
@@ -1436,7 +1503,8 @@
               b.turnRateDepth = (b.turnRateDepth || 0) * 0.88 + (organicDepth - (b.depthAngle || 0)) * 0.05 * 0.14;
           }
 
-          b.screenAngle += b.turnRateAngle;
+          // 🌟 장시간 구동 시 screenAngle 무한 증감 방지를 위한 정규화
+          b.screenAngle = Math.atan2(Math.sin(b.screenAngle + b.turnRateAngle), Math.cos(b.screenAngle + b.turnRateAngle));
           b.depthAngle = Math.max(-0.45, Math.min(0.45, (b.depthAngle || 0) + b.turnRateDepth));
 
           const currentStroke = b.strokePower || 0;
@@ -1503,6 +1571,15 @@
       updateCeremonyParticles(dt);
       updateEnergyParticles(dt);
 
+      // 🌟 웹캠 일시 끊김 시 '유령 손' 자동 해제 방어 로직 (1.5초 이상 프레임 미수신 시 해제)
+      if (isHandDetected && (performance.now() - lastHandResultTime > 1500)) {
+        if (handPointer) handPointer.style.opacity = '0';
+        isHandDetected = false;
+        interactionMode = 'none';
+        fistButterflies = [];
+        if (!specialButterfly) resetHandCards();
+      }
+
       if (isHandDetected) {
         handTarget3D.lerp(targetHandPos3D, 0.30);
         currentScreenX += (targetScreenX - currentScreenX) * 0.35;
@@ -1527,7 +1604,7 @@
       }
 
       if (interactionMode === 'land_one' && isHandDetected) {
-          if (releaseLandingTimer) {
+          if (releaseLandingTimer && (!specialButterfly || specialButterfly.specialState !== 'leaving')) {
               clearTimeout(releaseLandingTimer);
               releaseLandingTimer = null;
           }
@@ -1561,7 +1638,7 @@
               clearTimeout(landOneGestureTimer);
               landOneGestureTimer = null;
           }
-          if (specialButterfly && !releaseLandingTimer) {
+          if (specialButterfly && specialButterfly.specialState !== 'leaving' && !releaseLandingTimer) {
               releaseLandingTimer = setTimeout(() => {
                   if (specialButterfly) specialButterfly.specialState = 'leaving';
                   resetHandCards();
@@ -1592,11 +1669,33 @@
     const ceremonyQueue = [];
     let isCeremonyActive = false;
     let ceremonyCooldownTimer = null;
+    const seenButterflyIds = new Set();
+    let maxSeenNumericId = 0;
+
+    function registerSeenButterflyId(data) {
+      if (!data || data.id === undefined || data.id === null) return false;
+      const key = String(data.id);
+      if (seenButterflyIds.has(key)) return false;
+      seenButterflyIds.add(key);
+      const numId = Number(data.id);
+      if (!isNaN(numId) && numId > maxSeenNumericId) {
+        maxSeenNumericId = numId;
+      }
+      // Set 크기가 무한히 커지지 않도록 1000개 초과 시 오래된 ID 정리
+      if (seenButterflyIds.size > 1000) {
+        const firstKey = seenButterflyIds.values().next().value;
+        seenButterflyIds.delete(firstKey);
+      }
+      return true;
+    }
 
     function queueNewButterfly(data) {
       ceremonyQueue.push(data);
       rawUserDataList.push(data);
-      if (rawUserDataList.length > 50) rawUserDataList.shift();
+      if (rawUserDataList.length > 50) {
+        rawUserDataList.shift();
+        cleanupUnusedTextures();
+      }
       triggerNextCeremonyWithDelay(5000);
     }
 
@@ -1632,12 +1731,18 @@
 
           function addUserButterfly(data, isDelayedArrival = false, isCeremony = false) {
             if (!data) return;
+            if (data.id !== undefined && data.id !== null) {
+              if (!registerSeenButterflyId(data)) return;
+            }
 
             if (isCeremony) {
               queueNewButterfly(data);
             } else {
               rawUserDataList.push(data);
-              if (rawUserDataList.length > 50) rawUserDataList.shift();
+              if (rawUserDataList.length > 50) {
+                rawUserDataList.shift();
+                cleanupUnusedTextures();
+              }
               const butterfly = buildButterfly(data, true, isDelayedArrival, false, 8.0, false);
               userFlock.push(butterfly);
 
@@ -1650,7 +1755,7 @@
 
           supabaseInstance.from('butterflies')
             .select('*')
-            .order('created_at', { ascending: false })
+            .order('id', { ascending: false })
             .limit(MAX_USER_BUTTERFLIES)
             .then(({ data, error }) => {
               if (error) {
@@ -1663,12 +1768,56 @@
             })
             .catch(e => console.error("Supabase 데이터 연동 실패:", e));
 
-          supabaseInstance.channel('public:butterflies')
-            .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'butterflies' }, (payload) => {
-              if (payload && payload.new) {
-                addUserButterfly(payload.new, false, true);
-              }
-            }).subscribe();
+          // 🌟 장시간 전시 중 네트워크 순단 시 자동 재연결되는 실시간 구독
+          let activeRealtimeChannel = null;
+          let reconnectTimer = null;
+
+          function subscribeRealtimeButterflies() {
+            if (reconnectTimer) {
+              clearTimeout(reconnectTimer);
+              reconnectTimer = null;
+            }
+            if (activeRealtimeChannel) {
+              try { supabaseInstance.removeChannel(activeRealtimeChannel); } catch (e) {}
+              activeRealtimeChannel = null;
+            }
+
+            activeRealtimeChannel = supabaseInstance.channel('public:butterflies:' + Date.now())
+              .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'butterflies' }, (payload) => {
+                if (payload && payload.new) {
+                  addUserButterfly(payload.new, false, true);
+                }
+              })
+              .subscribe((status) => {
+                if (status === 'TIMED_OUT' || status === 'CHANNEL_ERROR' || status === 'CLOSED') {
+                  if (!reconnectTimer) {
+                    reconnectTimer = setTimeout(subscribeRealtimeButterflies, 5000);
+                  }
+                }
+              });
+          }
+          subscribeRealtimeButterflies();
+
+          // 🌟 웹소켓 누락 대비 15초 주기 경량 폴링 백업 (놓친 신규 나비 자동 감지)
+          setInterval(() => {
+            supabaseInstance.from('butterflies')
+              .select('*')
+              .order('id', { ascending: false })
+              .limit(5)
+              .then(({ data, error }) => {
+                if (!error && Array.isArray(data) && data.length > 0) {
+                  const newItems = data.filter(item => {
+                    if (!item || item.id === undefined || item.id === null) return false;
+                    const numId = Number(item.id);
+                    return !seenButterflyIds.has(String(item.id)) && (maxSeenNumericId === 0 || (!isNaN(numId) && numId > maxSeenNumericId));
+                  });
+                  if (newItems.length > 0) {
+                    newItems.reverse().forEach(item => addUserButterfly(item, false, true));
+                  }
+                }
+              })
+              .catch(() => {});
+          }, 15000);
         }
       } catch (err) {}
     }, 1500);
@@ -1693,6 +1842,7 @@
           
           hands.onResults((results) => {
             if (results.multiHandLandmarks && results.multiHandLandmarks.length > 0) {
+              lastHandResultTime = performance.now();
               const lm = results.multiHandLandmarks[0];
               const wrist = lm[0];
               const tip = lm[8];
@@ -1778,15 +1928,33 @@
               videoElement.onloadedmetadata = () => {
                 videoElement.play();
                 let isProcessingFrame = false;
+                let frameWatchdogTimer = null;
 
                 function processVideoLoop() {
+                  if (videoElement.paused || videoElement.ended) {
+                    videoElement.play().catch(() => {});
+                  }
                   if (!isProcessingFrame && videoElement.readyState >= 2) {
                     isProcessingFrame = true;
+                    // 🌟 MediaPipe 응답 멈춤(Hang) 대비 2.5초 Watchdog 타이머
+                    frameWatchdogTimer = setTimeout(() => {
+                      if (isProcessingFrame) {
+                        isProcessingFrame = false;
+                        processVideoLoop();
+                      }
+                    }, 2500);
+
                     hands.send({ image: videoElement })
                       .catch(() => {})
                       .finally(() => {
-                        isProcessingFrame = false;
-                        setTimeout(processVideoLoop, 80);
+                        if (frameWatchdogTimer) {
+                          clearTimeout(frameWatchdogTimer);
+                          frameWatchdogTimer = null;
+                        }
+                        if (isProcessingFrame) {
+                          isProcessingFrame = false;
+                          setTimeout(processVideoLoop, 80);
+                        }
                       });
                   } else {
                     setTimeout(processVideoLoop, 40);

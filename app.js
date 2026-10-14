@@ -1632,16 +1632,21 @@ window.saveButterflyToSupabase = async function() {
     var finalTex = await compressBase64(rawTex);
     var tempId = Date.now();
 
+    var safeQ1 = Array.isArray(userSelections.q1) ? JSON.parse(JSON.stringify(userSelections.q1)) : [];
+    // 🌟 관람객이 입력한 핵심 고민 선택 이유(concern_reason)를 기존 q1 배열 컬럼에 담아 전송하여 display.html과 완벽 연동
+    if (safeQ1.length === 0 && userSelections.concern_reason && userSelections.concern_reason.trim().length > 0) {
+      safeQ1 = [userSelections.concern_reason.trim()];
+    }
+    var safeQ2 = Array.isArray(userSelections.q2) ? JSON.parse(JSON.stringify(userSelections.q2)) : [];
+
     specimenButterfliesData.unshift({
       id: tempId, name: userSelections.q7_name || '나비',
-      wingId: selectedButterflyShape, antId: selectedAntennaType, patternId: selectedPatternId, q1: [],
+      wingId: selectedButterflyShape, antId: selectedAntennaType, patternId: selectedPatternId, q1: safeQ1,
       core_concern: userSelections.core_concern || (userSelections.q2 && userSelections.q2[0]) || "",
+      concern_reason: userSelections.concern_reason || "",
       memo: userSelections.q6_memo || '', textureUrl: finalTex,
       date: new Date().toISOString().slice(0, 10).replace(/-/g, '. ')
     });
-
-    var safeQ1 = Array.isArray(userSelections.q1) ? JSON.parse(JSON.stringify(userSelections.q1)) : [];
-    var safeQ2 = Array.isArray(userSelections.q2) ? JSON.parse(JSON.stringify(userSelections.q2)) : [];
 
     var insertPayload = {
       name: userSelections.q7_name || '이름없는 나비',
@@ -1783,7 +1788,7 @@ async function initSpecimenGallery() {
             wingId: item.wing_shape || "crescent",
             antId: item.antenna_type || "ball",
             patternId: item.pattern_id || (item.wing_shape ? item.wing_shape + '_none' : 'crescent_none'),
-            q1: [],
+            q1: Array.isArray(item.q1) ? item.q1 : [],
             core_concern: item.core_concern || "",
             memo: item.memo || "",
             textureUrl: item.texture_url || null,
