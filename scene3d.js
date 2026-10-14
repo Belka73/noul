@@ -724,7 +724,7 @@ function stopModal3DScene() {
   if (container) container.innerHTML = '';
 }
 
-// 🌟 나비 둘러보기 3D 모달: 날갯짓을 훨씬 더 느리고 부드럽게 감속 (t * 3.2) 및 나비 크기 확대
+// 🌟 나비 둘러보기 3D 모달: 날갯짓을 훨씬 더 느리고 부드럽게 감속 (t * 3.2) 및 나비 크기 확대/위치 중앙 보정
 function openSpecimen3DModal(item, textureUrl) {
   var modal = document.getElementById('specimen-detail-modal');
   var nameEl = document.getElementById('modal-butterfly-name');
@@ -744,7 +744,7 @@ function openSpecimen3DModal(item, textureUrl) {
 
   stopModal3DScene();
 
-  var res = setupCommon3DScene(container, 6.2, -0.35);
+  var res = setupCommon3DScene(container, 6.4, 0);
   if (!res) return;
   modalThreeScene = res.scene; modalThreeCamera = res.camera; modalThreeRenderer = res.renderer;
 
@@ -765,7 +765,7 @@ function openSpecimen3DModal(item, textureUrl) {
   var whiteMat = new THREE.MeshBasicMaterial({ color: 0xffffff, side: THREE.DoubleSide });
 
   modalGroup = new THREE.Group();
-  modalGroup.position.set(0, -0.95, 0);
+  modalGroup.position.set(0, -0.35, 0);
 
   var currentModalGroup = modalGroup;
   loadButterflyModel(currentModalGroup, item.wingId, item.antId, wingMats, whiteMat, 1.15, function(l, r) {
