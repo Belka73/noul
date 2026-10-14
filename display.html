@@ -1012,9 +1012,9 @@
       let initialVelocity;
       let targetScale = 0.62 + Math.random() * 0.14;
 
-      const targetBPM = 120;
+      const targetBPM = 100;
       const flapSpeed = (targetBPM / 60) * 2 * Math.PI * 2;
-      const initialSpeed = 0.110 + Math.random() * 0.025;
+      const initialSpeed = 0.080 + Math.random() * 0.020;
 
       let initScreenAngle = Math.random() * Math.PI * 2;
       let initDepthAngle = (Math.random() - 0.5) * 0.35;
@@ -1463,7 +1463,7 @@
                   b.group.position.z = -0.5 - Math.random() * 5.0;
                   b.innerGroup.rotation.x = Math.PI / 2;
                   b.innerGroup.rotation.y = Math.PI;
-                  b.speedBase = 0.110;
+                  b.speedBase = 0.080;
                   b.screenAngle = -Math.PI / 2 + (Math.random() - 0.5) * 1.2;
                   b.depthAngle = (Math.random() - 0.5) * 0.35;
                   userFlock.push(b);
@@ -1503,7 +1503,7 @@
                   b.state = 'flying';
                   _vDir.subVectors(handTarget3D, b.group.position);
                   _vDir.z = 0; 
-                  _vDir.normalize().multiplyScalar(0.13);
+                  _vDir.normalize().multiplyScalar(0.10);
                   b.velocity.lerp(_vDir, 0.06); 
                   
                   _vTargetPos.copy(b.group.position).add(b.velocity);
@@ -1542,7 +1542,7 @@
                   8.0 + organicWobbleZ
               );
 
-              _vDir.subVectors(_vLeave, b.group.position).normalize().multiplyScalar(0.14);
+              _vDir.subVectors(_vLeave, b.group.position).normalize().multiplyScalar(0.11);
               _vDir.y += Math.sin(time * 4.5 + b.seed) * 0.04;
               _vDir.z += Math.cos(time * 3.8 + b.seed) * 0.05;
 
@@ -1574,7 +1574,7 @@
               b.state = 'flying';
               
               const orbitIdx = fistButterflies.indexOf(b.id);
-              const orbitAngle = time * 1.45 + (orbitIdx * ((Math.PI * 2) / fistButterflies.length)) + b.seed * 0.1;
+              const orbitAngle = time * 1.15 + (orbitIdx * ((Math.PI * 2) / fistButterflies.length)) + b.seed * 0.1;
               const orbitRadius = 2.4 + (orbitIdx * 0.45);
               const heightOffset = Math.sin(orbitAngle * 1.1 + orbitIdx) * 1.2;
               const depthOffset = Math.cos(orbitAngle * 0.9 + orbitIdx) * 1.0;
@@ -1586,7 +1586,7 @@
               );
               _vTargetPos.copy(handTarget3D).add(_vOrbit);
               
-              _vDir.subVectors(_vTargetPos, b.group.position).normalize().multiplyScalar(0.24);
+              _vDir.subVectors(_vTargetPos, b.group.position).normalize().multiplyScalar(0.19);
               b.velocity.lerp(_vDir, 0.10);
               b.velocity.x += (Math.random() - 0.5) * 0.008;
               b.velocity.y += (Math.random() - 0.5) * 0.008;
@@ -1617,8 +1617,8 @@
 
           if (b.screenAngle === undefined) {
               b.screenAngle = Math.atan2(b.velocity.y, b.velocity.x) || (Math.random() * Math.PI * 2);
-              b.depthAngle = (b.velocity.z / (b.speedBase || 0.11)) * 0.4 || 0;
-              b.speedBase = 0.110 + (b.seed % 100) * 0.00025;
+              b.depthAngle = (b.velocity.z / (b.speedBase || 0.08)) * 0.4 || 0;
+              b.speedBase = 0.080 + (b.seed % 100) * 0.00020;
               b.turnRateAngle = 0;
               b.turnRateDepth = 0;
               b.angleBias = (Math.random() - 0.5) * 0.035;
@@ -1636,26 +1636,11 @@
                             + Math.cos(time * 0.85 + b.seed * 1.4) * 0.028 
                             + (b.angleBias || 0);
 
-          let steerX = 0, steerY = 0, steerZ = 0;
-          if (b.group.position.x > 11.5) steerX = -1;
-          else if (b.group.position.x < -11.5) steerX = 1;
-
-          if (b.group.position.y > 5.0) steerY = -1;
-          else if (b.group.position.y < -5.0) steerY = 1;
-
+          let steerZ = 0;
           if (b.group.position.z > 1.2) steerZ = -1;
           else if (b.group.position.z < -6.0) steerZ = 1;
 
-          if (steerX !== 0 || steerY !== 0) {
-              const targetY = steerY !== 0 ? steerY : Math.sin(b.screenAngle);
-              const targetX = steerX !== 0 ? steerX : Math.cos(b.screenAngle);
-              const desiredAngle = Math.atan2(targetY, targetX);
-
-              let diffAngle = Math.atan2(Math.sin(desiredAngle - b.screenAngle), Math.cos(desiredAngle - b.screenAngle));
-              b.turnRateAngle = (b.turnRateAngle || 0) * 0.84 + diffAngle * 0.08 * 0.18;
-          } else {
-              b.turnRateAngle = (b.turnRateAngle || 0) * 0.86 + organicTurn * 0.15;
-          }
+          b.turnRateAngle = (b.turnRateAngle || 0) * 0.86 + organicTurn * 0.15;
 
           if (steerZ !== 0) {
               const targetDepth = steerZ > 0 ? 0.35 : -0.35;
@@ -1679,15 +1664,15 @@
           b.velocity.z = Math.sin(b.depthAngle) * currentSpeed;
       }
 
-      let maxSpeed = 0.27;
+      let maxSpeed = 0.20;
       if (b.isSpecialLanding) {
-          maxSpeed = (b.specialState === 'leaving') ? 0.18 : 0.15;
+          maxSpeed = (b.specialState === 'leaving') ? 0.15 : 0.12;
       } else if (b.isCeremony) {
           maxSpeed = 0.24;
       } else if (isFollowing && interactionMode === 'scatter') {
           maxSpeed = 0.20; 
       } else if (isFollowing && interactionMode === 'fist_gather') {
-          maxSpeed = 0.32;
+          maxSpeed = 0.26;
       }
 
       if (b.velocity.length() > maxSpeed) {
@@ -1697,6 +1682,14 @@
       const timeFactor = dt * 60.0;
       _vStep.copy(b.velocity).multiplyScalar(timeFactor);
       b.group.position.add(_vStep);
+
+      if (!isFollowing && !b.isAscendingArrival && !b.isCeremony && !b.isSpecialLanding) {
+        if (b.group.position.x > 17.5) b.group.position.x = -17.5;
+        else if (b.group.position.x < -17.5) b.group.position.x = 17.5;
+
+        if (b.group.position.y > 10.5) b.group.position.y = -10.5;
+        else if (b.group.position.y < -10.5) b.group.position.y = 10.5;
+      }
 
       if (b.velocity.lengthSq() > 0.00001 && b.state === 'flying' && !isFollowing) {
         _vTargetPos.set(
