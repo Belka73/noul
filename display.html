@@ -701,12 +701,20 @@
     }
     container.appendChild(renderer.domElement);
 
-    // 🌟 장시간 전시 중 디스플레이 절전 신호나 드라이버 리셋으로 WebGL 컨텍스트 유실 시 자동 새로고침 복구
+    // 🌟 장시간 전시 중 디스플레이 절전 신호나 드라이버 리셋으로 WebGL 컨텍스트 유실 시 온라인 상태를 확인하며 안전하게 자동 새로고침 복구
+    let contextLostRecoveryTimer = null;
     renderer.domElement.addEventListener('webglcontextlost', (event) => {
       event.preventDefault();
-      if (!isAutoReloading) {
-        console.warn('WebGL 컨텍스트 유실 감지: 2초 후 화면을 복구합니다.');
-        setTimeout(() => window.location.reload(), 2000);
+      if (!isAutoReloading && !contextLostRecoveryTimer) {
+        console.warn('WebGL 컨텍스트 유실 감지: 네트워크 상태 확인 후 화면을 복구합니다.');
+        const attemptContextRecovery = () => {
+          if (navigator.onLine !== false) {
+            window.location.reload();
+          } else {
+            contextLostRecoveryTimer = setTimeout(attemptContextRecovery, 2000);
+          }
+        };
+        contextLostRecoveryTimer = setTimeout(attemptContextRecovery, 2000);
       }
     }, false);
 
@@ -926,6 +934,7 @@
     const defaultFlock = [];
     const userFlock = [];
     const MAX_USER_BUTTERFLIES = 10;
+    const MAX_RECENT_USER_DATA = 25; // 🌟 VRAM 점유율 최적화를 위해 최근 사용자 나비 보관 개수를 25개로 제한
     const rawUserDataList = [];
 
     function attachClonedGLTFModel(sceneTemplate, innerGroup, wingMat, targetAntennaPrefix) {
@@ -1291,6 +1300,9 @@
       floatingInfoCard.classList.add('visible');
 
       const fullMemo = `"${b.memo}"`;
+      // 🌟 대기열(ceremonyQueue)에 밀려 있는 나비가 많을 경우 카드 노출 시간을 2800ms로 단축하여 인터랙션 병목 해소
+      const cardDisplayDuration = ceremonyQueue.length >= 2 ? 2800 : 5000;
+
       typeWriterText(floatingMemo, fullMemo, 45, () => {
         ceremonyCardTimer = setTimeout(() => {
           if (floatingInfoCard) floatingInfoCard.classList.remove('visible');
@@ -1303,7 +1315,7 @@
               b.velocity.set(0, 0.009, 0);
             }
           }, 1000);
-        }, 5000);
+        }, cardDisplayDuration);
       }, true);
     }
 
@@ -1510,7 +1522,9 @@
                   if (floatingInfoCard) floatingInfoCard.style.left = '0px';
                   activeCeremonyButterfly = null;
                   isCeremonyActive = false;
-                  triggerNextCeremonyWithDelay(5000);
+                  // 🌟 대기 중인 세레머니가 많으면 다음 등장 대기 시간을 2초로 단축
+                  const nextCeremonyDelay = ceremonyQueue.length >= 2 ? 2000 : 5000;
+                  triggerNextCeremonyWithDelay(nextCeremonyDelay);
               }
           }
       }
@@ -1892,11 +1906,12 @@
     function queueNewButterfly(data) {
       ceremonyQueue.push(data);
       rawUserDataList.push(data);
-      if (rawUserDataList.length > 50) {
+      if (rawUserDataList.length > MAX_RECENT_USER_DATA) {
         rawUserDataList.shift();
         cleanupUnusedTextures();
       }
-      triggerNextCeremonyWithDelay(5000);
+      const nextDelay = ceremonyQueue.length >= 2 ? 2000 : 5000;
+      triggerNextCeremonyWithDelay(nextDelay);
     }
 
     function triggerNextCeremonyWithDelay(delayMs) {
@@ -1940,7 +1955,7 @@
               queueNewButterfly(data);
             } else {
               rawUserDataList.push(data);
-              if (rawUserDataList.length > 50) {
+              if (rawUserDataList.length > MAX_RECENT_USER_DATA) {
                 rawUserDataList.shift();
                 cleanupUnusedTextures();
               }
@@ -2152,6 +2167,7 @@
           let isProcessingFrame = false;
           let frameWatchdogTimer = null;
           let isVideoLoopStarted = false;
+          let currentFrameId = 0; // 🌟 프레임 세대 ID (Watchdog 경쟁 상태 및 중복 루프 증식 차단)
 
           function processVideoLoop() {
             if (isAutoReloading) return;
@@ -2160,26 +2176,31 @@
             }
             if (!isProcessingFrame && videoElement.readyState >= 2) {
               isProcessingFrame = true;
-              // 🌟 MediaPipe 응답 멈춤(Hang) 대비 2.5초 Watchdog 타이머
+              const myFrameId = ++currentFrameId;
+
+              // 🌟 MediaPipe 응답 멈춤(Hang) 대비 6초 Watchdog 타이머 (세대 ID 검증으로 중복 호출 방지)
               frameWatchdogTimer = setTimeout(() => {
-                if (isProcessingFrame) {
+                if (isProcessingFrame && myFrameId === currentFrameId) {
                   isProcessingFrame = false;
                   processVideoLoop();
                 }
-              }, 2500);
+              }, 6000);
 
               handInputCtx.drawImage(videoElement, 0, 0, 320, 240);
 
               hands.send({ image: handInputCanvas })
                 .catch(() => {})
                 .finally(() => {
+                  // 이미 타임아웃되어 다음 루프로 넘어간 이전 요청이면 무시
+                  if (myFrameId !== currentFrameId) return;
+
                   if (frameWatchdogTimer) {
                     clearTimeout(frameWatchdogTimer);
                     frameWatchdogTimer = null;
                   }
                   if (isProcessingFrame) {
                     isProcessingFrame = false;
-                    // 🌟 손이 감지 중일 때는 기존과 동일하게 80ms, 손이 없을 때는 140ms로 유휴 부하 절감
+                    // 🌟 손이 감지 중일 때는 80ms, 손이 없을 때는 140ms로 유휴 부하 절감
                     const nextDelay = isHandDetected ? 80 : 140;
                     setTimeout(processVideoLoop, nextDelay);
                   }
@@ -2309,6 +2330,24 @@
         }, 800);
       }, 5000);
     }, AUTO_REFRESH_INTERVAL_MS);
+
+    /* ========================================================
+       5. Screen Wake Lock API (전시 중 OS/디스플레이 절전 진입 방지)
+       ======================================================== */
+    let screenWakeLock = null;
+    async function requestScreenWakeLock() {
+      try {
+        if ('wakeLock' in navigator && !isAutoReloading) {
+          screenWakeLock = await navigator.wakeLock.request('screen');
+        }
+      } catch (e) {}
+    }
+    requestScreenWakeLock();
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'visible') {
+        requestScreenWakeLock();
+      }
+    });
   </script>
 </body>
 </html>
