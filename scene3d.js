@@ -26,6 +26,14 @@ function setupCommon3DScene(container, camZ, lookY) {
   return { scene: scene, camera: camera, renderer: renderer };
 }
 
+function disposeThreeRenderer(renderer) {
+  if (!renderer) return;
+  try {
+    renderer.dispose();
+    if (renderer.forceContextLoss) renderer.forceContextLoss();
+  } catch (e) {}
+}
+
 function loadButterflyModel(group, shapeId, antId, wingMaterials, whiteMat, scale, onLoaded) {
   if (!window.THREE || !THREE.GLTFLoader) return;
   var modelPath = '3DButterfly/' + (shapeId || 'crescent') + '.glb';
@@ -35,6 +43,7 @@ function loadButterflyModel(group, shapeId, antId, wingMaterials, whiteMat, scal
   var matR = wingMaterials && wingMaterials.matR ? wingMaterials.matR : wingMaterials;
 
   new THREE.GLTFLoader().load(modelPath, function(gltf) {
+    if (!group) return;
     var model = gltf.scene;
     var wL = null, wR = null;
 
@@ -95,13 +104,16 @@ function initLoading3DScene() {
   loadingGroup.rotation.set(0.98, 2.45, -0.55);
   loadingGroup.position.set(-0.08, -0.22, 0);
 
-  loadButterflyModel(loadingGroup, selectedButterflyShape, selectedAntennaType, { matL: whiteMat, matR: whiteMat }, whiteMat, 0.45, function(l, r) {
+  var currentGroup = loadingGroup;
+  loadButterflyModel(currentGroup, selectedButterflyShape, selectedAntennaType, { matL: whiteMat, matR: whiteMat }, whiteMat, 0.45, function(l, r) {
+    if (loadingGroup !== currentGroup) return;
     loadingWingL = l; loadingWingR = r;
   });
   loadingScene.add(loadingGroup);
 
   var clock = new THREE.Clock();
   (function animateLoading() {
+    if (!loadingRenderer || !loadingScene || !loadingCamera) return;
     loadingAnimFrameId = requestAnimationFrame(animateLoading);
     var t = clock.getElapsedTime(), flap = 0.524 + Math.sin(t * 8.5) * 0.873;
     if (loadingWingL && loadingWingR) { 
@@ -110,15 +122,26 @@ function initLoading3DScene() {
       loadingWingL.rotation.set(uL.baseRotX || 0, (uL.baseRotY || 0) + flap, uL.baseRotZ || 0); 
       loadingWingR.rotation.set(uR.baseRotX || 0, (uR.baseRotY || 0) - flap, uR.baseRotZ || 0); 
     }
-    loadingGroup.position.x = -0.08;
-    loadingGroup.position.y = -0.22 + Math.sin(t * 2.2) * 0.08;
-    loadingGroup.rotation.z = -0.55 + Math.sin(t * 1.5) * 0.04;
+    if (loadingGroup) {
+      loadingGroup.position.x = -0.08;
+      loadingGroup.position.y = -0.22 + Math.sin(t * 2.2) * 0.08;
+      loadingGroup.rotation.z = -0.55 + Math.sin(t * 1.5) * 0.04;
+    }
     loadingRenderer.render(loadingScene, loadingCamera);
   })();
 }
 
 function stopLoading3DScene() {
   if (loadingAnimFrameId) { cancelAnimationFrame(loadingAnimFrameId); loadingAnimFrameId = null; }
+  if (loadingRenderer) {
+    disposeThreeRenderer(loadingRenderer);
+    loadingRenderer = null;
+  }
+  loadingScene = null;
+  loadingCamera = null;
+  loadingGroup = null;
+  loadingWingL = null;
+  loadingWingR = null;
   var c = document.getElementById('loading-three-container');
   if (c) c.innerHTML = '';
 }
@@ -222,13 +245,16 @@ function initShare3DScene() {
   shareGroup.rotation.set(0.25, -0.8, -0.35);
   shareGroup.position.set(0, 0.45, 0);
 
-  loadButterflyModel(shareGroup, selectedButterflyShape, selectedAntennaType, wingMats, whiteMat, 0.48, function(l, r) {
+  var currentGroup = shareGroup;
+  loadButterflyModel(currentGroup, selectedButterflyShape, selectedAntennaType, wingMats, whiteMat, 0.48, function(l, r) {
+    if (shareGroup !== currentGroup) return;
     shareWingL = l; shareWingR = r;
   });
   shareScene.add(shareGroup);
 
   var clock = new THREE.Clock();
   (function animateShare() {
+    if (!shareRenderer || !shareScene || !shareCamera) return;
     shareAnimFrameId = requestAnimationFrame(animateShare);
     var t = clock.getElapsedTime(), flap = 0.524 + Math.sin(t * 8.5) * 0.873;
     if (shareWingL && shareWingR) { 
@@ -237,15 +263,26 @@ function initShare3DScene() {
       shareWingL.rotation.set(uL.baseRotX || 0, (uL.baseRotY || 0) + flap, uL.baseRotZ || 0); 
       shareWingR.rotation.set(uR.baseRotX || 0, (uR.baseRotY || 0) - flap, uR.baseRotZ || 0); 
     }
-    shareGroup.position.y = 0.45 + Math.sin(t * 2.2) * 0.08;
-    // 🌟 오른쪽 기울기를 유지하며 자연스럽게 부유하도록 기준각을 -0.35로 수정
-    shareGroup.rotation.z = -0.35 + Math.sin(t * 1.5) * 0.04;
+    if (shareGroup) {
+      shareGroup.position.y = 0.45 + Math.sin(t * 2.2) * 0.08;
+      // 🌟 오른쪽 기울기를 유지하며 자연스럽게 부유하도록 기준각을 -0.35로 수정
+      shareGroup.rotation.z = -0.35 + Math.sin(t * 1.5) * 0.04;
+    }
     shareRenderer.render(shareScene, shareCamera);
   })();
 }
 
 function stopShare3DScene() {
   if (shareAnimFrameId) { cancelAnimationFrame(shareAnimFrameId); shareAnimFrameId = null; }
+  if (shareRenderer) {
+    disposeThreeRenderer(shareRenderer);
+    shareRenderer = null;
+  }
+  shareScene = null;
+  shareCamera = null;
+  shareGroup = null;
+  shareWingL = null;
+  shareWingR = null;
   var c = document.getElementById('share-three-container');
   if (c) c.innerHTML = '';
 }
@@ -260,6 +297,61 @@ var particleCanvas = null, pctx = null, energyParticles = [], isFlyingTransition
 
 var hasTriggeredDBSave = false;
 var flyStartPhase = 0, flyStartTime = 0;
+
+// 🌟 프리뷰 화면 전역 이벤트 리스너 중복 등록 방지를 위한 핸들러 참조 변수
+var _previewTouchMoveHandler = null;
+var _previewTouchEndHandler = null;
+var _previewTouchCancelHandler = null;
+var _previewMouseMoveHandler = null;
+var _previewMouseUpHandler = null;
+
+function unbindPreviewWindowEvents() {
+  if (_previewTouchMoveHandler) {
+    window.removeEventListener('touchmove', _previewTouchMoveHandler);
+    _previewTouchMoveHandler = null;
+  }
+  if (_previewTouchEndHandler) {
+    window.removeEventListener('touchend', _previewTouchEndHandler);
+    _previewTouchEndHandler = null;
+  }
+  if (_previewTouchCancelHandler) {
+    window.removeEventListener('cancel', _previewTouchCancelHandler);
+    _previewTouchCancelHandler = null;
+  }
+  if (_previewMouseMoveHandler) {
+    window.removeEventListener('mousemove', _previewMouseMoveHandler);
+    _previewMouseMoveHandler = null;
+  }
+  if (_previewMouseUpHandler) {
+    window.removeEventListener('mouseup', _previewMouseUpHandler);
+    _previewMouseUpHandler = null;
+  }
+}
+
+function stopFullButterflyViewer() {
+  if (animFrameId) {
+    cancelAnimationFrame(animFrameId);
+    animFrameId = null;
+  }
+  unbindPreviewWindowEvents();
+  resetChargeState();
+  if (fullRenderer) {
+    disposeThreeRenderer(fullRenderer);
+    fullRenderer = null;
+  }
+  fullScene = null;
+  fullCamera = null;
+  fullGroup = null;
+  leftWingMesh = null;
+  rightWingMesh = null;
+  antennaMesh = null;
+  var container = document.getElementById('three-container');
+  if (container) container.innerHTML = '';
+  if (pctx && particleCanvas) {
+    pctx.clearRect(0, 0, particleCanvas.width, particleCanvas.height);
+  }
+  energyParticles = [];
+}
 
 function triggerDeviceVibrate(durationMs, intensity) {
   try {
@@ -282,7 +374,7 @@ function safeTriggerDBSave() {
 
 function initFullButterflyViewer(textureURL) {
   var container = document.getElementById('three-container');
-  if (animFrameId) { cancelAnimationFrame(animFrameId); animFrameId = null; }
+  stopFullButterflyViewer();
   if (!container || !window.THREE) return;
   container.innerHTML = ''; container.style.opacity = '1';
 
@@ -319,10 +411,12 @@ function initFullButterflyViewer(textureURL) {
 
   var whiteMat = new THREE.MeshBasicMaterial({ color: 0xffffff, side: THREE.DoubleSide });
   var targetAnt = 'Antenna_' + selectedAntennaType;
+  var currentFullGroup = fullGroup;
 
   if (window.THREE && THREE.GLTFLoader) {
     try {
       new THREE.GLTFLoader().load('3DButterfly/' + selectedButterflyShape + '.glb', function(gltf) {
+        if (fullGroup !== currentFullGroup) return;
         leftWingMesh = null; rightWingMesh = null; antennaMesh = null;
         gltf.scene.traverse(function(child) {
           if (child.isMesh) {
@@ -360,6 +454,7 @@ function initFullButterflyViewer(textureURL) {
   var clock = new THREE.Clock();
 
   (function animate() {
+    if (!fullRenderer || !fullScene || !fullCamera || !fullGroup) return;
     animFrameId = requestAnimationFrame(animate);
 
     var t = clock.getElapsedTime();
@@ -447,17 +542,19 @@ function initFullButterflyViewer(textureURL) {
         if (globalCurtain) globalCurtain.classList.add('active-curtain');
 
         setTimeout(function() {
+          stopFullButterflyViewer();
           showScreen('screen-complete');
           setTimeout(function() { if (globalCurtain) globalCurtain.classList.remove('active-curtain'); }, 80);
           isFlyingAway = false; isFlyingTransitionTriggered = false;
           if (container) container.style.opacity = '1';
           if (glowBgEl) glowBgEl.style.opacity = '1';
-          resetChargeState();
         }, 2000);
       }
     }
     renderEnergyParticles();
-    fullRenderer.render(fullScene, fullCamera);
+    if (fullRenderer && fullScene && fullCamera) {
+      fullRenderer.render(fullScene, fullCamera);
+    }
   })();
   bindInteractiveEvents(container);
 }
@@ -550,6 +647,8 @@ function resetChargeState() {
 }
 
 function bindInteractiveEvents(targetEl) {
+  unbindPreviewWindowEvents();
+
   var touchStartY = 0, touchStartX = 0;
   function handlePointerStart(clientX, clientY) {
     if (isFlyingAway) return;
@@ -589,20 +688,38 @@ function bindInteractiveEvents(targetEl) {
         if (!isFlyingTransitionTriggered) {
           isFlyingTransitionTriggered = true; 
           safeTriggerDBSave();
+          stopFullButterflyViewer();
           showScreen('screen-complete');
         }
       }, 3500);
     } else resetChargeState();
   }
 
+  _previewTouchMoveHandler = function(e) {
+    if (isUserDragging && e.touches.length === 1) handlePointerMove(e.touches[0].clientX, e.touches[0].clientY);
+  };
+  _previewTouchEndHandler = function(e) {
+    if (e.changedTouches.length > 0) handlePointerEnd(e.changedTouches[0].clientX, e.changedTouches[0].clientY);
+  };
+  _previewTouchCancelHandler = function(e) {
+    if (e.changedTouches.length > 0) handlePointerEnd(e.changedTouches[0].clientX, e.changedTouches[0].clientY);
+    else resetChargeState();
+  };
+  _previewMouseMoveHandler = function(e) {
+    if (isUserDragging) handlePointerMove(e.clientX, e.clientY);
+  };
+  _previewMouseUpHandler = function(e) {
+    handlePointerEnd(e.clientX, e.clientY);
+  };
+
   targetEl.oncontextmenu = function(e) { e.preventDefault(); return false; };
   targetEl.ontouchstart = function(e) { if (e.touches.length === 1) handlePointerStart(e.touches[0].clientX, e.touches[0].clientY); };
-  window.addEventListener('touchmove', function(e) { if (isUserDragging && e.touches.length === 1) handlePointerMove(e.touches[0].clientX, e.touches[0].clientY); }, { passive: true });
-  window.addEventListener('touchend', function(e) { if (e.changedTouches.length > 0) handlePointerEnd(e.changedTouches[0].clientX, e.changedTouches[0].clientY); }, { passive: true });
-  window.addEventListener('cancel', function(e) { if (e.changedTouches.length > 0) handlePointerEnd(e.changedTouches[0].clientX, e.changedTouches[0].clientY); else resetChargeState(); }, { passive: true });
+  window.addEventListener('touchmove', _previewTouchMoveHandler, { passive: true });
+  window.addEventListener('touchend', _previewTouchEndHandler, { passive: true });
+  window.addEventListener('cancel', _previewTouchCancelHandler, { passive: true });
   targetEl.onmousedown = function(e) { handlePointerStart(e.clientX, e.clientY); };
-  window.addEventListener('mousemove', function(e) { if (isUserDragging) handlePointerMove(e.clientX, e.clientY); });
-  window.addEventListener('mouseup', function(e) { handlePointerEnd(e.clientX, e.clientY); });
+  window.addEventListener('mousemove', _previewMouseMoveHandler);
+  window.addEventListener('mouseup', _previewMouseUpHandler);
 }
 
 var modalThreeScene, modalThreeCamera, modalThreeRenderer, modalGroup, modalWingL, modalWingR, modalAnimFrameId = null;
@@ -613,12 +730,12 @@ function stopModal3DScene() {
     modalAnimFrameId = null;
   }
   if (modalThreeRenderer) {
-    try {
-      modalThreeRenderer.dispose();
-      if (modalThreeRenderer.forceContextLoss) modalThreeRenderer.forceContextLoss();
-    } catch(e) {}
+    disposeThreeRenderer(modalThreeRenderer);
     modalThreeRenderer = null;
   }
+  modalThreeScene = null;
+  modalThreeCamera = null;
+  modalGroup = null;
   modalWingL = null;
   modalWingR = null;
   var container = document.getElementById('specimen-three-container');
@@ -668,13 +785,16 @@ function openSpecimen3DModal(item, textureUrl) {
   modalGroup = new THREE.Group();
   modalGroup.position.set(0, -0.85, 0);
 
-  loadButterflyModel(modalGroup, item.wingId, item.antId, wingMats, whiteMat, 0.85, function(l, r) {
+  var currentModalGroup = modalGroup;
+  loadButterflyModel(currentModalGroup, item.wingId, item.antId, wingMats, whiteMat, 0.85, function(l, r) {
+    if (modalGroup !== currentModalGroup) return;
     modalWingL = l; modalWingR = r;
   });
   modalThreeScene.add(modalGroup);
 
   var clock = new THREE.Clock();
   (function modalAnimate() {
+    if (!modalThreeRenderer || !modalThreeScene || !modalThreeCamera) return;
     modalAnimFrameId = requestAnimationFrame(modalAnimate);
     // 🌟 날갯짓 속도를 7.2에서 3.2로 대폭 낮추어 천천히 부드럽게 날갯짓하도록 설정
     var t = clock.getElapsedTime(), flap = 0.524 + Math.sin(t * 3.2) * 0.873;

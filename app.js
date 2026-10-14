@@ -32,6 +32,7 @@ var ALL_SCREENS = [
 var showcaseInterval = null;
 var currentStepIdx = 0;
 var userSelections = { q1: [], q2: [], q1_custom: "", q2_custom: "", core_concern: "", concern_reason: "", q6_memo: "", q7_name: "" };
+var lastInjectedCustomKeyword = "";
 
 var completeTypeTimer = null;
 var shareTypeTimer = null;
@@ -45,8 +46,15 @@ var guideTypeTimer = null;
 var surveyTitleTypeTimer = null;
 var coreConcernTypeTimer = null;
 var openingDelayTimer = null;
+var auxTimers = [];
 
 var lastSavedButterflyId = null;
+
+function registerAuxTimer(fn, delay) {
+  var tid = setTimeout(fn, delay);
+  auxTimers.push(tid);
+  return tid;
+}
 
 function clearAllTimers() {
   clearTimeout(typeTimer);
@@ -61,7 +69,34 @@ function clearAllTimers() {
   clearTimeout(autoTransitionTimer);
   clearTimeout(postConcernTypeTimer);
   clearTimeout(flightSafetyTimer);
+  if (auxTimers && auxTimers.length > 0) {
+    auxTimers.forEach(function(t) { clearTimeout(t); });
+    auxTimers = [];
+  }
   if (showcaseInterval) { clearInterval(showcaseInterval); showcaseInterval = null; }
+}
+
+function removeInjectedCustomFromQ2() {
+  if (!lastInjectedCustomKeyword) return;
+  var baseOptions = (surveyQuestions[1] && surveyQuestions[1].options) ? surveyQuestions[1].options : [];
+  if (baseOptions.indexOf(lastInjectedCustomKeyword) === -1) {
+    var idx = userSelections.q2.indexOf(lastInjectedCustomKeyword);
+    if (idx > -1) {
+      userSelections.q2.splice(idx, 1);
+    }
+  }
+  lastInjectedCustomKeyword = "";
+}
+
+function syncCustomKeywordToQ2() {
+  removeInjectedCustomFromQ2();
+  if (userSelections.q2_custom && userSelections.q2_custom.trim()) {
+    var c = userSelections.q2_custom.trim();
+    if (userSelections.q2.indexOf(c) === -1) {
+      userSelections.q2.unshift(c);
+      lastInjectedCustomKeyword = c;
+    }
+  }
 }
 
 function showScreen(screenId) {
@@ -71,6 +106,10 @@ function showScreen(screenId) {
     s.style.display = 'none';
   });
 
+  if (screenId !== 'screen-preview' && typeof stopFullButterflyViewer === 'function') {
+    stopFullButterflyViewer();
+  }
+
   var target = document.getElementById(screenId);
   if (target) {
     target.classList.add('active');
@@ -79,6 +118,7 @@ function showScreen(screenId) {
       if (screenId === 'screen-cover') {
         stopBubblePhysics(); stopLoading3DScene(); stopShare3DScene(); stopTop7PhysicsScene();
       } else if (screenId === 'screen-opening') {
+        lastSavedButterflyId = null;
         stopBubblePhysics(); stopLoading3DScene(); stopShare3DScene(); stopTop7PhysicsScene(); resetOpeningFlow();
       } else if (screenId === 'screen-survey') {
         stopLoading3DScene(); stopShare3DScene(); stopTop7PhysicsScene(); renderSurveyStep();
@@ -90,9 +130,12 @@ function showScreen(screenId) {
         stopBubblePhysics(); stopLoading3DScene(); stopShare3DScene(); stopTop7PhysicsScene(); initTop7BridgeScreen();
       } else if (screenId === 'screen-survey-concern-top7') {
         stopBubblePhysics(); stopLoading3DScene(); stopShare3DScene(); updateTop7PickedSubtitle();
-        // 🌟 실제 데이터 집계 후 동적으로 공 물리 화면 초기화
+        // 🌟 실제 데이터 집계 후 현재 화면이 여전히 top7일 때만 동적으로 공 물리 화면 초기화
         fetchTopKeywordsData().then(function(realTopList) {
-          initTop7PhysicsScene(realTopList);
+          var currentActive = document.querySelector('.screen.active');
+          if (currentActive && currentActive.id === 'screen-survey-concern-top7') {
+            initTop7PhysicsScene(realTopList);
+          }
         });
       } else if (screenId === 'screen-post-concern-bridge') {
         stopBubblePhysics(); stopLoading3DScene(); stopShare3DScene(); stopTop7PhysicsScene(); initPostConcernBridgeScreen();
@@ -168,11 +211,11 @@ function startAnswerShowcaseSequence() {
     if (pBar) pBar.style.width = Math.min(100, progress) + '%';
     if (progress >= 100) {
       clearInterval(showcaseInterval); showcaseInterval = null;
-      setTimeout(function() {
+      registerAuxTimer(function() {
         var whiteFlash = document.getElementById('cinematic-white-flash');
         if (whiteFlash) whiteFlash.classList.add('flash-active');
         
-        setTimeout(function() {
+        registerAuxTimer(function() {
           stopLoading3DScene();
           var butterflyName = userSelections.q7_name ? userSelections.q7_name.trim() : "나비";
           var nameHeader = document.getElementById('preview-butterfly-name');
@@ -191,7 +234,7 @@ function startAnswerShowcaseSequence() {
 
           showScreen('screen-preview');
 
-          setTimeout(function() {
+          registerAuxTimer(function() {
             var currentTex = window.currentExtractedTexture || currentExtractedTexture || createFallbackDummyTexture();
             initFullButterflyViewer(currentTex);
             if (whiteFlash) whiteFlash.classList.remove('flash-active');
@@ -248,13 +291,18 @@ if (btnActionShare) {
   btnActionShare.onclick = function() {
     var rawName = userSelections.q7_name ? userSelections.q7_name.trim() : "나비";
     var rawMemo = userSelections.q6_memo && userSelections.q6_memo.trim().length > 0 ? userSelections.q6_memo.trim() : "너의 찬란한 날갯짓을 응원해.";
-    var rawShape = selectedButterflyShape || "crescent";
+    var rawShape = typeof selectedButterflyShape !== 'undefined' && selectedButterflyShape ? selectedButterflyShape : "crescent";
+    var rawPattern = typeof selectedPatternId !== 'undefined' && selectedPatternId ? selectedPatternId : (rawShape + "_none");
+    var rawAntenna = typeof selectedAntennaType !== 'undefined' && selectedAntennaType ? selectedAntennaType : "ball";
+
     var baseUrl = window.location.href.split('?')[0].replace(/index\.html$/, '');
     if (!baseUrl.endsWith('/')) baseUrl += '/';
     
     var shareCardUrl = baseUrl + 'share.html?name=' + encodeURIComponent(rawName) + 
       '&memo=' + encodeURIComponent(rawMemo) + 
       '&shape=' + encodeURIComponent(rawShape) +
+      '&pattern=' + encodeURIComponent(rawPattern) +
+      '&antenna=' + encodeURIComponent(rawAntenna) +
       (lastSavedButterflyId ? ('&id=' + encodeURIComponent(lastSavedButterflyId)) : '');
 
     var shareData = { title: '너울(Noul) - ' + rawName, text: "내가 빚은 나비 '" + rawName + "'(이)가 도착했습니다.", url: shareCardUrl };
@@ -322,6 +370,9 @@ document.addEventListener('click', function(e) {
   if (btnNext) {
     e.preventDefault(); e.stopPropagation();
     clearAllTimers();
+    if (typeof whiteFlash !== 'undefined' && whiteFlash) whiteFlash.classList.remove('flash-active');
+    var wf = document.getElementById('cinematic-white-flash');
+    if (wf) wf.classList.remove('flash-active');
     if (animFrameId) { cancelAnimationFrame(animFrameId); animFrameId = null; }
     var curId = (document.querySelector('.screen.active') || {}).id || 'screen-cover';
 
@@ -365,6 +416,7 @@ document.addEventListener('click', function(e) {
       }
       else if (currentStepIdx === 1) { 
         ensureDevDummyData(); 
+        syncCustomKeywordToQ2();
         showScreen('screen-survey-core-concern'); 
         return; 
       }
@@ -416,9 +468,9 @@ document.addEventListener('click', function(e) {
         flyLabel.innerHTML = "화면 아무 곳을<br>2초간 길게 눌러 기를 모아주세요.";
       }
       
+      showScreen('screen-preview'); 
       var currentTex = window.currentExtractedTexture || currentExtractedTexture || createFallbackDummyTexture();
       initFullButterflyViewer(currentTex);
-      showScreen('screen-preview'); 
       return; 
     } else if (curId === 'screen-preview') { 
       ensureDevDummyData(); 
@@ -436,6 +488,8 @@ document.addEventListener('click', function(e) {
   if (btnPrev) {
     e.preventDefault(); e.stopPropagation();
     clearAllTimers();
+    var wfPrev = document.getElementById('cinematic-white-flash');
+    if (wfPrev) wfPrev.classList.remove('flash-active');
     if (animFrameId) { cancelAnimationFrame(animFrameId); animFrameId = null; }
     var curId = (document.querySelector('.screen.active') || {}).id || 'screen-cover';
 
@@ -486,11 +540,7 @@ document.addEventListener('click', function(e) {
         return;
       }
     } else if (curId === 'screen-survey-core-concern') { 
-      if (userSelections.q2_custom) {
-        var customIdx = userSelections.q2.indexOf(userSelections.q2_custom);
-        if (customIdx > -1) userSelections.q2.splice(customIdx, 1);
-        userSelections.q2_custom = "";
-      }
+      removeInjectedCustomFromQ2();
       currentStepIdx = 1;
       showScreen('screen-survey'); 
       return; 
@@ -522,9 +572,9 @@ document.addEventListener('click', function(e) {
       return; 
     } else if (curId === 'screen-complete') { 
       ensureDevDummyData(); 
+      showScreen('screen-preview'); 
       var currentTex = window.currentExtractedTexture || currentExtractedTexture || createFallbackDummyTexture();
       initFullButterflyViewer(currentTex); 
-      showScreen('screen-preview'); 
       return; 
     } else if (curId === 'screen-share') { 
       showScreen('screen-complete'); 
@@ -581,7 +631,7 @@ function typeWriterText(targetElement, textWithHtml, onComplete) {
       else if (char === ',') delay = 250;
       typeTimer = setTimeout(nextChar, delay);
     } else {
-      setTimeout(function() { if (onComplete) onComplete(); }, 200);
+      registerAuxTimer(function() { if (onComplete) onComplete(); }, 200);
     }
   })();
 }
@@ -655,6 +705,11 @@ function initTop7BridgeScreen() {
 var btnTop7BridgeNext = document.getElementById('btn-top7-bridge-next');
 if (btnTop7BridgeNext) {
   btnTop7BridgeNext.onclick = function() {
+    if (typeof DeviceOrientationEvent !== 'undefined' && typeof DeviceOrientationEvent.requestPermission === 'function') {
+      try {
+        DeviceOrientationEvent.requestPermission().catch(function() {});
+      } catch (e) {}
+    }
     showScreen('screen-survey-concern-top7');
   };
 }
@@ -674,7 +729,7 @@ function initConcernReasonScreen() {
       idx++;
       reasonTypeTimer = setTimeout(typeReasonChar, char.startsWith('<') ? 0 : (char === '?' || char === '.' ? 320 : 70));
     } else {
-      setTimeout(function() {
+      registerAuxTimer(function() {
         if (elConcernReasonKeywordDisplay) elConcernReasonKeywordDisplay.style.opacity = '1';
       }, 200);
     }
@@ -762,9 +817,9 @@ function startCaptureGuideCinematicFlow() {
       var delay = (char.startsWith('<') ? 0 : (char === '?' || char === '.' ? 400 : 80));
       guideTypeTimer = setTimeout(typeNext, delay);
     } else {
-      setTimeout(function() {
+      registerAuxTimer(function() {
         if (guideTitleWrap) guideTitleWrap.classList.add('moved-to-top');
-        setTimeout(function() {
+        registerAuxTimer(function() {
           if (guideCenterCard) guideCenterCard.classList.add('revealed');
           if (guideBottomDock) guideBottomDock.classList.add('revealed');
         }, 450);
@@ -862,7 +917,7 @@ function typeWriterSurveyTitle(titleHtml, onComplete) {
       idx++;
       var delay = (char.startsWith('<') ? 0 : (char === '?' || char === '.' ? 350 : 80));
       surveyTitleTypeTimer = setTimeout(nextChar, delay);
-    } else if (onComplete) setTimeout(onComplete, 150);
+    } else if (onComplete) registerAuxTimer(onComplete, 150);
   })();
 }
 
@@ -892,6 +947,7 @@ function renderSurveyStep() {
     if (elField7) { elField7.classList.remove('hidden'); elField7.classList.add('flex'); }
     if (surveyCustomInputAnchor) { surveyCustomInputAnchor.classList.remove('custom-anchor-visible'); surveyCustomInputAnchor.classList.add('custom-anchor-hidden'); }
   } else if (currentStepIdx === 1) {
+    removeInjectedCustomFromQ2();
     stopBubblePhysics(); typeWriterSurveyTitle(q.title);
     if (elDesc) elDesc.innerHTML = q.desc;
     if (surveyChipWrapper) surveyChipWrapper.classList.remove('hidden');
@@ -976,7 +1032,10 @@ if (btnCustomKeywordClear) {
   btnCustomKeywordClear.onclick = function(e) {
     e.stopPropagation();
     if (inputCustomKeyword) { inputCustomKeyword.value = ""; inputCustomKeyword.focus(); }
-    if (currentStepIdx === 1) userSelections.q2_custom = "";
+    if (currentStepIdx === 1) {
+      removeInjectedCustomFromQ2();
+      userSelections.q2_custom = "";
+    }
     btnCustomKeywordClear.classList.add('hidden');
     validateSurveyStep();
   };
@@ -1018,10 +1077,7 @@ if (btnSurveyNext) {
       currentStepIdx = 1; 
       renderSurveyStep(); 
     } else if (currentStepIdx === 1) {
-      if (userSelections.q2_custom && userSelections.q2_custom.trim()) {
-        var c = userSelections.q2_custom.trim();
-        if (userSelections.q2.indexOf(c) === -1) userSelections.q2.unshift(c);
-      }
+      syncCustomKeywordToQ2();
       showScreen('screen-survey-core-concern'); 
     } else if (currentStepIdx === 2) {
       showScreen('screen-post-concern-bridge'); 
@@ -1112,7 +1168,7 @@ function initCoreConcernScreen() {
   });
 
   if (elCoreConcernContainer) {
-    setTimeout(function() {
+    registerAuxTimer(function() {
       elCoreConcernContainer.scrollLeft = Math.max(0, (elCoreConcernContainer.scrollWidth - elCoreConcernContainer.clientWidth) / 2);
     }, 50);
 
@@ -1138,9 +1194,9 @@ function initCoreConcernScreen() {
       idx++;
       coreConcernTypeTimer = setTimeout(typeNextCoreChar, char.startsWith('<') ? 0 : (char === '?' || char === '.' ? 350 : 75));
     } else {
-      setTimeout(function() {
+      registerAuxTimer(function() {
         if (elCoreConcernTitleWrap) elCoreConcernTitleWrap.classList.add('moved-to-top');
-        setTimeout(function() { 
+        registerAuxTimer(function() { 
           if (elCoreConcernSubGuide) elCoreConcernSubGuide.style.opacity = '1';
           if (elCoreConcernContainer) elCoreConcernContainer.classList.add('revealed'); 
         }, 450);
@@ -1151,14 +1207,7 @@ function initCoreConcernScreen() {
 
 if (btnCoreConcernNext) btnCoreConcernNext.onclick = function() { if (userSelections.core_concern) showScreen('screen-survey-concern-reason'); };
 if (btnCoreConcernPrev) btnCoreConcernPrev.onclick = function() { 
-  if (userSelections.q2_custom) {
-    var customIdx = userSelections.q2.indexOf(userSelections.q2_custom);
-    if (customIdx > -1) userSelections.q2.splice(customIdx, 1);
-    userSelections.q2_custom = "";
-  }
-  if (inputCustomKeyword) inputCustomKeyword.value = "";
-  if (btnCustomKeywordClear) btnCustomKeywordClear.classList.add('hidden');
-  
+  removeInjectedCustomFromQ2();
   currentStepIdx = 1;
   showScreen('screen-survey'); 
 };
@@ -1244,9 +1293,9 @@ async function fetchTopKeywordsData() {
       totalCount++;
     });
 
-    // 2. Supabase DB에서 누적된 모든 사용자의 q2 데이터 취합
+    // 2. Supabase DB에서 누적된 사용자의 q2 데이터 취합
     if (client) {
-      var { data, error } = await client.from('butterflies').select('q2');
+      var { data, error } = await client.from('butterflies').select('q2').order('id', { ascending: false }).limit(500);
       if (!error && Array.isArray(data)) {
         data.forEach(function(row) {
           if (Array.isArray(row.q2)) {
@@ -1424,6 +1473,7 @@ function initTop7PhysicsScene(customKeywordList) {
   }
 
   (function renderTop7Frame() {
+    if (!top7Engine) return;
     top7RenderLoop = requestAnimationFrame(renderTop7Frame);
     Engine.update(top7Engine, 1000 / 60);
 
@@ -1779,46 +1829,8 @@ window.addEventListener('keydown', function(e) {
 
 window.addEventListener('resize', function() {
   var activeScreen = document.querySelector('.screen.active');
-  if (activeScreen) {
-    if (activeScreen.id === 'screen-preview' && fullCamera && fullRenderer) {
-      var w = window.innerWidth;
-      var h = window.innerHeight;
-      fullCamera.aspect = w / h;
-      fullCamera.updateProjectionMatrix();
-      fullRenderer.setSize(w, h);
-      fullRenderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-      if (particleCanvas) {
-        particleCanvas.width = w;
-        particleCanvas.height = h;
-      }
-    } else if (activeScreen.id === 'screen-loading' && loadingCamera && loadingRenderer) {
-      var loadingCont = document.getElementById('loading-three-container');
-      if (loadingCont) {
-        var lw = loadingCont.clientWidth || window.innerWidth;
-        var lh = loadingCont.clientHeight || window.innerHeight;
-        loadingCamera.aspect = lw / lh;
-        loadingCamera.updateProjectionMatrix();
-        loadingRenderer.setSize(lw, lh);
-      }
-    } else if (activeScreen.id === 'screen-share' && shareCamera && shareRenderer) {
-      var shareCont = document.getElementById('share-three-container');
-      if (shareCont) {
-        var sw = shareCont.clientWidth || window.innerWidth;
-        var sh = shareCont.clientHeight || window.innerHeight;
-        shareCamera.aspect = sw / sh;
-        shareCamera.updateProjectionMatrix();
-        shareRenderer.setSize(sw, sh);
-      }
-    } else if (activeScreen.id === 'screen-gallery' && typeof modalThreeCamera !== 'undefined' && modalThreeCamera && typeof modalThreeRenderer !== 'undefined' && modalThreeRenderer) {
-      var modalCont = document.getElementById('specimen-three-container');
-      if (modalCont) {
-        var mw = modalCont.clientWidth || window.innerWidth;
-        var mh = modalCont.clientHeight || window.innerHeight;
-        modalThreeCamera.aspect = mw / mh;
-        modalThreeCamera.updateProjectionMatrix();
-        modalThreeRenderer.setSize(mw, mh);
-      }
-    }
+  if (activeScreen && activeScreen.id === 'screen-survey' && currentStepIdx === 2) {
+    resizeBubblePhysicsCanvas();
   }
 });
 
