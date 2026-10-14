@@ -58,6 +58,7 @@
     body, html {
       margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden;
       background-color: #000000; user-select: none; cursor: none;
+      overscroll-behavior: none; touch-action: none;
       font-family: -apple-system, BlinkMacSystemFont, "Pretendard Variable", Pretendard, sans-serif;
     }
     #webcam-video {
@@ -543,10 +544,24 @@
 
     function createStandardWingMaterial(textureURL, patternFileName) {
       let photoTex = sharedDummyWhiteTexture;
+      let mat = null;
+
       if (textureURL) {
         photoTex = textureCache[textureURL];
         if (!photoTex) {
-          photoTex = textureLoader.load(textureURL);
+          photoTex = textureLoader.load(
+            textureURL,
+            undefined,
+            undefined,
+            () => {
+              // 🌟 네트워크 순단 등으로 텍스처 로드 실패 시 깨진 캐시를 제거하고 기본 흰색 텍스처로 폴백
+              delete textureCache[textureURL];
+              if (mat && mat.uniforms && mat.uniforms.photoMap) {
+                mat.uniforms.photoMap.value = sharedDummyWhiteTexture;
+                mat.needsUpdate = true;
+              }
+            }
+          );
           photoTex.flipY = false;
           photoTex.generateMipmaps = false;
           photoTex.minFilter = THREE.LinearFilter;
@@ -555,7 +570,7 @@
         }
       }
 
-      const mat = new THREE.ShaderMaterial({
+      mat = new THREE.ShaderMaterial({
         uniforms: {
           photoMap: { value: photoTex },
           patMap: { value: sharedEmptyPatternTexture },
@@ -685,6 +700,15 @@
       renderer.outputEncoding = THREE.sRGBEncoding;
     }
     container.appendChild(renderer.domElement);
+
+    // 🌟 장시간 전시 중 디스플레이 절전 신호나 드라이버 리셋으로 WebGL 컨텍스트 유실 시 자동 새로고침 복구
+    renderer.domElement.addEventListener('webglcontextlost', (event) => {
+      event.preventDefault();
+      if (!isAutoReloading) {
+        console.warn('WebGL 컨텍스트 유실 감지: 2초 후 화면을 복구합니다.');
+        setTimeout(() => window.location.reload(), 2000);
+      }
+    }, false);
 
     const textureLoader = new THREE.TextureLoader();
     textureLoader.setCrossOrigin('anonymous');
@@ -1167,19 +1191,28 @@
     let activeCeremonyButterfly = null;
     let ceremonyCardTimer = null;
 
+    // 🌟 특수문자(<, >, &) 및 이모지 입력 시에도 DOM 깨짐이나 XSS가 발생하지 않는 안전한 타이핑 함수
     function typeWriterText(targetElement, fullText, speed = 45, callback = null, isCeremonyCard = false) {
       if (isCeremonyCard) {
         if (ceremonyTypingTimeout) clearTimeout(ceremonyTypingTimeout);
       } else {
         if (handTypingTimeout) clearTimeout(handTypingTimeout);
       }
+
       targetElement.innerHTML = '';
+      const textSpan = document.createElement('span');
+      const cursorSpan = document.createElement('span');
+      cursorSpan.className = 'typing-cursor';
+      targetElement.appendChild(textSpan);
+      targetElement.appendChild(cursorSpan);
+
+      const chars = Array.from(String(fullText || ''));
       let index = 0;
+
       function step() {
-        if (index <= fullText.length) {
-          const currentSub = fullText.substring(0, index);
-          const isDone = index === fullText.length;
-          targetElement.innerHTML = `${currentSub}${isDone ? '' : '<span class="typing-cursor"></span>'}`;
+        if (index <= chars.length) {
+          textSpan.textContent = chars.slice(0, index).join('');
+          const isDone = index === chars.length;
           index++;
           if (!isDone) {
             if (isCeremonyCard) {
@@ -1187,8 +1220,9 @@
             } else {
               handTypingTimeout = setTimeout(step, speed);
             }
-          } else if (callback) {
-            callback();
+          } else {
+            if (cursorSpan.parentNode) cursorSpan.parentNode.removeChild(cursorSpan);
+            if (callback) callback();
           }
         }
       }
@@ -2031,6 +2065,7 @@
           hands.onResults((results) => {
             if (isAutoReloading) return;
             if (results.multiHandLandmarks && results.multiHandLandmarks.length > 0) {
+              const wasHandDetected = isHandDetected;
               lastHandResultTime = performance.now();
               const lm = results.multiHandLandmarks[0];
               const wrist = lm[0];
@@ -2038,6 +2073,10 @@
 
               targetScreenX = (1 - tip.x) * window.innerWidth;
               targetScreenY = tip.y * window.innerHeight;
+              if (!wasHandDetected) {
+                currentScreenX = targetScreenX;
+                currentScreenY = targetScreenY;
+              }
               handPointer.style.opacity = '1';
 
               _handUnprojectVec.set((1 - tip.x) * 2 - 1, -(tip.y * 2) + 1, 0.5);
@@ -2070,10 +2109,10 @@
 
               } else if (isTrueScatter) {
                   scatterFrameCount++;
+                  const distance = (8 - camera.position.z) / _handUnprojectVec.z; 
+                  targetHandPos3D.copy(camera.position).addScaledVector(_handUnprojectVec, distance);
                   if (scatterFrameCount > 2) {
                       interactionMode = 'scatter';
-                      const distance = (8 - camera.position.z) / _handUnprojectVec.z; 
-                      targetHandPos3D.copy(camera.position).addScaledVector(_handUnprojectVec, distance);
                       resetHandCards();
                   }
 
@@ -2086,16 +2125,18 @@
 
                   if (prevMode !== 'fist_gather') {
                       const allFlock = [...defaultFlock, ...userFlock];
-                      allFlock.sort((a, b) => a.group.position.distanceTo(handTarget3D) - b.group.position.distanceTo(handTarget3D));
+                      allFlock.sort((a, b) => a.group.position.distanceTo(targetHandPos3D) - b.group.position.distanceTo(targetHandPos3D));
                       fistButterflies = allFlock.slice(0, 5).map(b => b.id);
                   }
               } else {
                   scatterFrameCount = 0;
-                  if (interactionMode !== 'land_one') {
-                      interactionMode = 'none';
-                      fistButterflies = [];
-                      if (!specialButterfly) resetHandCards();
-                  }
+                  interactionMode = 'none';
+                  fistButterflies = [];
+                  if (!specialButterfly) resetHandCards();
+              }
+
+              if (!wasHandDetected) {
+                handTarget3D.copy(targetHandPos3D);
               }
               isHandDetected = true;
             } else {
@@ -2108,57 +2149,89 @@
             }
           });
 
-          if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+          let isProcessingFrame = false;
+          let frameWatchdogTimer = null;
+          let isVideoLoopStarted = false;
+
+          function processVideoLoop() {
+            if (isAutoReloading) return;
+            if (videoElement.paused || videoElement.ended) {
+              videoElement.play().catch(() => {});
+            }
+            if (!isProcessingFrame && videoElement.readyState >= 2) {
+              isProcessingFrame = true;
+              // 🌟 MediaPipe 응답 멈춤(Hang) 대비 2.5초 Watchdog 타이머
+              frameWatchdogTimer = setTimeout(() => {
+                if (isProcessingFrame) {
+                  isProcessingFrame = false;
+                  processVideoLoop();
+                }
+              }, 2500);
+
+              handInputCtx.drawImage(videoElement, 0, 0, 320, 240);
+
+              hands.send({ image: handInputCanvas })
+                .catch(() => {})
+                .finally(() => {
+                  if (frameWatchdogTimer) {
+                    clearTimeout(frameWatchdogTimer);
+                    frameWatchdogTimer = null;
+                  }
+                  if (isProcessingFrame) {
+                    isProcessingFrame = false;
+                    // 🌟 손이 감지 중일 때는 기존과 동일하게 80ms, 손이 없을 때는 140ms로 유휴 부하 절감
+                    const nextDelay = isHandDetected ? 80 : 140;
+                    setTimeout(processVideoLoop, nextDelay);
+                  }
+                });
+            } else {
+              setTimeout(processVideoLoop, 60);
+            }
+          }
+
+          function startWebcamStream() {
+            if (isAutoReloading) return;
+            if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) return;
+
             navigator.mediaDevices.getUserMedia({
               video: { width: { ideal: 360, max: 480 }, height: { ideal: 270, max: 360 }, frameRate: { ideal: 30 } },
               audio: false
             }).then((stream) => {
+              if (activeWebcamStream && activeWebcamStream !== stream) {
+                activeWebcamStream.getTracks().forEach((t) => {
+                  try { t.stop(); } catch (e) {}
+                });
+              }
               activeWebcamStream = stream;
               videoElement.srcObject = stream;
+
+              // 🌟 전시 중 웹캠 USB 연결이 물리적으로 순단되었을 때 자동 재연결
+              const videoTrack = stream.getVideoTracks()[0];
+              if (videoTrack) {
+                videoTrack.onended = () => {
+                  if (!isAutoReloading) {
+                    console.warn("웹캠 트랙 종료 감지: 3초 후 재연결을 시도합니다.");
+                    setTimeout(startWebcamStream, 3000);
+                  }
+                };
+              }
+
               videoElement.onloadedmetadata = () => {
-                videoElement.play();
-                let isProcessingFrame = false;
-                let frameWatchdogTimer = null;
-
-                function processVideoLoop() {
-                  if (isAutoReloading) return;
-                  if (videoElement.paused || videoElement.ended) {
-                    videoElement.play().catch(() => {});
-                  }
-                  if (!isProcessingFrame && videoElement.readyState >= 2) {
-                    isProcessingFrame = true;
-                    // 🌟 MediaPipe 응답 멈춤(Hang) 대비 2.5초 Watchdog 타이머
-                    frameWatchdogTimer = setTimeout(() => {
-                      if (isProcessingFrame) {
-                        isProcessingFrame = false;
-                        processVideoLoop();
-                      }
-                    }, 2500);
-
-                    handInputCtx.drawImage(videoElement, 0, 0, 320, 240);
-
-                    hands.send({ image: handInputCanvas })
-                      .catch(() => {})
-                      .finally(() => {
-                        if (frameWatchdogTimer) {
-                          clearTimeout(frameWatchdogTimer);
-                          frameWatchdogTimer = null;
-                        }
-                        if (isProcessingFrame) {
-                          isProcessingFrame = false;
-                          // 🌟 손이 감지 중일 때는 기존과 동일하게 80ms, 손이 없을 때는 140ms로 유휴 부하 절감
-                          const nextDelay = isHandDetected ? 80 : 140;
-                          setTimeout(processVideoLoop, nextDelay);
-                        }
-                      });
-                  } else {
-                    setTimeout(processVideoLoop, 60);
-                  }
+                videoElement.play().catch(() => {});
+                if (!isVideoLoopStarted) {
+                  isVideoLoopStarted = true;
+                  processVideoLoop();
                 }
-                processVideoLoop();
               };
-            }).catch((err) => { console.warn("웹캠 접근 실패:", err); });
+            }).catch((err) => {
+              console.warn("웹캠 접근 실패, 5초 후 재시도:", err);
+              if (!isAutoReloading) {
+                setTimeout(startWebcamStream, 5000);
+              }
+            });
           }
+
+          startWebcamStream();
         }
       } catch (err) {}
     }, 2000);
