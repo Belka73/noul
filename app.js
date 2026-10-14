@@ -1731,7 +1731,7 @@ function renderFilteredGallery(searchQuery) {
 
     card.innerHTML = 
       '<div class="specimen-butterfly-wrap"><div class="specimen-pin-head"></div>' +
-      '<svg class="specimen-shadow-drop" width="130" height="110" viewBox="0 0 ' + wing.w + ' ' + wing.h + '" style="overflow: visible;">' +
+      '<svg class="specimen-shadow-drop" width="172" height="145" viewBox="0 0 ' + wing.w + ' ' + wing.h + '" style="overflow: visible;">' +
         '<defs>' +
           '<clipPath id="' + clipId + '">' +
             '<path d="' + wingPath + '" fill-rule="nonzero"/>' +

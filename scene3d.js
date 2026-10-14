@@ -16,7 +16,6 @@ function setupCommon3DScene(container, camZ, lookY) {
   }
   container.appendChild(renderer.domElement);
 
-  // 🌟 자체 발광감을 극대화하기 위한 균일 조명
   var amb = new THREE.AmbientLight(0xffffff, 1.2);
   scene.add(amb);
   var dir = new THREE.DirectionalLight(0xffffff, 1.0);
@@ -94,7 +93,6 @@ function initLoading3DScene() {
   if (!res) return;
   loadingScene = res.scene; loadingCamera = res.camera; loadingRenderer = res.renderer;
 
-  // 🌟 자체 발광 화이트 재질
   var whiteMat = new THREE.MeshBasicMaterial({ 
     color: 0xffffff, 
     side: THREE.DoubleSide 
@@ -167,7 +165,6 @@ function createWingMaterials(textureURL, patternPath3D) {
     hasPat = true;
   }
 
-  // 🌟 모든 3D 나비에 적용되는 셰이더: GPU 부하 없이 순수 셰이더로 자체발광 및 외곽 순백 오라 구현
   function createCustomWingShader() {
     return new THREE.ShaderMaterial({
       uniforms: {
@@ -178,17 +175,12 @@ function createWingMaterials(textureURL, patternPath3D) {
       vertexShader: [
         'varying vec2 vProjectedUv;',
         'varying vec2 vModelUv;',
-        'varying vec3 vNormal;',
-        'varying vec3 vViewPosition;',
         'void main() {',
         '  vModelUv = uv;',
-        '  vNormal = normalize(normalMatrix * normal);',
         '  float u = (position.x + 2.4) / 4.8;',
         '  float v = (position.y + 2.4) / 4.8;',
         '  vProjectedUv = vec2(clamp(u, 0.0, 1.0), clamp(1.0 - v, 0.0, 1.0));',
-        '  vec4 mvPosition = modelViewMatrix * vec4(position, 1.0);',
-        '  vViewPosition = -mvPosition.xyz;',
-        '  gl_Position = projectionMatrix * mvPosition;',
+        '  gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);',
         '}'
       ].join('\n'),
       fragmentShader: [
@@ -197,8 +189,6 @@ function createWingMaterials(textureURL, patternPath3D) {
         'uniform float hasPattern;',
         'varying vec2 vProjectedUv;',
         'varying vec2 vModelUv;',
-        'varying vec3 vNormal;',
-        'varying vec3 vViewPosition;',
         'void main() {',
         '  vec4 photoCol = texture2D(photoMap, vProjectedUv);',
         '  vec4 finalCol = photoCol;',
@@ -206,14 +196,6 @@ function createWingMaterials(textureURL, patternPath3D) {
         '    vec4 patCol = texture2D(patMap, vModelUv);',
         '    finalCol.rgb = mix(finalCol.rgb, finalCol.rgb * patCol.rgb, patCol.a * 0.95);',
         '  }',
-        '  // 🌟 자체 발광 광도 증폭',
-        '  finalCol.rgb = finalCol.rgb * 1.4;',
-        '  // 🌟 외곽 림라이트를 얇고 선명한 순백 오라로 연산 (부드러운 그라디언트 + 또렷한 경계)',
-        '  vec3 viewDir = normalize(vViewPosition);',
-        '  vec3 norm = normalize(vNormal);',
-        '  float rim = 1.0 - max(dot(viewDir, norm), 0.0);',
-        '  float sharpRim = pow(rim, 2.5);',
-        '  finalCol.rgb = mix(finalCol.rgb, vec3(1.0), sharpRim * 0.6 + 0.15);',
         '  gl_FragColor = vec4(clamp(finalCol.rgb, 0.0, 1.0), finalCol.a);',
         '}'
       ].join('\n'),
@@ -742,7 +724,7 @@ function stopModal3DScene() {
   if (container) container.innerHTML = '';
 }
 
-// 🌟 나비 둘러보기 3D 모달: 날갯짓을 훨씬 더 느리고 부드럽게 감속 (t * 3.2)
+// 🌟 나비 둘러보기 3D 모달: 날갯짓을 훨씬 더 느리고 부드럽게 감속 (t * 3.2) 및 나비 크기 확대
 function openSpecimen3DModal(item, textureUrl) {
   var modal = document.getElementById('specimen-detail-modal');
   var nameEl = document.getElementById('modal-butterfly-name');
@@ -762,7 +744,7 @@ function openSpecimen3DModal(item, textureUrl) {
 
   stopModal3DScene();
 
-  var res = setupCommon3DScene(container, 7.3, -0.35);
+  var res = setupCommon3DScene(container, 6.2, -0.35);
   if (!res) return;
   modalThreeScene = res.scene; modalThreeCamera = res.camera; modalThreeRenderer = res.renderer;
 
@@ -783,10 +765,10 @@ function openSpecimen3DModal(item, textureUrl) {
   var whiteMat = new THREE.MeshBasicMaterial({ color: 0xffffff, side: THREE.DoubleSide });
 
   modalGroup = new THREE.Group();
-  modalGroup.position.set(0, -0.85, 0);
+  modalGroup.position.set(0, -0.95, 0);
 
   var currentModalGroup = modalGroup;
-  loadButterflyModel(currentModalGroup, item.wingId, item.antId, wingMats, whiteMat, 0.85, function(l, r) {
+  loadButterflyModel(currentModalGroup, item.wingId, item.antId, wingMats, whiteMat, 1.15, function(l, r) {
     if (modalGroup !== currentModalGroup) return;
     modalWingL = l; modalWingR = r;
   });

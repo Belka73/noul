@@ -34,12 +34,12 @@
       display: flex;
       justify-content: center;
       align-items: center;
-      padding: 1.5rem 1rem;
+      padding: 2rem 1rem;
     }
 
     .share-card-container {
       width: 100%;
-      max-width: 380px;
+      max-width: 320px;
       background: transparent;
       display: flex;
       flex-direction: column;
@@ -48,12 +48,18 @@
 
     .canvas-3d-box {
       width: 100%;
-      height: 260px;
+      height: 360px;
       position: relative;
-      margin: 0.5rem 0 1rem;
+      margin: 0.75rem 0 0.5rem;
       display: flex;
       align-items: center;
       justify-content: center;
+      touch-action: none;
+      cursor: grab;
+    }
+
+    .canvas-3d-box:active {
+      cursor: grabbing;
     }
 
     .loading-spinner {
@@ -109,6 +115,11 @@
       <div id="loading-indicator" class="loading-spinner">나비를 불러오는 중...</div>
     </div>
 
+    <!-- 360도 회전 안내 문구 -->
+    <p class="text-[11px] text-neutral-400 text-center tracking-tight mb-2">
+      360도 회전으로 살펴보기
+    </p>
+
     <!-- 나비 이야기 카드 -->
     <div class="w-full bg-white/5 border border-white/10 rounded-2xl p-3.5 text-center">
       <p id="share-memo-text" class="text-xs text-neutral-200 leading-relaxed font-light break-keep">
@@ -118,10 +129,6 @@
 
     <!-- 전시 안내 정보 -->
     <section class="exhibition-info-table">
-      <h2 class="text-xs font-bold text-neutral-300 tracking-wider mb-1 flex items-center gap-1.5">
-        <span>📍</span> 전시 및 작품 관람 안내
-      </h2>
-
       <div class="info-row">
         <span class="info-label">전시명</span>
         <span class="info-value">너울 (Noul) 졸업전시</span>
@@ -244,7 +251,6 @@
         hasPat = true;
       }
 
-      // 🌟 본 앱(scene3d.js)과 동일한 자체발광 및 외곽 순백 오라 셰이더 적용
       function createCustomWingShader() {
         return new THREE.ShaderMaterial({
           uniforms: {
@@ -255,17 +261,12 @@
           vertexShader: [
             'varying vec2 vProjectedUv;',
             'varying vec2 vModelUv;',
-            'varying vec3 vNormal;',
-            'varying vec3 vViewPosition;',
             'void main() {',
             '  vModelUv = uv;',
-            '  vNormal = normalize(normalMatrix * normal);',
             '  float u = (position.x + 2.4) / 4.8;',
             '  float v = (position.y + 2.4) / 4.8;',
             '  vProjectedUv = vec2(clamp(u, 0.0, 1.0), clamp(1.0 - v, 0.0, 1.0));',
-            '  vec4 mvPosition = modelViewMatrix * vec4(position, 1.0);',
-            '  vViewPosition = -mvPosition.xyz;',
-            '  gl_Position = projectionMatrix * mvPosition;',
+            '  gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);',
             '}'
           ].join('\n'),
           fragmentShader: [
@@ -274,8 +275,6 @@
             'uniform float hasPattern;',
             'varying vec2 vProjectedUv;',
             'varying vec2 vModelUv;',
-            'varying vec3 vNormal;',
-            'varying vec3 vViewPosition;',
             'void main() {',
             '  vec4 photoCol = texture2D(photoMap, vProjectedUv);',
             '  vec4 finalCol = photoCol;',
@@ -283,12 +282,6 @@
             '    vec4 patCol = texture2D(patMap, vModelUv);',
             '    finalCol.rgb = mix(finalCol.rgb, finalCol.rgb * patCol.rgb, patCol.a * 0.95);',
             '  }',
-            '  finalCol.rgb = finalCol.rgb * 1.4;',
-            '  vec3 viewDir = normalize(vViewPosition);',
-            '  vec3 norm = normalize(vNormal);',
-            '  float rim = 1.0 - max(dot(viewDir, norm), 0.0);',
-            '  float sharpRim = pow(rim, 2.5);',
-            '  finalCol.rgb = mix(finalCol.rgb, vec3(1.0), sharpRim * 0.6 + 0.15);',
             '  gl_FragColor = vec4(clamp(finalCol.rgb, 0.0, 1.0), finalCol.a);',
             '}'
           ].join('\n'),
@@ -302,8 +295,8 @@
     // 3D 뷰어 셋업
     const container = document.getElementById('share-three-container');
     const loadingIndicator = document.getElementById('loading-indicator');
-    const w = container.clientWidth || 340;
-    const h = container.clientHeight || 260;
+    const w = container.clientWidth || 320;
+    const h = container.clientHeight || 360;
 
     const scene = new THREE.Scene();
     const camera = new THREE.PerspectiveCamera(40, w / h, 0.1, 100);
@@ -322,9 +315,54 @@
     scene.add(dirLight);
 
     const group = new THREE.Group();
-    // 🌟 본 앱의 공유 화면과 동일하게 오른쪽으로 기울도록 설정 (-0.35)
-    group.rotation.set(0.25, -0.8, -0.35);
+    const DEFAULT_ROT_X = 0;
+    const DEFAULT_ROT_Y = 0;
+    let butterflyRotX = DEFAULT_ROT_X;
+    let butterflyRotY = DEFAULT_ROT_Y;
+    let isUserDragging = false;
+    let lastPointerX = 0;
+    let lastPointerY = 0;
+
+    // 🌟 처음 모습을 등(정면)이 보이도록 설정 (0, 0, 0)
+    group.rotation.set(DEFAULT_ROT_X, DEFAULT_ROT_Y, 0);
     scene.add(group);
+
+    // 🌟 메인 사이트(나비 날리기)와 동일한 360도 드래그 회전 인터랙션 바인딩
+    function handlePointerStart(clientX, clientY) {
+      isUserDragging = true;
+      lastPointerX = clientX;
+      lastPointerY = clientY;
+    }
+
+    function handlePointerMove(clientX, clientY) {
+      if (!isUserDragging) return;
+      const deltaX = clientX - lastPointerX;
+      const deltaY = clientY - lastPointerY;
+      butterflyRotY += deltaX * 0.013;
+      butterflyRotX = Math.max(-1.4, Math.min(1.4, butterflyRotX + deltaY * 0.013));
+      lastPointerX = clientX;
+      lastPointerY = clientY;
+    }
+
+    function handlePointerEnd() {
+      isUserDragging = false;
+    }
+
+    container.oncontextmenu = function(e) { e.preventDefault(); return false; };
+    container.ontouchstart = function(e) {
+      if (e.touches.length === 1) handlePointerStart(e.touches[0].clientX, e.touches[0].clientY);
+    };
+    window.addEventListener('touchmove', function(e) {
+      if (isUserDragging && e.touches.length === 1) handlePointerMove(e.touches[0].clientX, e.touches[0].clientY);
+    }, { passive: true });
+    window.addEventListener('touchend', handlePointerEnd, { passive: true });
+    window.addEventListener('touchcancel', handlePointerEnd, { passive: true });
+
+    container.onmousedown = function(e) { handlePointerStart(e.clientX, e.clientY); };
+    window.addEventListener('mousemove', function(e) {
+      if (isUserDragging) handlePointerMove(e.clientX, e.clientY);
+    });
+    window.addEventListener('mouseup', handlePointerEnd);
 
     let wingL = null, wingR = null;
 
@@ -419,6 +457,15 @@
       const t = clock.getElapsedTime();
       const flap = 0.524 + Math.sin(t * 8.0) * 0.873;
 
+      if (!isUserDragging) {
+        butterflyRotX += (DEFAULT_ROT_X - butterflyRotX) * 0.05;
+        const diffY = (DEFAULT_ROT_Y - butterflyRotY);
+        butterflyRotY += Math.atan2(Math.sin(diffY), Math.cos(diffY)) * 0.05;
+      }
+      group.rotation.x = butterflyRotX;
+      group.rotation.y = butterflyRotY;
+      group.rotation.z = 0;
+
       if (wingL && wingR) {
         const uL = wingL.userData;
         const uR = wingR.userData;
@@ -427,14 +474,13 @@
       }
 
       group.position.y = Math.sin(t * 2.0) * 0.08;
-      group.rotation.z = -0.35 + Math.sin(t * 1.5) * 0.04;
       renderer.render(scene, camera);
     }
     animate();
 
     window.addEventListener('resize', function() {
-      const rw = container.clientWidth || 340;
-      const rh = container.clientHeight || 260;
+      const rw = container.clientWidth || 320;
+      const rh = container.clientHeight || 360;
       camera.aspect = rw / rh;
       camera.updateProjectionMatrix();
       renderer.setSize(rw, rh);
