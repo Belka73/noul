@@ -1574,17 +1574,17 @@
               b.state = 'flying';
               
               const orbitIdx = fistButterflies.indexOf(b.id);
-              const orbitRadius = 3.6 + (orbitIdx * 0.50) + Math.sin(time * 0.6 + b.seed) * 0.30;
+              const orbitRadius = 1.35 + (orbitIdx * 0.28) + Math.sin(time * 0.6 + b.seed) * 0.15;
 
               const relX = b.group.position.x - handTarget3D.x;
               const relY = b.group.position.y - handTarget3D.y;
               const currentAngle = (Math.abs(relX) < 0.01 && Math.abs(relY) < 0.01)
                 ? (b.seed + orbitIdx * 1.25)
                 : Math.atan2(relY, relX);
-              const lookAheadAngle = currentAngle + 0.42;
+              const lookAheadAngle = currentAngle + 0.52;
 
               const heightOffset = Math.sin(lookAheadAngle) * (orbitRadius * 0.85);
-              const depthOffset = Math.sin(time * 0.65 + orbitIdx * 1.3 + b.seed) * 1.2;
+              const depthOffset = Math.sin(time * 0.65 + orbitIdx * 1.3 + b.seed) * 0.65;
 
               _vOrbit.set(
                 Math.cos(lookAheadAngle) * orbitRadius,
