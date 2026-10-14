@@ -66,17 +66,20 @@
       z-index: 0; pointer-events: none;
       opacity: 0.28;
       will-change: transform;
+      contain: strict;
     }
     #video-dark-overlay {
       position: absolute; inset: 0;
       background: #000000;
       opacity: 0.65;
       z-index: 1; pointer-events: none;
+      contain: strict;
     }
     #three-canvas-container {
       position: absolute; inset: 0; z-index: 10;
       transform: translateZ(0);
       will-change: transform;
+      contain: strict;
     }
 
     #hand-pointer {
@@ -665,8 +668,19 @@
       stencil: false,
       depth: true
     });
-    renderer.setSize(window.innerWidth, window.innerHeight);
-    renderer.setPixelRatio(1.0);
+
+    // 🌟 고해상도(QHD/4K) 프로젝터·스크린 연결 시 과도한 픽셀 셰이더 부하 방지를 위해 내부 해상도를 최대 Full HD(1920px)로 캡핑
+    function updateRendererSize() {
+      const w = window.innerWidth;
+      const h = window.innerHeight;
+      const renderScale = Math.min(1.0, 1920 / Math.max(w, 1));
+      renderer.setPixelRatio(1.0);
+      renderer.setSize(Math.round(w * renderScale), Math.round(h * renderScale), false);
+      renderer.domElement.style.width = w + 'px';
+      renderer.domElement.style.height = h + 'px';
+    }
+    updateRendererSize();
+
     if (THREE.sRGBEncoding) {
       renderer.outputEncoding = THREE.sRGBEncoding;
     }
@@ -678,6 +692,13 @@
     const leftGeom = createStableWingGeom(false);
     const rightGeom = createStableWingGeom(true);
     const bodyGeom = createBodyGeom();
+
+    // 🌟 7종 나비 3D 모델 백그라운드 사전 프리로딩 (런타임 중 GLB 파싱 렉 방지)
+    setTimeout(() => {
+      BUTTERFLY_SHAPES.forEach((shapeName, idx) => {
+        setTimeout(() => { getOrLoadModel(shapeName); }, idx * 180);
+      });
+    }, 300);
 
     // 🌟 미사용 텍스처 캐시 자동 가비지 컬렉션 (장시간 구동 시 VRAM 누적 방지)
     function cleanupUnusedTextures() {
@@ -763,6 +784,8 @@
     scene.add(ceremonyParticlePoints);
 
     let ceremonyParticleCursor = 0;
+    let hasActiveCeremonyParticles = false;
+
     // 🌟 나비 아래쪽에서 생성되어 위로 솔솔 피어오르는 팅커벨 가루
     function spawnCeremonyParticle(pos) {
       const p = ceremonyParticleData[ceremonyParticleCursor];
@@ -775,10 +798,13 @@
       p.life = 0.80 + Math.random() * 0.35;
 
       ceremonyParticleCursor = (ceremonyParticleCursor + 1) % CEREMONY_PARTICLES;
+      hasActiveCeremonyParticles = true;
     }
 
     function updateCeremonyParticles(dt) {
+      if (!hasActiveCeremonyParticles) return;
       let needsUpdate = false;
+      let anyAlive = false;
       const posAttr = ceremonyParticleGeom.attributes.position;
       for (let i = 0; i < CEREMONY_PARTICLES; i++) {
         const p = ceremonyParticleData[i];
@@ -789,6 +815,7 @@
           p.z += p.vz;
           posAttr.setXYZ(i, p.x, p.y, p.z);
           needsUpdate = true;
+          anyAlive = true;
         } else if (p.x !== 9999) {
           p.x = 9999;
           posAttr.setXYZ(i, 9999, 9999, 9999);
@@ -796,6 +823,7 @@
         }
       }
       if (needsUpdate) posAttr.needsUpdate = true;
+      hasActiveCeremonyParticles = anyAlive;
     }
 
     /* ========================================================
@@ -829,6 +857,8 @@
     scene.add(energyParticlePoints);
 
     let energyParticleCursor = 0;
+    let hasActiveEnergyParticles = false;
+
     // 🌟 나비 아래쪽에서 생성되어 위로 솔솔 피어오르는 팅커벨 가루
     function spawnEnergyParticle(pos) {
       const p = energyParticleData[energyParticleCursor];
@@ -841,10 +871,13 @@
       p.life = 0.80 + Math.random() * 0.35;
 
       energyParticleCursor = (energyParticleCursor + 1) % ENERGY_PARTICLES_COUNT;
+      hasActiveEnergyParticles = true;
     }
 
     function updateEnergyParticles(dt) {
+      if (!hasActiveEnergyParticles) return;
       let needsUpdate = false;
+      let anyAlive = false;
       const posAttr = energyParticleGeom.attributes.position;
       for (let i = 0; i < ENERGY_PARTICLES_COUNT; i++) {
         const p = energyParticleData[i];
@@ -855,6 +888,7 @@
           p.z += p.vz;
           posAttr.setXYZ(i, p.x, p.y, p.z);
           needsUpdate = true;
+          anyAlive = true;
         } else if (p.x !== 9999) {
           p.x = 9999;
           posAttr.setXYZ(i, 9999, 9999, 9999);
@@ -862,6 +896,7 @@
         }
       }
       if (needsUpdate) posAttr.needsUpdate = true;
+      hasActiveEnergyParticles = anyAlive;
     }
 
     const defaultFlock = [];
@@ -869,23 +904,52 @@
     const MAX_USER_BUTTERFLIES = 10;
     const rawUserDataList = [];
 
+    function attachClonedGLTFModel(sceneTemplate, innerGroup, wingMat, targetAntennaPrefix) {
+      const model = sceneTemplate.clone(true);
+      let newWingL = null, newWingR = null;
+      const meshesToRemove = [];
+
+      model.traverse(function(child) {
+        if (child.isMesh) {
+          const name = child.name || '';
+          if (name.startsWith('Wing_L')) { 
+            newWingL = child; 
+            newWingL.userData.baseRotY = child.rotation.y;
+            child.material = wingMat; 
+          }
+          else if (name.startsWith('Wing_R')) { 
+            newWingR = child; 
+            newWingR.userData.baseRotY = child.rotation.y;
+            child.material = wingMat; 
+          }
+          else if (name.startsWith('Body')) { 
+            child.material = sharedWhiteMat; 
+          }
+          else if (name.startsWith('Antenna_')) { 
+            if (name.startsWith(targetAntennaPrefix)) {
+              child.material = sharedWhiteMat;
+            } else {
+              meshesToRemove.push(child);
+            }
+          }
+        }
+      });
+
+      meshesToRemove.forEach((m) => {
+        if (m.parent) m.parent.remove(m);
+      });
+
+      if (newWingL && newWingR) {
+        model.scale.set(0.95, 0.95, 0.95);
+        innerGroup.add(model);
+        return { newWingL, newWingR };
+      }
+      return null;
+    }
+
     function buildButterfly(data = {}, isUser = false, isDelayedArrival = false, isFingerTarget = false, customZ = 8.0, isCeremony = false) {
       const group = new THREE.Group();
       const innerGroup = new THREE.Group(); 
-      
-      let leftWing = new THREE.Mesh(leftGeom, sharedWhiteMat);
-      let rightWing = new THREE.Mesh(rightGeom, sharedWhiteMat);
-      const defaultBody = new THREE.Mesh(bodyGeom, sharedWhiteMat);
-
-      innerGroup.add(leftWing);
-      innerGroup.add(rightWing);
-      innerGroup.add(defaultBody);
-      
-      const aL = createAntenna(false, sharedWhiteMat); aL.position.set(-0.05, 0.7, 0.15); innerGroup.add(aL);
-      const aR = createAntenna(true, sharedWhiteMat); aR.position.set(0.05, 0.7, 0.15); innerGroup.add(aR);
-
-      innerGroup.rotation.set(isCeremony ? 0 : Math.PI / 2, isCeremony ? 0 : Math.PI, 0);
-      group.add(innerGroup);
 
       const shapeId = data.wing_shape || DEFAULT_BUTTERFLY_SHAPES[Math.floor(Math.random() * DEFAULT_BUTTERFLY_SHAPES.length)];
       const antId = data.antenna_type || 'ball';
@@ -898,56 +962,52 @@
 
       const wingMat = hasCustomWing ? createStandardWingMaterial(textureURL, patternFileName) : sharedWhiteMat;
 
-      if (gltfLoader) {
-        getOrLoadModel(shapeId).then((sceneTemplate) => {
-          if (!sceneTemplate || butterflyRecord.isDisposed) return;
-          const model = sceneTemplate.clone(true);
-          let newWingL = null, newWingR = null;
-          const meshesToRemove = [];
+      let leftWing = null;
+      let rightWing = null;
+      let defaultBody = null;
+      let aL = null;
+      let aR = null;
 
-          model.traverse(function(child) {
-            if (child.isMesh) {
-              const name = child.name || '';
-              if (name.startsWith('Wing_L')) { 
-                newWingL = child; 
-                newWingL.userData.baseRotY = child.rotation.y;
-                child.material = wingMat; 
-              }
-              else if (name.startsWith('Wing_R')) { 
-                newWingR = child; 
-                newWingR.userData.baseRotY = child.rotation.y;
-                child.material = wingMat; 
-              }
-              else if (name.startsWith('Body')) { 
-                child.material = sharedWhiteMat; 
-              }
-              else if (name.startsWith('Antenna_')) { 
-                if (name.startsWith(targetAntennaPrefix)) {
-                  child.material = sharedWhiteMat;
-                } else {
-                  meshesToRemove.push(child);
-                }
-              }
+      // 🌟 이미 모델 캐시에 로드된 경우 불필요한 임시 메쉬 5개를 생성·삭제하지 않고 즉시 장착
+      if (modelCache[shapeId]) {
+        const attached = attachClonedGLTFModel(modelCache[shapeId], innerGroup, wingMat, targetAntennaPrefix);
+        if (attached) {
+          leftWing = attached.newWingL;
+          rightWing = attached.newWingR;
+        }
+      }
+
+      if (!leftWing || !rightWing) {
+        leftWing = new THREE.Mesh(leftGeom, sharedWhiteMat);
+        rightWing = new THREE.Mesh(rightGeom, sharedWhiteMat);
+        defaultBody = new THREE.Mesh(bodyGeom, sharedWhiteMat);
+
+        innerGroup.add(leftWing);
+        innerGroup.add(rightWing);
+        innerGroup.add(defaultBody);
+        
+        aL = createAntenna(false, sharedWhiteMat); aL.position.set(-0.05, 0.7, 0.15); innerGroup.add(aL);
+        aR = createAntenna(true, sharedWhiteMat); aR.position.set(0.05, 0.7, 0.15); innerGroup.add(aR);
+
+        if (gltfLoader) {
+          getOrLoadModel(shapeId).then((sceneTemplate) => {
+            if (!sceneTemplate || butterflyRecord.isDisposed) return;
+            const attached = attachClonedGLTFModel(sceneTemplate, innerGroup, wingMat, targetAntennaPrefix);
+            if (attached) {
+              innerGroup.remove(leftWing);
+              innerGroup.remove(rightWing);
+              innerGroup.remove(defaultBody);
+              innerGroup.remove(aL);
+              innerGroup.remove(aR);
+              butterflyRecord.leftWing = attached.newWingL;
+              butterflyRecord.rightWing = attached.newWingR;
             }
           });
-
-          meshesToRemove.forEach((m) => {
-            if (m.parent) m.parent.remove(m);
-          });
-
-          if (newWingL && newWingR) {
-            innerGroup.remove(leftWing);
-            innerGroup.remove(rightWing);
-            innerGroup.remove(defaultBody);
-            innerGroup.remove(aL);
-            innerGroup.remove(aR);
-            model.scale.set(0.95, 0.95, 0.95);
-            innerGroup.add(model);
-            butterflyRecord.leftWing = newWingL;
-            butterflyRecord.rightWing = newWingR;
-          }
-        });
+        }
       }
+
+      innerGroup.rotation.set(isCeremony ? 0 : Math.PI / 2, isCeremony ? 0 : Math.PI, 0);
+      group.add(innerGroup);
 
       let initialVelocity;
       let targetScale = 0.62 + Math.random() * 0.14;
@@ -1762,7 +1822,7 @@
     window.addEventListener('resize', () => {
       camera.aspect = window.innerWidth / window.innerHeight;
       camera.updateProjectionMatrix();
-      renderer.setSize(window.innerWidth, window.innerHeight);
+      updateRendererSize();
     });
 
     /* ========================================================
@@ -1773,9 +1833,10 @@
     let ceremonyCooldownTimer = null;
     const seenButterflyIds = new Set();
     let maxSeenNumericId = 0;
+    let globalSupabaseInstance = null;
 
     function registerSeenButterflyId(data) {
-      if (!data || data.id === undefined || data.id === null) return false;
+      if (!data || data.id === undefined || data.id !== null && data.id === '') return false;
       const key = String(data.id);
       if (seenButterflyIds.has(key)) return false;
       seenButterflyIds.add(key);
@@ -1830,6 +1891,7 @@
           const SUPABASE_URL = 'https://djmdzsbfsobsutphragw.supabase.co';
           const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRqbWR6c2Jmc29ic3V0cGhyYWd3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODk4ODQ3NTgsImV4cCI6MjEwNTQ2MDc1OH0.BC7llaSjbq6cYhDlRqrwJaycpQ6gSNcp5LgYBeM6WEM';
           const supabaseInstance = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+          globalSupabaseInstance = supabaseInstance;
 
           function addUserButterfly(data, isDelayedArrival = false, isCeremony = false) {
             if (!data) return;
@@ -1900,21 +1962,33 @@
           }
           subscribeRealtimeButterflies();
 
-          // 🌟 웹소켓 누락 대비 15초 주기 경량 폴링 백업 (놓친 신규 나비 자동 감지)
+          // 🌟 웹소켓 누락 대비 15초 주기 경량 폴링 백업: 대용량 texture_url을 매번 받지 않고 id만 먼저 조회 후 신규 나비가 있을 때만 전체 데이터 조회
           setInterval(() => {
             supabaseInstance.from('butterflies')
-              .select('*')
+              .select('id')
               .order('id', { ascending: false })
               .limit(5)
               .then(({ data, error }) => {
                 if (!error && Array.isArray(data) && data.length > 0) {
-                  const newItems = data.filter(item => {
-                    if (!item || item.id === undefined || item.id === null) return false;
-                    const numId = Number(item.id);
-                    return !seenButterflyIds.has(String(item.id)) && (maxSeenNumericId === 0 || (!isNaN(numId) && numId > maxSeenNumericId));
-                  });
-                  if (newItems.length > 0) {
-                    newItems.reverse().forEach(item => addUserButterfly(item, false, true));
+                  const unseenIds = data
+                    .filter(item => {
+                      if (!item || item.id === undefined || item.id === null) return false;
+                      const numId = Number(item.id);
+                      return !seenButterflyIds.has(String(item.id)) && (maxSeenNumericId === 0 || (!isNaN(numId) && numId > maxSeenNumericId));
+                    })
+                    .map(item => item.id);
+
+                  if (unseenIds.length > 0) {
+                    supabaseInstance.from('butterflies')
+                      .select('*')
+                      .in('id', unseenIds)
+                      .order('id', { ascending: true })
+                      .then(({ data: fullData, error: fullErr }) => {
+                        if (!fullErr && Array.isArray(fullData) && fullData.length > 0) {
+                          fullData.forEach(item => addUserButterfly(item, false, true));
+                        }
+                      })
+                      .catch(() => {});
                   }
                 }
               })
@@ -1925,12 +1999,21 @@
     }, 1500);
 
     /* ========================================================
-       3. 네이티브 웹캠 최적화 + 제스처 인식 (GPU 다이렉트 전송)
+       3. 네이티브 웹캠 최적화 + 제스처 인식 (오프스크린 버퍼 & 적응형 주기)
        ======================================================== */
+    let activeWebcamStream = null;
+    let isAutoReloading = false;
+
     setTimeout(() => {
       try {
         if (typeof Hands !== 'undefined') {
           const videoElement = document.getElementById('webcam-video');
+
+          // 🌟 전체 화면 비디오 레이어와 WebGL 텍스처 충돌을 막기 위한 320x240 오프스크린 전용 입력 캔버스
+          const handInputCanvas = document.createElement('canvas');
+          handInputCanvas.width = 320;
+          handInputCanvas.height = 240;
+          const handInputCtx = handInputCanvas.getContext('2d', { alpha: false, desynchronized: true });
 
           const hands = new Hands({ locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}` });
           hands.setOptions({ 
@@ -1943,6 +2026,7 @@
           let scatterFrameCount = 0;
           
           hands.onResults((results) => {
+            if (isAutoReloading) return;
             if (results.multiHandLandmarks && results.multiHandLandmarks.length > 0) {
               lastHandResultTime = performance.now();
               const lm = results.multiHandLandmarks[0];
@@ -2026,6 +2110,7 @@
               video: { width: { ideal: 360, max: 480 }, height: { ideal: 270, max: 360 }, frameRate: { ideal: 30 } },
               audio: false
             }).then((stream) => {
+              activeWebcamStream = stream;
               videoElement.srcObject = stream;
               videoElement.onloadedmetadata = () => {
                 videoElement.play();
@@ -2033,6 +2118,7 @@
                 let frameWatchdogTimer = null;
 
                 function processVideoLoop() {
+                  if (isAutoReloading) return;
                   if (videoElement.paused || videoElement.ended) {
                     videoElement.play().catch(() => {});
                   }
@@ -2046,7 +2132,9 @@
                       }
                     }, 2500);
 
-                    hands.send({ image: videoElement })
+                    handInputCtx.drawImage(videoElement, 0, 0, 320, 240);
+
+                    hands.send({ image: handInputCanvas })
                       .catch(() => {})
                       .finally(() => {
                         if (frameWatchdogTimer) {
@@ -2055,11 +2143,13 @@
                         }
                         if (isProcessingFrame) {
                           isProcessingFrame = false;
-                          setTimeout(processVideoLoop, 80);
+                          // 🌟 손이 감지 중일 때는 기존과 동일하게 80ms, 손이 없을 때는 140ms로 유휴 부하 절감
+                          const nextDelay = isHandDetected ? 80 : 140;
+                          setTimeout(processVideoLoop, nextDelay);
                         }
                       });
                   } else {
-                    setTimeout(processVideoLoop, 40);
+                    setTimeout(processVideoLoop, 60);
                   }
                 }
                 processVideoLoop();
@@ -2069,6 +2159,80 @@
         }
       } catch (err) {}
     }, 2000);
+
+    /* ========================================================
+       4. 4시간 주기 스마트 안전 자동 새로고침 시스템
+       - 4시간 경과 후 즉시 새로고침하지 않고, 관람객 인터랙션/세레머니가 전혀 없고
+         네트워크가 정상 연결된 조용한 틈을 기다려 안전하게 리소스를 해제한 뒤 새로고침
+       ======================================================== */
+    const AUTO_REFRESH_INTERVAL_MS = 4 * 60 * 60 * 1000; // 4시간
+
+    setTimeout(() => {
+      const idleCheckInterval = setInterval(async () => {
+        if (isAutoReloading) return;
+
+        // 1. 인터넷 연결 상태 확인 (오프라인일 때 새로고침하면 에러 화면이 뜨므로 절대 새로고침하지 않음)
+        if (navigator.onLine === false) return;
+
+        // 2. 최근 10초 이내 손 인식이 없어야 함
+        const timeSinceLastHand = performance.now() - lastHandResultTime;
+        if (isHandDetected || timeSinceLastHand < 10000) return;
+
+        // 3. 손가락 교감 나비 또는 세레머니 나비/대기열이 전혀 없어야 함
+        if (specialButterfly || isCreatingSpecialButterfly) return;
+        if (isCeremonyActive || activeCeremonyButterfly || ceremonyQueue.length > 0) return;
+
+        // 4. 화면에 떠 있는 안내 카드가 없어야 함
+        if (floatingConcernCard && floatingConcernCard.classList.contains('visible')) return;
+        if (floatingInfoCard && floatingInfoCard.classList.contains('visible')) return;
+
+        // 5. 실제 네트워크 통신이 가능한지 경량 핑 확인 (와이파이만 연결되고 인터넷이 안 되는 현상 방어)
+        if (globalSupabaseInstance) {
+          try {
+            const { error } = await globalSupabaseInstance.from('butterflies').select('id').limit(1);
+            if (error) return;
+          } catch (e) {
+            return;
+          }
+        }
+
+        // 모든 조건 통과 후 재검증 (비동기 통신 도중 손이 인식되었거나 세레머니가 시작되었는지 한 번 더 확인)
+        if (isHandDetected || (performance.now() - lastHandResultTime < 10000)) return;
+        if (specialButterfly || isCreatingSpecialButterfly || isCeremonyActive || activeCeremonyButterfly || ceremonyQueue.length > 0) return;
+
+        isAutoReloading = true;
+        clearInterval(idleCheckInterval);
+
+        // 부드러운 암전 연출 후 웹캠 및 WebGL 하드웨어 잠금 안전 해제
+        document.body.style.transition = 'opacity 0.8s ease';
+        document.body.style.opacity = '0';
+
+        setTimeout(() => {
+          try {
+            const videoEl = document.getElementById('webcam-video');
+            if (videoEl) {
+              videoEl.pause();
+              videoEl.srcObject = null;
+            }
+            if (activeWebcamStream) {
+              activeWebcamStream.getTracks().forEach(track => {
+                try { track.stop(); } catch (e) {}
+              });
+            }
+          } catch (e) {}
+
+          try {
+            if (renderer) {
+              renderer.dispose();
+            }
+          } catch (e) {}
+
+          setTimeout(() => {
+            window.location.reload();
+          }, 250);
+        }, 800);
+      }, 5000);
+    }, AUTO_REFRESH_INTERVAL_MS);
   </script>
 </body>
 </html>
