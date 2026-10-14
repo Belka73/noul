@@ -238,6 +238,22 @@
       50% { opacity: 0; }
     }
 
+    #gesture-notice-top {
+      position: absolute;
+      bottom: 5.2rem;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 50;
+      pointer-events: none;
+      font-size: 17px;
+      font-weight: 600;
+      color: #ffffff;
+      letter-spacing: -0.2px;
+      white-space: nowrap;
+      text-shadow: 0 0 8px rgba(255, 255, 255, 0.85), 0 0 18px rgba(255, 255, 255, 0.55), 0 1px 6px rgba(0, 0, 0, 0.9);
+      will-change: transform;
+    }
+
     #gesture-guide-banner {
       position: absolute;
       bottom: 2.2rem;
@@ -296,6 +312,9 @@
     <div id="floating-butterfly-name">‘나비’</div>
     <div id="floating-butterfly-memo"></div>
   </div>
+
+  <!-- 상단 1인 체험 안내 문구 -->
+  <div id="gesture-notice-top">원활한 제스처 인식을 위해 한 번에 한 분만 손을 비춰주세요.</div>
 
   <!-- 하단 안내 배너 -->
   <aside id="gesture-guide-banner">
@@ -686,7 +705,7 @@
 
     const defaultFlock = [];
     const userFlock = [];
-    const MAX_USER_BUTTERFLIES = 8;
+    const MAX_USER_BUTTERFLIES = 10;
     const rawUserDataList = [];
 
     function buildButterfly(data = {}, isUser = false, isDelayedArrival = false, isFingerTarget = false, customZ = 8.0, isCeremony = false) {
@@ -776,7 +795,7 @@
       }
 
       let initialVelocity;
-      let targetScale = 0.62 + Math.random() * 0.14;
+      let targetScale = isUser ? (0.62 + Math.random() * 0.14) : (0.42 + Math.random() * 0.10);
 
       const targetBPM = 120;
       const flapSpeed = (targetBPM / 60) * 2 * Math.PI * 2;
@@ -830,7 +849,8 @@
           initScreenAngle = Math.random() * Math.PI * 2;
         }
 
-        group.position.set(spawnX, spawnY, -0.5 - Math.random() * 5.0);
+        const spawnZ = isUser ? (-0.5 - Math.random() * 5.0) : (-5.0 - Math.random() * 4.5);
+        group.position.set(spawnX, spawnY, spawnZ);
 
         const cosD = Math.cos(initDepthAngle);
         initialVelocity = new THREE.Vector3(
@@ -845,6 +865,7 @@
 
       const butterflyRecord = {
         id: Math.random().toString(36).substring(7),
+        isUser: isUser,
         group, innerGroup, leftWing, rightWing,
         velocity: initialVelocity,
         speed: flapSpeed,
@@ -1371,8 +1392,10 @@
           if (b.group.position.y > 5.0) steerY = -1;
           else if (b.group.position.y < -5.0) steerY = 1;
 
-          if (b.group.position.z > 1.2) steerZ = -1;
-          else if (b.group.position.z < -6.0) steerZ = 1;
+          const maxZ = b.isUser ? 1.2 : -4.5;
+          const minZ = b.isUser ? -6.0 : -10.0;
+          if (b.group.position.z > maxZ) steerZ = -1;
+          else if (b.group.position.z < minZ) steerZ = 1;
 
           if (steerX !== 0 || steerY !== 0) {
               const targetY = steerY !== 0 ? steerY : Math.sin(b.screenAngle);
