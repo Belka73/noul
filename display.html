@@ -509,6 +509,35 @@
 
     const sharedEmptyPatternTexture = new THREE.Texture();
 
+    const WING_VERTEX_SHADER = [
+      'varying vec2 vProjectedUv;',
+      'varying vec2 vModelUv;',
+      'void main() {',
+      '  vModelUv = uv;',
+      '  float u = (position.x + 2.4) / 4.8;',
+      '  float v = (position.y + 2.4) / 4.8;',
+      '  vProjectedUv = vec2(clamp(u, 0.0, 1.0), clamp(1.0 - v, 0.0, 1.0));',
+      '  gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);',
+      '}'
+    ].join('\n');
+
+    const WING_FRAGMENT_SHADER = [
+      'uniform sampler2D photoMap;',
+      'uniform sampler2D patMap;',
+      'uniform float hasPattern;',
+      'varying vec2 vProjectedUv;',
+      'varying vec2 vModelUv;',
+      'void main() {',
+      '  vec4 photoCol = texture2D(photoMap, vProjectedUv);',
+      '  vec4 finalCol = photoCol;',
+      '  if (hasPattern > 0.5) {',
+      '    vec4 patCol = texture2D(patMap, vModelUv);',
+      '    finalCol.rgb = mix(finalCol.rgb, finalCol.rgb * patCol.rgb, patCol.a * 0.95);',
+      '  }',
+      '  gl_FragColor = vec4(clamp(finalCol.rgb, 0.0, 1.0), finalCol.a);',
+      '}'
+    ].join('\n');
+
     function createStandardWingMaterial(textureURL, patternFileName) {
       let photoTex = sharedDummyWhiteTexture;
       if (textureURL) {
@@ -529,33 +558,8 @@
           patMap: { value: sharedEmptyPatternTexture },
           hasPattern: { value: 0.0 }
         },
-        vertexShader: [
-          'varying vec2 vProjectedUv;',
-          'varying vec2 vModelUv;',
-          'void main() {',
-          '  vModelUv = uv;',
-          '  float u = (position.x + 2.4) / 4.8;',
-          '  float v = (position.y + 2.4) / 4.8;',
-          '  vProjectedUv = vec2(clamp(u, 0.0, 1.0), clamp(1.0 - v, 0.0, 1.0));',
-          '  gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);',
-          '}'
-        ].join('\n'),
-        fragmentShader: [
-          'uniform sampler2D photoMap;',
-          'uniform sampler2D patMap;',
-          'uniform float hasPattern;',
-          'varying vec2 vProjectedUv;',
-          'varying vec2 vModelUv;',
-          'void main() {',
-          '  vec4 photoCol = texture2D(photoMap, vProjectedUv);',
-          '  vec4 finalCol = photoCol;',
-          '  if (hasPattern > 0.5) {',
-          '    vec4 patCol = texture2D(patMap, vModelUv);',
-          '    finalCol.rgb = mix(finalCol.rgb, finalCol.rgb * patCol.rgb, patCol.a * 0.95);',
-          '  }',
-          '  gl_FragColor = vec4(clamp(finalCol.rgb, 0.0, 1.0), finalCol.a);',
-          '}'
-        ].join('\n'),
+        vertexShader: WING_VERTEX_SHADER,
+        fragmentShader: WING_FRAGMENT_SHADER,
         side: THREE.DoubleSide,
         transparent: false,
         depthWrite: true
@@ -668,12 +672,6 @@
     }
     container.appendChild(renderer.domElement);
 
-    const ambLight = new THREE.AmbientLight(0xffffff, 1.2);
-    scene.add(ambLight);
-    const dirLight = new THREE.DirectionalLight(0xffffff, 0.9);
-    dirLight.position.set(0, 5, 10);
-    scene.add(dirLight);
-
     const textureLoader = new THREE.TextureLoader();
     textureLoader.setCrossOrigin('anonymous');
     const gltfLoader = new THREE.GLTFLoader();
@@ -776,10 +774,6 @@
       p.vz = (Math.random() - 0.5) * 0.010;
       p.life = 0.80 + Math.random() * 0.35;
 
-      const posAttr = ceremonyParticleGeom.attributes.position;
-      posAttr.setXYZ(ceremonyParticleCursor, p.x, p.y, p.z);
-      posAttr.needsUpdate = true;
-
       ceremonyParticleCursor = (ceremonyParticleCursor + 1) % CEREMONY_PARTICLES;
     }
 
@@ -845,10 +839,6 @@
       p.vy = 0.022 + Math.random() * 0.026; // 위쪽으로 상승
       p.vz = (Math.random() - 0.5) * 0.010;
       p.life = 0.80 + Math.random() * 0.35;
-
-      const posAttr = energyParticleGeom.attributes.position;
-      posAttr.setXYZ(energyParticleCursor, p.x, p.y, p.z);
-      posAttr.needsUpdate = true;
 
       energyParticleCursor = (energyParticleCursor + 1) % ENERGY_PARTICLES_COUNT;
     }
