@@ -5,9 +5,49 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>NOUL : Luminous Space</title>
 
-  <!-- 파비콘 (브라우저 탭 아이콘) 설정 -->
-  <link rel="icon" type="image/png" href="../index/image/cover-bg.png">
-  <link rel="apple-touch-icon" href="../index/image/cover-bg.png">
+  <!-- 파비콘 (브라우저 탭 아이콘) 설정: 상위/현재 폴더 경로 자동 탐색 및 캐시 즉시 갱신 -->
+  <link id="favicon-link" rel="icon" type="image/png" href="../image/cover-bg.png">
+  <link id="apple-icon-link" rel="apple-touch-icon" href="../image/cover-bg.png">
+  <script>
+    (function() {
+      var candidatePaths = [
+        '../image/cover-bg.png',
+        'image/cover-bg.png',
+        './image/cover-bg.png',
+        '../index/image/cover-bg.png',
+        '../../image/cover-bg.png',
+        'cover-bg.png',
+        '../image/cover-bg.jpg',
+        'image/cover-bg.jpg'
+      ];
+      var idx = 0;
+      function tryNextFavicon() {
+        if (idx >= candidatePaths.length) return;
+        var path = candidatePaths[idx++];
+        var img = new Image();
+        img.onload = function() {
+          var fav = document.getElementById('favicon-link');
+          var appFav = document.getElementById('apple-icon-link');
+          var finalHref = path;
+          try {
+            var c = document.createElement('canvas');
+            c.width = 64;
+            c.height = 64;
+            var ctx = c.getContext('2d');
+            ctx.drawImage(img, 0, 0, 64, 64);
+            finalHref = c.toDataURL('image/png');
+          } catch (e) {
+            finalHref = path + '?v=' + Date.now();
+          }
+          if (fav) fav.href = finalHref;
+          if (appFav) appFav.href = finalHref;
+        };
+        img.onerror = tryNextFavicon;
+        img.src = path;
+      }
+      tryNextFavicon();
+    })();
+  </script>
 
   <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
