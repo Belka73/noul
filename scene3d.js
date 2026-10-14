@@ -218,7 +218,8 @@ function initShare3DScene() {
   var whiteMat = new THREE.MeshBasicMaterial({ color: 0xffffff, side: THREE.DoubleSide });
 
   shareGroup = new THREE.Group();
-  shareGroup.rotation.set(0.25, -0.8, 0.35);
+  // 🌟 오른쪽으로 기울어지도록 Z축 각도를 +0.35에서 -0.35로 수정
+  shareGroup.rotation.set(0.25, -0.8, -0.35);
   shareGroup.position.set(0, 0.45, 0);
 
   loadButterflyModel(shareGroup, selectedButterflyShape, selectedAntennaType, wingMats, whiteMat, 0.48, function(l, r) {
@@ -237,7 +238,8 @@ function initShare3DScene() {
       shareWingR.rotation.set(uR.baseRotX || 0, (uR.baseRotY || 0) - flap, uR.baseRotZ || 0); 
     }
     shareGroup.position.y = 0.45 + Math.sin(t * 2.2) * 0.08;
-    shareGroup.rotation.z = 0.35 + Math.sin(t * 1.5) * 0.04;
+    // 🌟 오른쪽 기울기를 유지하며 자연스럽게 부유하도록 기준각을 -0.35로 수정
+    shareGroup.rotation.z = -0.35 + Math.sin(t * 1.5) * 0.04;
     shareRenderer.render(shareScene, shareCamera);
   })();
 }
