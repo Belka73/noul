@@ -202,10 +202,10 @@ function transitionToOpeningDramatic() {
         curtain.classList.remove('active-curtain');
         setTimeout(function() {
           curtain.classList.remove('dramatic-slow-fade');
-        }, 1300);
-      }, 100);
+        }, 2300);
+      }, 150);
     });
-  }, 1250);
+  }, 2250);
 }
 
 function updateDevScreenBadge() {

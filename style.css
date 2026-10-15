@@ -177,7 +177,7 @@ html, body {
   transition: opacity 0.55s cubic-bezier(0.22, 1, 0.36, 1);
 }
 #cinematic-transition-curtain.dramatic-slow-fade {
-  transition: opacity 1.25s cubic-bezier(0.4, 0, 0.2, 1) !important;
+  transition: opacity 2.2s cubic-bezier(0.4, 0, 0.2, 1) !important;
 }
 #cinematic-transition-curtain.active-curtain {
   opacity: 1 !important;
@@ -185,11 +185,11 @@ html, body {
 }
 
 #screen-menu {
-  transition: transform 1.2s cubic-bezier(0.22, 1, 0.36, 1), filter 1.2s cubic-bezier(0.22, 1, 0.36, 1), opacity 1.2s ease;
+  transition: transform 2.2s cubic-bezier(0.22, 1, 0.36, 1), filter 2.2s cubic-bezier(0.22, 1, 0.36, 1), opacity 2.2s ease;
 }
 #screen-menu.dramatic-exit {
-  transform: scale(0.95);
-  filter: blur(6px);
+  transform: scale(0.92);
+  filter: blur(10px);
   opacity: 0;
 }
 
