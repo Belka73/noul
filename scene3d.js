@@ -732,13 +732,14 @@ function stopModal3DScene() {
   if (container) container.innerHTML = '';
 }
 
-// 🌟 나비 둘러보기 3D 모달: 날갯짓을 훨씬 더 느리고 부드럽게 감속 (t * 3.2) 및 나비 크기 확대/위치 중앙 보정
+// 🌟 나비 둘러보기 3D 모달: 날갯짓 각도를 완만하게 조정하여 무늬가 잘 보이도록 개선 및 공유 버튼 연결
 function openSpecimen3DModal(item, textureUrl) {
   var modal = document.getElementById('specimen-detail-modal');
   var nameEl = document.getElementById('modal-butterfly-name');
   var tagsEl = document.getElementById('modal-specimen-tags');
   var memoEl = document.getElementById('modal-specimen-memo');
   var dateEl = document.getElementById('modal-specimen-date');
+  var shareBtn = document.getElementById('btn-share-specimen-modal');
   var container = document.getElementById('specimen-three-container');
 
   if (nameEl) nameEl.innerText = '‘' + item.name + '’';
@@ -748,6 +749,38 @@ function openSpecimen3DModal(item, textureUrl) {
   }
   if (memoEl) memoEl.innerText = (item.memo || item.q6_memo) ? ('"' + (item.memo || item.q6_memo) + '"') : '"너의 찬란한 날갯짓을 응원해."';
   if (dateEl) dateEl.innerText = item.date || "2026. 10. 24";
+
+  if (shareBtn) {
+    shareBtn.onclick = function(e) {
+      e.stopPropagation();
+      var rawName = item.name ? String(item.name).trim() : "나비";
+      var rawMemo = (item.memo || item.q6_memo) ? String(item.memo || item.q6_memo).trim() : "너의 찬란한 날갯짓을 응원해.";
+      var rawShape = item.wingId || "crescent";
+      var rawPattern = item.patternId || (rawShape + "_none");
+      var rawAntenna = item.antId || "ball";
+
+      var baseUrl = window.location.href.split('?')[0].replace(/index\.html$/, '');
+      if (!baseUrl.endsWith('/')) baseUrl += '/';
+
+      var shareCardUrl = baseUrl + 'share.html?name=' + encodeURIComponent(rawName) +
+        '&memo=' + encodeURIComponent(rawMemo) +
+        '&shape=' + encodeURIComponent(rawShape) +
+        '&pattern=' + encodeURIComponent(rawPattern) +
+        '&antenna=' + encodeURIComponent(rawAntenna) +
+        (item.id ? ('&id=' + encodeURIComponent(item.id)) : '');
+
+      var shareData = { title: '너울(Noul) - ' + rawName, text: "내가 빚은 나비 '" + rawName + "'(이)가 도착했습니다.", url: shareCardUrl };
+      if (navigator.share) {
+        navigator.share(shareData).catch(function() {});
+      } else if (navigator.clipboard) {
+        navigator.clipboard.writeText(shareCardUrl).then(function() { alert("나비 초대장 링크가 클립보드에 복사되었습니다!"); })
+          .catch(function() { alert("링크 복사에 실패했습니다."); });
+      } else {
+        alert("공유를 지원하지 않는 브라우저입니다.");
+      }
+    };
+  }
+
   if (modal) modal.classList.remove('hidden');
 
   stopModal3DScene();
@@ -786,8 +819,8 @@ function openSpecimen3DModal(item, textureUrl) {
   (function modalAnimate() {
     if (!modalThreeRenderer || !modalThreeScene || !modalThreeCamera) return;
     modalAnimFrameId = requestAnimationFrame(modalAnimate);
-    // 🌟 날갯짓 속도를 7.2에서 3.2로 대폭 낮추어 천천히 부드럽게 날갯짓하도록 설정
-    var t = clock.getElapsedTime(), flap = 0.524 + Math.sin(t * 3.2) * 0.873;
+    // 🌟 날개가 위로 과도하게 접혀 무늬가 가려지지 않도록 완만한 각도(0.22 ± 0.28 rad)로 설정
+    var t = clock.getElapsedTime(), flap = 0.22 + Math.sin(t * 2.8) * 0.28;
     if (modalWingL && modalWingR) { 
       var uL = modalWingL.userData;
       var uR = modalWingR.userData;
