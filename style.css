@@ -202,7 +202,7 @@ html, body {
 .menu-glass-card {
   background: rgba(255, 255, 255, 0.04);
   border: 1px solid rgba(255, 255, 255, 0.12);
-  border-radius: 1.5rem;
+  border-radius: 1.25rem;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -214,7 +214,7 @@ html, body {
 .menu-glass-square {
   aspect-ratio: 1 / 1;
   justify-content: center;
-  padding: 1.25rem 0.75rem !important;
+  padding: 0.9rem 0.5rem !important;
 }
 
 #screen-menu.active .menu-glass-card:nth-child(1) {
