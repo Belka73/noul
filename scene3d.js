@@ -732,7 +732,7 @@ function stopModal3DScene() {
   if (container) container.innerHTML = '';
 }
 
-// 🌟 나비 둘러보기 3D 모달: 날갯짓 각도를 완만하게 조정하여 무늬가 잘 보이도록 개선 및 공유 버튼 연결
+// 🌟 나비 둘러보기 3D 모달: 아래로 날갯짓할 때는 원래 각도(-0.35 rad)로, 위로 접을 때는 적당히 더 접히도록(+0.95 rad) 조정
 function openSpecimen3DModal(item, textureUrl) {
   var modal = document.getElementById('specimen-detail-modal');
   var nameEl = document.getElementById('modal-butterfly-name');
@@ -819,8 +819,8 @@ function openSpecimen3DModal(item, textureUrl) {
   (function modalAnimate() {
     if (!modalThreeRenderer || !modalThreeScene || !modalThreeCamera) return;
     modalAnimFrameId = requestAnimationFrame(modalAnimate);
-    // 🌟 날개가 위로 과도하게 접혀 무늬가 가려지지 않도록 완만한 각도(0.22 ± 0.28 rad)로 설정
-    var t = clock.getElapsedTime(), flap = 0.22 + Math.sin(t * 2.8) * 0.28;
+    // 🌟 아래로 내려갈 때는 원래 각도(-0.35 rad)까지 내려가고, 위로 접을 때는 좀 더 접히도록(+0.95 rad) 설정
+    var t = clock.getElapsedTime(), flap = 0.30 + Math.sin(t * 2.8) * 0.65;
     if (modalWingL && modalWingR) { 
       var uL = modalWingL.userData;
       var uR = modalWingR.userData;
