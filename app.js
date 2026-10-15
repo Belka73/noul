@@ -173,9 +173,9 @@ function transitionToScreenWithFade(targetScreenId) {
   setTimeout(function() {
     showScreen(targetScreenId);
     requestAnimationFrame(function() {
-      setTimeout(function() { curtain.classList.remove('active-curtain'); }, 50);
+      setTimeout(function() { curtain.classList.remove('active-curtain'); }, 80);
     });
-  }, 320);
+  }, 480);
 }
 
 function updateDevScreenBadge() {
@@ -589,7 +589,7 @@ function bindAppNavEvents() {
     ['btn-menu-back', function() { showScreen('screen-cover'); }],
     ['menu-btn-create', function() { showScreen('screen-opening'); }],
     ['menu-btn-browse', function() { transitionToScreenWithFade('screen-gallery'); }],
-    ['btn-gallery-back', function() { showScreen('screen-menu'); }],
+    ['btn-gallery-back', function() { transitionToScreenWithFade('screen-menu'); }],
     ['menu-btn-intro', function() { transitionToScreenWithFade('screen-intro'); }],
     ['btn-intro-back', function() { showScreen('screen-menu'); }],
     ['btn-intro-bottom-back', function() { showScreen('screen-menu'); }],

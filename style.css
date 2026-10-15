@@ -174,11 +174,24 @@ html, body {
   z-index: 999999 !important;
   pointer-events: none;
   opacity: 0;
-  transition: opacity 0.35s ease;
+  transition: opacity 0.55s cubic-bezier(0.22, 1, 0.36, 1);
 }
 #cinematic-transition-curtain.active-curtain {
   opacity: 1 !important;
   pointer-events: auto !important;
+}
+
+@keyframes galleryScreenSmoothFade {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+#screen-gallery.active {
+  animation: galleryScreenSmoothFade 0.65s cubic-bezier(0.22, 1, 0.36, 1) forwards;
 }
 
 .noul-perfect-logo {
