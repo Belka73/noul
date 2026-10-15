@@ -1252,15 +1252,13 @@ var top7Boundaries = [];
 var top7GyroHandler = null;
 var top7SpawnTimeouts = [];
 
-// 🌟 순위별 크기 및 스타일 사전 정의 템플릿 (1위~7위)
+// 🌟 순위별 크기 및 스타일 사전 정의 템플릿 (1위~5위)
 var top7StyleTemplate = [
   { rank: 1, radius: 108, fill: "#f8f8f8", textColor: "#111111", subColor: "#555555" },
   { rank: 2, radius: 88, fill: "#1c1c1c", textColor: "#ffffff", subColor: "#a3a3a3" },
   { rank: 3, radius: 82, fill: "#1c1c1c", textColor: "#ffffff", subColor: "#a3a3a3" },
   { rank: 4, radius: 66, fill: "#1c1c1c", textColor: "#ffffff", subColor: "#a3a3a3" },
-  { rank: 5, radius: 62, fill: "#1c1c1c", textColor: "#ffffff", subColor: "#a3a3a3" },
-  { rank: 6, radius: 60, fill: "#1c1c1c", textColor: "#ffffff", subColor: "#a3a3a3" },
-  { rank: 7, radius: 58, fill: "#1c1c1c", textColor: "#ffffff", subColor: "#a3a3a3" }
+  { rank: 5, radius: 62, fill: "#1c1c1c", textColor: "#ffffff", subColor: "#a3a3a3" }
 ];
 
 // 기본 폴백 데이터 (DB가 비었거나 로딩 실패 시 사용)
@@ -1269,12 +1267,10 @@ var top7KeywordData = [
   { rank: 2, keyword: "비교중독", percent: "19.2%", radius: 88, fill: "#1c1c1c", textColor: "#ffffff", subColor: "#a3a3a3" },
   { rank: 3, keyword: "미래 막막함", percent: "16.5%", radius: 82, fill: "#1c1c1c", textColor: "#ffffff", subColor: "#a3a3a3" },
   { rank: 4, keyword: "수면 부족", percent: "12.1%", radius: 66, fill: "#1c1c1c", textColor: "#ffffff", subColor: "#a3a3a3" },
-  { rank: 5, keyword: "텅 빈 잔고", percent: "9.8%", radius: 62, fill: "#1c1c1c", textColor: "#ffffff", subColor: "#a3a3a3" },
-  { rank: 6, keyword: "거절 공포", percent: "7.6%", radius: 60, fill: "#1c1c1c", textColor: "#ffffff", subColor: "#a3a3a3" },
-  { rank: 7, keyword: "번아웃 무기력", percent: "6.4%", radius: 58, fill: "#1c1c1c", textColor: "#ffffff", subColor: "#a3a3a3" }
+  { rank: 5, keyword: "텅 빈 잔고", percent: "9.8%", radius: 62, fill: "#1c1c1c", textColor: "#ffffff", subColor: "#a3a3a3" }
 ];
 
-// 🌟 [실제 데이터 집계]: Supabase butterflies 테이블 및 현재 유저 q2 선택 항목 취합 후 상위 n개(최대 7개) 동적 생성
+// 🌟 [실제 데이터 집계]: Supabase butterflies 테이블 및 현재 유저 q2 선택 항목 취합 후 상위 n개(최대 5개) 동적 생성
 async function fetchTopKeywordsData() {
   try {
     var client = getSupabaseClient();
@@ -1320,8 +1316,8 @@ async function fetchTopKeywordsData() {
       return top7KeywordData;
     }
 
-    // 🌟 [동적 개수 생성]: 데이터가 7개 미만이면 존재하는 개수만큼만, 7개 이상이면 상위 7개만 추출
-    var targetCount = Math.min(7, sortedKeywords.length);
+    // 🌟 [동적 개수 생성]: 데이터가 5개 미만이면 존재하는 개수만큼만, 5개 이상이면 상위 5개만 추출
+    var targetCount = Math.min(5, sortedKeywords.length);
     var resultList = [];
 
     for (var i = 0; i < targetCount; i++) {
@@ -1622,7 +1618,7 @@ window.saveButterflyToSupabase = async function() {
           cvs.height = 512;
           var c = cvs.getContext('2d');
           c.drawImage(img, 0, 0, 512, 512);
-          resolve(cvs.toDataURL('image/jpeg', 0.8));
+          resolve(cvs.toDataURL('image/jpeg', 0.6));
         };
         img.onerror = function() { resolve(base64Str); };
         img.src = base64Str;
@@ -1779,7 +1775,7 @@ async function initSpecimenGallery() {
   var client = getSupabaseClient();
   if (client) {
     try {
-      var res = await client.from('butterflies').select('*').order('id', { ascending: false }).limit(50);
+      var res = await client.from('butterflies').select('*').order('id', { ascending: false }).limit(24);
       if (res.data && res.data.length > 0) {
         specimenButterfliesData = res.data.map(function(item) {
           return {
