@@ -176,9 +176,21 @@ html, body {
   opacity: 0;
   transition: opacity 0.55s cubic-bezier(0.22, 1, 0.36, 1);
 }
+#cinematic-transition-curtain.dramatic-slow-fade {
+  transition: opacity 1.25s cubic-bezier(0.4, 0, 0.2, 1) !important;
+}
 #cinematic-transition-curtain.active-curtain {
   opacity: 1 !important;
   pointer-events: auto !important;
+}
+
+#screen-menu {
+  transition: transform 1.2s cubic-bezier(0.22, 1, 0.36, 1), filter 1.2s cubic-bezier(0.22, 1, 0.36, 1), opacity 1.2s ease;
+}
+#screen-menu.dramatic-exit {
+  transform: scale(0.95);
+  filter: blur(6px);
+  opacity: 0;
 }
 
 @keyframes galleryScreenSmoothFade {

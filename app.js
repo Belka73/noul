@@ -101,6 +101,9 @@ function syncCustomKeywordToQ2() {
 
 function showScreen(screenId) {
   clearAllTimers();
+  var menuEl = document.getElementById('screen-menu');
+  if (menuEl) menuEl.classList.remove('dramatic-exit');
+
   document.querySelectorAll('.screen').forEach(function(s) { 
     s.classList.remove('active'); 
     s.style.display = 'none';
@@ -169,6 +172,7 @@ function showScreen(screenId) {
 function transitionToScreenWithFade(targetScreenId) {
   var curtain = document.getElementById('cinematic-transition-curtain');
   if (!curtain) { showScreen(targetScreenId); return; }
+  curtain.classList.remove('dramatic-slow-fade');
   curtain.classList.add('active-curtain');
   setTimeout(function() {
     showScreen(targetScreenId);
@@ -176,6 +180,32 @@ function transitionToScreenWithFade(targetScreenId) {
       setTimeout(function() { curtain.classList.remove('active-curtain'); }, 80);
     });
   }, 480);
+}
+
+function transitionToOpeningDramatic() {
+  var curtain = document.getElementById('cinematic-transition-curtain');
+  var menuScreen = document.getElementById('screen-menu');
+  if (!curtain) {
+    showScreen('screen-opening');
+    return;
+  }
+  if (menuScreen) {
+    menuScreen.classList.add('dramatic-exit');
+  }
+  curtain.classList.add('dramatic-slow-fade');
+  curtain.classList.add('active-curtain');
+
+  setTimeout(function() {
+    showScreen('screen-opening');
+    requestAnimationFrame(function() {
+      setTimeout(function() {
+        curtain.classList.remove('active-curtain');
+        setTimeout(function() {
+          curtain.classList.remove('dramatic-slow-fade');
+        }, 1300);
+      }, 100);
+    });
+  }, 1250);
 }
 
 function updateDevScreenBadge() {
@@ -587,7 +617,7 @@ function bindAppNavEvents() {
   var binds = [
     ['btn-start-cover', function() { showScreen('screen-menu'); }],
     ['btn-menu-back', function() { showScreen('screen-cover'); }],
-    ['menu-btn-create', function() { showScreen('screen-opening'); }],
+    ['menu-btn-create', function() { transitionToOpeningDramatic(); }],
     ['menu-btn-browse', function() { transitionToScreenWithFade('screen-gallery'); }],
     ['btn-gallery-back', function() { transitionToScreenWithFade('screen-menu'); }],
     ['menu-btn-intro', function() { transitionToScreenWithFade('screen-intro'); }],
@@ -645,12 +675,11 @@ function resetOpeningFlow() {
   if (elOpeningChoiceGroup) { elOpeningChoiceGroup.classList.remove('visible'); elOpeningChoiceGroup.classList.add('hidden'); }
   if (elOpeningNextGroup) { elOpeningNextGroup.classList.add('hidden'); elOpeningNextGroup.classList.remove('visible'); }
 
-  openingDelayTimer = setTimeout(function() {
-    typeWriterText(elOpeningText, "안녕하세요?<br>지금, 걱정 없는 삶을 살아가고 있나요?", function() {
-      if (btnOpeningNext) btnOpeningNext.innerHTML = "다음";
-      if (elOpeningNextGroup) { elOpeningNextGroup.classList.remove('hidden'); elOpeningNextGroup.classList.add('visible'); }
-    });
-  }, 2000);
+  // 🌟 페이지가 넘어가는 연출이 끝나는 즉시(2초 대기 없이 바로) 타이핑이 시작되도록 수정
+  typeWriterText(elOpeningText, "안녕하세요?<br>지금, 걱정 없는 삶을 살아가고 있나요?", function() {
+    if (btnOpeningNext) btnOpeningNext.innerHTML = "다음";
+    if (elOpeningNextGroup) { elOpeningNextGroup.classList.remove('hidden'); elOpeningNextGroup.classList.add('visible'); }
+  });
 }
 
 if (btnOpeningNext) {
