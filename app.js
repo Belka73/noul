@@ -118,8 +118,11 @@ function showScreen(screenId) {
     target.classList.add('active');
     target.style.display = 'flex';
     try {
+      if (screenId !== 'screen-cover') {
+        stopCoverWaveCanvas();
+      }
       if (screenId === 'screen-cover') {
-        stopBubblePhysics(); stopLoading3DScene(); stopShare3DScene(); stopTop7PhysicsScene();
+        stopBubblePhysics(); stopLoading3DScene(); stopShare3DScene(); stopTop7PhysicsScene(); initCoverWaveCanvas();
       } else if (screenId === 'screen-opening') {
         lastSavedButterflyId = null;
         stopBubblePhysics(); stopLoading3DScene(); stopShare3DScene(); stopTop7PhysicsScene(); resetOpeningFlow();
@@ -1861,7 +1864,103 @@ window.addEventListener('resize', function() {
   var activeScreen = document.querySelector('.screen.active');
   if (activeScreen && activeScreen.id === 'screen-survey' && currentStepIdx === 2) {
     resizeBubblePhysicsCanvas();
+  } else if (activeScreen && activeScreen.id === 'screen-cover') {
+    resizeCoverWaveCanvas();
   }
 });
 
+var coverAnimId = null;
+var coverParticles = [];
+var coverRipples = [];
+
+function resizeCoverWaveCanvas() {
+  var canvas = document.getElementById('cover-wave-canvas');
+  if (!canvas) return;
+  canvas.width = canvas.clientWidth || window.innerWidth;
+  canvas.height = canvas.clientHeight || window.innerHeight;
+}
+
+function initCoverWaveCanvas() {
+  stopCoverWaveCanvas();
+  var canvas = document.getElementById('cover-wave-canvas');
+  if (!canvas) return;
+  var ctx = canvas.getContext('2d');
+  var w = (canvas.width = canvas.clientWidth || window.innerWidth);
+  var h = (canvas.height = canvas.clientHeight || window.innerHeight);
+
+  coverParticles = [];
+  for (var i = 0; i < 25; i++) {
+    coverParticles.push({
+      x: Math.random() * w,
+      y: Math.random() * h,
+      r: Math.random() * 2.2 + 0.8,
+      vy: -(Math.random() * 0.35 + 0.15),
+      vx: (Math.random() - 0.5) * 0.25,
+      phase: Math.random() * Math.PI * 2
+    });
+  }
+
+  canvas.onpointerdown = function(e) {
+    var rect = canvas.getBoundingClientRect();
+    coverRipples.push({
+      x: e.clientX - rect.left,
+      y: e.clientY - rect.top,
+      r: 4,
+      alpha: 0.55
+    });
+  };
+
+  (function renderCover() {
+    coverAnimId = requestAnimationFrame(renderCover);
+    var curW = canvas.width;
+    var curH = canvas.height;
+    ctx.clearRect(0, 0, curW, curH);
+
+    for (var i = 0; i < coverParticles.length; i++) {
+      var p = coverParticles[i];
+      p.x += p.vx;
+      p.y += p.vy;
+      p.phase += 0.03;
+      if (p.y < -10) { p.y = curH + 10; p.x = Math.random() * curW; }
+      if (p.x < -10) p.x = curW + 10;
+      else if (p.x > curW + 10) p.x = -10;
+
+      var alpha = 0.2 + Math.sin(p.phase) * 0.2;
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+      ctx.fillStyle = 'rgba(255, 255, 255, ' + Math.max(0.05, alpha) + ')';
+      ctx.fill();
+    }
+
+    for (var j = coverRipples.length - 1; j >= 0; j--) {
+      var rp = coverRipples[j];
+      rp.r += 2.2;
+      rp.alpha *= 0.96;
+      if (rp.alpha < 0.02) {
+        coverRipples.splice(j, 1);
+        continue;
+      }
+      ctx.beginPath();
+      ctx.arc(rp.x, rp.y, rp.r, 0, Math.PI * 2);
+      ctx.strokeStyle = 'rgba(200, 225, 255, ' + rp.alpha + ')';
+      ctx.lineWidth = 1.2;
+      ctx.stroke();
+    }
+  })();
+}
+
+function stopCoverWaveCanvas() {
+  if (coverAnimId) {
+    cancelAnimationFrame(coverAnimId);
+    coverAnimId = null;
+  }
+  coverRipples = [];
+  var canvas = document.getElementById('cover-wave-canvas');
+  if (canvas) {
+    var ctx = canvas.getContext('2d');
+    if (ctx) ctx.clearRect(0, 0, canvas.width, canvas.height);
+  }
+}
+
+initCoverWaveCanvas();
 updateDevScreenBadge();
