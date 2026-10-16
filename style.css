@@ -69,7 +69,7 @@ html, body {
   z-index: 0;
   pointer-events: none;
   opacity: 0;
-  animation: coverBgFadeIn 1.2s cubic-bezier(0.16, 1, 0.3, 1) 1.2s forwards;
+  animation: coverBgFadeIn 1.2s cubic-bezier(0.16, 1, 0.3, 1) 0.4s forwards;
 }
 
 @keyframes coverBgFadeIn {
@@ -84,7 +84,7 @@ html, body {
   justify-content: center;
   opacity: 0;
   transform: translateY(8px);
-  animation: coverElemFadeInUp 0.6s cubic-bezier(0.16, 1, 0.3, 1) 0.15s forwards;
+  animation: coverElemFadeInUp 0.6s cubic-bezier(0.16, 1, 0.3, 1) 0.1s forwards;
 }
 
 /* 🌟 iOS/모바일에서 SVG clipPath 내부 필터가 사각형 박스로 깨지는 현상을 방지하는 부드러운 원형 글로우 배경 */
@@ -109,13 +109,14 @@ html, body {
 .cover-anim-desc {
   opacity: 0;
   transform: translateY(6px);
-  animation: coverElemFadeInUp 0.9s cubic-bezier(0.16, 1, 0.3, 1) 1.9s forwards;
+  animation: coverElemFadeInUp 0.7s cubic-bezier(0.16, 1, 0.3, 1) 0.25s forwards;
 }
 
+/* 🌟 메뉴에서 다시 시작화면으로 돌아왔을 때도 시작하기 버튼이 숨겨지지 않고 즉시 부드럽게 표시되도록 수정 */
 .cover-anim-btn {
   opacity: 0;
-  transform: translateY(14px);
-  animation: coverElemFadeInUp 0.9s cubic-bezier(0.16, 1, 0.3, 1) 2.4s forwards;
+  transform: translateY(10px);
+  animation: coverElemFadeInUp 0.7s cubic-bezier(0.16, 1, 0.3, 1) 0.35s forwards;
 }
 
 @keyframes coverElemFadeInUp {
@@ -1662,8 +1663,8 @@ html, body {
 
 /* 1. 표지 배경 이미지가 초기 페이드인 이후 은은하게 숨 쉬는 효과 (GPU 가속) */
 .cover-viewport::before {
-  animation: coverBgFadeIn 1.2s cubic-bezier(0.16, 1, 0.3, 1) 1.2s forwards,
-             coverBgBreathe 9s ease-in-out 2.4s infinite alternate;
+  animation: coverBgFadeIn 1.2s cubic-bezier(0.16, 1, 0.3, 1) 0.4s forwards,
+             coverBgBreathe 9s ease-in-out 1.6s infinite alternate;
   will-change: transform, opacity;
 }
 
