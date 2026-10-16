@@ -1609,110 +1609,69 @@ html, body {
   100% { opacity: 0.52; transform: scale(1.12); }
 }
 
-/* 2. '너울' SVG 로고 한글 표준 필순(획 방향과 순서) 드로잉 애니메이션 */
-.noul-perfect-logo path,
-.noul-perfect-logo rect {
-  fill: #ffffff;
-  stroke: none;
-  will-change: clip-path, opacity;
+/* 2. '너울' SVG 로고: 중심선 브러시 마스크 기법으로 부드럽게 가속했다가 감속하며 써지는 연출 */
+.noul-brush-stroke {
+  fill: none;
+  stroke: #ffffff;
+  stroke-width: 110px;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-dasharray: 105;
+  stroke-dashoffset: 105;
+  will-change: stroke-dashoffset;
 }
 
-/* [1획] '너'의 ㄴ: 위에서 아래로 내려긋고(상->하), 왼쪽에서 오른쪽으로 긋기(좌->우) */
-.noul-perfect-logo > *:nth-child(1) {
-  clip-path: polygon(0% 0%, 24% 0%, 24% 0%, 0% 0%);
-  animation: strokeWriteNieun 0.42s cubic-bezier(0.25, 1, 0.5, 1) 0.12s forwards;
+/* [도입부 - 천천히 시작하여 점점 가속] 1획: '너'의 ㄴ (위->아래->오른쪽 곡선) */
+.noul-brush-stroke.stroke-1 {
+  animation: noulBrushWrite 0.48s cubic-bezier(0.50, 0.05, 0.25, 1) 0.15s forwards;
 }
 
-@keyframes strokeWriteNieun {
-  0%   { clip-path: polygon(0% 0%, 24% 0%, 24% 0%, 24% 0%, 24% 0%, 0% 0%); }
-  48%  { clip-path: polygon(0% 0%, 24% 0%, 24% 82%, 24% 82%, 24% 100%, 0% 100%); }
-  100% { clip-path: polygon(0% 0%, 24% 0%, 24% 75%, 100% 75%, 100% 100%, 0% 100%); }
+/* [가속 구간 - 물 흐르듯 빠르게 연결] 2획: '너'의 ㅓ 가로획 (좌->우) */
+.noul-brush-stroke.stroke-2 {
+  animation: noulBrushWrite 0.19s cubic-bezier(0.35, 0, 0.25, 1) 0.56s forwards;
 }
 
-/* [2획] '너'의 ㅓ 가로획: 왼쪽에서 오른쪽으로 긋기(좌->우) */
-.noul-perfect-logo > *:nth-child(2) {
-  clip-path: inset(0 100% 0 0);
-  animation: strokeWriteLeftToRight 0.18s cubic-bezier(0.25, 1, 0.5, 1) 0.56s forwards;
+/* [최고 속도 구간] 3획: '너'의 ㅓ 세로획 (상->하) */
+.noul-brush-stroke.stroke-3 {
+  animation: noulBrushWrite 0.26s cubic-bezier(0.30, 0, 0.25, 1) 0.70s forwards;
 }
 
-/* [3획] '너'의 ㅓ 세로획: 위에서 아래로 내려긋기(상->하) */
-.noul-perfect-logo > *:nth-child(3) {
-  clip-path: inset(0 0 100% 0);
-  animation: strokeWriteTopToBottom 0.26s cubic-bezier(0.25, 1, 0.5, 1) 0.74s forwards;
+/* [최고 속도 유지하며 회전] 4획: '울'의 ㅇ (12시에서 반시계 방향 한 바퀴 회전) */
+.noul-brush-stroke.stroke-4 {
+  animation: noulBrushWrite 0.32s cubic-bezier(0.35, 0, 0.25, 1) 0.90s forwards;
 }
 
-/* [4획] '울'의 ㅇ: 12시 꼭짓점에서 시작해 왼쪽(반시계 방향)으로 한 바퀴 돌려 그리기 */
-.noul-perfect-logo > *:nth-child(4) {
-  clip-path: polygon(50% 50%, 50% -20%, 50% -20%, 50% -20%, 50% -20%, 50% -20%);
-  animation: strokeWriteIeung 0.34s linear 1.04s forwards;
+/* [빠르게 가로지름] 5획: '울'의 ㅜ 가로획 (좌->우) */
+.noul-brush-stroke.stroke-5 {
+  animation: noulBrushWrite 0.22s cubic-bezier(0.30, 0, 0.30, 1) 1.16s forwards;
 }
 
-@keyframes strokeWriteIeung {
-  0%   { clip-path: polygon(50% 50%, 50% -20%, 50% -20%, 50% -20%, 50% -20%, 50% -20%); }
-  25%  { clip-path: polygon(50% 50%, 50% -20%, -20% -20%, -20% 50%, -20% 50%, -20% 50%); }
-  50%  { clip-path: polygon(50% 50%, 50% -20%, -20% -20%, -20% 120%, 50% 120%, 50% 120%); }
-  75%  { clip-path: polygon(50% 50%, 50% -20%, -20% -20%, -20% 120%, 120% 120%, 120% 50%); }
-  100% { clip-path: polygon(50% 50%, 50% -20%, -20% -20%, -20% 120%, 120% 120%, 120% -20%, 50% -20%); }
+/* [짧고 매끄러운 연결] 6획: '울'의 ㅜ 세로획 (상->하) */
+.noul-brush-stroke.stroke-6 {
+  animation: noulBrushWrite 0.15s cubic-bezier(0.30, 0, 0.35, 1) 1.33s forwards;
 }
 
-/* [5획] '울'의 ㅜ 가로획: 왼쪽에서 오른쪽으로 길게 긋기(좌->우) */
-.noul-perfect-logo > *:nth-child(5) {
-  clip-path: inset(0 100% 0 0);
-  animation: strokeWriteLeftToRight 0.22s cubic-bezier(0.25, 1, 0.5, 1) 1.40s forwards;
+/* [감속 시작 구간] 7-1획: '울'의 ㄹ 첫째 획 (ㄱ: 좌->우->하) */
+.noul-brush-stroke.stroke-7-1 {
+  stroke-width: 90px;
+  animation: noulBrushWrite 0.25s cubic-bezier(0.25, 0.1, 0.35, 1) 1.43s forwards;
 }
 
-/* [6획] '울'의 ㅜ 세로획: 위에서 아래로 내려긋기(상->하) */
-.noul-perfect-logo > *:nth-child(6) {
-  clip-path: inset(0 0 100% 0);
-  animation: strokeWriteTopToBottom 0.14s cubic-bezier(0.25, 1, 0.5, 1) 1.62s forwards;
+/* [점점 느려지는 구간] 7-2획: '울'의 ㄹ 둘째 획 (ㅡ: 좌->우) */
+.noul-brush-stroke.stroke-7-2 {
+  stroke-width: 90px;
+  animation: noulBrushWrite 0.24s cubic-bezier(0.22, 0.15, 0.35, 1) 1.63s forwards;
 }
 
-/* [7획] '울'의 ㄹ 받침 (표준 3획 필순):
-   ① 윗가로+오른세로(ㄱ: 좌->우->하) -> ② 가운데가로(ㅡ: 좌->우) -> ③ 왼쪽세로+아랫가로(ㄴ: 상->하->우) */
-.noul-perfect-logo > *:nth-child(7) {
-  clip-path: polygon(0% 0%, 0% 0%, 0% 26%, 0% 26%);
-  animation: strokeWriteRieul 0.48s cubic-bezier(0.22, 1, 0.36, 1) 1.76s forwards;
+/* [우아하고 부드러운 최종 감속 마무리] 7-3획: '울'의 ㄹ 셋째 획 (ㄴ: 상->하->우) */
+.noul-brush-stroke.stroke-7-3 {
+  stroke-width: 90px;
+  animation: noulBrushWrite 0.38s cubic-bezier(0.16, 1, 0.3, 1) 1.81s forwards;
 }
 
-@keyframes strokeWriteRieul {
-  /* 시작: 숨김 */
-  0% {
-    clip-path: polygon(0% 0%, 0% 0%, 0% 25%, 0% 25%, 0% 25%, 0% 25%, 0% 25%, 0% 25%);
-  }
-  /* ㄹ의 1획(ㄱ) 가로 부분: 왼쪽 -> 오른쪽 */
-  24% {
-    clip-path: polygon(0% 0%, 100% 0%, 100% 25%, 0% 25%, 0% 25%, 0% 25%, 0% 25%, 0% 25%);
-  }
-  /* ㄹ의 1획(ㄱ) 세로 꺾기: 오른쪽 위 -> 가운데 높이까지 아래로 */
-  40% {
-    clip-path: polygon(0% 0%, 100% 0%, 100% 62%, 84% 62%, 84% 25%, 0% 25%, 0% 25%, 0% 25%);
-  }
-  /* ㄹ의 2획(ㅡ) 전환 준비: 가운데 줄 왼쪽 끝으로 이동 */
-  41% {
-    clip-path: polygon(0% 0%, 100% 0%, 100% 62%, 84% 62%, 84% 38%, 0% 38%, 0% 38%, 0% 38%);
-  }
-  /* ㄹ의 2획(ㅡ) 가로 긋기: 가운데 줄 왼쪽 -> 오른쪽 */
-  64% {
-    clip-path: polygon(0% 0%, 100% 0%, 100% 62%, 0% 62%, 0% 62%, 0% 62%, 0% 38%, 0% 38%);
-  }
-  /* ㄹ의 3획(ㄴ) 세로 내려긋기: 왼쪽 가운데 -> 왼쪽 맨 아래 */
-  80% {
-    clip-path: polygon(0% 0%, 100% 0%, 100% 62%, 16% 62%, 16% 100%, 0% 100%, 0% 38%, 0% 38%);
-  }
-  /* ㄹ의 3획(ㄴ) 마지막 아랫가로 긋기: 왼쪽 아래 -> 오른쪽 끝까지 완성 */
-  100% {
-    clip-path: polygon(0% 0%, 100% 0%, 100% 100%, 100% 100%, 100% 100%, 0% 100%, 0% 38%, 0% 38%);
-  }
-}
-
-@keyframes strokeWriteLeftToRight {
-  0%   { clip-path: inset(0 100% 0 0); }
-  100% { clip-path: inset(0 0% 0 0); }
-}
-
-@keyframes strokeWriteTopToBottom {
-  0%   { clip-path: inset(0 0 100% 0); }
-  100% { clip-path: inset(0 0 0% 0); }
+@keyframes noulBrushWrite {
+  0%   { stroke-dashoffset: 105; }
+  100% { stroke-dashoffset: 0; }
 }
 
 /* 로고 전체가 초기 등장 이후 공중에 살짝 떠 있는 듯한 부유감 */
