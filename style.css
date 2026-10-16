@@ -1617,17 +1617,17 @@ html, body {
 }
 
 /* [도입부 - 천천히 시작하여 점점 가속] 1획: '너'의 ㄴ (위->아래->오른쪽 곡선) */
-.noul-brush-stroke.stroke-1 {
+.noul-brush-stroke.noul-neo-1 {
   animation: noulBrushWrite 0.48s cubic-bezier(0.50, 0.05, 0.25, 1) 0.15s forwards;
 }
 
 /* [가속 구간 - 물 흐르듯 빠르게 연결] 2획: '너'의 ㅓ 가로획 (좌->우) */
-.noul-brush-stroke.stroke-2 {
+.noul-brush-stroke.noul-neo-2 {
   animation: noulBrushWrite 0.18s cubic-bezier(0.35, 0, 0.25, 1) 0.57s forwards;
 }
 
 /* [최고 속도 구간] 3획: '너'의 ㅓ 세로획 (상->하) */
-.noul-brush-stroke.stroke-3 {
+.noul-brush-stroke.noul-neo-3 {
   animation: noulBrushWrite 0.25s cubic-bezier(0.30, 0, 0.25, 1) 0.70s forwards;
 }
 

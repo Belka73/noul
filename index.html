@@ -26,8 +26,8 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Nanum+Pen+Script&display=swap" rel="stylesheet">
 
-  <!-- 스타일시트 -->
-  <link rel="stylesheet" href="style.css">
+  <!-- 스타일시트 (브라우저 캐시 즉시 갱신용 버전 파라미터 추가) -->
+  <link rel="stylesheet" href="style.css?v=202604">
 </head>
 <body>
 
@@ -68,37 +68,37 @@
               </clipPath>
             </defs>
 
-            <!-- 1획: '너'의 ㄴ (위에서 아래로 내려온 뒤 오른쪽으로 부드럽게 이어짐) -->
-            <g clip-path="url(#clip-noul-1)">
-              <path class="noul-brush-stroke stroke-1" pathLength="100" d="M 116,80 L 116,465 C 180,465 260,460 380,440" stroke="#ffffff" stroke-width="140" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+            <!-- 1획: '너'의 ㄴ (위에서 아래로 내려온 뒤 오른쪽으로 부드럽게 이어짐 - 두께 및 클리핑 강제 보호) -->
+            <g clip-path="url(#clip-noul-1)" style="clip-path: url(#clip-noul-1) !important;">
+              <path class="noul-brush-stroke noul-neo-1" pathLength="100" d="M 116,80 L 116,465 L 380,445" stroke="#ffffff" stroke-width="160" stroke-linecap="round" stroke-linejoin="round" fill="none" style="stroke: #ffffff !important; stroke-width: 160px !important; fill: none !important; clip-path: none !important;"/>
             </g>
 
-            <!-- 2획: '너'의 ㅓ 가로획 (왼쪽 -> 오른쪽) -->
-            <g clip-path="url(#clip-noul-2)">
-              <path class="noul-brush-stroke stroke-2" pathLength="100" d="M 235,263 L 425,263" stroke="#ffffff" stroke-width="100" stroke-linecap="round" fill="none"/>
+            <!-- 2획: '너'의 ㅓ 가로획 (왼쪽 -> 오른쪽 - 두께 및 클리핑 강제 보호) -->
+            <g clip-path="url(#clip-noul-2)" style="clip-path: url(#clip-noul-2) !important;">
+              <path class="noul-brush-stroke noul-neo-2" pathLength="100" d="M 235,263 L 425,263" stroke="#ffffff" stroke-width="110" stroke-linecap="round" fill="none" style="stroke: #ffffff !important; stroke-width: 110px !important; fill: none !important; clip-path: none !important;"/>
             </g>
 
-            <!-- 3획: '너'의 ㅓ 세로획 (위 -> 아래) -->
-            <g clip-path="url(#clip-noul-3)">
-              <path class="noul-brush-stroke stroke-3" pathLength="100" d="M 428.5,75 L 428.5,525" stroke="#ffffff" stroke-width="100" stroke-linecap="round" fill="none"/>
+            <!-- 3획: '너'의 ㅓ 세로획 (위 -> 아래 - 두께 및 클리핑 강제 보호) -->
+            <g clip-path="url(#clip-noul-3)" style="clip-path: url(#clip-noul-3) !important;">
+              <path class="noul-brush-stroke noul-neo-3" pathLength="100" d="M 428.5,75 L 428.5,525" stroke="#ffffff" stroke-width="110" stroke-linecap="round" fill="none" style="stroke: #ffffff !important; stroke-width: 110px !important; fill: none !important; clip-path: none !important;"/>
             </g>
 
-            <!-- 4획: '울'의 ㅇ (12시 방향에서 반시계 방향으로 부드럽게 한 바퀴 회전) -->
+            <!-- 4획: '울'의 ㅇ (완벽 작동 확인된 구간 - 원본 그대로 유지) -->
             <g clip-path="url(#clip-noul-4)">
               <path class="noul-brush-stroke stroke-4" pathLength="100" d="M 705,270 C 580,270 545,295 545,330 C 545,365 580,390 705,390 C 830,390 865,365 865,330 C 865,295 830,270 705,270" stroke="#ffffff" stroke-width="110" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
             </g>
 
-            <!-- 5획: '울'의 ㅜ 가로획 (왼쪽 -> 오른쪽) -->
+            <!-- 5획: '울'의 ㅜ 가로획 (완벽 작동 확인된 구간 - 원본 그대로 유지) -->
             <g clip-path="url(#clip-noul-5)">
               <path class="noul-brush-stroke stroke-5" pathLength="100" d="M 480,439 L 930,439" stroke="#ffffff" stroke-width="90" stroke-linecap="round" fill="none"/>
             </g>
 
-            <!-- 6획: '울'의 ㅜ 세로획 (위 -> 아래) -->
+            <!-- 6획: '울'의 ㅜ 세로획 (완벽 작동 확인된 구간 - 원본 그대로 유지) -->
             <g clip-path="url(#clip-noul-6)">
               <path class="noul-brush-stroke stroke-6" pathLength="100" d="M 705.5,445 L 705.5,510" stroke="#ffffff" stroke-width="90" stroke-linecap="round" fill="none"/>
             </g>
 
-            <!-- 7획: '울'의 ㄹ 받침 (끊김 없이 한 번에 이어지는 부드러운 붓질: 좌->우->하->좌->하->우) -->
+            <!-- 7획: '울'의 ㄹ 받침 (완벽 작동 확인된 구간 - 원본 그대로 유지) -->
             <g clip-path="url(#clip-noul-7)">
               <path class="noul-brush-stroke stroke-7" pathLength="100" d="M 510,514.5 L 856.5,514.5 L 856.5,575.5 L 553.5,575.5 L 553.5,636.5 L 910,636.5" stroke="#ffffff" stroke-width="54" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
             </g>
