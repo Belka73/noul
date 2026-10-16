@@ -37,7 +37,7 @@
 
   <main class="app-viewport box-border">
 
-    <!-- 🌟 표지 & 메뉴 화면이 함께 공유하는 부유 입자 및 물결 인터랙션 캔버스 -->
+    <!-- 🌟 표지 & 메뉴 화면이 함께 공유하는 부유 입자(파티클) 및 물결 인터랙션 캔버스 -->
     <canvas id="cover-wave-canvas" class="absolute inset-0 w-full h-full z-[5] pointer-events-auto"></canvas>
 
     <!-- 0. 표지 화면 -->
@@ -121,7 +121,7 @@
       </footer>
     </section>
 
-    <!-- 0.5 메뉴 선택 화면 -->
+    <!-- 0.5 메뉴 선택 화면 (상단 로고/문장 및 하단 영어 제거, 정중앙 배치 복원) -->
     <section id="screen-menu" class="screen flex-col flex-1 justify-between py-6 px-4 text-center relative z-20 w-full pointer-events-none">
       <button id="btn-menu-back" type="button" class="app-back-btn pointer-events-auto">
         <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -129,29 +129,17 @@
         </svg>
       </button>
 
-      <!-- 🌟 메뉴 상단 미니 로고 & 감성 문구 헤더 -->
-      <header class="menu-header-brand w-full relative pt-8 pb-1 flex flex-col items-center justify-center flex-shrink-0 z-10 pointer-events-none">
-        <svg class="w-[74px] h-auto opacity-85 drop-shadow-[0_0_12px_rgba(255,255,255,0.35)]" viewBox="0 0 1000 750" fill="none" xmlns="http://www.w3.org/2000/svg">
-          <path d="M 92,106 L 140,106 L 140,432 C 182,433 260,432 352,416 L 352,476 C 255,492 176,493 92,493 Z" fill="#ffffff"/>
-          <rect x="255" y="240" width="150" height="46" fill="#ffffff"/>
-          <rect x="405" y="94" width="47" height="410" fill="#ffffff"/>
-          <path fill-rule="evenodd" clip-rule="evenodd" d="M 705,254 C 825,254 884,286 884,330 C 884,374 825,406 705,406 C 585,406 526,374 526,330 C 526,286 585,254 705,254 Z M 705,296 C 618,296 575,314 575,330 C 575,346 618,364 705,364 C 792,364 835,346 835,330 C 835,314 792,296 705,296 Z" fill="#ffffff"/>
-          <rect x="503" y="420" width="405" height="38" fill="#ffffff"/>
-          <rect x="682" y="458" width="47" height="38" fill="#ffffff"/>
-          <path d="M 530,496 L 880,496 L 880,594 L 577,594 L 577,618 L 888,618 L 888,655 L 530,655 L 530,557 L 833,557 L 833,533 L 530,533 Z" fill="#ffffff"/>
-        </svg>
-        <p class="text-[11px] text-neutral-400 mt-2 font-normal tracking-wide">머물고 싶은 순간을 선택해 보세요</p>
-      </header>
+      <header class="w-full relative h-10 flex items-center justify-center flex-shrink-0"></header>
 
       <div class="w-full max-w-[270px] mx-auto my-auto flex flex-col gap-2.5 flex-1 justify-center py-4 relative z-10 pointer-events-auto">
-        <button id="menu-btn-create" type="button" class="menu-glass-card menu-primary-card w-full py-4 px-3">
-          <div class="w-7 h-7 mb-1.5 flex items-center justify-center text-white">
+        <button id="menu-btn-create" type="button" class="menu-glass-card menu-primary-card w-full py-3.5 px-3">
+          <div class="w-6 h-6 mb-1.5 flex items-center justify-center text-white">
             <svg class="w-5 h-5 menu-butterfly-icon" viewBox="0 0 100 100" fill="currentColor">
               <path d="M 50,45 C 44,28 20,15 8,30 C -2,42 6,65 24,72 C 8,80 16,98 34,98 C 46,98 50,75 50,65 C 50,75 54,98 66,98 C 84,98 92,80 76,72 C 94,65 102,42 92,30 C 80,15 56,28 50,45 Z" />
             </svg>
           </div>
           <h3 class="text-sm font-bold text-white tracking-tight">나비 만들기</h3>
-          <p class="text-[11px] text-neutral-300 mt-0.5 font-normal tracking-tight">내면의 고치에서 나비를 깨웁니다.</p>
+          <p class="text-[11px] text-neutral-400 mt-0.5 font-normal tracking-tight">내면의 고치에서 나비를 깨웁니다.</p>
         </button>
 
         <button id="menu-btn-browse" type="button" class="menu-glass-card w-full py-3.5 px-3">
@@ -186,7 +174,7 @@
         </div>
       </div>
 
-      <div class="pb-3 text-[10.5px] text-neutral-500/70 tracking-widest font-light z-10 pointer-events-none">NOUL EXHIBITION</div>
+      <div class="pb-3 text-[11px] text-neutral-500 font-mono"></div>
     </section>
 
     <!-- 0.55 나비 둘러보기 -->
