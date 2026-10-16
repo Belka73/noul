@@ -1190,6 +1190,7 @@ var silkRibbons = []; // 🌟 중간에 점/구슬이 맺히지 않는 매끄러
 var activeRibbon = null;
 var isCoverPointerDown = false;
 var pointerMoveListener = null, pointerDownListener = null, pointerUpListener = null;
+var touchStartListener = null, touchMoveListener = null, touchEndListener = null;
 
 function resizeCoverWaveCanvas() {
   var canvas = document.getElementById('cover-wave-canvas');
@@ -1221,9 +1222,7 @@ function initCoverWaveCanvas() {
   silkRibbons = [];
   activeRibbon = null;
 
-  function getCanvasPos(e) {
-    var clientX = e.clientX !== undefined ? e.clientX : (e.touches && e.touches[0] ? e.touches[0].clientX : -999);
-    var clientY = e.clientY !== undefined ? e.clientY : (e.touches && e.touches[0] ? e.touches[0].clientY : -999);
+  function getCanvasPos(clientX, clientY) {
     var rect = canvas.getBoundingClientRect();
     return {
       x: clientX - rect.left,
@@ -1232,8 +1231,8 @@ function initCoverWaveCanvas() {
     };
   }
 
-  pointerDownListener = function(e) {
-    var pos = getCanvasPos(e);
+  function startRibbonAt(clientX, clientY) {
+    var pos = getCanvasPos(clientX, clientY);
     if (!pos.valid) return;
     isCoverPointerDown = true;
 
@@ -1244,11 +1243,10 @@ function initCoverWaveCanvas() {
     };
     silkRibbons.push(activeRibbon);
     if (silkRibbons.length > 6) silkRibbons.shift();
-  };
+  }
 
-  pointerMoveListener = function(e) {
-    if (!isCoverPointerDown && e.pointerType === 'touch') return;
-    var pos = getCanvasPos(e);
+  function moveRibbonAt(clientX, clientY) {
+    var pos = getCanvasPos(clientX, clientY);
     if (!pos.valid) return;
 
     if (!activeRibbon) {
@@ -1259,7 +1257,7 @@ function initCoverWaveCanvas() {
 
     var pts = activeRibbon.points;
     var lastPt = pts.length > 0 ? pts[pts.length - 1] : null;
-    if (!lastPt || Math.hypot(pos.x - lastPt.x, pos.y - lastPt.y) > 4) {
+    if (!lastPt || Math.hypot(pos.x - lastPt.x, pos.y - lastPt.y) > 2.5) {
       var smoothX = lastPt ? (lastPt.x * 0.28 + pos.x * 0.72) : pos.x;
       var smoothY = lastPt ? (lastPt.y * 0.28 + pos.y * 0.72) : pos.y;
       pts.push({
@@ -1268,57 +1266,96 @@ function initCoverWaveCanvas() {
         age: 0,
         phase: (pts.length * 0.3)
       });
-      if (pts.length > 14) {
+      if (pts.length > 16) {
         pts.shift();
       }
     }
-  };
+  }
 
-  pointerUpListener = function() {
+  function endRibbon() {
     isCoverPointerDown = false;
     activeRibbon = null;
+  }
+
+  // PC 마우스 전용 포인터 리스너 (터치는 아래 touch 이벤트에서 전담)
+  pointerDownListener = function(e) {
+    if (e.pointerType === 'touch') return;
+    startRibbonAt(e.clientX, e.clientY);
+  };
+
+  pointerMoveListener = function(e) {
+    if (e.pointerType === 'touch') return;
+    moveRibbonAt(e.clientX, e.clientY);
+  };
+
+  pointerUpListener = function(e) {
+    if (e && e.pointerType === 'touch') return;
+    endRibbon();
+  };
+
+  // 모바일(iOS + 갤럭시 안드로이드) 전용 터치 리스너
+  touchStartListener = function(e) {
+    if (e.touches && e.touches.length > 0) {
+      startRibbonAt(e.touches[0].clientX, e.touches[0].clientY);
+    }
+  };
+
+  touchMoveListener = function(e) {
+    if (e.touches && e.touches.length > 0) {
+      moveRibbonAt(e.touches[0].clientX, e.touches[0].clientY);
+    }
+  };
+
+  touchEndListener = function() {
+    endRibbon();
   };
 
   window.addEventListener('pointerdown', pointerDownListener, { passive: true });
   window.addEventListener('pointermove', pointerMoveListener, { passive: true });
   window.addEventListener('pointerup', pointerUpListener, { passive: true });
-  window.addEventListener('pointercancel', pointerUpListener, { passive: true });
+
+  window.addEventListener('touchstart', touchStartListener, { passive: true });
+  window.addEventListener('touchmove', touchMoveListener, { passive: true });
+  window.addEventListener('touchend', touchEndListener, { passive: true });
+  window.addEventListener('touchcancel', touchEndListener, { passive: true });
 
   var waveTime = 0;
-  var MAX_RIBBON_AGE = 34;
+  var MAX_RIBBON_AGE = 48;
 
   function getSingleSmoothedSpine(pts) {
     var len = pts.length;
     var raw = [];
     for (var i = 0; i < len; i++) {
       var p = pts[i];
-      var env = Math.sin((i / (len - 1)) * Math.PI);
+      var env = len > 1 ? Math.sin((i / (len - 1)) * Math.PI) : 0;
       var waveOffset = Math.sin(waveTime * 2.0 + p.phase) * 3.5 * env;
       raw.push({
         x: p.x + waveOffset,
-        y: p.y - (p.age * 0.25) + Math.cos(waveTime * 1.6 + p.phase) * 2.0 * env,
+        y: p.y - (p.age * 0.22) + Math.cos(waveTime * 1.6 + p.phase) * 2.0 * env,
         age: p.age
       });
     }
 
-    for (var pass = 0; pass < 2; pass++) {
-      var next = [raw[0]];
-      for (var j = 1; j < len - 1; j++) {
-        next.push({
-          x: raw[j - 1].x * 0.25 + raw[j].x * 0.5 + raw[j + 1].x * 0.25,
-          y: raw[j - 1].y * 0.25 + raw[j].y * 0.5 + raw[j + 1].y * 0.25,
-          age: raw[j].age
-        });
+    if (len >= 3) {
+      for (var pass = 0; pass < 2; pass++) {
+        var next = [raw[0]];
+        for (var j = 1; j < len - 1; j++) {
+          next.push({
+            x: raw[j - 1].x * 0.25 + raw[j].x * 0.5 + raw[j + 1].x * 0.25,
+            y: raw[j - 1].y * 0.25 + raw[j].y * 0.5 + raw[j + 1].y * 0.25,
+            age: raw[j].age
+          });
+        }
+        next.push(raw[len - 1]);
+        raw = next;
       }
-      next.push(raw[len - 1]);
-      raw = next;
     }
     return raw;
   }
 
   // 🌟 선분 마디마다 끊어서 stroke()를 호출할 때 round cap이 겹쳐 점처럼 보이던 현상을 완벽히 제거하고, 처음부터 끝까지 단 하나의 이어진 경로로 매끄럽게 그리는 렌더러
   function drawUnifiedSmoothRibbon(pts) {
-    if (pts.length < 3) return;
+    if (pts.length < 2) return;
     var sPts = getSingleSmoothedSpine(pts);
     var len = sPts.length;
 
@@ -1330,13 +1367,13 @@ function initCoverWaveCanvas() {
     var startPt = sPts[0];
     var endPt = sPts[len - 1];
     var dist = Math.hypot(endPt.x - startPt.x, endPt.y - startPt.y);
-    if (dist < 2) return;
+    if (dist < 1.5) return;
 
     var gradPasses = [
-      { width: 22.0, alpha: 0.032, r: 205, g: 230, b: 255 },
-      { width: 12.0, alpha: 0.055, r: 220, g: 238, b: 255 },
-      { width: 6.0,  alpha: 0.088, r: 240, g: 248, b: 255 },
-      { width: 2.2,  alpha: 0.145, r: 255, g: 255, b: 255 }
+      { width: 22.0, alpha: 0.038, r: 205, g: 230, b: 255 },
+      { width: 12.0, alpha: 0.065, r: 220, g: 238, b: 255 },
+      { width: 6.0,  alpha: 0.105, r: 240, g: 248, b: 255 },
+      { width: 2.2,  alpha: 0.175, r: 255, g: 255, b: 255 }
     ];
 
     ctx.lineCap = 'round';
@@ -1416,7 +1453,7 @@ function initCoverWaveCanvas() {
         continue;
       }
 
-      if (pts.length >= 3) {
+      if (pts.length >= 2) {
         drawUnifiedSmoothRibbon(pts);
       }
     }
@@ -1440,8 +1477,20 @@ function stopCoverWaveCanvas() {
   }
   if (pointerUpListener) {
     window.removeEventListener('pointerup', pointerUpListener);
-    window.removeEventListener('pointercancel', pointerUpListener);
     pointerUpListener = null;
+  }
+  if (touchStartListener) {
+    window.removeEventListener('touchstart', touchStartListener);
+    touchStartListener = null;
+  }
+  if (touchMoveListener) {
+    window.removeEventListener('touchmove', touchMoveListener);
+    touchMoveListener = null;
+  }
+  if (touchEndListener) {
+    window.removeEventListener('touchend', touchEndListener);
+    window.removeEventListener('touchcancel', touchEndListener);
+    touchEndListener = null;
   }
   silkRibbons = [];
   activeRibbon = null;

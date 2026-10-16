@@ -16,6 +16,7 @@ html, body {
   height: 100vh;
   height: 100dvh;
   overflow: hidden;
+  overscroll-behavior: none;
   background-color: #000000;
   color: #ffffff;
   font-family: -apple-system, BlinkMacSystemFont, "Pretendard Variable", Pretendard, Roboto, "Segoe UI", sans-serif;
@@ -48,6 +49,17 @@ html, body {
 
 .screen.active {
   display: flex;
+}
+
+#screen-cover,
+#screen-menu {
+  touch-action: none;
+}
+
+#screen-gallery,
+#screen-intro,
+#screen-guide {
+  touch-action: pan-y;
 }
 
 .cover-viewport {
