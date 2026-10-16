@@ -571,7 +571,7 @@
     const dustTexture = new THREE.CanvasTexture(dustCanvas);
     dustTexture.needsUpdate = true;
 
-    // 🌟 나비 후광(Halo) 공유 스프라이트 재질 (순수 무채색 화이트 광원)
+    // 🌟 특수 나비(손가락/세레머니) 전용 후광(Halo) 공유 스프라이트 재질 (순수 무채색 화이트 광원)
     const sharedHaloMat = new THREE.SpriteMaterial({
       map: dustTexture,
       color: 0xffffff,
@@ -780,11 +780,14 @@
       const group = new THREE.Group();
       const innerGroup = new THREE.Group(); 
 
-      // 🌟 나비 몸통 뒤편에 은은한 무채색 후광(Halo) 스프라이트 부착
-      const haloSprite = new THREE.Sprite(sharedHaloMat);
-      haloSprite.scale.set(5.5, 5.5, 1.0);
-      haloSprite.position.set(0, 0, -0.2);
-      innerGroup.add(haloSprite);
+      // 🌟 손가락으로 불러오거나(isFingerTarget) 사용자가 날려서 나오는 세레머니 나비(isCeremony)에만 후광(Halo) 부착
+      let haloSprite = null;
+      if (isFingerTarget || isCeremony) {
+        haloSprite = new THREE.Sprite(sharedHaloMat);
+        haloSprite.scale.set(5.5, 5.5, 1.0);
+        haloSprite.position.set(0, 0, -0.2);
+        innerGroup.add(haloSprite);
+      }
 
       const shapeId = data.wing_shape || DEFAULT_BUTTERFLY_SHAPES[Math.floor(Math.random() * DEFAULT_BUTTERFLY_SHAPES.length)];
       const antId = data.antenna_type || 'ball';
@@ -921,7 +924,7 @@
         isUser: isUser,
         isDisposed: false,
         textureURL: textureURL || null,
-        group, innerGroup, leftWing, rightWing,
+        group, innerGroup, leftWing, rightWing, haloSprite,
         velocity: initialVelocity,
         speed: flapSpeed,
         seed: Math.random() * 1000,
@@ -1308,6 +1311,10 @@
               if (b.group.position.y > 8.5 || b.takeoffTimer > 6.5) {
                   b.isCeremony = false;
                   b.ceremonyStage = null;
+                  if (b.haloSprite) {
+                      b.innerGroup.remove(b.haloSprite);
+                      b.haloSprite = null;
+                  }
                   b.group.position.z = -0.5 - Math.random() * 5.0;
                   b.innerGroup.rotation.x = Math.PI / 2;
                   b.innerGroup.rotation.y = Math.PI;
