@@ -69,7 +69,7 @@ html, body {
   z-index: 0;
   pointer-events: none;
   opacity: 0;
-  animation: coverBgFadeIn 0.8s cubic-bezier(0.16, 1, 0.3, 1) 0.7s forwards;
+  animation: coverBgFadeIn 1.2s cubic-bezier(0.16, 1, 0.3, 1) 1.4s forwards;
 }
 
 @keyframes coverBgFadeIn {
@@ -86,13 +86,13 @@ html, body {
 .cover-anim-desc {
   opacity: 0;
   transform: translateY(6px);
-  animation: coverElemFadeInUp 0.6s cubic-bezier(0.16, 1, 0.3, 1) 0.5s forwards;
+  animation: coverElemFadeInUp 0.9s cubic-bezier(0.16, 1, 0.3, 1) 2.2s forwards;
 }
 
 .cover-anim-btn {
   opacity: 0;
   transform: translateY(14px);
-  animation: coverElemFadeInUp 0.7s cubic-bezier(0.16, 1, 0.3, 1) 1.0s forwards;
+  animation: coverElemFadeInUp 0.9s cubic-bezier(0.16, 1, 0.3, 1) 2.8s forwards;
 }
 
 @keyframes coverElemFadeInUp {
@@ -1599,8 +1599,8 @@ html, body {
 
 /* 1. 표지 배경 이미지가 초기 페이드인 이후 은은하게 숨 쉬는 효과 (GPU 가속) */
 .cover-viewport::before {
-  animation: coverBgFadeIn 0.8s cubic-bezier(0.16, 1, 0.3, 1) 0.7s forwards,
-             coverBgBreathe 9s ease-in-out 1.5s infinite alternate;
+  animation: coverBgFadeIn 1.2s cubic-bezier(0.16, 1, 0.3, 1) 1.4s forwards,
+             coverBgBreathe 9s ease-in-out 2.6s infinite alternate;
   will-change: transform, opacity;
 }
 
@@ -1609,46 +1609,46 @@ html, body {
   100% { opacity: 0.52; transform: scale(1.12); }
 }
 
-/* 2. '너울' SVG 로고: clipPath 내부에서 중심선 브러시가 부드럽게 가속했다가 감속하며 써지는 연출 */
+/* 2. '너울' SVG 로고: 처음에 아주 천천히 시작 -> 중간에 갑자기 빨라짐 -> 마지막에 완전 느려지는 연출 */
 .noul-brush-stroke {
   stroke-dasharray: 105;
   stroke-dashoffset: 105;
   will-change: stroke-dashoffset;
 }
 
-/* [도입부 - 천천히 시작하여 점점 가속] 1획: '너'의 ㄴ (위->아래->오른쪽 곡선) */
+/* [초반 - 아주 천천히 시작하다가 끝에서 급가속] 1획: '너'의 ㄴ (1.15초 동안 깊은 호흡으로 시작) */
 .noul-brush-stroke.noul-neo-1 {
-  animation: noulBrushWrite 0.48s cubic-bezier(0.50, 0.05, 0.25, 1) 0.15s forwards;
+  animation: noulBrushWrite 1.15s cubic-bezier(0.78, 0.0, 0.22, 1) 0.20s forwards;
 }
 
-/* [가속 구간 - 물 흐르듯 빠르게 연결] 2획: '너'의 ㅓ 가로획 (좌->우) */
+/* [급가속 진입 구간 - 갑자기 빨라짐] 2획: '너'의 ㅓ 가로획 (좌->우) */
 .noul-brush-stroke.noul-neo-2 {
-  animation: noulBrushWrite 0.18s cubic-bezier(0.35, 0, 0.25, 1) 0.57s forwards;
+  animation: noulBrushWrite 0.20s cubic-bezier(0.25, 0.1, 0.25, 1) 1.28s forwards;
 }
 
-/* [최고 속도 구간] 3획: '너'의 ㅓ 세로획 (상->하) */
+/* [최고 속도 질주 구간] 3획: '너'의 ㅓ 세로획 (상->하) */
 .noul-brush-stroke.noul-neo-3 {
-  animation: noulBrushWrite 0.25s cubic-bezier(0.30, 0, 0.25, 1) 0.70s forwards;
+  animation: noulBrushWrite 0.26s cubic-bezier(0.20, 0, 0.20, 1) 1.43s forwards;
 }
 
-/* [최고 속도 유지하며 회전] 4획: '울'의 ㅇ (12시에서 반시계 방향 한 바퀴 회전) */
+/* [빠른 속도 유지하며 회전] 4획: '울'의 ㅇ (12시에서 반시계 방향 한 바퀴 회전) */
 .noul-brush-stroke.stroke-4 {
-  animation: noulBrushWrite 0.30s cubic-bezier(0.35, 0, 0.25, 1) 0.90s forwards;
+  animation: noulBrushWrite 0.32s cubic-bezier(0.25, 0.1, 0.25, 1) 1.63s forwards;
 }
 
 /* [빠르게 가로지름] 5획: '울'의 ㅜ 가로획 (좌->우) */
 .noul-brush-stroke.stroke-5 {
-  animation: noulBrushWrite 0.20s cubic-bezier(0.30, 0, 0.30, 1) 1.15s forwards;
+  animation: noulBrushWrite 0.22s cubic-bezier(0.25, 0.1, 0.30, 1) 1.89s forwards;
 }
 
-/* [짧고 매끄러운 연결] 6획: '울'의 ㅜ 세로획 (상->하) */
+/* [감속 직전 연결] 6획: '울'의 ㅜ 세로획 (상->하) */
 .noul-brush-stroke.stroke-6 {
-  animation: noulBrushWrite 0.14s cubic-bezier(0.30, 0, 0.35, 1) 1.30s forwards;
+  animation: noulBrushWrite 0.18s cubic-bezier(0.25, 0.1, 0.35, 1) 2.06s forwards;
 }
 
-/* [우아하고 부드러운 최종 감속 마무리] 7획: '울'의 ㄹ 받침 (한 번에 이어 그리며 끝에서 서서히 감속) */
+/* [종반 - 빠르게 진입 후 마지막 끝획에서 완전 느려지며 멈춤] 7획: '울'의 ㄹ 받침 (1.72초 동안 깊은 감속) */
 .noul-brush-stroke.stroke-7 {
-  animation: noulBrushWrite 0.62s cubic-bezier(0.16, 1, 0.3, 1) 1.38s forwards;
+  animation: noulBrushWrite 1.72s cubic-bezier(0.05, 0.86, 0.12, 1) 2.18s forwards;
 }
 
 @keyframes noulBrushWrite {
