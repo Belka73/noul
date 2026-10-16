@@ -118,11 +118,15 @@ function showScreen(screenId) {
     target.classList.add('active');
     target.style.display = 'flex';
     try {
-      if (screenId !== 'screen-cover') {
+      // 🌟 표지(screen-cover)와 메뉴(screen-menu) 화면이 아닐 때만 물결 캔버스 중지
+      if (screenId !== 'screen-cover' && screenId !== 'screen-menu') {
         stopCoverWaveCanvas();
       }
-      if (screenId === 'screen-cover') {
-        stopBubblePhysics(); stopLoading3DScene(); stopShare3DScene(); stopTop7PhysicsScene(); initCoverWaveCanvas();
+      if (screenId === 'screen-cover' || screenId === 'screen-menu') {
+        stopBubblePhysics(); stopLoading3DScene(); stopShare3DScene(); stopTop7PhysicsScene();
+        if (typeof coverAnimId === 'undefined' || !coverAnimId) {
+          initCoverWaveCanvas();
+        }
       } else if (screenId === 'screen-opening') {
         lastSavedButterflyId = null;
         stopBubblePhysics(); stopLoading3DScene(); stopShare3DScene(); stopTop7PhysicsScene(); resetOpeningFlow();
@@ -1576,7 +1580,7 @@ window.addEventListener('resize', function() {
   var activeScreen = document.querySelector('.screen.active');
   if (activeScreen && activeScreen.id === 'screen-survey' && currentStepIdx === 2) {
     resizeBubblePhysicsCanvas();
-  } else if (activeScreen && activeScreen.id === 'screen-cover') {
+  } else if (activeScreen && (activeScreen.id === 'screen-cover' || activeScreen.id === 'screen-menu')) {
     resizeCoverWaveCanvas();
   }
 });

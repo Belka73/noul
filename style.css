@@ -51,7 +51,7 @@ html, body {
 }
 
 .cover-viewport {
-  background-color: #000000;
+  background-color: transparent;
   position: relative;
   overflow: hidden;
 }
@@ -185,12 +185,51 @@ html, body {
 }
 
 #screen-menu {
+  background-color: transparent;
+  overflow: hidden;
   transition: transform 2.2s cubic-bezier(0.22, 1, 0.36, 1), filter 2.2s cubic-bezier(0.22, 1, 0.36, 1), opacity 2.2s ease;
 }
 #screen-menu.dramatic-exit {
   transform: scale(0.92);
   filter: blur(10px);
   opacity: 0;
+}
+
+/* 🌟 메뉴 페이지 전용: 첫 페이지의 여운을 잇는 은은한 배경 이미지 + GPU 가속 오라 */
+#screen-menu::before {
+  content: '';
+  position: absolute;
+  inset: -12px;
+  background-image: url('image/cover-bg.png');
+  background-size: cover;
+  background-position: center center;
+  background-repeat: no-repeat;
+  filter: blur(6px);
+  transform: scale(1.08);
+  opacity: 0.22;
+  z-index: 0;
+  pointer-events: none;
+}
+
+#screen-menu::after {
+  content: '';
+  position: absolute;
+  inset: -25%;
+  background: radial-gradient(
+    circle at 50% 44%,
+    rgba(255, 255, 255, 0.08) 0%,
+    rgba(185, 215, 255, 0.04) 36%,
+    rgba(0, 0, 0, 0) 70%
+  );
+  pointer-events: none;
+  z-index: 1;
+  animation: menuAuraBreathe 6.5s ease-in-out infinite alternate;
+  will-change: transform, opacity;
+}
+
+@keyframes menuAuraBreathe {
+  0%   { opacity: 0.55; transform: scale(0.94); }
+  100% { opacity: 1.0; transform: scale(1.08); }
 }
 
 @keyframes galleryScreenSmoothFade {
@@ -224,16 +263,51 @@ html, body {
   }
 }
 
+#screen-menu.active .menu-header-brand {
+  animation: menuItemFadeIn 0.55s cubic-bezier(0.16, 1, 0.3, 1) 0.02s both;
+}
+
 .menu-glass-card {
-  background: rgba(255, 255, 255, 0.04);
-  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.045);
+  border: 1px solid rgba(255, 255, 255, 0.13);
   border-radius: 1.25rem;
   display: flex;
   flex-direction: column;
   align-items: center;
   text-align: center;
   cursor: pointer;
-  transition: transform 0.25s ease, background 0.25s ease, border-color 0.25s ease;
+  position: relative;
+  overflow: hidden;
+  transition: transform 0.25s ease, background 0.25s ease, border-color 0.25s ease, box-shadow 0.25s ease;
+}
+
+/* 🌟 핵심 동선인 '나비 만들기' 카드에 과하지 않은 고급 유리 광택 & 나비 부유 포인트 */
+.menu-primary-card {
+  background: linear-gradient(145deg, rgba(255, 255, 255, 0.10) 0%, rgba(255, 255, 255, 0.03) 100%);
+  border-color: rgba(255, 255, 255, 0.24);
+  box-shadow: 0 8px 28px -8px rgba(255, 255, 255, 0.09);
+}
+
+.menu-primary-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 18%;
+  right: 18%;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.55), transparent);
+  pointer-events: none;
+}
+
+.menu-butterfly-icon {
+  filter: drop-shadow(0 0 8px rgba(255, 255, 255, 0.5));
+  animation: menuIconFloat 3.2s ease-in-out infinite alternate;
+  will-change: transform;
+}
+
+@keyframes menuIconFloat {
+  0%   { transform: translateY(1px) scale(0.98); }
+  100% { transform: translateY(-3px) scale(1.05); }
 }
 
 .menu-glass-square {
@@ -255,10 +329,15 @@ html, body {
   animation: menuItemFadeIn 0.5s cubic-bezier(0.16, 1, 0.3, 1) 0.32s both;
 }
 
+.menu-glass-card:hover {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 255, 255, 0.26);
+}
+
 .menu-glass-card:active {
   transform: scale(0.97);
-  background: rgba(255, 255, 255, 0.08);
-  border-color: rgba(255, 255, 255, 0.25);
+  background: rgba(255, 255, 255, 0.11);
+  border-color: rgba(255, 255, 255, 0.32);
 }
 
 #screen-guide {
