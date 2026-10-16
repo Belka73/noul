@@ -29,6 +29,17 @@ var ALL_SCREENS = [
   'screen-loading', 'screen-preview', 'screen-complete', 'screen-share'
 ];
 
+// 🌟 '나비 만들기' 내부 과정 페이지들을 제외한 5개 페이지에서만 배경 입자 및 손끝 윤슬 이펙트 허용
+function isCoverWaveAllowed(screenId) {
+  return (
+    screenId === 'screen-cover' ||
+    screenId === 'screen-menu' ||
+    screenId === 'screen-gallery' ||
+    screenId === 'screen-intro' ||
+    screenId === 'screen-guide'
+  );
+}
+
 var showcaseInterval = null;
 var currentStepIdx = 0;
 var userSelections = { q1: [], q2: [], q1_custom: "", q2_custom: "", core_concern: "", concern_reason: "", q6_memo: "", q7_name: "" };
@@ -118,15 +129,17 @@ function showScreen(screenId) {
     target.classList.add('active');
     target.style.display = 'flex';
     try {
-      // 🌟 표지(screen-cover)와 메뉴(screen-menu) 화면이 아닐 때만 물결 캔버스 중지
-      if (screenId !== 'screen-cover' && screenId !== 'screen-menu') {
-        stopCoverWaveCanvas();
-      }
-      if (screenId === 'screen-cover' || screenId === 'screen-menu') {
-        stopBubblePhysics(); stopLoading3DScene(); stopShare3DScene(); stopTop7PhysicsScene();
+      // 🌟 '나비 만들기' 외의 페이지(표지, 메뉴, 둘러보기, 전시소개, 관람안내)에서는 캔버스 유지, 그 외에는 중지
+      if (isCoverWaveAllowed(screenId)) {
         if (typeof coverAnimId === 'undefined' || !coverAnimId) {
           initCoverWaveCanvas();
         }
+      } else {
+        stopCoverWaveCanvas();
+      }
+
+      if (screenId === 'screen-cover' || screenId === 'screen-menu' || screenId === 'screen-intro' || screenId === 'screen-guide') {
+        stopBubblePhysics(); stopLoading3DScene(); stopShare3DScene(); stopTop7PhysicsScene();
       } else if (screenId === 'screen-opening') {
         lastSavedButterflyId = null;
         stopBubblePhysics(); stopLoading3DScene(); stopShare3DScene(); stopTop7PhysicsScene(); resetOpeningFlow();
@@ -1580,7 +1593,7 @@ window.addEventListener('resize', function() {
   var activeScreen = document.querySelector('.screen.active');
   if (activeScreen && activeScreen.id === 'screen-survey' && currentStepIdx === 2) {
     resizeBubblePhysicsCanvas();
-  } else if (activeScreen && (activeScreen.id === 'screen-cover' || activeScreen.id === 'screen-menu')) {
+  } else if (activeScreen && isCoverWaveAllowed(activeScreen.id)) {
     resizeCoverWaveCanvas();
   }
 });

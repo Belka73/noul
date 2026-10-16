@@ -37,8 +37,8 @@
 
   <main class="app-viewport box-border">
 
-    <!-- 🌟 표지 & 메뉴 화면이 함께 공유하는 부유 입자(파티클) 및 물결 인터랙션 캔버스 -->
-    <canvas id="cover-wave-canvas" class="absolute inset-0 w-full h-full z-[5] pointer-events-auto"></canvas>
+    <!-- 🌟 나비 만들기 외 모든 페이지(표지, 메뉴, 둘러보기, 전시소개, 관람안내)에서 공유하는 부유 입자 & 손끝 윤슬 별가루 캔버스 (클릭 및 스크롤을 방해하지 않도록 pointer-events-none 적용) -->
+    <canvas id="cover-wave-canvas" class="absolute inset-0 w-full h-full z-30 pointer-events-none"></canvas>
 
     <!-- 0. 표지 화면 -->
     <section id="screen-cover" class="screen active cover-viewport flex-col justify-between py-6 text-center z-20 pointer-events-none">

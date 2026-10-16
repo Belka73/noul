@@ -1705,24 +1705,3 @@ html, body {
   0%   { opacity: 1; transform: translateY(0px); }
   100% { opacity: 1; transform: translateY(-7px); }
 }
-
-/* 3. '시작하기' 버튼 뒤로 퍼져나가는 은은한 빛 파동(Pulse) 오라 효과 */
-#btn-start-cover {
-  position: relative;
-  overflow: visible;
-}
-
-#btn-start-cover::after {
-  content: '';
-  position: absolute;
-  inset: 0;
-  border-radius: 1rem;
-  border: 1.5px solid rgba(255, 255, 255, 0.6);
-  pointer-events: none;
-  animation: startBtnPulse 2.4s cubic-bezier(0.16, 1, 0.3, 1) infinite;
-}
-
-@keyframes startBtnPulse {
-  0%   { transform: scale(1); opacity: 0.65; }
-  100% { transform: scale(1.08, 1.32); opacity: 0; }
-}

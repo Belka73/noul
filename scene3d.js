@@ -1108,7 +1108,9 @@ function stopBubblePhysics() {
 
 var coverAnimId = null;
 var coverParticles = [];
-var coverRipples = [];
+var sparkleTrails = []; // 🌟 시안 B: 손끝 윤슬 별가루(인분) 궤적 배열
+var globalPointerX = -999, globalPointerY = -999, isCoverPointerDown = false;
+var pointerMoveListener = null, pointerDownListener = null, pointerUpListener = null;
 
 function resizeCoverWaveCanvas() {
   var canvas = document.getElementById('cover-wave-canvas');
@@ -1126,7 +1128,7 @@ function initCoverWaveCanvas() {
   var h = (canvas.height = canvas.clientHeight || window.innerHeight);
 
   coverParticles = [];
-  for (var i = 0; i < 25; i++) {
+  for (var i = 0; i < 28; i++) {
     coverParticles.push({
       x: Math.random() * w,
       y: Math.random() * h,
@@ -1137,15 +1139,66 @@ function initCoverWaveCanvas() {
     });
   }
 
-  canvas.onpointerdown = function(e) {
+  sparkleTrails = [];
+
+  // 🌟 캔버스가 pointer-events-none이므로 window 전역에서 터치/마우스 위치를 안전하게 추적
+  pointerMoveListener = function(e) {
+    var clientX = e.clientX || (e.touches && e.touches[0] ? e.touches[0].clientX : 0);
+    var clientY = e.clientY || (e.touches && e.touches[0] ? e.touches[0].clientY : 0);
     var rect = canvas.getBoundingClientRect();
-    coverRipples.push({
-      x: e.clientX - rect.left,
-      y: e.clientY - rect.top,
-      r: 4,
-      alpha: 0.55
-    });
+    globalPointerX = clientX - rect.left;
+    globalPointerY = clientY - rect.top;
+
+    if (isCoverPointerDown && globalPointerX >= 0 && globalPointerX <= rect.width && globalPointerY >= 0 && globalPointerY <= rect.height) {
+      for (var k = 0; k < 2; k++) {
+        sparkleTrails.push({
+          x: globalPointerX + (Math.random() - 0.5) * 16,
+          y: globalPointerY + (Math.random() - 0.5) * 16,
+          vx: (Math.random() - 0.5) * 1.2,
+          vy: (Math.random() - 0.5) * 1.2 - 0.4,
+          size: Math.random() * 3.2 + 1.5,
+          alpha: 1.0,
+          decay: Math.random() * 0.035 + 0.02,
+          rotation: Math.random() * Math.PI
+        });
+      }
+    }
   };
+
+  pointerDownListener = function(e) {
+    isCoverPointerDown = true;
+    var clientX = e.clientX || (e.touches && e.touches[0] ? e.touches[0].clientX : 0);
+    var clientY = e.clientY || (e.touches && e.touches[0] ? e.touches[0].clientY : 0);
+    var rect = canvas.getBoundingClientRect();
+    globalPointerX = clientX - rect.left;
+    globalPointerY = clientY - rect.top;
+
+    if (globalPointerX >= 0 && globalPointerX <= rect.width && globalPointerY >= 0 && globalPointerY <= rect.height) {
+      for (var k = 0; k < 5; k++) {
+        sparkleTrails.push({
+          x: globalPointerX + (Math.random() - 0.5) * 20,
+          y: globalPointerY + (Math.random() - 0.5) * 20,
+          vx: (Math.random() - 0.5) * 1.8,
+          vy: (Math.random() - 0.5) * 1.8 - 0.5,
+          size: Math.random() * 3.8 + 1.8,
+          alpha: 1.0,
+          decay: Math.random() * 0.03 + 0.018,
+          rotation: Math.random() * Math.PI
+        });
+      }
+    }
+  };
+
+  pointerUpListener = function() {
+    isCoverPointerDown = false;
+  };
+
+  window.addEventListener('pointermove', pointerMoveListener, { passive: true });
+  window.addEventListener('pointerdown', pointerDownListener, { passive: true });
+  window.addEventListener('pointerup', pointerUpListener, { passive: true });
+  window.addEventListener('touchmove', pointerMoveListener, { passive: true });
+  window.addEventListener('touchstart', pointerDownListener, { passive: true });
+  window.addEventListener('touchend', pointerUpListener, { passive: true });
 
   (function renderCover() {
     coverAnimId = requestAnimationFrame(renderCover);
@@ -1153,6 +1206,7 @@ function initCoverWaveCanvas() {
     var curH = canvas.height;
     ctx.clearRect(0, 0, curW, curH);
 
+    // 1. 기본 배경 빛 입자 렌더링
     for (var i = 0; i < coverParticles.length; i++) {
       var p = coverParticles[i];
       p.x += p.vx;
@@ -1169,19 +1223,37 @@ function initCoverWaveCanvas() {
       ctx.fill();
     }
 
-    for (var j = coverRipples.length - 1; j >= 0; j--) {
-      var rp = coverRipples[j];
-      rp.r += 2.2;
-      rp.alpha *= 0.96;
-      if (rp.alpha < 0.02) {
-        coverRipples.splice(j, 1);
+    // 2. 🌟 시안 B: 손끝에서 피어나는 나비 인분·윤슬 별가루 궤적 렌더링
+    for (var j = sparkleTrails.length - 1; j >= 0; j--) {
+      var s = sparkleTrails[j];
+      s.x += s.vx;
+      s.y += s.vy;
+      s.alpha -= s.decay;
+      s.rotation += 0.04;
+
+      if (s.alpha <= 0) {
+        sparkleTrails.splice(j, 1);
         continue;
       }
+
+      ctx.save();
+      ctx.translate(s.x, s.y);
+      ctx.rotate(s.rotation);
+      ctx.fillStyle = 'rgba(255, 255, 255, ' + s.alpha + ')';
+      ctx.strokeStyle = 'rgba(200, 225, 255, ' + (s.alpha * 0.8) + ')';
+      ctx.lineWidth = 0.8;
+
+      // 4각 다이아몬드 별가루 그리기
       ctx.beginPath();
-      ctx.arc(rp.x, rp.y, rp.r, 0, Math.PI * 2);
-      ctx.strokeStyle = 'rgba(200, 225, 255, ' + rp.alpha + ')';
-      ctx.lineWidth = 1.2;
+      ctx.moveTo(0, -s.size * 1.8);
+      ctx.quadraticCurveTo(0, 0, s.size * 1.8, 0);
+      ctx.quadraticCurveTo(0, 0, 0, s.size * 1.8);
+      ctx.quadraticCurveTo(0, 0, -s.size * 1.8, 0);
+      ctx.quadraticCurveTo(0, 0, 0, -s.size * 1.8);
+      ctx.fill();
       ctx.stroke();
+
+      ctx.restore();
     }
   })();
 }
@@ -1191,7 +1263,22 @@ function stopCoverWaveCanvas() {
     cancelAnimationFrame(coverAnimId);
     coverAnimId = null;
   }
-  coverRipples = [];
+  if (pointerMoveListener) {
+    window.removeEventListener('pointermove', pointerMoveListener);
+    window.removeEventListener('touchmove', pointerMoveListener);
+    pointerMoveListener = null;
+  }
+  if (pointerDownListener) {
+    window.removeEventListener('pointerdown', pointerDownListener);
+    window.removeEventListener('touchstart', pointerDownListener);
+    pointerDownListener = null;
+  }
+  if (pointerUpListener) {
+    window.removeEventListener('pointerup', pointerUpListener);
+    window.removeEventListener('touchend', pointerUpListener);
+    pointerUpListener = null;
+  }
+  sparkleTrails = [];
   var canvas = document.getElementById('cover-wave-canvas');
   if (canvas) {
     var ctx = canvas.getContext('2d');
