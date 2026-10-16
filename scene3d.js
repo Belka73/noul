@@ -875,3 +875,326 @@ window.addEventListener('resize', function() {
     }
   }
 });
+
+// ==========================================================================
+// 🌟 2D / 물리 캔버스 시각 효과 렌더러 (app.js 분량 경량화를 위해 이동)
+// ==========================================================================
+
+var top7Engine = null;
+var top7RenderLoop = null;
+var top7Balls = [];
+var top7Boundaries = [];
+var top7GyroHandler = null;
+var top7SpawnTimeouts = [];
+
+function initTop7PhysicsScene(customKeywordList) {
+  stopTop7PhysicsScene();
+  var container = document.getElementById('top7-physics-container');
+  var canvas = document.getElementById('top7-physics-canvas');
+  if (!container || !canvas || typeof Matter === 'undefined') return;
+
+  var rect = container.getBoundingClientRect();
+  var width = rect.width || window.innerWidth;
+  var height = container.clientHeight || rect.height || (window.innerHeight - 240);
+
+  canvas.width = width;
+  canvas.height = height;
+  var ctx = canvas.getContext('2d');
+
+  var Engine = Matter.Engine,
+      Bodies = Matter.Bodies,
+      Composite = Matter.Composite,
+      Mouse = Matter.Mouse,
+      MouseConstraint = Matter.MouseConstraint;
+
+  top7Engine = Engine.create({
+    positionIterations: 10,
+    velocityIterations: 10,
+    gravity: { x: 0, y: 0.95, scale: 0.001 }
+  });
+
+  var wallThick = 500;
+  var floor = Bodies.rectangle(width / 2, height + wallThick / 2, width * 4, wallThick, { 
+    isStatic: true, restitution: 0.3, friction: 0.25 
+  });
+  var leftWall = Bodies.rectangle(-wallThick / 2, height / 2, wallThick, height * 4, { 
+    isStatic: true, restitution: 0.3, friction: 0.25 
+  });
+  var rightWall = Bodies.rectangle(width + wallThick / 2, height / 2, wallThick, height * 4, { 
+    isStatic: true, restitution: 0.3, friction: 0.25 
+  });
+
+  top7Boundaries = [floor, leftWall, rightWall];
+  Composite.add(top7Engine.world, top7Boundaries);
+
+  top7Balls = [];
+  top7SpawnTimeouts = [];
+
+  var scaleRatio = Math.min(1.05, Math.max(0.85, width / 390));
+
+  // 🌟 실제 전달받은 데이터 목록 사용 (부족할 경우 존재하는 만큼만 스폰)
+  var spawnDataset = Array.isArray(customKeywordList) && customKeywordList.length > 0 
+    ? customKeywordList 
+    : top7KeywordData;
+
+  spawnDataset.forEach(function(item, idx) {
+    var timer = setTimeout(function() {
+      if (!top7Engine) return;
+
+      var actualRadius = item.radius * scaleRatio;
+      var margin = actualRadius + 15;
+      var spawnX = margin + Math.random() * (width - margin * 2);
+      var spawnY = -actualRadius - 30 - (Math.random() * 40);
+
+      var ballBody = Bodies.circle(spawnX, spawnY, actualRadius, {
+        restitution: 0.32,
+        friction: 0.08,
+        frictionAir: 0.008,
+        density: 0.0025,
+        angularDamping: 0.1
+      });
+
+      ballBody.customData = {
+        rank: item.rank,
+        keyword: item.keyword,
+        percent: item.percent,
+        radius: actualRadius,
+        fill: item.fill,
+        textColor: item.textColor,
+        subColor: item.subColor
+      };
+
+      Matter.Body.setVelocity(ballBody, { x: (Math.random() - 0.5) * 2.2, y: 1.5 + Math.random() * 2 });
+      Matter.Body.setAngularVelocity(ballBody, (Math.random() - 0.5) * 0.06);
+
+      Composite.add(top7Engine.world, ballBody);
+      top7Balls.push(ballBody);
+    }, idx * 140);
+
+    top7SpawnTimeouts.push(timer);
+  });
+
+  var mouse = Mouse.create(canvas);
+  var mouseConstraint = MouseConstraint.create(top7Engine, {
+    mouse: mouse,
+    constraint: {
+      stiffness: 0.18,
+      render: { visible: false }
+    }
+  });
+  Composite.add(top7Engine.world, mouseConstraint);
+
+  top7GyroHandler = function(e) {
+    if (!top7Engine) return;
+    var gamma = e.gamma || 0;
+    var beta = e.beta || 0;
+
+    var gravityX = Math.max(-1.8, Math.min(1.8, (gamma / 45) * 1.3));
+    var gravityY = Math.max(-1.8, Math.min(1.8, (beta / 45) * 1.3));
+
+    if (Math.abs(gravityX) < 0.08 && Math.abs(gravityY) < 0.08) {
+      gravityY = 0.95;
+    }
+
+    top7Engine.gravity.x = gravityX;
+    top7Engine.gravity.y = gravityY;
+  };
+
+  if (window.DeviceOrientationEvent) {
+    window.addEventListener('deviceorientation', top7GyroHandler, true);
+  }
+
+  (function renderTop7Frame() {
+    if (!top7Engine) return;
+    top7RenderLoop = requestAnimationFrame(renderTop7Frame);
+    Engine.update(top7Engine, 1000 / 60);
+
+    ctx.clearRect(0, 0, width, height);
+
+    top7Balls.forEach(function(ball) {
+      var pos = ball.position;
+      var angle = ball.angle;
+      var data = ball.customData;
+
+      ctx.save();
+      ctx.translate(pos.x, pos.y);
+      ctx.rotate(angle);
+
+      ctx.beginPath();
+      ctx.arc(0, 0, data.radius, 0, Math.PI * 2);
+      ctx.fillStyle = data.fill;
+      ctx.fill();
+
+      if (data.rank === 1) {
+        ctx.lineWidth = 1.8;
+        ctx.strokeStyle = "rgba(255, 255, 255, 0.8)";
+        ctx.stroke();
+      } else {
+        ctx.lineWidth = 1.0;
+        ctx.strokeStyle = "rgba(255, 255, 255, 0.08)";
+        ctx.stroke();
+      }
+
+      ctx.rotate(-angle);
+
+      var titleFontSize = Math.max(12, Math.min(18, data.radius * 0.28));
+      var percentFontSize = Math.max(10, Math.min(15, data.radius * 0.20));
+
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+
+      ctx.font = "bold " + titleFontSize + "px -apple-system, BlinkMacSystemFont, Pretendard, sans-serif";
+      ctx.fillStyle = data.textColor;
+      ctx.fillText(data.keyword, 0, -percentFontSize * 0.65);
+
+      ctx.font = "500 " + percentFontSize + "px -apple-system, BlinkMacSystemFont, Pretendard, sans-serif";
+      ctx.fillStyle = data.subColor;
+      ctx.fillText(data.percent, 0, percentFontSize * 0.85);
+
+      ctx.restore();
+    });
+  })();
+}
+
+function stopTop7PhysicsScene() {
+  if (top7SpawnTimeouts && top7SpawnTimeouts.length > 0) {
+    top7SpawnTimeouts.forEach(function(t) { clearTimeout(t); });
+    top7SpawnTimeouts = [];
+  }
+  if (top7RenderLoop) { 
+    cancelAnimationFrame(top7RenderLoop); 
+    top7RenderLoop = null; 
+  }
+  if (top7GyroHandler) {
+    window.removeEventListener('deviceorientation', top7GyroHandler, true);
+    top7GyroHandler = null;
+  }
+  if (top7Engine) {
+    Matter.World.clear(top7Engine.world, false);
+    Matter.Engine.clear(top7Engine);
+    top7Engine = null;
+  }
+  top7Balls = [];
+  top7Boundaries = [];
+  var canvas = document.getElementById('top7-physics-canvas');
+  if (canvas) {
+    var ctx = canvas.getContext('2d');
+    if (ctx) ctx.clearRect(0, 0, canvas.width, canvas.height);
+  }
+}
+
+var bubbleCanvas = null, bctx = null, bubbleAnimFrameId = null;
+
+function resizeBubblePhysicsCanvas() {
+  bubbleCanvas = document.getElementById('bubble-physics-canvas');
+  if (!bubbleCanvas || !bubbleCanvas.parentElement) return;
+  var rect = bubbleCanvas.parentElement.getBoundingClientRect();
+  bubbleCanvas.width = rect.width; bubbleCanvas.height = rect.height;
+}
+
+function startBubblePhysics() {
+  stopBubblePhysics();
+  bubbleCanvas = document.getElementById('bubble-physics-canvas');
+  if (!bubbleCanvas) return;
+  resizeBubblePhysicsCanvas();
+  bctx = bubbleCanvas.getContext('2d');
+  if (bctx) bctx.clearRect(0, 0, bubbleCanvas.width, bubbleCanvas.height);
+}
+
+function stopBubblePhysics() {
+  if (bubbleAnimFrameId) { cancelAnimationFrame(bubbleAnimFrameId); bubbleAnimFrameId = null; }
+  if (bubbleCanvas && bctx) bctx.clearRect(0, 0, bubbleCanvas.width, bubbleCanvas.height);
+}
+
+var coverAnimId = null;
+var coverParticles = [];
+var coverRipples = [];
+
+function resizeCoverWaveCanvas() {
+  var canvas = document.getElementById('cover-wave-canvas');
+  if (!canvas) return;
+  canvas.width = canvas.clientWidth || window.innerWidth;
+  canvas.height = canvas.clientHeight || window.innerHeight;
+}
+
+function initCoverWaveCanvas() {
+  stopCoverWaveCanvas();
+  var canvas = document.getElementById('cover-wave-canvas');
+  if (!canvas) return;
+  var ctx = canvas.getContext('2d');
+  var w = (canvas.width = canvas.clientWidth || window.innerWidth);
+  var h = (canvas.height = canvas.clientHeight || window.innerHeight);
+
+  coverParticles = [];
+  for (var i = 0; i < 25; i++) {
+    coverParticles.push({
+      x: Math.random() * w,
+      y: Math.random() * h,
+      r: Math.random() * 2.2 + 0.8,
+      vy: -(Math.random() * 0.35 + 0.15),
+      vx: (Math.random() - 0.5) * 0.25,
+      phase: Math.random() * Math.PI * 2
+    });
+  }
+
+  canvas.onpointerdown = function(e) {
+    var rect = canvas.getBoundingClientRect();
+    coverRipples.push({
+      x: e.clientX - rect.left,
+      y: e.clientY - rect.top,
+      r: 4,
+      alpha: 0.55
+    });
+  };
+
+  (function renderCover() {
+    coverAnimId = requestAnimationFrame(renderCover);
+    var curW = canvas.width;
+    var curH = canvas.height;
+    ctx.clearRect(0, 0, curW, curH);
+
+    for (var i = 0; i < coverParticles.length; i++) {
+      var p = coverParticles[i];
+      p.x += p.vx;
+      p.y += p.vy;
+      p.phase += 0.03;
+      if (p.y < -10) { p.y = curH + 10; p.x = Math.random() * curW; }
+      if (p.x < -10) p.x = curW + 10;
+      else if (p.x > curW + 10) p.x = -10;
+
+      var alpha = 0.2 + Math.sin(p.phase) * 0.2;
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+      ctx.fillStyle = 'rgba(255, 255, 255, ' + Math.max(0.05, alpha) + ')';
+      ctx.fill();
+    }
+
+    for (var j = coverRipples.length - 1; j >= 0; j--) {
+      var rp = coverRipples[j];
+      rp.r += 2.2;
+      rp.alpha *= 0.96;
+      if (rp.alpha < 0.02) {
+        coverRipples.splice(j, 1);
+        continue;
+      }
+      ctx.beginPath();
+      ctx.arc(rp.x, rp.y, rp.r, 0, Math.PI * 2);
+      ctx.strokeStyle = 'rgba(200, 225, 255, ' + rp.alpha + ')';
+      ctx.lineWidth = 1.2;
+      ctx.stroke();
+    }
+  })();
+}
+
+function stopCoverWaveCanvas() {
+  if (coverAnimId) {
+    cancelAnimationFrame(coverAnimId);
+    coverAnimId = null;
+  }
+  coverRipples = [];
+  var canvas = document.getElementById('cover-wave-canvas');
+  if (canvas) {
+    var ctx = canvas.getContext('2d');
+    if (ctx) ctx.clearRect(0, 0, canvas.width, canvas.height);
+  }
+}
