@@ -884,7 +884,7 @@ function openSpecimen3DModal(item, textureUrl) {
   });
   modalThreeScene.add(modalGroup);
 
-  // 🌟 [추가 5번]: 3D 상세 모달 360도 터치/마우스 드래그 회전 바인딩
+  // 🌟 3D 상세 모달 360도 터치/마우스 드래그 회전 바인딩
   var modalRotX = 0, modalRotY = 0;
   var isModalDragging = false, lastModalX = 0, lastModalY = 0;
 
@@ -948,7 +948,6 @@ function openSpecimen3DModal(item, textureUrl) {
       modalWarmthBoost = Math.max(0, modalWarmthBoost - dt * 0.85);
     }
 
-    // 평상시에는 느긋한 호흡(2.8), 온기를 받으면 파르르 기뻐하는 날갯짓(14.0)으로 가속
     var currentFlapSpeed = 2.8 + modalWarmthBoost * 11.2;
     flapPhase += dt * currentFlapSpeed;
     var flap = 0.30 + Math.sin(flapPhase) * (0.65 + modalWarmthBoost * 0.22);
@@ -1268,8 +1267,7 @@ function stopBubblePhysics() {
 
 var coverAnimId = null;
 var coverParticles = [];
-var silkRibbons = []; // 🌟 하나의 부드러운 그라데이션 & 끝으로 갈수록 얇아지는(Tapering) 실크 너울 곡선 배열
-var tapBlooms = [];   // 🌟 한 번 톡 터치했을 때 피어오르는 은은한 빛의 숨결 배열
+var silkRibbons = []; // 🌟 중간에 점/구슬이 맺히지 않는 매끄러운 연속 실크 너울 곡선 배열
 var activeRibbon = null;
 var isCoverPointerDown = false;
 var pointerMoveListener = null, pointerDownListener = null, pointerUpListener = null;
@@ -1302,7 +1300,6 @@ function initCoverWaveCanvas() {
   }
 
   silkRibbons = [];
-  tapBlooms = [];
   activeRibbon = null;
 
   function getCanvasPos(e) {
@@ -1316,37 +1313,10 @@ function initCoverWaveCanvas() {
     };
   }
 
-  // 🌟 한 번 톡 터치했을 때 피어오르는 빛무리도 더 은은하고 흐리게(alpha: 0.26) 조정
-  function spawnTapBloom(x, y) {
-    var wisps = [];
-    for (var i = 0; i < 3; i++) {
-      var angle = -Math.PI / 2 + (Math.random() - 0.5) * 1.8;
-      var speed = 0.35 + Math.random() * 0.55;
-      wisps.push({
-        x: x + (Math.random() - 0.5) * 8,
-        y: y + (Math.random() - 0.5) * 8,
-        vx: Math.cos(angle) * speed,
-        vy: Math.sin(angle) * speed - 0.2,
-        r: 1.4 + Math.random() * 1.4
-      });
-    }
-    tapBlooms.push({
-      x: x,
-      y: y,
-      r: 8,
-      maxR: 42,
-      alpha: 0.26,
-      wisps: wisps
-    });
-    if (tapBlooms.length > 6) tapBlooms.shift();
-  }
-
   pointerDownListener = function(e) {
     var pos = getCanvasPos(e);
     if (!pos.valid) return;
     isCoverPointerDown = true;
-
-    spawnTapBloom(pos.x, pos.y);
 
     activeRibbon = {
       points: [
@@ -1379,7 +1349,7 @@ function initCoverWaveCanvas() {
         age: 0,
         phase: (pts.length * 0.3)
       });
-      if (pts.length > 13) {
+      if (pts.length > 14) {
         pts.shift();
       }
     }
@@ -1398,7 +1368,6 @@ function initCoverWaveCanvas() {
   var waveTime = 0;
   var MAX_RIBBON_AGE = 34;
 
-  // 🌟 여러 겹으로 갈라지지 않도록 단 하나의 매끄러운 중심 경로(Spine)만 계산
   function getSingleSmoothedSpine(pts) {
     var len = pts.length;
     var raw = [];
@@ -1413,7 +1382,6 @@ function initCoverWaveCanvas() {
       });
     }
 
-    // 2단계 가중 평균 스무딩으로 각진 모서리를 완전히 둥글게 완화
     for (var pass = 0; pass < 2; pass++) {
       var next = [raw[0]];
       for (var j = 1; j < len - 1; j++) {
@@ -1429,51 +1397,57 @@ function initCoverWaveCanvas() {
     return raw;
   }
 
-  // 🌟 하나의 선처럼 자연스럽게 그라데이션되면서 끝(꼬리)으로 갈수록 얇아지는 테이퍼링 렌더러
-  function drawUnifiedTaperedRibbon(pts) {
+  // 🌟 선분 마디마다 끊어서 stroke()를 호출할 때 round cap이 겹쳐 점처럼 보이던 현상을 완벽히 제거하고, 처음부터 끝까지 단 하나의 이어진 경로로 매끄럽게 그리는 렌더러
+  function drawUnifiedSmoothRibbon(pts) {
     if (pts.length < 3) return;
     var sPts = getSingleSmoothedSpine(pts);
     var len = sPts.length;
 
-    // 동일한 중심 경로 위에 바깥쪽 소프트 글로우부터 중심부까지 동심원처럼 포개어 하나의 부드러운 그라데이션으로 표현 (전체적으로 더 흐리고 은은하게 설정)
+    var headAge = sPts[len - 1].age;
+    var lifeRatio = Math.max(0, 1 - (headAge / MAX_RIBBON_AGE));
+    var ribbonFade = lifeRatio * lifeRatio;
+    if (ribbonFade <= 0.01) return;
+
+    var startPt = sPts[0];
+    var endPt = sPts[len - 1];
+    var dist = Math.hypot(endPt.x - startPt.x, endPt.y - startPt.y);
+    if (dist < 2) return;
+
     var gradPasses = [
-      { maxW: 32.0, alpha: 0.028, r: 205, g: 230, b: 255 }, // 가장 바깥쪽 은은한 그라데이션 여백
-      { maxW: 20.0, alpha: 0.048, r: 220, g: 238, b: 255 }, // 중간 바깥 그라데이션 층
-      { maxW: 11.0, alpha: 0.080, r: 240, g: 248, b: 255 }, // 중간 안쪽 그라데이션 층
-      { maxW: 4.5,  alpha: 0.145, r: 255, g: 255, b: 255 }  // 가장 안쪽 부드러운 중심 코어
+      { width: 22.0, alpha: 0.032, r: 205, g: 230, b: 255 },
+      { width: 12.0, alpha: 0.055, r: 220, g: 238, b: 255 },
+      { width: 6.0,  alpha: 0.088, r: 240, g: 248, b: 255 },
+      { width: 2.2,  alpha: 0.145, r: 255, g: 255, b: 255 }
     ];
 
     ctx.lineCap = 'round';
     ctx.lineJoin = 'round';
 
-    for (var i = 0; i < len - 1; i++) {
-      // i가 0(꼬리 끝)에 가까울수록 0에 수렴하고, len-1(손끝 머리)에 가까울수록 1이 되어 끝으로 갈수록 얇아짐(Tapering)
-      var progress = (i + 1) / (len - 1);
-      // 머리 쪽 가장자리도 뭉툭하지 않고 매끄럽게 마무리되도록 미세한 곡선 보정
-      var taper = Math.pow(progress, 1.35) * (0.3 + 0.7 * Math.sin(progress * Math.PI * 0.85));
+    // 하나의 이어진 전체 경로를 한 번만 구성
+    ctx.beginPath();
+    ctx.moveTo(sPts[0].x, sPts[0].y);
+    for (var i = 1; i < len - 1; i++) {
+      var midX = (sPts[i].x + sPts[i + 1].x) * 0.5;
+      var midY = (sPts[i].y + sPts[i + 1].y) * 0.5;
+      ctx.quadraticCurveTo(sPts[i].x, sPts[i].y, midX, midY);
+    }
+    ctx.lineTo(sPts[len - 1].x, sPts[len - 1].y);
 
-      var segAge = sPts[i].age;
-      var lifeRatio = Math.max(0, 1 - (segAge / MAX_RIBBON_AGE));
-      var segFade = (lifeRatio * lifeRatio) * progress;
-      if (segFade <= 0.01 || taper <= 0.02) continue;
+    // 꼬리(투명)에서 머리(발광)로 자연스럽게 이어지는 선형 그라데이션을 사용하여 중간 마디 점이 전혀 생기지 않도록 렌더링
+    for (var g = 0; g < gradPasses.length; g++) {
+      var gp = gradPasses[g];
+      var maxA = gp.alpha * ribbonFade;
+      if (maxA < 0.003) continue;
 
-      var p0 = i === 0 ? sPts[0] : { x: (sPts[i - 1].x + sPts[i].x) * 0.5, y: (sPts[i - 1].y + sPts[i].y) * 0.5 };
-      var p1 = sPts[i];
-      var p2 = (i === len - 2) ? sPts[len - 1] : { x: (sPts[i].x + sPts[i + 1].x) * 0.5, y: (sPts[i].y + sPts[i + 1].y) * 0.5 };
+      var lineGrad = ctx.createLinearGradient(startPt.x, startPt.y, endPt.x, endPt.y);
+      lineGrad.addColorStop(0, 'rgba(' + gp.r + ', ' + gp.g + ', ' + gp.b + ', 0)');
+      lineGrad.addColorStop(0.35, 'rgba(' + gp.r + ', ' + gp.g + ', ' + gp.b + ', ' + (maxA * 0.45).toFixed(4) + ')');
+      lineGrad.addColorStop(0.85, 'rgba(' + gp.r + ', ' + gp.g + ', ' + gp.b + ', ' + maxA.toFixed(4) + ')');
+      lineGrad.addColorStop(1, 'rgba(' + gp.r + ', ' + gp.g + ', ' + gp.b + ', ' + (maxA * 0.65).toFixed(4) + ')');
 
-      for (var g = 0; g < gradPasses.length; g++) {
-        var gp = gradPasses[g];
-        var w = gp.maxW * taper;
-        var a = gp.alpha * segFade;
-        if (w < 0.4 || a < 0.003) continue;
-
-        ctx.beginPath();
-        ctx.moveTo(p0.x, p0.y);
-        ctx.quadraticCurveTo(p1.x, p1.y, p2.x, p2.y);
-        ctx.lineWidth = w;
-        ctx.strokeStyle = 'rgba(' + gp.r + ', ' + gp.g + ', ' + gp.b + ', ' + a.toFixed(4) + ')';
-        ctx.stroke();
-      }
+      ctx.lineWidth = gp.width;
+      ctx.strokeStyle = lineGrad;
+      ctx.stroke();
     }
   }
 
@@ -1502,43 +1476,9 @@ function initCoverWaveCanvas() {
       ctx.fill();
     }
 
-    // 🌟 'lighter' 가산 혼합 모드로 부드러운 그라데이션 발광 활성화
+    // 🌟 'lighter' 가산 혼합 모드로 중간 점 없이 매끄러운 연속 실크 선만 렌더링
     ctx.globalCompositeOperation = 'lighter';
 
-    // 2. 한 번 터치 시 피어오르는 은은한 '빛의 숨결(Tap Bloom)' 렌더링
-    for (var b = tapBlooms.length - 1; b >= 0; b--) {
-      var bl = tapBlooms[b];
-      bl.r += (bl.maxR - bl.r) * 0.12;
-      bl.y -= 0.3;
-      bl.alpha *= 0.91;
-
-      if (bl.alpha < 0.01) {
-        tapBlooms.splice(b, 1);
-        continue;
-      }
-
-      var grad = ctx.createRadialGradient(bl.x, bl.y, 0, bl.x, bl.y, bl.r);
-      grad.addColorStop(0, 'rgba(255, 255, 255, ' + (bl.alpha * 0.85).toFixed(3) + ')');
-      grad.addColorStop(0.45, 'rgba(210, 232, 255, ' + (bl.alpha * 0.38).toFixed(3) + ')');
-      grad.addColorStop(1, 'rgba(200, 225, 255, 0)');
-
-      ctx.beginPath();
-      ctx.arc(bl.x, bl.y, bl.r, 0, Math.PI * 2);
-      ctx.fillStyle = grad;
-      ctx.fill();
-
-      for (var wIdx = 0; wIdx < bl.wisps.length; wIdx++) {
-        var wp = bl.wisps[wIdx];
-        wp.x += wp.vx;
-        wp.y += wp.vy;
-        ctx.beginPath();
-        ctx.arc(wp.x, wp.y, wp.r, 0, Math.PI * 2);
-        ctx.fillStyle = 'rgba(255, 255, 255, ' + Math.min(1, bl.alpha * 1.1).toFixed(3) + ')';
-        ctx.fill();
-      }
-    }
-
-    // 3. 드래그 시 하나의 그라데이션으로 은은하게 빛나며 끝으로 갈수록 얇아지는 실크 너울 렌더링
     for (var r = silkRibbons.length - 1; r >= 0; r--) {
       var ribbon = silkRibbons[r];
       var pts = ribbon.points;
@@ -1558,7 +1498,7 @@ function initCoverWaveCanvas() {
       }
 
       if (pts.length >= 3) {
-        drawUnifiedTaperedRibbon(pts);
+        drawUnifiedSmoothRibbon(pts);
       }
     }
 
@@ -1585,7 +1525,6 @@ function stopCoverWaveCanvas() {
     pointerUpListener = null;
   }
   silkRibbons = [];
-  tapBlooms = [];
   activeRibbon = null;
   var canvas = document.getElementById('cover-wave-canvas');
   if (canvas) {

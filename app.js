@@ -110,6 +110,58 @@ function syncCustomKeywordToQ2() {
   }
 }
 
+// 🌟 메인화면(#screen-cover) 진입 및 복귀 시 로고 붓글씨 -> 부제목 -> 마지막에 '시작하기' 버튼이 나오는 시퀀스를 처음부터 동일하게 재생
+function replayCoverIntroAnimation() {
+  var coverEl = document.getElementById('screen-cover');
+  if (!coverEl) return;
+
+  var logoEl = coverEl.querySelector('.cover-anim-logo');
+  var descEl = coverEl.querySelector('.cover-anim-desc');
+  var coverDock = document.getElementById('cover-bottom-dock') || coverEl.querySelector('.cover-anim-btn');
+  var startBtn = document.getElementById('btn-start-cover');
+  var strokes = coverEl.querySelectorAll('.noul-brush-stroke');
+
+  // 1. 인라인 강제 스타일 해제 및 CSS 애니메이션 일시 중지
+  if (logoEl) logoEl.style.animation = 'none';
+  if (descEl) descEl.style.animation = 'none';
+  if (coverDock) {
+    coverDock.style.removeProperty('opacity');
+    coverDock.style.removeProperty('transform');
+    coverDock.style.setProperty('display', 'flex', 'important');
+    coverDock.style.setProperty('visibility', 'visible', 'important');
+    coverDock.style.setProperty('pointer-events', 'auto', 'important');
+    coverDock.style.animation = 'none';
+  }
+  if (startBtn) {
+    startBtn.style.setProperty('display', 'block', 'important');
+    startBtn.style.setProperty('visibility', 'visible', 'important');
+    startBtn.style.setProperty('pointer-events', 'auto', 'important');
+  }
+  strokes.forEach(function(s) {
+    s.style.animation = 'none';
+  });
+
+  // 2. 브라우저 강제 리플로우(Reflow)로 애니메이션 타임라인 초기화
+  void coverEl.offsetWidth;
+
+  // 3. CSS에 정의된 순차 애니메이션(로고 7획 -> 부제목 -> 3.35초에 시작하기 버튼 등장) 재시작
+  if (logoEl) logoEl.style.animation = '';
+  if (descEl) descEl.style.animation = '';
+  if (coverDock) coverDock.style.animation = '';
+  strokes.forEach(function(s) {
+    s.style.animation = '';
+  });
+
+  // 4. 애니메이션이 모두 끝나는 시점(4.2초)에 혹시 모를 브라우저 렌더링 누락을 방지하는 최종 안전장치
+  registerAuxTimer(function() {
+    var activeScreen = document.querySelector('.screen.active');
+    if (activeScreen && activeScreen.id === 'screen-cover' && coverDock) {
+      coverDock.style.opacity = '1';
+      coverDock.style.transform = 'translateY(0)';
+    }
+  }, 4200);
+}
+
 function showScreen(screenId) {
   clearAllTimers();
   var menuEl = document.getElementById('screen-menu');
@@ -129,23 +181,9 @@ function showScreen(screenId) {
     target.classList.add('active');
     target.style.display = 'flex';
 
-    // 🌟 시작페이지(#screen-cover)로 돌아왔을 때 하단 '시작하기' 버튼 바가 무조건 즉시 보이도록 강제 보장
+    // 🌟 시작페이지(#screen-cover)로 진입하거나 돌아왔을 때 애니메이션을 처음부터 재생하여 마지막에 시작하기 버튼이 나오도록 실행
     if (screenId === 'screen-cover') {
-      var coverDock = document.getElementById('cover-bottom-dock') || target.querySelector('.cover-anim-btn');
-      var startBtn = document.getElementById('btn-start-cover');
-      if (coverDock) {
-        coverDock.style.setProperty('display', 'flex', 'important');
-        coverDock.style.setProperty('opacity', '1', 'important');
-        coverDock.style.setProperty('visibility', 'visible', 'important');
-        coverDock.style.setProperty('transform', 'translateY(0)', 'important');
-        coverDock.style.setProperty('pointer-events', 'auto', 'important');
-      }
-      if (startBtn) {
-        startBtn.style.setProperty('display', 'block', 'important');
-        startBtn.style.setProperty('opacity', '1', 'important');
-        startBtn.style.setProperty('visibility', 'visible', 'important');
-        startBtn.style.setProperty('pointer-events', 'auto', 'important');
-      }
+      replayCoverIntroAnimation();
     }
 
     try {
@@ -1739,4 +1777,5 @@ window.addEventListener('resize', function() {
 });
 
 initCoverWaveCanvas();
+replayCoverIntroAnimation();
 updateDevScreenBadge();
