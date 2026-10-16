@@ -57,7 +57,7 @@
   <style>
     body, html { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; background-color: #000000; user-select: none; cursor: none; overscroll-behavior: none; touch-action: none; font-family: -apple-system, BlinkMacSystemFont, "Pretendard Variable", Pretendard, sans-serif; }
     #webcam-video { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; transform: scaleX(-1) translateZ(0); z-index: 0; pointer-events: none; opacity: 0.28; will-change: transform; contain: strict; }
-    #video-dark-overlay { position: absolute; inset: 0; background: #000000; opacity: 0.65; z-index: 1; pointer-events: none; contain: strict; }
+    #video-dark-overlay { position: absolute; inset: 0; background: radial-gradient(circle at 50% 45%, rgba(28, 20, 58, 0.35) 0%, rgba(10, 8, 24, 0.72) 60%, rgba(0, 0, 0, 0.92) 100%), radial-gradient(ellipse at 50% 100%, rgba(55, 35, 110, 0.22) 0%, transparent 65%); z-index: 1; pointer-events: none; contain: strict; }
     #three-canvas-container { position: absolute; inset: 0; z-index: 10; transform: translateZ(0); will-change: transform; contain: strict; }
     #hand-pointer { position: absolute; top: 0; left: 0; width: 52px; height: 52px; border-radius: 50%; background: rgba(255, 255, 255, 0.08); border: 1px solid rgba(255, 255, 255, 0.25); pointer-events: none; z-index: 30; opacity: 0; transition: opacity 0.2s ease; will-change: transform, opacity; contain: layout style; backface-visibility: hidden; display: flex; align-items: center; justify-content: center; }
     #hand-pointer::after { content: ''; width: 20px; height: 20px; border-radius: 50%; background: rgba(255, 255, 255, 0.5); border: 1px solid rgba(255, 255, 255, 0.8); }
@@ -322,6 +322,8 @@
       '    vec4 patCol = texture2D(patMap, vModelUv);',
       '    finalCol.rgb = mix(finalCol.rgb, finalCol.rgb * patCol.rgb, patCol.a * 0.95);',
       '  }',
+      '  float edgeGlow = smoothstep(0.15, 0.68, length(vProjectedUv - vec2(0.5)));',
+      '  finalCol.rgb += vec3(0.75, 0.82, 1.0) * edgeGlow * 0.24;',
       '  gl_FragColor = vec4(clamp(finalCol.rgb, 0.0, 1.0), finalCol.a);',
       '}'
     ].join('\n');
@@ -545,7 +547,7 @@
           if (child.geometry && child.geometry.userData && child.geometry.userData.isClonedWing === true) {
             child.geometry.dispose();
           }
-          if (child.material && child.material !== sharedWhiteMat) {
+          if (child.material && child.material !== sharedWhiteMat && child.material !== sharedHaloMat) {
             child.material.dispose();
           }
         }
@@ -568,6 +570,16 @@
     dustCtx.fillRect(0, 0, 32, 32);
     const dustTexture = new THREE.CanvasTexture(dustCanvas);
     dustTexture.needsUpdate = true;
+
+    // 🌟 나비 후광(Halo) 공유 스프라이트 재질 (별가루 텍스처 재활용으로 추가 메모리 부하 제로)
+    const sharedHaloMat = new THREE.SpriteMaterial({
+      map: dustTexture,
+      color: 0xd8e2ff,
+      transparent: true,
+      opacity: 0.32,
+      blending: THREE.AdditiveBlending,
+      depthWrite: false
+    });
 
     /* ========================================================
        1) 세레머니 나비용 파티클 시스템
@@ -767,6 +779,12 @@
     function buildButterfly(data = {}, isUser = false, isDelayedArrival = false, isFingerTarget = false, customZ = 8.0, isCeremony = false) {
       const group = new THREE.Group();
       const innerGroup = new THREE.Group(); 
+
+      // 🌟 나비 몸통 뒤편에 은은한 달빛 후광(Halo) 스프라이트 부착
+      const haloSprite = new THREE.Sprite(sharedHaloMat);
+      haloSprite.scale.set(5.5, 5.5, 1.0);
+      haloSprite.position.set(0, 0, -0.2);
+      innerGroup.add(haloSprite);
 
       const shapeId = data.wing_shape || DEFAULT_BUTTERFLY_SHAPES[Math.floor(Math.random() * DEFAULT_BUTTERFLY_SHAPES.length)];
       const antId = data.antenna_type || 'ball';
