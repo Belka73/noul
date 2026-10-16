@@ -714,8 +714,6 @@ function bindInteractiveEvents(targetEl) {
 
 var modalThreeScene, modalThreeCamera, modalThreeRenderer, modalGroup, modalWingL, modalWingR, modalAnimFrameId = null;
 var _modalTouchMoveHandler = null, _modalTouchEndHandler = null, _modalMouseMoveHandler = null, _modalMouseUpHandler = null;
-var modalWarmthParticles = [];
-var modalWarmthBoost = 0;
 
 function unbindModalWindowEvents() {
   if (_modalTouchMoveHandler) {
@@ -743,13 +741,6 @@ function stopModal3DScene() {
     modalAnimFrameId = null;
   }
   unbindModalWindowEvents();
-  modalWarmthParticles = [];
-  modalWarmthBoost = 0;
-  var wCanvas = document.getElementById('modal-warmth-canvas');
-  if (wCanvas) {
-    var wctx = wCanvas.getContext('2d');
-    if (wctx) wctx.clearRect(0, 0, wCanvas.width, wCanvas.height);
-  }
   if (modalThreeRenderer) {
     disposeThreeRenderer(modalThreeRenderer);
     modalThreeRenderer = null;
@@ -763,7 +754,7 @@ function stopModal3DScene() {
   if (container) container.innerHTML = '';
 }
 
-// 🌟 나비 둘러보기 3D 모달: 360도 드래그 회전 및 '✨ 온기 보내기' 인터랙션 탑재
+// 🌟 나비 둘러보기 3D 모달: 360도 드래그 회전 탑재 (온기 보내기 제거 완료)
 function openSpecimen3DModal(item, textureUrl) {
   var modal = document.getElementById('specimen-detail-modal');
   var nameEl = document.getElementById('modal-butterfly-name');
@@ -771,7 +762,6 @@ function openSpecimen3DModal(item, textureUrl) {
   var memoEl = document.getElementById('modal-specimen-memo');
   var dateEl = document.getElementById('modal-specimen-date');
   var shareBtn = document.getElementById('btn-share-specimen-modal');
-  var warmthBtn = document.getElementById('btn-warmth-specimen-modal');
   var container = document.getElementById('specimen-three-container');
 
   if (nameEl) nameEl.innerText = '‘' + item.name + '’';
@@ -820,43 +810,6 @@ function openSpecimen3DModal(item, textureUrl) {
   var res = setupCommon3DScene(container, 6.4, 0);
   if (!res) return;
   modalThreeScene = res.scene; modalThreeCamera = res.camera; modalThreeRenderer = res.renderer;
-
-  var wCanvas = document.getElementById('modal-warmth-canvas');
-  var wctx = null;
-  if (wCanvas) {
-    wCanvas.width = container.clientWidth || 320;
-    wCanvas.height = container.clientHeight || 300;
-    wctx = wCanvas.getContext('2d');
-  }
-
-  if (warmthBtn) {
-    warmthBtn.classList.remove('warmth-sent');
-    warmthBtn.innerHTML = '<span>✨ 온기 보내기</span>';
-    warmthBtn.onclick = function(e) {
-      e.stopPropagation();
-      triggerDeviceVibrate(35);
-      modalWarmthBoost = 1.0;
-      warmthBtn.classList.add('warmth-sent');
-      warmthBtn.innerHTML = '<span>✨ 온기가 전해졌어요</span>';
-
-      if (wCanvas) {
-        var cx = wCanvas.width / 2;
-        var cy = wCanvas.height / 2 + 10;
-        for (var i = 0; i < 18; i++) {
-          var ang = Math.random() * Math.PI * 2;
-          var spd = 0.8 + Math.random() * 2.2;
-          modalWarmthParticles.push({
-            x: cx + (Math.random() - 0.5) * 36,
-            y: cy + (Math.random() - 0.5) * 28,
-            vx: Math.cos(ang) * spd,
-            vy: Math.sin(ang) * spd - 0.9,
-            r: 1.5 + Math.random() * 2.2,
-            alpha: 0.95
-          });
-        }
-      }
-    };
-  }
 
   var itemPattern3DPath = null;
   if (typeof get3DPatternPath === 'function') {
@@ -927,16 +880,10 @@ function openSpecimen3DModal(item, textureUrl) {
   window.addEventListener('mousemove', _modalMouseMoveHandler);
   window.addEventListener('mouseup', _modalMouseUpHandler);
 
-  var lastTime = performance.now();
-  var flapPhase = 0;
-
+  var clock = new THREE.Clock();
   (function modalAnimate() {
     if (!modalThreeRenderer || !modalThreeScene || !modalThreeCamera) return;
     modalAnimFrameId = requestAnimationFrame(modalAnimate);
-
-    var now = performance.now();
-    var dt = Math.min(0.05, (now - lastTime) / 1000);
-    lastTime = now;
 
     if (!isModalDragging) {
       modalRotX += (0 - modalRotX) * 0.06;
@@ -944,18 +891,12 @@ function openSpecimen3DModal(item, textureUrl) {
       modalRotY += Math.atan2(Math.sin(diffY), Math.cos(diffY)) * 0.06;
     }
 
-    if (modalWarmthBoost > 0) {
-      modalWarmthBoost = Math.max(0, modalWarmthBoost - dt * 0.85);
-    }
-
-    var currentFlapSpeed = 2.8 + modalWarmthBoost * 11.2;
-    flapPhase += dt * currentFlapSpeed;
-    var flap = 0.30 + Math.sin(flapPhase) * (0.65 + modalWarmthBoost * 0.22);
+    var t = clock.getElapsedTime(), flap = 0.30 + Math.sin(t * 2.8) * 0.65;
 
     if (modalGroup) {
       modalGroup.rotation.x = modalRotX;
       modalGroup.rotation.y = modalRotY;
-      modalGroup.position.y = -0.35 + Math.sin(flapPhase * 0.7) * 0.04 + modalWarmthBoost * 0.08;
+      modalGroup.position.y = -0.35 + Math.sin(t * 2.0) * 0.04;
     }
 
     if (modalWingL && modalWingR) { 
@@ -964,28 +905,6 @@ function openSpecimen3DModal(item, textureUrl) {
       modalWingL.rotation.set(uL.baseRotX || 0, (uL.baseRotY || 0) + flap, uL.baseRotZ || 0); 
       modalWingR.rotation.set(uR.baseRotX || 0, (uR.baseRotY || 0) - flap, uR.baseRotZ || 0); 
     }
-
-    if (wctx && wCanvas && modalWarmthParticles.length > 0) {
-      wctx.clearRect(0, 0, wCanvas.width, wCanvas.height);
-      for (var i = modalWarmthParticles.length - 1; i >= 0; i--) {
-        var p = modalWarmthParticles[i];
-        p.x += p.vx;
-        p.y += p.vy;
-        p.alpha -= 0.022;
-        if (p.alpha <= 0) {
-          modalWarmthParticles.splice(i, 1);
-          continue;
-        }
-        wctx.beginPath();
-        wctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
-        wctx.fillStyle = 'rgba(255, 255, 255, ' + p.alpha.toFixed(3) + ')';
-        wctx.fill();
-      }
-      if (modalWarmthParticles.length === 0) {
-        wctx.clearRect(0, 0, wCanvas.width, wCanvas.height);
-      }
-    }
-
     modalThreeRenderer.render(modalThreeScene, modalThreeCamera);
   })();
 }
