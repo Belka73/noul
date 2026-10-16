@@ -713,11 +713,42 @@ function bindInteractiveEvents(targetEl) {
 }
 
 var modalThreeScene, modalThreeCamera, modalThreeRenderer, modalGroup, modalWingL, modalWingR, modalAnimFrameId = null;
+var _modalTouchMoveHandler = null, _modalTouchEndHandler = null, _modalMouseMoveHandler = null, _modalMouseUpHandler = null;
+var modalWarmthParticles = [];
+var modalWarmthBoost = 0;
+
+function unbindModalWindowEvents() {
+  if (_modalTouchMoveHandler) {
+    window.removeEventListener('touchmove', _modalTouchMoveHandler);
+    _modalTouchMoveHandler = null;
+  }
+  if (_modalTouchEndHandler) {
+    window.removeEventListener('touchend', _modalTouchEndHandler);
+    window.removeEventListener('touchcancel', _modalTouchEndHandler);
+    _modalTouchEndHandler = null;
+  }
+  if (_modalMouseMoveHandler) {
+    window.removeEventListener('mousemove', _modalMouseMoveHandler);
+    _modalMouseMoveHandler = null;
+  }
+  if (_modalMouseUpHandler) {
+    window.removeEventListener('mouseup', _modalMouseUpHandler);
+    _modalMouseUpHandler = null;
+  }
+}
 
 function stopModal3DScene() {
   if (modalAnimFrameId) {
     cancelAnimationFrame(modalAnimFrameId);
     modalAnimFrameId = null;
+  }
+  unbindModalWindowEvents();
+  modalWarmthParticles = [];
+  modalWarmthBoost = 0;
+  var wCanvas = document.getElementById('modal-warmth-canvas');
+  if (wCanvas) {
+    var wctx = wCanvas.getContext('2d');
+    if (wctx) wctx.clearRect(0, 0, wCanvas.width, wCanvas.height);
   }
   if (modalThreeRenderer) {
     disposeThreeRenderer(modalThreeRenderer);
@@ -732,7 +763,7 @@ function stopModal3DScene() {
   if (container) container.innerHTML = '';
 }
 
-// 🌟 나비 둘러보기 3D 모달: 아래로 날갯짓할 때는 원래 각도(-0.35 rad)로, 위로 접을 때는 적당히 더 접히도록(+0.95 rad) 조정
+// 🌟 나비 둘러보기 3D 모달: 360도 드래그 회전 및 '✨ 온기 보내기' 인터랙션 탑재
 function openSpecimen3DModal(item, textureUrl) {
   var modal = document.getElementById('specimen-detail-modal');
   var nameEl = document.getElementById('modal-butterfly-name');
@@ -740,6 +771,7 @@ function openSpecimen3DModal(item, textureUrl) {
   var memoEl = document.getElementById('modal-specimen-memo');
   var dateEl = document.getElementById('modal-specimen-date');
   var shareBtn = document.getElementById('btn-share-specimen-modal');
+  var warmthBtn = document.getElementById('btn-warmth-specimen-modal');
   var container = document.getElementById('specimen-three-container');
 
   if (nameEl) nameEl.innerText = '‘' + item.name + '’';
@@ -789,6 +821,43 @@ function openSpecimen3DModal(item, textureUrl) {
   if (!res) return;
   modalThreeScene = res.scene; modalThreeCamera = res.camera; modalThreeRenderer = res.renderer;
 
+  var wCanvas = document.getElementById('modal-warmth-canvas');
+  var wctx = null;
+  if (wCanvas) {
+    wCanvas.width = container.clientWidth || 320;
+    wCanvas.height = container.clientHeight || 300;
+    wctx = wCanvas.getContext('2d');
+  }
+
+  if (warmthBtn) {
+    warmthBtn.classList.remove('warmth-sent');
+    warmthBtn.innerHTML = '<span>✨ 온기 보내기</span>';
+    warmthBtn.onclick = function(e) {
+      e.stopPropagation();
+      triggerDeviceVibrate(35);
+      modalWarmthBoost = 1.0;
+      warmthBtn.classList.add('warmth-sent');
+      warmthBtn.innerHTML = '<span>✨ 온기가 전해졌어요</span>';
+
+      if (wCanvas) {
+        var cx = wCanvas.width / 2;
+        var cy = wCanvas.height / 2 + 10;
+        for (var i = 0; i < 18; i++) {
+          var ang = Math.random() * Math.PI * 2;
+          var spd = 0.8 + Math.random() * 2.2;
+          modalWarmthParticles.push({
+            x: cx + (Math.random() - 0.5) * 36,
+            y: cy + (Math.random() - 0.5) * 28,
+            vx: Math.cos(ang) * spd,
+            vy: Math.sin(ang) * spd - 0.9,
+            r: 1.5 + Math.random() * 2.2,
+            alpha: 0.95
+          });
+        }
+      }
+    };
+  }
+
   var itemPattern3DPath = null;
   if (typeof get3DPatternPath === 'function') {
     itemPattern3DPath = get3DPatternPath(item.wingId, item.patternId);
@@ -815,18 +884,109 @@ function openSpecimen3DModal(item, textureUrl) {
   });
   modalThreeScene.add(modalGroup);
 
-  var clock = new THREE.Clock();
+  // 🌟 [추가 5번]: 3D 상세 모달 360도 터치/마우스 드래그 회전 바인딩
+  var modalRotX = 0, modalRotY = 0;
+  var isModalDragging = false, lastModalX = 0, lastModalY = 0;
+
+  function onModalPointerDown(cx, cy) {
+    isModalDragging = true;
+    lastModalX = cx;
+    lastModalY = cy;
+  }
+  function onModalPointerMove(cx, cy) {
+    if (!isModalDragging) return;
+    var dx = cx - lastModalX;
+    var dy = cy - lastModalY;
+    modalRotY += dx * 0.013;
+    modalRotX = Math.max(-1.35, Math.min(1.35, modalRotX + dy * 0.013));
+    lastModalX = cx;
+    lastModalY = cy;
+  }
+  function onModalPointerUp() {
+    isModalDragging = false;
+  }
+
+  container.oncontextmenu = function(e) { e.preventDefault(); return false; };
+  container.ontouchstart = function(e) {
+    if (e.touches.length === 1) onModalPointerDown(e.touches[0].clientX, e.touches[0].clientY);
+  };
+  _modalTouchMoveHandler = function(e) {
+    if (isModalDragging && e.touches.length === 1) onModalPointerMove(e.touches[0].clientX, e.touches[0].clientY);
+  };
+  _modalTouchEndHandler = function() { onModalPointerUp(); };
+
+  container.onmousedown = function(e) { onModalPointerDown(e.clientX, e.clientY); };
+  _modalMouseMoveHandler = function(e) {
+    if (isModalDragging) onModalPointerMove(e.clientX, e.clientY);
+  };
+  _modalMouseUpHandler = function() { onModalPointerUp(); };
+
+  window.addEventListener('touchmove', _modalTouchMoveHandler, { passive: true });
+  window.addEventListener('touchend', _modalTouchEndHandler, { passive: true });
+  window.addEventListener('touchcancel', _modalTouchEndHandler, { passive: true });
+  window.addEventListener('mousemove', _modalMouseMoveHandler);
+  window.addEventListener('mouseup', _modalMouseUpHandler);
+
+  var lastTime = performance.now();
+  var flapPhase = 0;
+
   (function modalAnimate() {
     if (!modalThreeRenderer || !modalThreeScene || !modalThreeCamera) return;
     modalAnimFrameId = requestAnimationFrame(modalAnimate);
-    // 🌟 아래로 내려갈 때는 원래 각도(-0.35 rad)까지 내려가고, 위로 접을 때는 좀 더 접히도록(+0.95 rad) 설정
-    var t = clock.getElapsedTime(), flap = 0.30 + Math.sin(t * 2.8) * 0.65;
+
+    var now = performance.now();
+    var dt = Math.min(0.05, (now - lastTime) / 1000);
+    lastTime = now;
+
+    if (!isModalDragging) {
+      modalRotX += (0 - modalRotX) * 0.06;
+      var diffY = 0 - modalRotY;
+      modalRotY += Math.atan2(Math.sin(diffY), Math.cos(diffY)) * 0.06;
+    }
+
+    if (modalWarmthBoost > 0) {
+      modalWarmthBoost = Math.max(0, modalWarmthBoost - dt * 0.85);
+    }
+
+    // 평상시에는 느긋한 호흡(2.8), 온기를 받으면 파르르 기뻐하는 날갯짓(14.0)으로 가속
+    var currentFlapSpeed = 2.8 + modalWarmthBoost * 11.2;
+    flapPhase += dt * currentFlapSpeed;
+    var flap = 0.30 + Math.sin(flapPhase) * (0.65 + modalWarmthBoost * 0.22);
+
+    if (modalGroup) {
+      modalGroup.rotation.x = modalRotX;
+      modalGroup.rotation.y = modalRotY;
+      modalGroup.position.y = -0.35 + Math.sin(flapPhase * 0.7) * 0.04 + modalWarmthBoost * 0.08;
+    }
+
     if (modalWingL && modalWingR) { 
       var uL = modalWingL.userData;
       var uR = modalWingR.userData;
       modalWingL.rotation.set(uL.baseRotX || 0, (uL.baseRotY || 0) + flap, uL.baseRotZ || 0); 
       modalWingR.rotation.set(uR.baseRotX || 0, (uR.baseRotY || 0) - flap, uR.baseRotZ || 0); 
     }
+
+    if (wctx && wCanvas && modalWarmthParticles.length > 0) {
+      wctx.clearRect(0, 0, wCanvas.width, wCanvas.height);
+      for (var i = modalWarmthParticles.length - 1; i >= 0; i--) {
+        var p = modalWarmthParticles[i];
+        p.x += p.vx;
+        p.y += p.vy;
+        p.alpha -= 0.022;
+        if (p.alpha <= 0) {
+          modalWarmthParticles.splice(i, 1);
+          continue;
+        }
+        wctx.beginPath();
+        wctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+        wctx.fillStyle = 'rgba(255, 255, 255, ' + p.alpha.toFixed(3) + ')';
+        wctx.fill();
+      }
+      if (modalWarmthParticles.length === 0) {
+        wctx.clearRect(0, 0, wCanvas.width, wCanvas.height);
+      }
+    }
+
     modalThreeRenderer.render(modalThreeScene, modalThreeCamera);
   })();
 }

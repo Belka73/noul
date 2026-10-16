@@ -1289,7 +1289,7 @@ html, body {
   width: 100%;
   display: flex;
   justify-content: center;
-  margin-top: 0.85rem;
+  margin-top: 0.75rem;
   padding: 0 1.25rem;
 }
 
@@ -1324,6 +1324,87 @@ html, body {
   color: rgba(255, 255, 255, 0.4);
 }
 
+/* 🌟 [추가 2번]: 공감 키워드 원터치 필터 칩 & 우연한 나비 만나기 바 */
+.gallery-filter-bar-wrap {
+  width: 100%;
+  max-width: 356px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 0.55rem;
+  padding: 0 1.0rem;
+  box-sizing: border-box;
+}
+
+.gallery-random-meet-btn {
+  flex-shrink: 0;
+  height: 28px;
+  padding: 0 11px;
+  border-radius: 9999px;
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.18) 0%, rgba(255, 255, 255, 0.07) 100%);
+  border: 1px solid rgba(255, 255, 255, 0.28);
+  color: #ffffff;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: -0.2px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: transform 0.2s ease, background 0.2s ease, border-color 0.2s ease;
+}
+
+.gallery-random-meet-btn:active {
+  transform: scale(0.94);
+  background: #ffffff;
+  color: #000000;
+}
+
+.gallery-filter-chips-scroll {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  overflow-x: auto;
+  overflow-y: hidden;
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+  padding: 2px 4px 2px 2px;
+  -webkit-mask-image: linear-gradient(to right, black 0%, black 88%, transparent 100%);
+  mask-image: linear-gradient(to right, black 0%, black 88%, transparent 100%);
+}
+.gallery-filter-chips-scroll::-webkit-scrollbar {
+  display: none;
+}
+
+.gallery-filter-chip {
+  flex-shrink: 0;
+  height: 27px;
+  padding: 0 10px;
+  border-radius: 9999px;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  color: #a3a3a3;
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: -0.2px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.2s ease;
+}
+
+.gallery-filter-chip.active-chip {
+  background: #ffffff;
+  border-color: #ffffff;
+  color: #000000;
+  font-weight: 700;
+}
+
 .gallery-viewport-drag {
   width: 100%;
   height: 100%;
@@ -1332,8 +1413,8 @@ html, body {
   overflow-x: hidden;
   -webkit-overflow-scrolling: touch;
   background-color: #000000;
-  padding-top: calc(7.5rem + env(safe-area-inset-top, 0px));
-  padding-bottom: max(3.5rem, calc(2.0rem + env(safe-area-inset-bottom, 0px)));
+  padding-top: calc(9.8rem + env(safe-area-inset-top, 0px));
+  padding-bottom: max(4.5rem, calc(3.0rem + env(safe-area-inset-bottom, 0px)));
   scrollbar-width: none;
 }
 .gallery-viewport-drag::-webkit-scrollbar {
@@ -1348,6 +1429,8 @@ html, body {
   background-size: 26px 26px;
   border: none;
   box-shadow: none;
+  --scroll-tilt: 0deg;
+  --scroll-shift: 0px;
 }
 
 .specimen-container-relative {
@@ -1355,7 +1438,7 @@ html, body {
   grid-template-columns: repeat(2, 1fr);
   row-gap: 2.2rem;
   column-gap: 1.0rem;
-  padding: 1.2rem 1.0rem;
+  padding: 1.2rem 1.0rem 2.6rem;
   width: 100%;
   box-sizing: border-box;
 }
@@ -1378,6 +1461,25 @@ html, body {
   transform: translateY(0);
 }
 
+/* 🌟 [추가 1번]: 짝수 번째 나비 카드 엇박(Staggered) 배치로 정적인 표본실 느낌 탈피 */
+.specimen-card-item.revealed:nth-child(even) {
+  transform: translateY(24px);
+}
+
+/* 🌟 [추가 2번]: 우연한 나비 만나기 선택 시 반짝이는 스포트라이트 연출 */
+.specimen-card-item.random-spotlight .specimen-pill-label {
+  background-color: #ffffff !important;
+  border-color: #ffffff !important;
+}
+.specimen-card-item.random-spotlight .specimen-pill-label .label-text {
+  color: #000000 !important;
+  font-weight: 800 !important;
+}
+.specimen-card-item.random-spotlight .specimen-butterfly-wrap {
+  transform: scale(1.1) translateY(-4px) !important;
+}
+
+/* 🌟 [추가 4번]: 스크롤 속도에 반응해 나비가 바람을 타듯 미세하게 흔들리는 래퍼 */
 .specimen-butterfly-wrap {
   position: relative;
   display: flex;
@@ -1385,12 +1487,24 @@ html, body {
   justify-content: center;
   width: 172px;
   height: 145px;
+  transform: translateY(var(--scroll-shift, 0px)) rotateX(var(--scroll-tilt, 0deg));
+  transition: transform 0.32s cubic-bezier(0.16, 1, 0.3, 1);
+  will-change: transform;
+}
+
+/* 🌟 [추가 1번]: GPU 가속(scaleX)만 사용하여 렉 없이 가만히 앉아 숨 쉬는 나비 날개 */
+@keyframes specimenWingBreathe {
+  0%   { transform: scaleX(1) translateY(0px); }
+  100% { transform: scaleX(0.91) translateY(-2.5px); }
 }
 
 .specimen-shadow-drop {
   filter: none !important;
   width: 100%;
   height: 100%;
+  transform-origin: center center;
+  animation: specimenWingBreathe 3.4s ease-in-out infinite alternate;
+  will-change: transform;
 }
 
 .specimen-pin-head {
@@ -1536,9 +1650,63 @@ html, body {
   flex-shrink: 0;
 }
 
-/* 🌟 3. 나비 둘러보기 3D 모달: 캔버스 GPU 필터 제거 */
+/* 🌟 3. 나비 둘러보기 3D 모달: 캔버스 GPU 필터 제거 및 360도 드래그 회전 터치 제어 */
+#specimen-three-container {
+  touch-action: none !important;
+  cursor: grab;
+}
+#specimen-three-container:active {
+  cursor: grabbing;
+}
 #specimen-three-container canvas {
   filter: none !important;
+}
+
+/* 🌟 [추가 5번]: 모달 온기 보내기 버튼, 빛 입자 캔버스, 회전 힌트 */
+.modal-warmth-canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 25;
+  pointer-events: none;
+}
+
+.specimen-modal-warmth-btn {
+  height: 32px;
+  padding: 0 12px;
+  border-radius: 9999px;
+  background: rgba(255, 255, 255, 0.14);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: #ffffff;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: -0.2px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+.specimen-modal-warmth-btn:active,
+.specimen-modal-warmth-btn.warmth-sent {
+  background: #ffffff;
+  border-color: #ffffff;
+  color: #000000;
+  transform: scale(0.95);
+}
+
+.specimen-modal-rotate-hint {
+  position: absolute;
+  bottom: 6px;
+  left: 0;
+  width: 100%;
+  text-align: center;
+  font-size: 10.5px;
+  color: rgba(255, 255, 255, 0.42);
+  letter-spacing: -0.2px;
+  pointer-events: none;
+  z-index: 20;
 }
 
 /* 🌟 4. 공유 화면 3D 나비: 캔버스 GPU 필터 제거 */
@@ -1553,6 +1721,7 @@ html, body {
   z-index: 40;
   display: flex;
   align-items: center;
+  gap: 8px;
   pointer-events: auto;
 }
 .specimen-top-date-text {
