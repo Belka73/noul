@@ -1108,8 +1108,9 @@ function stopBubblePhysics() {
 
 var coverAnimId = null;
 var coverParticles = [];
-var sparkleTrails = []; // 🌟 시안 B: 손끝 윤슬 별가루(인분) 궤적 배열
-var globalPointerX = -999, globalPointerY = -999, isCoverPointerDown = false;
+var silkRibbons = []; // 🌟 시안 1: 손끝을 따라 흐르는 '빛의 실크 너울' 곡선 궤적 배열
+var activeRibbon = null;
+var isCoverPointerDown = false;
 var pointerMoveListener = null, pointerDownListener = null, pointerUpListener = null;
 
 function resizeCoverWaveCanvas() {
@@ -1139,74 +1140,129 @@ function initCoverWaveCanvas() {
     });
   }
 
-  sparkleTrails = [];
+  silkRibbons = [];
+  activeRibbon = null;
 
-  // 🌟 캔버스가 pointer-events-none이므로 window 전역에서 터치/마우스 위치를 안전하게 추적
-  pointerMoveListener = function(e) {
-    var clientX = e.clientX || (e.touches && e.touches[0] ? e.touches[0].clientX : 0);
-    var clientY = e.clientY || (e.touches && e.touches[0] ? e.touches[0].clientY : 0);
+  function getCanvasPos(e) {
+    var clientX = e.clientX !== undefined ? e.clientX : (e.touches && e.touches[0] ? e.touches[0].clientX : -999);
+    var clientY = e.clientY !== undefined ? e.clientY : (e.touches && e.touches[0] ? e.touches[0].clientY : -999);
     var rect = canvas.getBoundingClientRect();
-    globalPointerX = clientX - rect.left;
-    globalPointerY = clientY - rect.top;
-
-    if (isCoverPointerDown && globalPointerX >= 0 && globalPointerX <= rect.width && globalPointerY >= 0 && globalPointerY <= rect.height) {
-      for (var k = 0; k < 2; k++) {
-        sparkleTrails.push({
-          x: globalPointerX + (Math.random() - 0.5) * 16,
-          y: globalPointerY + (Math.random() - 0.5) * 16,
-          vx: (Math.random() - 0.5) * 1.2,
-          vy: (Math.random() - 0.5) * 1.2 - 0.4,
-          size: Math.random() * 3.2 + 1.5,
-          alpha: 1.0,
-          decay: Math.random() * 0.035 + 0.02,
-          rotation: Math.random() * Math.PI
-        });
-      }
-    }
-  };
+    return {
+      x: clientX - rect.left,
+      y: clientY - rect.top,
+      valid: (clientX >= rect.left && clientX <= rect.right && clientY >= rect.top && clientY <= rect.bottom)
+    };
+  }
 
   pointerDownListener = function(e) {
+    var pos = getCanvasPos(e);
+    if (!pos.valid) return;
     isCoverPointerDown = true;
-    var clientX = e.clientX || (e.touches && e.touches[0] ? e.touches[0].clientX : 0);
-    var clientY = e.clientY || (e.touches && e.touches[0] ? e.touches[0].clientY : 0);
-    var rect = canvas.getBoundingClientRect();
-    globalPointerX = clientX - rect.left;
-    globalPointerY = clientY - rect.top;
 
-    if (globalPointerX >= 0 && globalPointerX <= rect.width && globalPointerY >= 0 && globalPointerY <= rect.height) {
-      for (var k = 0; k < 5; k++) {
-        sparkleTrails.push({
-          x: globalPointerX + (Math.random() - 0.5) * 20,
-          y: globalPointerY + (Math.random() - 0.5) * 20,
-          vx: (Math.random() - 0.5) * 1.8,
-          vy: (Math.random() - 0.5) * 1.8 - 0.5,
-          size: Math.random() * 3.8 + 1.8,
-          alpha: 1.0,
-          decay: Math.random() * 0.03 + 0.018,
-          rotation: Math.random() * Math.PI
-        });
+    // 터치 시작 시 새로운 실크 너울 스트로크 생성 (살짝만 탭해도 부드러운 실크 결이 피어오르도록 초기 곡선 점 3개 부여)
+    var baseAngle = -Math.PI / 3 + (Math.random() - 0.5) * 0.6;
+    activeRibbon = {
+      points: [
+        { x: pos.x - Math.cos(baseAngle) * 14, y: pos.y - Math.sin(baseAngle) * 14, age: 0, phase: Math.random() * 6.28 },
+        { x: pos.x, y: pos.y, age: 0, phase: Math.random() * 6.28 },
+        { x: pos.x + Math.cos(baseAngle) * 14, y: pos.y + Math.sin(baseAngle) * 14, age: 0, phase: Math.random() * 6.28 }
+      ]
+    };
+    silkRibbons.push(activeRibbon);
+    if (silkRibbons.length > 8) silkRibbons.shift();
+  };
+
+  pointerMoveListener = function(e) {
+    if (!isCoverPointerDown && e.pointerType === 'touch') return;
+    var pos = getCanvasPos(e);
+    if (!pos.valid) return;
+
+    // 마우스 호버 이동 시에도 자연스럽게 실크 결이 이어지도록 처리
+    if (!activeRibbon) {
+      activeRibbon = { points: [] };
+      silkRibbons.push(activeRibbon);
+      if (silkRibbons.length > 8) silkRibbons.shift();
+    }
+
+    var pts = activeRibbon.points;
+    var lastPt = pts.length > 0 ? pts[pts.length - 1] : null;
+    if (!lastPt || Math.hypot(pos.x - lastPt.x, pos.y - lastPt.y) > 6) {
+      pts.push({
+        x: pos.x,
+        y: pos.y,
+        age: 0,
+        phase: (pts.length * 0.32)
+      });
+      // 렉 방지를 위해 한 줄기당 최대 포인트 개수 제한
+      if (pts.length > 32) {
+        pts.shift();
       }
     }
   };
 
   pointerUpListener = function() {
     isCoverPointerDown = false;
+    activeRibbon = null;
   };
 
-  window.addEventListener('pointermove', pointerMoveListener, { passive: true });
   window.addEventListener('pointerdown', pointerDownListener, { passive: true });
+  window.addEventListener('pointermove', pointerMoveListener, { passive: true });
   window.addEventListener('pointerup', pointerUpListener, { passive: true });
-  window.addEventListener('touchmove', pointerMoveListener, { passive: true });
-  window.addEventListener('touchstart', pointerDownListener, { passive: true });
-  window.addEventListener('touchend', pointerUpListener, { passive: true });
+  window.addEventListener('pointercancel', pointerUpListener, { passive: true });
+
+  var waveTime = 0;
+
+  // 부드러운 2차 베지어 곡선 그리기 헬퍼 (실크 천처럼 각지지 않고 매끄럽게 연결)
+  function drawSmoothSilkLayer(pts, offsetScale, waveFreq, lineWidth, alphaScale, isBlueTint) {
+    if (pts.length < 2) return;
+    ctx.beginPath();
+
+    for (var i = 0; i < pts.length; i++) {
+      var p = pts[i];
+      // 양 끝단으로 갈수록 얇고 자연스럽게 모이도록 엔벨로프(Envelope) 적용
+      var env = Math.sin((i / (pts.length - 1)) * Math.PI);
+      var waveOffset = Math.sin(waveTime * 2.4 + p.phase * waveFreq) * offsetScale * env;
+      var px = p.x + waveOffset;
+      var py = p.y - (p.age * 0.35) + Math.cos(waveTime * 1.8 + p.phase) * (offsetScale * 0.45) * env;
+
+      if (i === 0) {
+        ctx.moveTo(px, py);
+      } else {
+        var prev = pts[i - 1];
+        var prevEnv = Math.sin(((i - 1) / (pts.length - 1)) * Math.PI);
+        var prevOffset = Math.sin(waveTime * 2.4 + prev.phase * waveFreq) * offsetScale * prevEnv;
+        var prevX = prev.x + prevOffset;
+        var prevY = prev.y - (prev.age * 0.35) + Math.cos(waveTime * 1.8 + prev.phase) * (offsetScale * 0.45) * prevEnv;
+
+        var midX = (prevX + px) * 0.5;
+        var midY = (prevY + py) * 0.5;
+        ctx.quadraticCurveTo(prevX, prevY, midX, midY);
+      }
+    }
+
+    // 평균 수명을 기반으로 전체 리본의 투명도 계산
+    var avgAge = pts[Math.floor(pts.length / 2)].age;
+    var lifeRatio = Math.max(0, 1 - (avgAge / 55));
+    var finalAlpha = (lifeRatio * lifeRatio) * alphaScale;
+    if (finalAlpha <= 0.005) return;
+
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+    ctx.lineWidth = lineWidth;
+    ctx.strokeStyle = isBlueTint
+      ? 'rgba(215, 232, 255, ' + finalAlpha.toFixed(3) + ')'
+      : 'rgba(255, 255, 255, ' + finalAlpha.toFixed(3) + ')';
+    ctx.stroke();
+  }
 
   (function renderCover() {
     coverAnimId = requestAnimationFrame(renderCover);
+    waveTime += 0.035;
     var curW = canvas.width;
     var curH = canvas.height;
     ctx.clearRect(0, 0, curW, curH);
 
-    // 1. 기본 배경 빛 입자 렌더링
+    // 1. 기본 배경 부유 빛 입자 렌더링
     for (var i = 0; i < coverParticles.length; i++) {
       var p = coverParticles[i];
       p.x += p.vx;
@@ -1223,37 +1279,30 @@ function initCoverWaveCanvas() {
       ctx.fill();
     }
 
-    // 2. 🌟 시안 B: 손끝에서 피어나는 나비 인분·윤슬 별가루 궤적 렌더링
-    for (var j = sparkleTrails.length - 1; j >= 0; j--) {
-      var s = sparkleTrails[j];
-      s.x += s.vx;
-      s.y += s.vy;
-      s.alpha -= s.decay;
-      s.rotation += 0.04;
+    // 2. 🌟 시안 1: 은은한 곡선 파동 (빛의 실크 너울 베일) 렌더링
+    for (var r = silkRibbons.length - 1; r >= 0; r--) {
+      var ribbon = silkRibbons[r];
+      var pts = ribbon.points;
 
-      if (s.alpha <= 0) {
-        sparkleTrails.splice(j, 1);
+      for (var k = pts.length - 1; k >= 0; k--) {
+        pts[k].age += 1;
+        if (pts[k].age > 55) {
+          pts.splice(k, 1);
+        }
+      }
+
+      if (pts.length < 2) {
+        if (ribbon !== activeRibbon) {
+          silkRibbons.splice(r, 1);
+        }
         continue;
       }
 
-      ctx.save();
-      ctx.translate(s.x, s.y);
-      ctx.rotate(s.rotation);
-      ctx.fillStyle = 'rgba(255, 255, 255, ' + s.alpha + ')';
-      ctx.strokeStyle = 'rgba(200, 225, 255, ' + (s.alpha * 0.8) + ')';
-      ctx.lineWidth = 0.8;
-
-      // 4각 다이아몬드 별가루 그리기
-      ctx.beginPath();
-      ctx.moveTo(0, -s.size * 1.8);
-      ctx.quadraticCurveTo(0, 0, s.size * 1.8, 0);
-      ctx.quadraticCurveTo(0, 0, 0, s.size * 1.8);
-      ctx.quadraticCurveTo(0, 0, -s.size * 1.8, 0);
-      ctx.quadraticCurveTo(0, 0, 0, -s.size * 1.8);
-      ctx.fill();
-      ctx.stroke();
-
-      ctx.restore();
+      // 4겹의 반투명 실크 레이어를 위상차와 두께를 달리하여 겹쳐 그려 몽환적인 천(베일) 질감 완성
+      drawSmoothSilkLayer(pts, 14.0, 1.0, 16.0, 0.055, true);  // 가장 넓게 퍼지는 은은한 외곽 실크 베일
+      drawSmoothSilkLayer(pts, -9.5, 1.3, 8.5,  0.095, true);  // 교차하며 너울거리는 중간 실크 결
+      drawSmoothSilkLayer(pts, 5.0,  1.6, 3.5,  0.18,  false); // 부드러운 안쪽 실크 주름선
+      drawSmoothSilkLayer(pts, 1.5,  1.1, 1.2,  0.42,  false); // 가장 선명한 중심 빛의 실선
     }
   })();
 }
@@ -1263,22 +1312,21 @@ function stopCoverWaveCanvas() {
     cancelAnimationFrame(coverAnimId);
     coverAnimId = null;
   }
-  if (pointerMoveListener) {
-    window.removeEventListener('pointermove', pointerMoveListener);
-    window.removeEventListener('touchmove', pointerMoveListener);
-    pointerMoveListener = null;
-  }
   if (pointerDownListener) {
     window.removeEventListener('pointerdown', pointerDownListener);
-    window.removeEventListener('touchstart', pointerDownListener);
     pointerDownListener = null;
+  }
+  if (pointerMoveListener) {
+    window.removeEventListener('pointermove', pointerMoveListener);
+    pointerMoveListener = null;
   }
   if (pointerUpListener) {
     window.removeEventListener('pointerup', pointerUpListener);
-    window.removeEventListener('touchend', pointerUpListener);
+    window.removeEventListener('pointercancel', pointerUpListener);
     pointerUpListener = null;
   }
-  sparkleTrails = [];
+  silkRibbons = [];
+  activeRibbon = null;
   var canvas = document.getElementById('cover-wave-canvas');
   if (canvas) {
     var ctx = canvas.getContext('2d');
