@@ -1108,7 +1108,8 @@ function stopBubblePhysics() {
 
 var coverAnimId = null;
 var coverParticles = [];
-var silkRibbons = []; // 🌟 시안 1: 손끝을 따라 흐르는 '빛의 실크 너울' 곡선 궤적 배열
+var silkRibbons = []; // 🌟 드래그 시 짧고 도톰하며 둥글게 빛나는 '빛의 실크 너울' 곡선 배열
+var tapBlooms = [];   // 🌟 한 번 톡 터치했을 때 어색한 직선 대신 피어오르는 부드러운 '빛의 숨결(오라)' 배열
 var activeRibbon = null;
 var isCoverPointerDown = false;
 var pointerMoveListener = null, pointerDownListener = null, pointerUpListener = null;
@@ -1141,6 +1142,7 @@ function initCoverWaveCanvas() {
   }
 
   silkRibbons = [];
+  tapBlooms = [];
   activeRibbon = null;
 
   function getCanvasPos(e) {
@@ -1154,22 +1156,47 @@ function initCoverWaveCanvas() {
     };
   }
 
+  // 🌟 한 번 톡 터치했을 때 선만 틱 나오는 어색함을 없애기 위해 부드러운 원형 빛무리(숨결)와 미세 빛 알갱이 생성
+  function spawnTapBloom(x, y) {
+    var wisps = [];
+    for (var i = 0; i < 3; i++) {
+      var angle = -Math.PI / 2 + (Math.random() - 0.5) * 1.8;
+      var speed = 0.4 + Math.random() * 0.7;
+      wisps.push({
+        x: x + (Math.random() - 0.5) * 10,
+        y: y + (Math.random() - 0.5) * 10,
+        vx: Math.cos(angle) * speed,
+        vy: Math.sin(angle) * speed - 0.25,
+        r: 1.6 + Math.random() * 1.8
+      });
+    }
+    tapBlooms.push({
+      x: x,
+      y: y,
+      r: 10,
+      maxR: 46,
+      alpha: 0.52,
+      wisps: wisps
+    });
+    if (tapBlooms.length > 6) tapBlooms.shift();
+  }
+
   pointerDownListener = function(e) {
     var pos = getCanvasPos(e);
     if (!pos.valid) return;
     isCoverPointerDown = true;
 
-    // 터치 시작 시 새로운 실크 너울 스트로크 생성 (살짝만 탭해도 부드러운 실크 결이 피어오르도록 초기 곡선 점 3개 부여)
-    var baseAngle = -Math.PI / 3 + (Math.random() - 0.5) * 0.6;
+    // 1. 터치 즉시 부드러운 빛무리(Tap Bloom) 생성
+    spawnTapBloom(pos.x, pos.y);
+
+    // 2. 이후 드래그가 이어질 경우를 대비해 시작점 1개만 등록 (드래그하기 전에는 선을 그리지 않음)
     activeRibbon = {
       points: [
-        { x: pos.x - Math.cos(baseAngle) * 14, y: pos.y - Math.sin(baseAngle) * 14, age: 0, phase: Math.random() * 6.28 },
-        { x: pos.x, y: pos.y, age: 0, phase: Math.random() * 6.28 },
-        { x: pos.x + Math.cos(baseAngle) * 14, y: pos.y + Math.sin(baseAngle) * 14, age: 0, phase: Math.random() * 6.28 }
+        { x: pos.x, y: pos.y, age: 0, phase: Math.random() * 6.28 }
       ]
     };
     silkRibbons.push(activeRibbon);
-    if (silkRibbons.length > 8) silkRibbons.shift();
+    if (silkRibbons.length > 6) silkRibbons.shift();
   };
 
   pointerMoveListener = function(e) {
@@ -1177,24 +1204,26 @@ function initCoverWaveCanvas() {
     var pos = getCanvasPos(e);
     if (!pos.valid) return;
 
-    // 마우스 호버 이동 시에도 자연스럽게 실크 결이 이어지도록 처리
     if (!activeRibbon) {
       activeRibbon = { points: [] };
       silkRibbons.push(activeRibbon);
-      if (silkRibbons.length > 8) silkRibbons.shift();
+      if (silkRibbons.length > 6) silkRibbons.shift();
     }
 
     var pts = activeRibbon.points;
     var lastPt = pts.length > 0 ? pts[pts.length - 1] : null;
-    if (!lastPt || Math.hypot(pos.x - lastPt.x, pos.y - lastPt.y) > 6) {
+    if (!lastPt || Math.hypot(pos.x - lastPt.x, pos.y - lastPt.y) > 4) {
+      // 이전 좌표와 새 좌표를 살짝 보간하여 급격한 꺾임 방지
+      var smoothX = lastPt ? (lastPt.x * 0.25 + pos.x * 0.75) : pos.x;
+      var smoothY = lastPt ? (lastPt.y * 0.25 + pos.y * 0.75) : pos.y;
       pts.push({
-        x: pos.x,
-        y: pos.y,
+        x: smoothX,
+        y: smoothY,
         age: 0,
-        phase: (pts.length * 0.32)
+        phase: (pts.length * 0.35)
       });
-      // 렉 방지를 위해 한 줄기당 최대 포인트 개수 제한
-      if (pts.length > 32) {
+      // 🌟 길이를 더 짧고 응축되게 유지 (기존 32 -> 13)
+      if (pts.length > 13) {
         pts.shift();
       }
     }
@@ -1211,58 +1240,76 @@ function initCoverWaveCanvas() {
   window.addEventListener('pointercancel', pointerUpListener, { passive: true });
 
   var waveTime = 0;
+  var MAX_RIBBON_AGE = 34; // 🌟 잔상이 너무 길게 남지 않도록 수명 단축
 
-  // 부드러운 2차 베지어 곡선 그리기 헬퍼 (실크 천처럼 각지지 않고 매끄럽게 연결)
-  function drawSmoothSilkLayer(pts, offsetScale, waveFreq, lineWidth, alphaScale, isBlueTint) {
-    if (pts.length < 2) return;
-    ctx.beginPath();
-
-    for (var i = 0; i < pts.length; i++) {
+  // 🌟 선이 각지는 부분을 완전히 없애는 2단계 가중 이동평균(Chaikin/Gaussian 스타일) 스무딩 필터
+  function getSmoothedWavePoints(pts, offsetScale, waveFreq) {
+    var len = pts.length;
+    var raw = [];
+    for (var i = 0; i < len; i++) {
       var p = pts[i];
-      // 양 끝단으로 갈수록 얇고 자연스럽게 모이도록 엔벨로프(Envelope) 적용
-      var env = Math.sin((i / (pts.length - 1)) * Math.PI);
+      var env = Math.sin((i / (len - 1)) * Math.PI);
       var waveOffset = Math.sin(waveTime * 2.4 + p.phase * waveFreq) * offsetScale * env;
-      var px = p.x + waveOffset;
-      var py = p.y - (p.age * 0.35) + Math.cos(waveTime * 1.8 + p.phase) * (offsetScale * 0.45) * env;
-
-      if (i === 0) {
-        ctx.moveTo(px, py);
-      } else {
-        var prev = pts[i - 1];
-        var prevEnv = Math.sin(((i - 1) / (pts.length - 1)) * Math.PI);
-        var prevOffset = Math.sin(waveTime * 2.4 + prev.phase * waveFreq) * offsetScale * prevEnv;
-        var prevX = prev.x + prevOffset;
-        var prevY = prev.y - (prev.age * 0.35) + Math.cos(waveTime * 1.8 + prev.phase) * (offsetScale * 0.45) * prevEnv;
-
-        var midX = (prevX + px) * 0.5;
-        var midY = (prevY + py) * 0.5;
-        ctx.quadraticCurveTo(prevX, prevY, midX, midY);
-      }
+      raw.push({
+        x: p.x + waveOffset,
+        y: p.y - (p.age * 0.28) + Math.cos(waveTime * 1.8 + p.phase) * (offsetScale * 0.45) * env
+      });
     }
 
-    // 평균 수명을 기반으로 전체 리본의 투명도 계산
+    // 2회 반복 스무딩으로 날카로운 모서리를 완벽한 라운드 곡선으로 완화
+    for (var pass = 0; pass < 2; pass++) {
+      var next = [raw[0]];
+      for (var j = 1; j < len - 1; j++) {
+        next.push({
+          x: raw[j - 1].x * 0.25 + raw[j].x * 0.5 + raw[j + 1].x * 0.25,
+          y: raw[j - 1].y * 0.25 + raw[j].y * 0.5 + raw[j + 1].y * 0.25
+        });
+      }
+      next.push(raw[len - 1]);
+      raw = next;
+    }
+    return raw;
+  }
+
+  // 🌟 두껍고 부드러운 라운드 실크 & 글로우 레이어 렌더러
+  function drawSmoothSilkLayer(pts, offsetScale, waveFreq, lineWidth, alphaScale, isBlueTint) {
+    if (pts.length < 3) return;
+    var sPts = getSmoothedWavePoints(pts, offsetScale, waveFreq);
+    var len = sPts.length;
+
+    ctx.beginPath();
+    ctx.moveTo(sPts[0].x, sPts[0].y);
+
+    for (var i = 1; i < len - 1; i++) {
+      var midX = (sPts[i].x + sPts[i + 1].x) * 0.5;
+      var midY = (sPts[i].y + sPts[i + 1].y) * 0.5;
+      ctx.quadraticCurveTo(sPts[i].x, sPts[i].y, midX, midY);
+    }
+    ctx.lineTo(sPts[len - 1].x, sPts[len - 1].y);
+
     var avgAge = pts[Math.floor(pts.length / 2)].age;
-    var lifeRatio = Math.max(0, 1 - (avgAge / 55));
+    var lifeRatio = Math.max(0, 1 - (avgAge / MAX_RIBBON_AGE));
     var finalAlpha = (lifeRatio * lifeRatio) * alphaScale;
-    if (finalAlpha <= 0.005) return;
+    if (finalAlpha <= 0.004) return;
 
     ctx.lineCap = 'round';
     ctx.lineJoin = 'round';
     ctx.lineWidth = lineWidth;
     ctx.strokeStyle = isBlueTint
-      ? 'rgba(215, 232, 255, ' + finalAlpha.toFixed(3) + ')'
+      ? 'rgba(195, 225, 255, ' + finalAlpha.toFixed(3) + ')'
       : 'rgba(255, 255, 255, ' + finalAlpha.toFixed(3) + ')';
     ctx.stroke();
   }
 
   (function renderCover() {
     coverAnimId = requestAnimationFrame(renderCover);
-    waveTime += 0.035;
+    waveTime += 0.04;
     var curW = canvas.width;
     var curH = canvas.height;
     ctx.clearRect(0, 0, curW, curH);
 
     // 1. 기본 배경 부유 빛 입자 렌더링
+    ctx.globalCompositeOperation = 'source-over';
     for (var i = 0; i < coverParticles.length; i++) {
       var p = coverParticles[i];
       p.x += p.vx;
@@ -1279,31 +1326,72 @@ function initCoverWaveCanvas() {
       ctx.fill();
     }
 
-    // 2. 🌟 시안 1: 은은한 곡선 파동 (빛의 실크 너울 베일) 렌더링
+    // 🌟 'lighter' 가산 혼합 모드로 전환하여 렉 없는 자연스러운 발광(Glow) 효과 활성화
+    ctx.globalCompositeOperation = 'lighter';
+
+    // 2. 한 번 터치 시 피어오르는 부드러운 '빛의 숨결(Tap Bloom)' 렌더링
+    for (var b = tapBlooms.length - 1; b >= 0; b--) {
+      var bl = tapBlooms[b];
+      bl.r += (bl.maxR - bl.r) * 0.12;
+      bl.y -= 0.35;
+      bl.alpha *= 0.92;
+
+      if (bl.alpha < 0.015) {
+        tapBlooms.splice(b, 1);
+        continue;
+      }
+
+      var grad = ctx.createRadialGradient(bl.x, bl.y, 0, bl.x, bl.y, bl.r);
+      grad.addColorStop(0, 'rgba(255, 255, 255, ' + (bl.alpha * 0.95).toFixed(3) + ')');
+      grad.addColorStop(0.4, 'rgba(210, 232, 255, ' + (bl.alpha * 0.45).toFixed(3) + ')');
+      grad.addColorStop(1, 'rgba(200, 225, 255, 0)');
+
+      ctx.beginPath();
+      ctx.arc(bl.x, bl.y, bl.r, 0, Math.PI * 2);
+      ctx.fillStyle = grad;
+      ctx.fill();
+
+      // 빛무리 안에서 함께 피어오르는 미세한 빛 알갱이
+      for (var wIdx = 0; wIdx < bl.wisps.length; wIdx++) {
+        var wp = bl.wisps[wIdx];
+        wp.x += wp.vx;
+        wp.y += wp.vy;
+        ctx.beginPath();
+        ctx.arc(wp.x, wp.y, wp.r, 0, Math.PI * 2);
+        ctx.fillStyle = 'rgba(255, 255, 255, ' + Math.min(1, bl.alpha * 1.3).toFixed(3) + ')';
+        ctx.fill();
+      }
+    }
+
+    // 3. 드래그 시 도톰하고 짧게 빛나며 따라오는 '빛의 실크 너울' 렌더링
     for (var r = silkRibbons.length - 1; r >= 0; r--) {
       var ribbon = silkRibbons[r];
       var pts = ribbon.points;
 
       for (var k = pts.length - 1; k >= 0; k--) {
         pts[k].age += 1;
-        if (pts[k].age > 55) {
+        if (pts[k].age > MAX_RIBBON_AGE) {
           pts.splice(k, 1);
         }
       }
 
-      if (pts.length < 2) {
+      if (pts.length === 0) {
         if (ribbon !== activeRibbon) {
           silkRibbons.splice(r, 1);
         }
         continue;
       }
 
-      // 4겹의 반투명 실크 레이어를 위상차와 두께를 달리하여 겹쳐 그려 몽환적인 천(베일) 질감 완성
-      drawSmoothSilkLayer(pts, 14.0, 1.0, 16.0, 0.055, true);  // 가장 넓게 퍼지는 은은한 외곽 실크 베일
-      drawSmoothSilkLayer(pts, -9.5, 1.3, 8.5,  0.095, true);  // 교차하며 너울거리는 중간 실크 결
-      drawSmoothSilkLayer(pts, 5.0,  1.6, 3.5,  0.18,  false); // 부드러운 안쪽 실크 주름선
-      drawSmoothSilkLayer(pts, 1.5,  1.1, 1.2,  0.42,  false); // 가장 선명한 중심 빛의 실선
+      // 드래그하여 점이 3개 이상 모였을 때만 매끄러운 라운드 실크 & 글로우 렌더링
+      if (pts.length >= 3) {
+        drawSmoothSilkLayer(pts, 11.0, 0.9, 36.0, 0.075, true);  // 1겹: 넓고 은은하게 퍼지는 외곽 소프트 글로우 (36px)
+        drawSmoothSilkLayer(pts, -7.5, 1.2, 20.0, 0.13,  true);  // 2겹: 도톰한 실크 베일 몸체 (20px)
+        drawSmoothSilkLayer(pts, 3.8,  1.5, 10.0, 0.24,  false); // 3겹: 밝게 빛나는 내부 실크 결 (10px)
+        drawSmoothSilkLayer(pts, 1.0,  1.0, 4.0,  0.55,  false); // 4겹: 선명하고 둥근 중심 코어 빛줄기 (4px)
+      }
     }
+
+    ctx.globalCompositeOperation = 'source-over';
   })();
 }
 
@@ -1326,6 +1414,7 @@ function stopCoverWaveCanvas() {
     pointerUpListener = null;
   }
   silkRibbons = [];
+  tapBlooms = [];
   activeRibbon = null;
   var canvas = document.getElementById('cover-wave-canvas');
   if (canvas) {

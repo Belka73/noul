@@ -78,9 +78,32 @@ html, body {
 }
 
 .cover-anim-logo {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   opacity: 0;
   transform: translateY(8px);
   animation: coverElemFadeInUp 0.6s cubic-bezier(0.16, 1, 0.3, 1) 0.15s forwards;
+}
+
+/* 🌟 iOS/모바일에서 SVG clipPath 내부 필터가 사각형 박스로 깨지는 현상을 방지하는 부드러운 원형 글로우 배경 */
+.cover-anim-logo::before {
+  content: '';
+  position: absolute;
+  width: 160%;
+  height: 160%;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background: radial-gradient(
+    ellipse at center,
+    rgba(255, 255, 255, 0.24) 0%,
+    rgba(215, 232, 255, 0.10) 38%,
+    rgba(255, 255, 255, 0) 72%
+  );
+  pointer-events: none;
+  z-index: -1;
 }
 
 .cover-anim-desc {
@@ -209,11 +232,13 @@ html, body {
   animation: galleryScreenSmoothFade 0.65s cubic-bezier(0.22, 1, 0.36, 1) forwards;
 }
 
+/* 🌟 SVG 바운딩 박스 사각형 잘림 현상 완전 제거 (overflow: visible 및 과도한 drop-shadow 제거) */
 .noul-perfect-logo {
   width: 240px;
   max-width: 70vw;
   height: auto;
-  filter: drop-shadow(0 0 20px rgba(255, 255, 255, 0.4));
+  overflow: visible !important;
+  filter: none !important;
 }
 
 @keyframes menuItemFadeIn {
@@ -1647,11 +1672,10 @@ html, body {
   100% { opacity: 0.52; transform: scale(1.12); }
 }
 
-/* 2. '너울' SVG 로고: 중간 머뭇거림 없이 단 하나의 호흡(천천히 출발 -> 연속 질주 -> 부드러운 감속)으로 물 흐르듯 써지는 연출 */
+/* 2. '너울' SVG 로고: iOS Safari에서 사각형 텍스처 깨짐을 유발하던 개별 path will-change 제거 */
 .noul-brush-stroke {
   stroke-dasharray: 100;
   stroke-dashoffset: 100;
-  will-change: stroke-dashoffset;
 }
 
 /* [1획: 출발 가속] '너'의 ㄴ - 천천히 시작하여 끝에서 감속(브레이크) 없이 최고 속도로 바통을 넘김 */
