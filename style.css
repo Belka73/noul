@@ -1609,16 +1609,70 @@ html, body {
   100% { opacity: 0.52; transform: scale(1.12); }
 }
 
-/* 2. '너울' SVG 로고가 빛의 선으로 그려진 뒤 부드럽게 채워지는 효과 */
+/* 2. '너울' SVG 로고가 한글 필순(너 -> 울)과 실제 획 길이에 맞춰 자연스럽게 그려진 뒤 채워지는 효과 */
 .noul-perfect-logo path,
 .noul-perfect-logo rect {
-  stroke: #ffffff;
-  stroke-width: 6px;
-  stroke-dasharray: 1600;
-  stroke-dashoffset: 1600;
+  stroke: rgba(255, 255, 255, 0.95);
+  stroke-width: 4.5px;
+  stroke-linecap: round;
+  stroke-linejoin: round;
   fill-opacity: 0;
-  animation: logoDrawLine 1.8s cubic-bezier(0.22, 1, 0.36, 1) 0.2s forwards,
-             logoFillIn 0.9s ease 1.3s forwards;
+}
+
+/* '너' - 1획: ㄴ (둘레 약 1320) */
+.noul-perfect-logo > *:nth-child(1) {
+  stroke-dasharray: 1400;
+  stroke-dashoffset: 1400;
+  animation: logoDrawLine 0.85s cubic-bezier(0.25, 1, 0.5, 1) 0.15s forwards,
+             logoFillIn 0.75s ease 0.70s forwards;
+}
+
+/* '너' - 2획: ㅓ 가로획 (둘레 약 392) */
+.noul-perfect-logo > *:nth-child(2) {
+  stroke-dasharray: 450;
+  stroke-dashoffset: 450;
+  animation: logoDrawLine 0.55s cubic-bezier(0.25, 1, 0.5, 1) 0.30s forwards,
+             logoFillIn 0.75s ease 0.75s forwards;
+}
+
+/* '너' - 3획: ㅓ 세로획 (둘레 약 914) */
+.noul-perfect-logo > *:nth-child(3) {
+  stroke-dasharray: 980;
+  stroke-dashoffset: 980;
+  animation: logoDrawLine 0.75s cubic-bezier(0.25, 1, 0.5, 1) 0.38s forwards,
+             logoFillIn 0.75s ease 0.82s forwards;
+}
+
+/* '울' - 4획: ㅇ (외곽+내곽 둘레 약 1650) */
+.noul-perfect-logo > *:nth-child(4) {
+  stroke-dasharray: 1750;
+  stroke-dashoffset: 1750;
+  animation: logoDrawLine 0.90s cubic-bezier(0.25, 1, 0.5, 1) 0.52s forwards,
+             logoFillIn 0.80s ease 1.02s forwards;
+}
+
+/* '울' - 5획: ㅜ 가로획 (둘레 약 886) */
+.noul-perfect-logo > *:nth-child(5) {
+  stroke-dasharray: 950;
+  stroke-dashoffset: 950;
+  animation: logoDrawLine 0.70s cubic-bezier(0.25, 1, 0.5, 1) 0.68s forwards,
+             logoFillIn 0.75s ease 1.12s forwards;
+}
+
+/* '울' - 6획: ㅜ 세로획 (둘레 약 170) */
+.noul-perfect-logo > *:nth-child(6) {
+  stroke-dasharray: 220;
+  stroke-dashoffset: 220;
+  animation: logoDrawLine 0.45s cubic-bezier(0.25, 1, 0.5, 1) 0.80s forwards,
+             logoFillIn 0.70s ease 1.18s forwards;
+}
+
+/* '울' - 7획: ㄹ 받침 (실제 둘레 약 2140 -> 2250으로 설정해 미리 튀어나오는 현상 완벽 해결) */
+.noul-perfect-logo > *:nth-child(7) {
+  stroke-dasharray: 2250;
+  stroke-dashoffset: 2250;
+  animation: logoDrawLine 1.05s cubic-bezier(0.22, 1, 0.36, 1) 0.88s forwards,
+             logoFillIn 0.85s ease 1.30s forwards;
 }
 
 @keyframes logoDrawLine {
@@ -1626,7 +1680,7 @@ html, body {
 }
 
 @keyframes logoFillIn {
-  to { fill-opacity: 1; stroke-width: 0px; }
+  to { fill-opacity: 1; stroke-width: 0px; stroke: transparent; }
 }
 
 /* 로고 전체가 초기 등장 이후 공중에 살짝 떠 있는 듯한 부유감 */
