@@ -41,7 +41,7 @@
     <canvas id="cover-wave-canvas" class="absolute inset-0 w-full h-full z-30 pointer-events-none"></canvas>
 
     <!-- 0. 표지 화면 -->
-    <section id="screen-cover" class="screen active cover-viewport flex-col justify-between py-6 text-center z-20 pointer-events-none">
+    <section id="screen-cover" class="screen active cover-viewport flex-col justify-between py-6 text-center z-20">
       <div class="relative z-10 flex flex-col items-center justify-center my-auto px-4 pointer-events-none">
         <div class="cover-anim-logo">
           <svg class="noul-perfect-logo" viewBox="0 0 1000 750" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -113,7 +113,7 @@
         </div>
       </div>
 
-      <footer class="bottom-dock-unified w-full flex justify-center z-20 cover-anim-btn pointer-events-auto">
+      <footer id="cover-bottom-dock" class="bottom-dock-unified w-full flex justify-center z-20 cover-anim-btn pointer-events-auto">
         <button id="btn-start-cover" type="button" 
                 class="w-[84%] py-3.5 rounded-2xl bg-white text-black font-bold text-sm cursor-pointer active:scale-95 transition-all text-center block shadow-lg shadow-white/10">
           시작하기
@@ -199,11 +199,8 @@
           </div>
         </div>
 
-        <!-- 🌟 [추가 2번]: 공감 키워드 원터치 필터 칩 & 우연한 나비 만나기 바 -->
+        <!-- 🌟 공감 키워드 원터치 필터 칩 바 (우연한 나비 버튼 제거 완료) -->
         <div class="gallery-filter-bar-wrap">
-          <button id="btn-gallery-random-meet" type="button" class="gallery-random-meet-btn">
-            <span>✨ 우연한 나비</span>
-          </button>
           <div id="gallery-filter-chips-bar" class="gallery-filter-chips-scroll"></div>
         </div>
       </div>
@@ -223,7 +220,7 @@
           
           <div class="specimen-modal-stage">
             <div id="specimen-three-container" class="w-full h-full relative"></div>
-            <!-- 🌟 [추가 5번]: 온기 보내기 빛 입자 캔버스 및 360도 회전 안내 -->
+            <!-- 🌟 온기 보내기 빛 입자 캔버스 및 360도 회전 안내 -->
             <canvas id="modal-warmth-canvas" class="modal-warmth-canvas pointer-events-none"></canvas>
             <div class="specimen-stage-date-top">
               <button id="btn-share-specimen-modal" type="button" class="specimen-modal-share-btn" aria-label="나비 공유하기">

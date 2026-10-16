@@ -128,6 +128,26 @@ function showScreen(screenId) {
   if (target) {
     target.classList.add('active');
     target.style.display = 'flex';
+
+    // 🌟 시작페이지(#screen-cover)로 돌아왔을 때 하단 '시작하기' 버튼 바가 무조건 즉시 보이도록 강제 보장
+    if (screenId === 'screen-cover') {
+      var coverDock = document.getElementById('cover-bottom-dock') || target.querySelector('.cover-anim-btn');
+      var startBtn = document.getElementById('btn-start-cover');
+      if (coverDock) {
+        coverDock.style.setProperty('display', 'flex', 'important');
+        coverDock.style.setProperty('opacity', '1', 'important');
+        coverDock.style.setProperty('visibility', 'visible', 'important');
+        coverDock.style.setProperty('transform', 'translateY(0)', 'important');
+        coverDock.style.setProperty('pointer-events', 'auto', 'important');
+      }
+      if (startBtn) {
+        startBtn.style.setProperty('display', 'block', 'important');
+        startBtn.style.setProperty('opacity', '1', 'important');
+        startBtn.style.setProperty('visibility', 'visible', 'important');
+        startBtn.style.setProperty('pointer-events', 'auto', 'important');
+      }
+    }
+
     try {
       // 🌟 '나비 만들기' 외의 페이지(표지, 메뉴, 둘러보기, 전시소개, 관람안내)에서는 캔버스 유지, 그 외에는 중지
       if (isCoverWaveAllowed(screenId)) {
@@ -1442,8 +1462,6 @@ var specimenButterfliesData = [];
 var specimenContainer = document.getElementById('specimen-items-container');
 var gallerySpawnTimers = [];
 var currentGalleryConcernFilter = 'all';
-var currentFilteredGalleryItems = [];
-var randomSpotlightTimer = null;
 
 function getPatternObjectForSpecimen(wingId, patternId) {
   if (typeof wingPatternDataset === 'undefined') return null;
@@ -1451,7 +1469,49 @@ function getPatternObjectForSpecimen(wingId, patternId) {
   return patterns.find(function(p) { return p.id === patternId; }) || null;
 }
 
-// 🌟 [추가 2번]: 로드된 나비들의 핵심 고민(core_concern) 키워드를 추출하여 원터치 필터 칩 렌더링
+// 🌟 키워드 필터 칩 바 PC 마우스 드래그 및 휠 가로 스크롤 지원
+function bindGalleryFilterDragScroll() {
+  var bar = document.getElementById('gallery-filter-chips-bar');
+  if (!bar || bar.dataset.dragBound === '1') return;
+  bar.dataset.dragBound = '1';
+
+  var isDown = false, startX = 0, scrollLeft = 0, moved = false;
+
+  bar.addEventListener('mousedown', function(e) {
+    isDown = true;
+    moved = false;
+    startX = e.pageX - bar.offsetLeft;
+    scrollLeft = bar.scrollLeft;
+  });
+  bar.addEventListener('mouseleave', function() { isDown = false; });
+  bar.addEventListener('mouseup', function() { isDown = false; });
+  bar.addEventListener('mousemove', function(e) {
+    if (!isDown) return;
+    var x = e.pageX - bar.offsetLeft;
+    var walk = (x - startX) * 1.4;
+    if (Math.abs(walk) > 5) moved = true;
+    if (moved) {
+      e.preventDefault();
+      bar.scrollLeft = scrollLeft - walk;
+    }
+  });
+  bar.addEventListener('click', function(e) {
+    if (moved) {
+      e.stopPropagation();
+      e.preventDefault();
+      moved = false;
+    }
+  }, true);
+  bar.addEventListener('wheel', function(e) {
+    if (Math.abs(e.deltaY) > Math.abs(e.deltaX)) {
+      e.preventDefault();
+      bar.scrollLeft += e.deltaY;
+    }
+  }, { passive: false });
+}
+bindGalleryFilterDragScroll();
+
+// 🌟 로드된 나비들의 핵심 고민(core_concern) 키워드를 추출하여 원터치 필터 칩 렌더링
 function renderGalleryFilterChips() {
   var bar = document.getElementById('gallery-filter-chips-bar');
   if (!bar) return;
@@ -1503,8 +1563,6 @@ function renderFilteredGallery(searchQuery) {
     return matchSearch && matchConcern;
   });
 
-  currentFilteredGalleryItems = filteredData;
-
   if (filteredData.length === 0) {
     specimenContainer.innerHTML = '<div style="grid-column: 1 / -1; text-align: center; padding: 4rem 1rem; color: #777777; font-size: 13px;">' +
       ((q || currentGalleryConcernFilter !== 'all') ? '조건에 맞는 나비가 없습니다.' : '아직 날려보낸 나비가 없습니다.<br>첫 번째 나비를 깨워보세요.') + '</div>';
@@ -1532,13 +1590,14 @@ function renderFilteredGallery(searchQuery) {
       patternSvg = '<image href="' + pat.path + '" x="0" y="0" width="' + wing.w + '" height="' + wing.h + '" preserveAspectRatio="none" style="mix-blend-mode: multiply;" opacity="0.95"/>';
     }
 
-    // 🌟 [추가 1번]: 각 나비마다 서로 다른 호흡 딜레이와 미세 주기를 부여하여 자연스럽게 숨 쉬는 연출
+    // 🌟 각 나비마다 서로 다른 호흡 딜레이와 미세 주기를 부여하여 자연스럽게 숨 쉬는 연출
     var breatheDelay = ((itemIdx * 0.43) % 3.2).toFixed(2);
     var breatheDur = (3.1 + ((itemIdx * 0.29) % 0.9)).toFixed(2);
 
+    // 🌟 나비 SVG 크기를 기존(172x145)에서 210x178로 확대
     card.innerHTML = 
       '<div class="specimen-butterfly-wrap"><div class="specimen-pin-head"></div>' +
-      '<svg class="specimen-shadow-drop" width="172" height="145" viewBox="0 0 ' + wing.w + ' ' + wing.h + '" style="overflow: visible; animation-delay: -' + breatheDelay + 's; animation-duration: ' + breatheDur + 's;">' +
+      '<svg class="specimen-shadow-drop" width="210" height="178" viewBox="0 0 ' + wing.w + ' ' + wing.h + '" style="overflow: visible; animation-delay: -' + breatheDelay + 's; animation-duration: ' + breatheDur + 's;">' +
         '<defs>' +
           '<clipPath id="' + clipId + '">' +
             '<path d="' + wingPath + '" fill-rule="nonzero"/>' +
@@ -1572,43 +1631,7 @@ function renderFilteredGallery(searchQuery) {
   });
 }
 
-// 🌟 [추가 2번]: '✨ 우연한 나비' 버튼 클릭 시 랜덤 나비로 스크롤 & 반짝임 후 3D 모달 오픈
-var btnGalleryRandomMeet = document.getElementById('btn-gallery-random-meet');
-if (btnGalleryRandomMeet) {
-  btnGalleryRandomMeet.onclick = function() {
-    var pool = currentFilteredGalleryItems && currentFilteredGalleryItems.length > 0
-      ? currentFilteredGalleryItems
-      : specimenButterfliesData;
-    if (!pool || pool.length === 0) return;
-
-    var picked = pool[Math.floor(Math.random() * pool.length)];
-    if (!picked) return;
-
-    var cards = specimenContainer ? specimenContainer.querySelectorAll('.specimen-card-item') : [];
-    var targetCard = null;
-    cards.forEach(function(c) {
-      c.classList.remove('random-spotlight');
-      if (String(c.getAttribute('data-specimen-id')) === String(picked.id)) {
-        targetCard = c;
-      }
-    });
-
-    if (targetCard) {
-      targetCard.scrollIntoView({ behavior: 'smooth', block: 'center' });
-      targetCard.classList.add('random-spotlight');
-    }
-
-    clearTimeout(randomSpotlightTimer);
-    randomSpotlightTimer = setTimeout(function() {
-      if (targetCard) targetCard.classList.remove('random-spotlight');
-      if (typeof openSpecimen3DModal === 'function') {
-        openSpecimen3DModal(picked, picked.textureUrl || createFallbackDummyTexture('#ffffff', '#e0e0e0'));
-      }
-    }, 550);
-  };
-}
-
-// 🌟 [추가 4번]: 스크롤 속도에 반응하여 나비들이 미세하게 흔들리는 초경량 바람(Scroll Tilt) 효과
+// 🌟 스크롤 속도에 반응하여 나비들이 미세하게 흔들리는 초경량 바람(Scroll Tilt) 효과
 var galleryScrollResetTimer = null;
 function bindGalleryScrollWindEffect() {
   var viewport = document.getElementById('gallery-pan-viewport');

@@ -112,11 +112,15 @@ html, body {
   animation: coverElemFadeInUp 0.7s cubic-bezier(0.16, 1, 0.3, 1) 0.25s forwards;
 }
 
-/* 🌟 메뉴에서 다시 시작화면으로 돌아왔을 때도 시작하기 버튼이 숨겨지지 않고 즉시 부드럽게 표시되도록 수정 */
-.cover-anim-btn {
-  opacity: 0;
-  transform: translateY(10px);
-  animation: coverElemFadeInUp 0.7s cubic-bezier(0.16, 1, 0.3, 1) 0.35s forwards;
+/* 🌟 메뉴나 다른 페이지에서 시작페이지(#screen-cover)로 다시 돌아왔을 때 아래 시작하기 바가 절대 사라지지 않고 100% 보이도록 고정 */
+.cover-anim-btn,
+#cover-bottom-dock {
+  opacity: 1 !important;
+  transform: translateY(0) !important;
+  display: flex !important;
+  visibility: visible !important;
+  pointer-events: auto !important;
+  animation: none !important;
 }
 
 @keyframes coverElemFadeInUp {
@@ -1324,56 +1328,36 @@ html, body {
   color: rgba(255, 255, 255, 0.4);
 }
 
-/* 🌟 [추가 2번]: 공감 키워드 원터치 필터 칩 & 우연한 나비 만나기 바 */
+/* 🌟 공감 키워드 원터치 필터 칩 바 (우연한 나비 제거 & 터치/마우스 가로 스크롤 최적화) */
 .gallery-filter-bar-wrap {
   width: 100%;
-  max-width: 356px;
+  max-width: 340px;
   display: flex;
   align-items: center;
-  gap: 6px;
+  justify-content: center;
   margin-top: 0.55rem;
-  padding: 0 1.0rem;
+  padding: 0 1.25rem;
   box-sizing: border-box;
 }
 
-.gallery-random-meet-btn {
-  flex-shrink: 0;
-  height: 28px;
-  padding: 0 11px;
-  border-radius: 9999px;
-  background: linear-gradient(135deg, rgba(255, 255, 255, 0.18) 0%, rgba(255, 255, 255, 0.07) 100%);
-  border: 1px solid rgba(255, 255, 255, 0.28);
-  color: #ffffff;
-  font-size: 11px;
-  font-weight: 700;
-  letter-spacing: -0.2px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  white-space: nowrap;
-  transition: transform 0.2s ease, background 0.2s ease, border-color 0.2s ease;
-}
-
-.gallery-random-meet-btn:active {
-  transform: scale(0.94);
-  background: #ffffff;
-  color: #000000;
-}
-
 .gallery-filter-chips-scroll {
-  flex: 1;
+  width: 100%;
   min-width: 0;
   display: flex;
   align-items: center;
-  gap: 5px;
+  gap: 6px;
   overflow-x: auto;
   overflow-y: hidden;
   scrollbar-width: none;
   -webkit-overflow-scrolling: touch;
-  padding: 2px 4px 2px 2px;
-  -webkit-mask-image: linear-gradient(to right, black 0%, black 88%, transparent 100%);
-  mask-image: linear-gradient(to right, black 0%, black 88%, transparent 100%);
+  touch-action: pan-x;
+  cursor: grab;
+  padding: 2px 20px 2px 2px;
+  -webkit-mask-image: linear-gradient(to right, black 0%, black 90%, transparent 100%);
+  mask-image: linear-gradient(to right, black 0%, black 90%, transparent 100%);
+}
+.gallery-filter-chips-scroll:active {
+  cursor: grabbing;
 }
 .gallery-filter-chips-scroll::-webkit-scrollbar {
   display: none;
@@ -1381,8 +1365,8 @@ html, body {
 
 .gallery-filter-chip {
   flex-shrink: 0;
-  height: 27px;
-  padding: 0 10px;
+  height: 28px;
+  padding: 0 11px;
   border-radius: 9999px;
   background: rgba(255, 255, 255, 0.06);
   border: 1px solid rgba(255, 255, 255, 0.14);
@@ -1414,7 +1398,7 @@ html, body {
   -webkit-overflow-scrolling: touch;
   background-color: #000000;
   padding-top: calc(9.8rem + env(safe-area-inset-top, 0px));
-  padding-bottom: max(4.5rem, calc(3.0rem + env(safe-area-inset-bottom, 0px)));
+  padding-bottom: max(5.5rem, calc(4.0rem + env(safe-area-inset-bottom, 0px)));
   scrollbar-width: none;
 }
 .gallery-viewport-drag::-webkit-scrollbar {
@@ -1436,9 +1420,9 @@ html, body {
 .specimen-container-relative {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
-  row-gap: 2.2rem;
-  column-gap: 1.0rem;
-  padding: 1.2rem 1.0rem 2.6rem;
+  row-gap: 2.6rem;
+  column-gap: 0.25rem;
+  padding: 1.0rem 0.35rem 4.2rem;
   width: 100%;
   box-sizing: border-box;
 }
@@ -1456,43 +1440,32 @@ html, body {
   transition: opacity 0.45s cubic-bezier(0.16, 1, 0.3, 1), transform 0.45s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
-.specimen-card-item.revealed {
+/* 🌟 홀수/짝수 나비 카드를 훨씬 더 엇갈리게(지그재그) 배치하여 자유롭게 날아다니는 군집 느낌 강조 */
+.specimen-card-item.revealed:nth-child(odd) {
   opacity: 1;
-  transform: translateY(0);
+  transform: translate(-4px, -6px);
 }
 
-/* 🌟 [추가 1번]: 짝수 번째 나비 카드 엇박(Staggered) 배치로 정적인 표본실 느낌 탈피 */
 .specimen-card-item.revealed:nth-child(even) {
-  transform: translateY(24px);
+  opacity: 1;
+  transform: translate(4px, 58px);
 }
 
-/* 🌟 [추가 2번]: 우연한 나비 만나기 선택 시 반짝이는 스포트라이트 연출 */
-.specimen-card-item.random-spotlight .specimen-pill-label {
-  background-color: #ffffff !important;
-  border-color: #ffffff !important;
-}
-.specimen-card-item.random-spotlight .specimen-pill-label .label-text {
-  color: #000000 !important;
-  font-weight: 800 !important;
-}
-.specimen-card-item.random-spotlight .specimen-butterfly-wrap {
-  transform: scale(1.1) translateY(-4px) !important;
-}
-
-/* 🌟 [추가 4번]: 스크롤 속도에 반응해 나비가 바람을 타듯 미세하게 흔들리는 래퍼 */
+/* 🌟 나비 크기를 기존(172x145)보다 큼직하게(210x178) 확대 + 스크롤 미세 바람 반응 */
 .specimen-butterfly-wrap {
   position: relative;
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 172px;
-  height: 145px;
+  width: 210px;
+  max-width: 48vw;
+  height: 178px;
   transform: translateY(var(--scroll-shift, 0px)) rotateX(var(--scroll-tilt, 0deg));
   transition: transform 0.32s cubic-bezier(0.16, 1, 0.3, 1);
   will-change: transform;
 }
 
-/* 🌟 [추가 1번]: GPU 가속(scaleX)만 사용하여 렉 없이 가만히 앉아 숨 쉬는 나비 날개 */
+/* 🌟 GPU 가속(scaleX)만 사용하여 렉 없이 가만히 앉아 숨 쉬는 나비 날개 */
 @keyframes specimenWingBreathe {
   0%   { transform: scaleX(1) translateY(0px); }
   100% { transform: scaleX(0.91) translateY(-2.5px); }
@@ -1522,7 +1495,7 @@ html, body {
 }
 
 .specimen-pill-label {
-  margin-top: 10px;
+  margin-top: 8px;
   border-radius: 9999px;
   padding: 5px 14px;
   display: inline-flex;
@@ -1662,7 +1635,7 @@ html, body {
   filter: none !important;
 }
 
-/* 🌟 [추가 5번]: 모달 온기 보내기 버튼, 빛 입자 캔버스, 회전 힌트 */
+/* 🌟 모달 온기 보내기 버튼, 빛 입자 캔버스, 회전 힌트 */
 .modal-warmth-canvas {
   position: absolute;
   inset: 0;
