@@ -56,7 +56,7 @@
 
   <style>
     body, html { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; background-color: #000000; user-select: none; cursor: none; overscroll-behavior: none; touch-action: none; font-family: -apple-system, BlinkMacSystemFont, "Pretendard Variable", Pretendard, sans-serif; }
-    #webcam-video { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; transform: scaleX(-1) translateZ(0); filter: grayscale(100%); z-index: 0; pointer-events: none; opacity: 0.28; will-change: transform; contain: strict; }
+    #webcam-video { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; transform: scaleX(-1) translateZ(0); z-index: 0; pointer-events: none; opacity: 0.28; will-change: transform; contain: strict; }
     #video-dark-overlay { position: absolute; inset: 0; background: radial-gradient(circle at 50% 45%, rgba(0, 0, 0, 0.45) 0%, rgba(0, 0, 0, 0.78) 60%, rgba(0, 0, 0, 0.96) 100%); z-index: 1; pointer-events: none; contain: strict; }
     #three-canvas-container { position: absolute; inset: 0; z-index: 10; transform: translateZ(0); will-change: transform; contain: strict; }
     #hand-pointer { position: absolute; top: 0; left: 0; width: 52px; height: 52px; border-radius: 50%; background: rgba(255, 255, 255, 0.08); border: 1px solid rgba(255, 255, 255, 0.25); pointer-events: none; z-index: 30; opacity: 0; transition: opacity 0.2s ease; will-change: transform, opacity; contain: layout style; backface-visibility: hidden; display: flex; align-items: center; justify-content: center; }
