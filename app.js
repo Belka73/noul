@@ -402,7 +402,7 @@ if (btnActionShare) {
     var rawShape = typeof selectedButterflyShape !== 'undefined' && selectedButterflyShape ? selectedButterflyShape : "crescent";
     var rawPattern = typeof selectedPatternId !== 'undefined' && selectedPatternId ? selectedPatternId : (rawShape + "_none");
     var rawAntenna = typeof selectedAntennaType !== 'undefined' && selectedAntennaType ? selectedAntennaType : "ball";
-    var rawBodyColor = typeof selectedBodyColor !== 'undefined' && selectedBodyColor ? selectedBodyColor : "white";
+    var rawBodyColor = typeof selectedBodyColor !== 'undefined' && selectedBodyColor ? selectedBodyColor : "blur";
     var encodedAntenna = rawAntenna + (rawBodyColor !== 'white' ? ('__' + rawBodyColor) : '');
 
     var baseUrl = window.location.href.split('?')[0].replace(/index\.html$/, '');
@@ -1457,7 +1457,7 @@ window.saveButterflyToSupabase = async function() {
     }
     var safeQ2 = Array.isArray(userSelections.q2) ? JSON.parse(JSON.stringify(userSelections.q2)) : [];
 
-    var curBodyColor = (typeof selectedBodyColor !== 'undefined' && selectedBodyColor) ? selectedBodyColor : 'white';
+    var curBodyColor = (typeof selectedBodyColor !== 'undefined' && selectedBodyColor) ? selectedBodyColor : 'blur';
     var baseAnt = (typeof selectedAntennaType !== 'undefined' && selectedAntennaType) ? String(selectedAntennaType).split('__')[0] : 'ball';
     var combinedAntForDB = baseAnt + (curBodyColor !== 'white' ? ('__' + curBodyColor) : '');
 

@@ -18,7 +18,7 @@ var activeCustomTab = 'wing';
 var selectedButterflyShape = 'crescent';
 var selectedAntennaType = 'ball';
 var selectedPatternId = 'crescent_none';
-var selectedBodyColor = 'white';
+var selectedBodyColor = 'blur';
 
 window.currentSelected3DPatternPath = null;
 var currentSelected3DPatternPath = null;
@@ -517,7 +517,7 @@ function fillUnoccupiedWingSpace(ctx, width, height) {
 }
 
 function setBodyColorMode(mode) {
-  selectedBodyColor = mode || 'white';
+  selectedBodyColor = mode || 'blur';
   if (bodyColorBtns && bodyColorBtns.length > 0) {
     bodyColorBtns.forEach(function(btn) {
       btn.classList.toggle('active', btn.getAttribute('data-body-color') === selectedBodyColor);
@@ -530,7 +530,7 @@ function setBodyColorMode(mode) {
 if (bodyColorBtns && bodyColorBtns.length > 0) {
   bodyColorBtns.forEach(function(btn) {
     btn.onclick = function() {
-      var mode = btn.getAttribute('data-body-color') || 'white';
+      var mode = btn.getAttribute('data-body-color') || 'blur';
       setBodyColorMode(mode);
     };
   });
@@ -574,7 +574,7 @@ function handleFile(file) {
       if (blurSlider) { blurSlider.value = 0; currentBlurPx = 0; updateSliderProgress(0); }
       isSymmetryEnabled = false;
       if (toggleSymmetryBtn) { toggleSymmetryBtn.classList.remove('toggle-active'); toggleSymmetryBtn.setAttribute('aria-pressed', 'false'); }
-      setBodyColorMode('white');
+      setBodyColorMode('blur');
       initAlignUI();
       showScreen('screen-shape-select');
     };
