@@ -729,8 +729,8 @@
 
     const defaultFlock = [];
     const userFlock = [];
-    const MAX_USER_BUTTERFLIES = 10;
-    const MAX_RECENT_USER_DATA = 25; // 🌟 VRAM 점유율 최적화를 위해 최근 사용자 나비 보관 개수를 25개로 제한
+    const MAX_USER_BUTTERFLIES = 30;
+    const MAX_RECENT_USER_DATA = 45; // 🌟 VRAM 점유율 최적화를 위해 최근 사용자 나비 보관 개수를 45개로 제한
     const rawUserDataList = [];
 
     function attachClonedGLTFModel(sceneTemplate, innerGroup, wingMat, targetAntennaPrefix) {
@@ -960,7 +960,7 @@
       return butterflyRecord;
     }
 
-    for (let i = 0; i < 8; i++) {
+    for (let i = 0; i < 10; i++) {
       const assignedShape = DEFAULT_BUTTERFLY_SHAPES[i % DEFAULT_BUTTERFLY_SHAPES.length];
       defaultFlock.push(buildButterfly({ wing_shape: assignedShape, antenna_type: 'ball' }, false, false, false));
     }
