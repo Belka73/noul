@@ -222,6 +222,47 @@
       return c.toDataURL('image/png');
     }
 
+    function executeReliableFastBlur(canvas, radius) {
+      if (radius <= 0.2) return;
+      const ctx = canvas.getContext('2d', { willReadFrequently: true });
+      const w = canvas.width, h = canvas.height;
+      const imgData = ctx.getImageData(0, 0, w, h);
+      const src = imgData.data;
+      const r = Math.max(1, Math.round(radius)), kernelSize = r * 2 + 1;
+      const temp = new Uint8ClampedArray(src.length);
+
+      for (let y = 0; y < h; y++) {
+        let rowStart = y * w * 4, rSum = 0, gSum = 0, bSum = 0, aSum = 0;
+        for (let i = -r; i <= r; i++) {
+          let px = Math.min(w - 1, Math.max(0, i)), pIndex = rowStart + px * 4;
+          rSum += src[pIndex]; gSum += src[pIndex + 1]; bSum += src[pIndex + 2]; aSum += src[pIndex + 3];
+        }
+        for (let x = 0; x < w; x++) {
+          let outIndex = rowStart + x * 4;
+          temp[outIndex] = rSum / kernelSize; temp[outIndex + 1] = gSum / kernelSize; temp[outIndex + 2] = bSum / kernelSize; temp[outIndex + 3] = aSum / kernelSize;
+          let remIdx = rowStart + Math.min(w - 1, Math.max(0, x - r)) * 4;
+          let addIdx = rowStart + Math.min(w - 1, Math.max(0, x + r + 1)) * 4;
+          rSum += src[addIdx] - src[remIdx]; gSum += src[addIdx + 1] - src[remIdx + 1]; bSum += src[addIdx + 2] - src[remIdx + 2]; aSum += src[addIdx + 3] - src[remIdx + 3];
+        }
+      }
+
+      for (let x = 0; x < w; x++) {
+        let rSum2 = 0, gSum2 = 0, bSum2 = 0, aSum2 = 0;
+        for (let i = -r; i <= r; i++) {
+          let py = Math.min(h - 1, Math.max(0, i)), pIndex2 = (py * w + x) * 4;
+          rSum2 += temp[pIndex2]; gSum2 += temp[pIndex2 + 1]; bSum2 += temp[pIndex2 + 2]; aSum2 += temp[pIndex2 + 3];
+        }
+        for (let y = 0; y < h; y++) {
+          let outIndex2 = (y * w + x) * 4;
+          src[outIndex2] = rSum2 / kernelSize; src[outIndex2 + 1] = gSum2 / kernelSize; src[outIndex2 + 2] = bSum2 / kernelSize; src[outIndex2 + 3] = aSum2 / kernelSize;
+          let remIdx2 = (Math.min(h - 1, Math.max(0, y - r)) * w + x) * 4;
+          let addIdx2 = (Math.min(h - 1, Math.max(0, y + r + 1)) * w + x) * 4;
+          rSum2 += temp[addIdx2] - temp[remIdx2]; gSum2 += temp[addIdx2 + 1] - temp[remIdx2 + 1]; bSum2 += temp[addIdx2 + 2] - temp[remIdx2 + 2]; aSum2 += temp[addIdx2 + 3] - temp[remIdx2 + 3];
+        }
+      }
+      ctx.putImageData(imgData, 0, 0);
+    }
+
     function get3DPatternPath(shapeKey, patId) {
       if (!patId || patId.indexOf('none') > -1) return null;
       const parts = patId.split('_');
@@ -307,24 +348,36 @@
       const targetMode = mode || 'white';
 
       if (targetMode === 'black') {
-        return new THREE.MeshStandardMaterial({
-          color: 0x18181b,
-          roughness: 0.42,
-          metalness: 0.15,
-          emissive: 0x09090b,
+        return new THREE.MeshBasicMaterial({
+          color: 0x000000,
           side: THREE.DoubleSide
         });
       }
 
       if (targetMode === 'blur') {
-        const texLoader = new THREE.TextureLoader();
-        texLoader.setCrossOrigin('anonymous');
-        const photoTex = texLoader.load(texUrl || createFallbackTexture());
+        const blurCanvas = document.createElement('canvas');
+        blurCanvas.width = 256;
+        blurCanvas.height = 256;
+        const bctx = blurCanvas.getContext('2d', { willReadFrequently: true });
+        bctx.fillStyle = '#d4d4d8';
+        bctx.fillRect(0, 0, 256, 256);
+
+        const photoTex = new THREE.CanvasTexture(blurCanvas);
         photoTex.flipY = false;
         photoTex.generateMipmaps = true;
         photoTex.minFilter = THREE.LinearMipmapLinearFilter;
         photoTex.magFilter = THREE.LinearFilter;
         if (THREE.sRGBEncoding) photoTex.encoding = THREE.sRGBEncoding;
+
+        const img = new Image();
+        img.crossOrigin = 'anonymous';
+        img.onload = function() {
+          bctx.drawImage(img, 0, 0, 256, 256);
+          executeReliableFastBlur(blurCanvas, 18);
+          executeReliableFastBlur(blurCanvas, 12);
+          photoTex.needsUpdate = true;
+        };
+        img.src = texUrl || createFallbackTexture();
 
         return new THREE.ShaderMaterial({
           uniforms: {
@@ -332,9 +385,7 @@
           },
           vertexShader: [
             'varying vec2 vProjectedUv;',
-            'varying vec3 vNormal;',
             'void main() {',
-            '  vNormal = normalize(normalMatrix * normal);',
             '  float u = (position.x + 2.4) / 4.8;',
             '  float v = (position.y + 2.4) / 4.8;',
             '  vProjectedUv = vec2(clamp(u, 0.0, 1.0), clamp(1.0 - v, 0.0, 1.0));',
@@ -344,10 +395,9 @@
           fragmentShader: [
             'uniform sampler2D photoMap;',
             'varying vec2 vProjectedUv;',
-            'varying vec3 vNormal;',
             'void main() {',
             '  vec4 sum = vec4(0.0);',
-            '  float stepSize = 0.032;',
+            '  float stepSize = 0.045;',
             '  sum += texture2D(photoMap, clamp(vProjectedUv + vec2(-stepSize, -stepSize), 0.0, 1.0)) * 0.0625;',
             '  sum += texture2D(photoMap, clamp(vProjectedUv + vec2(0.0, -stepSize), 0.0, 1.0)) * 0.125;',
             '  sum += texture2D(photoMap, clamp(vProjectedUv + vec2(stepSize, -stepSize), 0.0, 1.0)) * 0.0625;',
@@ -357,8 +407,7 @@
             '  sum += texture2D(photoMap, clamp(vProjectedUv + vec2(-stepSize, stepSize), 0.0, 1.0)) * 0.0625;',
             '  sum += texture2D(photoMap, clamp(vProjectedUv + vec2(0.0, stepSize), 0.0, 1.0)) * 0.125;',
             '  sum += texture2D(photoMap, clamp(vProjectedUv + vec2(stepSize, stepSize), 0.0, 1.0)) * 0.0625;',
-            '  float light = 0.82 + 0.18 * abs(vNormal.z);',
-            '  gl_FragColor = vec4(clamp(sum.rgb * light, 0.0, 1.0), 1.0);',
+            '  gl_FragColor = vec4(clamp(sum.rgb, 0.0, 1.0), 1.0);',
             '}'
           ].join('\n'),
           side: THREE.DoubleSide

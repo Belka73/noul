@@ -1172,7 +1172,11 @@ html, body {
   outline: none !important;
 }
 
-/* 🌟 1. 프리뷰 화면(screen-preview) 3D 나비: 실시간 GPU 렉 유발 CSS filter를 안전하게 제거 */
+/* 🌟 1. 프리뷰 화면(screen-preview) 3D 나비: 중앙 빛(.preview-ethereal-glow-bg)보다 앞에 위치하도록 z-index 조정 */
+#three-container {
+  z-index: 2 !important;
+}
+
 #three-container,
 #three-container canvas {
   touch-action: none !important;
@@ -1206,7 +1210,7 @@ html, body {
   );
   filter: blur(24px);
   pointer-events: none;
-  z-index: 1;
+  z-index: 0 !important;
 }
 
 .preview-memo-subline {
@@ -1905,17 +1909,17 @@ html, body {
   background: transparent;
 }
 
-/* 1. 사진 블러 원 (흐린 그라데이션 원) */
+/* 1. 사진 블러 원 (회색과 흰색 그라데이션 원) */
 .body-color-btn[data-body-color="blur"] {
-  background: rgba(255, 255, 255, 0.15);
+  background: #9ca3af;
 }
 .body-color-btn[data-body-color="blur"]::before {
   content: '';
   position: absolute;
-  inset: -5px;
-  background: radial-gradient(circle at 30% 30%, #fbcfe8 0%, #a5f3fc 42%, #c4b5fd 78%, #fde68a 100%);
-  filter: blur(3.5px);
-  opacity: 0.92;
+  inset: -4px;
+  background: linear-gradient(135deg, #ffffff 0%, #d1d5db 45%, #6b7280 100%);
+  filter: blur(2px);
+  opacity: 1;
 }
 
 /* 2. 흰색 원 */

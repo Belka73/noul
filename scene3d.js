@@ -37,25 +37,39 @@ function createBodyMaterial(textureURL, bodyColorMode) {
   var mode = bodyColorMode || (typeof selectedBodyColor !== 'undefined' ? selectedBodyColor : 'white');
 
   if (mode === 'black') {
-    return new THREE.MeshStandardMaterial({
-      color: 0x18181b,
-      roughness: 0.42,
-      metalness: 0.15,
-      emissive: 0x09090b,
+    return new THREE.MeshBasicMaterial({
+      color: 0x000000,
       side: THREE.DoubleSide
     });
   }
 
   if (mode === 'blur') {
     var texUrl = textureURL || (typeof currentExtractedTexture !== 'undefined' && currentExtractedTexture) || createFallbackDummyTexture('#ffffff', '#cfcfcf');
-    var texLoader = new THREE.TextureLoader();
-    texLoader.setCrossOrigin('anonymous');
-    var photoTex = texLoader.load(texUrl);
+    var blurCanvas = document.createElement('canvas');
+    blurCanvas.width = 256;
+    blurCanvas.height = 256;
+    var bctx = blurCanvas.getContext('2d', { willReadFrequently: true });
+    bctx.fillStyle = '#d4d4d8';
+    bctx.fillRect(0, 0, 256, 256);
+
+    var photoTex = new THREE.CanvasTexture(blurCanvas);
     photoTex.flipY = false;
     photoTex.generateMipmaps = true;
     photoTex.minFilter = THREE.LinearMipmapLinearFilter;
     photoTex.magFilter = THREE.LinearFilter;
     if (THREE.sRGBEncoding) photoTex.encoding = THREE.sRGBEncoding;
+
+    var img = new Image();
+    img.crossOrigin = 'anonymous';
+    img.onload = function() {
+      bctx.drawImage(img, 0, 0, 256, 256);
+      if (typeof executeReliableFastBlur === 'function') {
+        executeReliableFastBlur(blurCanvas, 18);
+        executeReliableFastBlur(blurCanvas, 12);
+      }
+      photoTex.needsUpdate = true;
+    };
+    img.src = texUrl;
 
     return new THREE.ShaderMaterial({
       uniforms: {
@@ -63,9 +77,7 @@ function createBodyMaterial(textureURL, bodyColorMode) {
       },
       vertexShader: [
         'varying vec2 vProjectedUv;',
-        'varying vec3 vNormal;',
         'void main() {',
-        '  vNormal = normalize(normalMatrix * normal);',
         '  float u = (position.x + 2.4) / 4.8;',
         '  float v = (position.y + 2.4) / 4.8;',
         '  vProjectedUv = vec2(clamp(u, 0.0, 1.0), clamp(1.0 - v, 0.0, 1.0));',
@@ -75,10 +87,9 @@ function createBodyMaterial(textureURL, bodyColorMode) {
       fragmentShader: [
         'uniform sampler2D photoMap;',
         'varying vec2 vProjectedUv;',
-        'varying vec3 vNormal;',
         'void main() {',
         '  vec4 sum = vec4(0.0);',
-        '  float stepSize = 0.032;',
+        '  float stepSize = 0.045;',
         '  sum += texture2D(photoMap, clamp(vProjectedUv + vec2(-stepSize, -stepSize), 0.0, 1.0)) * 0.0625;',
         '  sum += texture2D(photoMap, clamp(vProjectedUv + vec2(0.0, -stepSize), 0.0, 1.0)) * 0.125;',
         '  sum += texture2D(photoMap, clamp(vProjectedUv + vec2(stepSize, -stepSize), 0.0, 1.0)) * 0.0625;',
@@ -88,8 +99,7 @@ function createBodyMaterial(textureURL, bodyColorMode) {
         '  sum += texture2D(photoMap, clamp(vProjectedUv + vec2(-stepSize, stepSize), 0.0, 1.0)) * 0.0625;',
         '  sum += texture2D(photoMap, clamp(vProjectedUv + vec2(0.0, stepSize), 0.0, 1.0)) * 0.125;',
         '  sum += texture2D(photoMap, clamp(vProjectedUv + vec2(stepSize, stepSize), 0.0, 1.0)) * 0.0625;',
-        '  float light = 0.82 + 0.18 * abs(vNormal.z);',
-        '  gl_FragColor = vec4(clamp(sum.rgb * light, 0.0, 1.0), 1.0);',
+        '  gl_FragColor = vec4(clamp(sum.rgb, 0.0, 1.0), 1.0);',
         '}'
       ].join('\n'),
       side: THREE.DoubleSide
@@ -375,7 +385,7 @@ function unbindPreviewWindowEvents() {
     _previewTouchEndHandler = null;
   }
   if (_previewTouchCancelHandler) {
-    window.removeEventListener('cancel', _previewTouchCancelHandler);
+    window.removeEventListener('touchcancel', _previewTouchCancelHandler);
     _previewTouchCancelHandler = null;
   }
   if (_previewMouseMoveHandler) {
@@ -776,7 +786,7 @@ function bindInteractiveEvents(targetEl) {
   targetEl.ontouchstart = function(e) { if (e.touches.length === 1) handlePointerStart(e.touches[0].clientX, e.touches[0].clientY); };
   window.addEventListener('touchmove', _previewTouchMoveHandler, { passive: true });
   window.addEventListener('touchend', _previewTouchEndHandler, { passive: true });
-  window.addEventListener('cancel', _previewTouchCancelHandler, { passive: true });
+  window.addEventListener('touchcancel', _previewTouchCancelHandler, { passive: true });
   targetEl.onmousedown = function(e) { handlePointerStart(e.clientX, e.clientY); };
   window.addEventListener('mousemove', _previewMouseMoveHandler);
   window.addEventListener('mouseup', _previewMouseUpHandler);

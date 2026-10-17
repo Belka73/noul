@@ -135,42 +135,47 @@ function updateHeroPreview() {
   }
 
   var bodyExtraDefs = "";
-  var bodySvgEl = "";
-  var antennaColor = "#ffffff";
+  var bodyAndAntennaSvgEl = "";
 
-  if (bodyD) {
-    if (selectedBodyColor === 'black') {
-      bodySvgEl = '<path d="' + bodyD + '" fill="#1a1a1a" stroke="rgba(255, 255, 255, 0.28)" stroke-width="2.5"/>';
-      antennaColor = "#262626";
-    } else if (selectedBodyColor === 'blur') {
-      var canvasDataUrl = "";
-      if (typeof alignCanvas !== 'undefined' && alignCanvas && typeof rawImage !== 'undefined' && rawImage && rawImage.width) {
-        try {
-          canvasDataUrl = alignCanvas.toDataURL('image/jpeg', 0.72);
-        } catch (e) {
-          canvasDataUrl = createFallbackDummyTexture();
-        }
-      } else {
+  if (selectedBodyColor === 'black') {
+    bodyAndAntennaSvgEl =
+      (bodyD ? '<path d="' + bodyD + '" fill="#000000"/>' : '') +
+      '<g transform="translate(' + currentWing.headX + ', ' + currentWing.headY + ')" color="#000000">' +
+        ant.render(10.5) +
+      '</g>';
+  } else if (selectedBodyColor === 'blur') {
+    var canvasDataUrl = "";
+    if (typeof alignCanvas !== 'undefined' && alignCanvas && typeof rawImage !== 'undefined' && rawImage && rawImage.width) {
+      try {
+        canvasDataUrl = alignCanvas.toDataURL('image/jpeg', 0.72);
+      } catch (e) {
         canvasDataUrl = createFallbackDummyTexture();
       }
-      bodyExtraDefs =
-        '<clipPath id="hero-body-exact-clip">' +
-          '<path d="' + bodyD + '" fill-rule="nonzero"/>' +
-        '</clipPath>' +
-        '<filter id="hero-body-blur-filter" x="-30%" y="-30%" width="160%" height="160%">' +
-          '<feGaussianBlur stdDeviation="18" />' +
-        '</filter>';
-      bodySvgEl =
-        '<g clip-path="url(#hero-body-exact-clip)">' +
-          '<path d="' + bodyD + '" fill="#d4d4d8"/>' +
-          '<image id="hero-body-blur-img" href="' + canvasDataUrl + '" x="0" y="0" width="1000" height="1000" preserveAspectRatio="none" filter="url(#hero-body-blur-filter)"/>' +
-          '<path d="' + bodyD + '" fill="rgba(255, 255, 255, 0.14)" stroke="rgba(255, 255, 255, 0.35)" stroke-width="2"/>' +
-        '</g>';
-      antennaColor = "#e5e5e5";
     } else {
-      bodySvgEl = '<path d="' + bodyD + '" fill="#ffffff"/>';
-      antennaColor = "#ffffff";
+      canvasDataUrl = createFallbackDummyTexture();
     }
+    bodyExtraDefs =
+      '<mask id="hero-body-ant-mask" maskUnits="userSpaceOnUse" x="-200" y="-200" width="1400" height="1400">' +
+        '<rect x="-200" y="-200" width="1400" height="1400" fill="black"/>' +
+        (bodyD ? '<path d="' + bodyD + '" fill="white" fill-rule="nonzero"/>' : '') +
+        '<g transform="translate(' + currentWing.headX + ', ' + currentWing.headY + ')" color="#ffffff">' +
+          ant.render(10.5) +
+        '</g>' +
+      '</mask>' +
+      '<filter id="hero-body-blur-filter" x="-30%" y="-30%" width="160%" height="160%">' +
+        '<feGaussianBlur stdDeviation="18" />' +
+      '</filter>';
+    bodyAndAntennaSvgEl =
+      '<g mask="url(#hero-body-ant-mask)">' +
+        '<rect x="0" y="0" width="1000" height="1000" fill="#d4d4d8"/>' +
+        '<image id="hero-body-blur-img" href="' + canvasDataUrl + '" x="0" y="0" width="1000" height="1000" preserveAspectRatio="none" filter="url(#hero-body-blur-filter)"/>' +
+      '</g>';
+  } else {
+    bodyAndAntennaSvgEl =
+      (bodyD ? '<path d="' + bodyD + '" fill="#ffffff"/>' : '') +
+      '<g transform="translate(' + currentWing.headX + ', ' + currentWing.headY + ')" filter="url(#antenna-subtle-contrast)" color="#ffffff">' +
+        ant.render(10.5) +
+      '</g>';
   }
 
   heroPathContainer.innerHTML = 
@@ -188,10 +193,7 @@ function updateHeroPreview() {
     '<g clip-path="url(#hero-wing-exact-clip)">' +
       patternSvgEl +
     '</g>' +
-    bodySvgEl +
-    '<g transform="translate(' + currentWing.headX + ', ' + currentWing.headY + ')" filter="url(#antenna-subtle-contrast)" color="' + antennaColor + '">' +
-      ant.render(10.5) +
-    '</g>';
+    bodyAndAntennaSvgEl;
 }
 
 var carouselContainer = document.getElementById('arch-carousel-container');
@@ -488,7 +490,7 @@ var bodyColorBtns = document.querySelectorAll('.body-color-btn');
 function fillUnoccupiedWingSpace(ctx, width, height) {
   if (!ctx) return;
   if (selectedBodyColor === 'black') {
-    ctx.fillStyle = '#1a1a1a';
+    ctx.fillStyle = '#000000';
     ctx.fillRect(0, 0, width, height);
   } else if (selectedBodyColor === 'blur') {
     if (rawImage && rawImage.width && rawImage.height) {
@@ -687,8 +689,8 @@ function exportAlignedTexture() {
     window.currentSelected3DPatternPath = currentSelected3DPatternPath;
 
     if (!rawImage || !rawImage.width || !alignCanvas) {
-      var fallbackColor1 = selectedBodyColor === 'black' ? '#1a1a1a' : '#ffffff';
-      var fallbackColor2 = selectedBodyColor === 'black' ? '#1a1a1a' : '#e5e7eb';
+      var fallbackColor1 = selectedBodyColor === 'black' ? '#000000' : '#ffffff';
+      var fallbackColor2 = selectedBodyColor === 'black' ? '#000000' : '#e5e7eb';
       currentExtractedTexture = createFallbackDummyTexture(fallbackColor1, fallbackColor2);
       window.currentExtractedTexture = currentExtractedTexture;
       resolve(currentExtractedTexture);

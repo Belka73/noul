@@ -1634,8 +1634,8 @@ function renderFilteredGallery(searchQuery) {
     var wing = butterflyPathData[item.wingId] || wingDataset[0];
     var ant = antennaDataset.find(function(a) { return a.id === cleanAntId; }) || antennaDataset[0];
     var pat = getPatternObjectForSpecimen(item.wingId, item.patternId);
-    var defaultTexColor1 = itemBodyColor === 'black' ? '#1a1a1a' : '#ffffff';
-    var defaultTexColor2 = itemBodyColor === 'black' ? '#1a1a1a' : '#e5e7eb';
+    var defaultTexColor1 = itemBodyColor === 'black' ? '#000000' : '#ffffff';
+    var defaultTexColor2 = itemBodyColor === 'black' ? '#000000' : '#e5e7eb';
     var tex = item.textureUrl || createFallbackDummyTexture(defaultTexColor1, defaultTexColor2);
     var card = document.createElement('div');
     card.className = 'specimen-card-item';
@@ -1644,7 +1644,7 @@ function renderFilteredGallery(searchQuery) {
     var displayName = rawName.length > 10 ? rawName.slice(0, 10) + '...' : rawName;
 
     var clipId = 'specimen-wing-clip-' + item.id;
-    var bodyClipId = 'specimen-body-clip-' + item.id;
+    var bodyMaskId = 'specimen-body-mask-' + item.id;
     var bodyBlurId = 'specimen-body-blur-' + item.id;
     var wingPath = wing.wingD || wing.d;
     var bodyPath = wing.bodyD || "";
@@ -1654,33 +1654,33 @@ function renderFilteredGallery(searchQuery) {
       patternSvg = '<image href="' + pat.path + '" x="0" y="0" width="' + wing.w + '" height="' + wing.h + '" preserveAspectRatio="none" style="mix-blend-mode: multiply;" opacity="0.95"/>';
     }
 
-    var wingBaseFill = itemBodyColor === 'black' ? '#1a1a1a' : (itemBodyColor === 'blur' ? '#d4d4d8' : '#ffffff');
+    var wingBaseFill = itemBodyColor === 'black' ? '#000000' : (itemBodyColor === 'blur' ? '#d4d4d8' : '#ffffff');
     var wingBaseBgSvg = '<path d="' + wingPath + '" fill="' + wingBaseFill + '"/>';
-    var wingOutlineStrokeSvg = itemBodyColor === 'black' ? '<path d="' + wingPath + '" fill="none" stroke="rgba(255,255,255,0.22)" stroke-width="2.5"/>' : '';
 
     var extraBodyDefs = "";
-    var bodyElementSvg = "";
-    var antColor = "#ffffff";
+    var bodyAndAntElementSvg = "";
 
-    if (bodyPath) {
-      if (itemBodyColor === 'black') {
-        bodyElementSvg = '<path d="' + bodyPath + '" fill="#1a1a1a" stroke="rgba(255,255,255,0.28)" stroke-width="2.5"/>';
-        antColor = "#262626";
-      } else if (itemBodyColor === 'blur') {
-        extraBodyDefs =
-          '<clipPath id="' + bodyClipId + '"><path d="' + bodyPath + '" fill-rule="nonzero"/></clipPath>' +
-          '<filter id="' + bodyBlurId + '" x="-30%" y="-30%" width="160%" height="160%"><feGaussianBlur stdDeviation="18"/></filter>';
-        bodyElementSvg =
-          '<g clip-path="url(#' + bodyClipId + ')">' +
-            '<path d="' + bodyPath + '" fill="#d4d4d8"/>' +
-            '<image href="' + tex + '" x="0" y="0" width="' + wing.w + '" height="' + wing.h + '" preserveAspectRatio="none" filter="url(#' + bodyBlurId + ')"/>' +
-            '<path d="' + bodyPath + '" fill="rgba(255,255,255,0.14)" stroke="rgba(255,255,255,0.35)" stroke-width="2"/>' +
-          '</g>';
-        antColor = "#e5e5e5";
-      } else {
-        bodyElementSvg = '<path d="' + bodyPath + '" fill="#ffffff"/>';
-        antColor = "#ffffff";
-      }
+    if (itemBodyColor === 'black') {
+      bodyAndAntElementSvg =
+        (bodyPath ? '<path d="' + bodyPath + '" fill="#000000"/>' : '') +
+        (ant ? '<g transform="translate(' + wing.headX + ',' + wing.headY + ')" color="#000000">' + ant.render(10.5) + '</g>' : '');
+    } else if (itemBodyColor === 'blur') {
+      extraBodyDefs =
+        '<mask id="' + bodyMaskId + '" maskUnits="userSpaceOnUse" x="-200" y="-200" width="1400" height="1400">' +
+          '<rect x="-200" y="-200" width="1400" height="1400" fill="black"/>' +
+          (bodyPath ? '<path d="' + bodyPath + '" fill="white" fill-rule="nonzero"/>' : '') +
+          (ant ? '<g transform="translate(' + wing.headX + ',' + wing.headY + ')" color="#ffffff">' + ant.render(10.5) + '</g>' : '') +
+        '</mask>' +
+        '<filter id="' + bodyBlurId + '" x="-30%" y="-30%" width="160%" height="160%"><feGaussianBlur stdDeviation="18"/></filter>';
+      bodyAndAntElementSvg =
+        '<g mask="url(#' + bodyMaskId + ')">' +
+          '<rect x="0" y="0" width="' + wing.w + '" height="' + wing.h + '" fill="#d4d4d8"/>' +
+          '<image href="' + tex + '" x="0" y="0" width="' + wing.w + '" height="' + wing.h + '" preserveAspectRatio="none" filter="url(#' + bodyBlurId + ')"/>' +
+        '</g>';
+    } else {
+      bodyAndAntElementSvg =
+        (bodyPath ? '<path d="' + bodyPath + '" fill="#ffffff"/>' : '') +
+        (ant ? '<g transform="translate(' + wing.headX + ',' + wing.headY + ')" color="#ffffff">' + ant.render(10.5) + '</g>' : '');
     }
 
     // 🌟 각 나비마다 서로 다른 호흡 딜레이와 미세 주기를 부여하여 자연스럽게 숨 쉬는 연출
@@ -1702,9 +1702,7 @@ function renderFilteredGallery(searchQuery) {
           '<image href="' + tex + '" x="0" y="0" width="' + wing.w + '" height="' + wing.h + '" preserveAspectRatio="none"/>' +
           patternSvg +
         '</g>' +
-        wingOutlineStrokeSvg +
-        bodyElementSvg +
-        (ant ? '<g transform="translate(' + wing.headX + ',' + wing.headY + ')" color="' + antColor + '">' + ant.render(10.5) + '</g>' : '') +
+        bodyAndAntElementSvg +
       '</svg></div>' +
       '<div class="specimen-pill-label"><span class="label-text" title="' + rawName + '">' + displayName + '</span></div>';
 
