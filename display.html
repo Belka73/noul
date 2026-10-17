@@ -138,6 +138,16 @@
 
     const DEFAULT_BUTTERFLY_SHAPES = ['crescent', 'moon-halo'];
 
+    // 🌟 잘린 유니코드 조각(Lone Surrogate) 및 깨진 대체 문자(, \uFFFD)를 깔끔하게 제거하는 헬퍼
+    function sanitizeDisplayText(str) {
+      if (!str) return "";
+      return String(str)
+        .replace(/[\uD800-\uDBFF](?![\uDC00-\uDFFF])/g, '')
+        .replace(/(?:[^\uD800-\uDBFF]|^)[\uDC00-\uDFFF]/g, function(m) { return m.length > 1 ? m[0] : ''; })
+        .replace(/\uFFFD/g, '')
+        .trim();
+    }
+
     const sharedWhiteMat = new THREE.MeshBasicMaterial({ 
       color: 0xffffff, 
       side: THREE.DoubleSide, 
@@ -1060,9 +1070,13 @@
 
       scene.add(group);
 
-      const resolvedReason = data.concern_reason 
-        || (Array.isArray(data.q1) && data.q1.length > 0 && typeof data.q1[0] === 'string' && data.q1[0].trim().length > 0 ? data.q1[0].trim() : null)
-        || "항상 잘 해내야 한다는 마음이 앞서서요.";
+      const rawReason = data.concern_reason 
+        || (Array.isArray(data.q1) && data.q1.length > 0 && typeof data.q1[0] === 'string' && data.q1[0].trim().length > 0 ? data.q1[0].trim() : null);
+      const resolvedReason = sanitizeDisplayText(rawReason) || "항상 잘 해내야 한다는 마음이 앞서서요.";
+      const resolvedName = sanitizeDisplayText(data.name) || (isUser ? "익명의 나비" : "나비");
+      const resolvedMemo = sanitizeDisplayText(data.memo) || "너의 찬란한 날갯짓을 응원해.";
+      const rawConcern = data.core_concern || (Array.isArray(data.q2) && data.q2.length > 0 ? data.q2[0] : "완벽주의 강박");
+      const resolvedConcern = sanitizeDisplayText(rawConcern) || "완벽주의 강박";
 
       const butterflyRecord = {
         id: Math.random().toString(36).substring(7),
@@ -1086,9 +1100,9 @@
         ceremonyStage: isCeremony ? 'rising' : null,
         ceremonyRestTimer: 0,
         takeoffTimer: 0,
-        name: data.name || (isUser ? "익명의 나비" : "나비"),
-        memo: data.memo || "너의 찬란한 날갯짓을 응원해.",
-        core_concern: data.core_concern || (Array.isArray(data.q2) && data.q2.length > 0 ? data.q2[0] : "완벽주의 강박"),
+        name: resolvedName,
+        memo: resolvedMemo,
+        core_concern: resolvedConcern,
         concern_reason: resolvedReason,
         screenAngle: initScreenAngle,
         depthAngle: initDepthAngle,

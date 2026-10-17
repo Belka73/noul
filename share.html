@@ -8,6 +8,12 @@
   <!-- 파비콘 (브라우저 탭 아이콘) 설정 -->
   <link rel="icon" type="image/png" href="image/butterfly_sit.png">
   <link rel="apple-touch-icon" href="image/butterfly_sit.png">
+
+  <!-- 🌟 카카오톡 및 SNS 공유 미리보기 (오픈그래프) 메타태그 추가 -->
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="너울 - 당신에게 도착한 나비">
+  <meta property="og:description" content="당신의 마음과 숨결을 담아 우리가 함께 흐르는 곳">
+  <meta property="og:image" content="image/cover.png">
   
   <!-- 라이브러리 CDN -->
   <script src="https://cdn.tailwindcss.com"></script>
@@ -176,12 +182,36 @@
       console.warn("Supabase 초기화 경고:", e);
     }
 
+    // 🌟 잘린 유니코드 조각(Lone Surrogate) 및 깨진 대체 문자(, \uFFFD)를 깔끔하게 제거하는 헬퍼
+    function sanitizeCleanText(str) {
+      if (!str) return "";
+      return String(str)
+        .replace(/[\uD800-\uDBFF](?![\uDC00-\uDFFF])/g, '')
+        .replace(/(?:[^\uD800-\uDBFF]|^)[\uDC00-\uDFFF]/g, function(m) { return m.length > 1 ? m[0] : ''; })
+        .replace(/\uFFFD/g, '')
+        .trim();
+    }
+
+    // 🌟 날개 모양(shape) 값을 실제 3D .glb 파일명과 1:1 매칭되도록 정규화하는 헬퍼
+    function normalizeButterflyShape(rawShape) {
+      const s = String(rawShape || 'crescent').trim().toLowerCase();
+      if (s === 'crescent' || s.indexOf('초승') > -1) return 'crescent';
+      if (s === 'dawn-ray' || s === 'dawn' || s === 'dawn_ray' || s.indexOf('새벽') > -1) return 'dawn-ray';
+      if (s === 'ember' || s.indexOf('불꽃') > -1) return 'ember';
+      if (s === 'moon-halo' || s === 'moon' || s === 'moon_halo' || s.indexOf('달무리') > -1) return 'moon-halo';
+      if (s === 'petal' || s.indexOf('산들') > -1) return 'petal';
+      if (s === 'starlight' || s.indexOf('별빛') > -1) return 'starlight';
+      if (s === 'wave-fin' || s === 'wave' || s === 'wave_fin' || s.indexOf('물결') > -1) return 'wave-fin';
+      return 'crescent';
+    }
+
     // 2. URL 파라미터 기본값
     const urlParams = new URLSearchParams(window.location.search);
     const butterflyId = urlParams.get('id');
-    let butterflyName = urlParams.get('name') || "빛의 나비";
-    let memoText = urlParams.get('memo') || "너의 찬란한 날갯짓을 응원해.";
-    let shape = urlParams.get('shape') || "crescent";
+    const hasUrlName = urlParams.has('name');
+    let butterflyName = sanitizeCleanText(urlParams.get('name')) || "빛의 나비";
+    let memoText = sanitizeCleanText(urlParams.get('memo')) || "너의 찬란한 날갯짓을 응원해.";
+    let shape = normalizeButterflyShape(urlParams.get('shape') || "crescent");
     let patternId = urlParams.get('pattern') || null;
     let rawAntennaParam = urlParams.get('antenna') || "ball";
     let parsedAntParts = String(rawAntennaParam).split('__');
@@ -201,22 +231,31 @@
     function updateUIElements() {
       const titleEl = document.getElementById('share-title-text');
       if (titleEl) {
-        titleEl.innerHTML = `'${escapeHtmlSafe(butterflyName)}'(이)<br>도착했습니다`;
+        titleEl.innerHTML = `'${escapeHtmlSafe(butterflyName)}'이(가)<br>도착했습니다`;
       }
       const memoEl = document.getElementById('share-memo-text');
       if (memoEl) {
         memoEl.innerText = `"${memoText}"`;
       }
     }
-    updateUIElements();
 
-    function createFallbackTexture() {
+    // 🌟 짧은 주소(?id=번호)로 접속했을 때는 DB에서 이름을 받아온 직후 표시하여 초기 깜빡임 방지
+    if (hasUrlName || !butterflyId) {
+      updateUIElements();
+    } else {
+      const titleEl = document.getElementById('share-title-text');
+      const memoEl = document.getElementById('share-memo-text');
+      if (titleEl) titleEl.innerHTML = `나비가<br>도착했습니다`;
+      if (memoEl) memoEl.innerText = `""`;
+    }
+
+    function createFallbackTexture(color1, color2) {
       const c = document.createElement('canvas');
       c.width = 1024; c.height = 1024;
       const ctx = c.getContext('2d');
       const grad = ctx.createLinearGradient(0, 0, 1024, 1024);
-      grad.addColorStop(0, '#fdfbfb');
-      grad.addColorStop(1, '#ebedee');
+      grad.addColorStop(0, color1 || '#fdfbfb');
+      grad.addColorStop(1, color2 || '#ebedee');
       ctx.fillStyle = grad;
       ctx.fillRect(0, 0, 1024, 1024);
       return c.toDataURL('image/png');
@@ -264,15 +303,12 @@
     }
 
     function get3DPatternPath(shapeKey, patId) {
-      if (!patId || patId.indexOf('none') > -1) return null;
-      const parts = patId.split('_');
+      if (!patId || String(patId).indexOf('none') > -1) return null;
+      const parts = String(patId).split('_');
       const patNum = parts[parts.length - 1] || "1";
+      if (!/^[1-5]$/.test(patNum)) return null;
 
-      let shapePrefix = shapeKey || 'crescent';
-      if (shapePrefix === 'moon-halo' || shapePrefix === 'moon') shapePrefix = 'moon-halo';
-      else if (shapePrefix === 'dawn-ray' || shapePrefix === 'dawn') shapePrefix = 'dawn-ray';
-      else if (shapePrefix === 'wave-fin' || shapePrefix === 'wave') shapePrefix = 'wave-fin';
-
+      const shapePrefix = normalizeButterflyShape(shapeKey);
       return './3DButterfly_pattern/' + shapePrefix + '_pattern_3D_' + patNum + '.png';
     }
 
@@ -498,15 +534,18 @@
       wingL = null;
       wingR = null;
 
-      const finalTex = curTexUrl || createFallbackTexture();
-      const pat3DPath = get3DPatternPath(targetShape, curPatId);
+      const normalizedShape = normalizeButterflyShape(targetShape);
+      const defaultCol1 = curBodyColor === 'black' ? '#000000' : '#fdfbfb';
+      const defaultCol2 = curBodyColor === 'black' ? '#000000' : '#ebedee';
+      const finalTex = curTexUrl || createFallbackTexture(defaultCol1, defaultCol2);
+      const pat3DPath = get3DPatternPath(normalizedShape, curPatId);
       const wingMats = createWingMaterials(finalTex, pat3DPath);
       const bodyMat = createBodyMaterial(finalTex, curBodyColor);
       const cleanAnt = String(targetAnt || 'ball').split('__')[0] || 'ball';
       const targetAntPrefix = 'Antenna_' + cleanAnt;
 
       const gltfLoader = new THREE.GLTFLoader();
-      const modelPath = './3DButterfly/' + targetShape + '.glb';
+      const modelPath = './3DButterfly/' + normalizedShape + '.glb';
 
       gltfLoader.load(
         modelPath,
@@ -551,31 +590,68 @@
       );
     }
 
-    async function loadButterflyData() {
-      if (supabaseClient && butterflyId) {
-        try {
-          const { data, error } = await supabaseClient
-            .from('butterflies')
-            .select('*')
-            .eq('id', butterflyId)
-            .single();
+    function applyDatabaseRow(data) {
+      if (!data) return;
+      if (data.name) butterflyName = sanitizeCleanText(data.name) || butterflyName;
+      if (data.memo) memoText = sanitizeCleanText(data.memo) || memoText;
+      if (data.wing_shape || data.shape) shape = normalizeButterflyShape(data.wing_shape || data.shape);
+      if (data.pattern_id || data.pattern) patternId = data.pattern_id || data.pattern;
+      const dbAntStr = String(data.antenna_type || data.antenna || antennaType);
+      const dbAntParts = dbAntStr.split('__');
+      antennaType = dbAntParts[0] || antennaType;
+      bodyColor = data.body_color || dbAntParts[1] || bodyColor;
+      if (data.texture_url || data.texture) {
+        textureUrl = data.texture_url || data.texture;
+      }
+      updateUIElements();
+    }
 
-          if (!error && data) {
-            butterflyName = data.name || butterflyName;
-            memoText = data.memo || memoText;
-            shape = data.wing_shape || data.shape || shape;
-            patternId = data.pattern_id || data.pattern || patternId;
-            const dbAntStr = String(data.antenna_type || data.antenna || antennaType);
-            const dbAntParts = dbAntStr.split('__');
-            antennaType = dbAntParts[0] || antennaType;
-            bodyColor = data.body_color || dbAntParts[1] || bodyColor;
-            textureUrl = data.texture_url || data.texture || null;
-            updateUIElements();
+    async function loadButterflyData() {
+      let loadedData = null;
+
+      if (supabaseClient) {
+        // 1차 시도: URL의 id 파라미터로 조회
+        if (butterflyId) {
+          try {
+            const { data, error } = await supabaseClient
+              .from('butterflies')
+              .select('*')
+              .eq('id', butterflyId)
+              .maybeSingle();
+
+            if (!error && data) {
+              loadedData = data;
+            }
+          } catch (err) {
+            console.warn("Supabase ID 조회 경고:", err);
           }
-        } catch (err) {
-          console.error("Supabase 나비 조회 실패:", err);
+        }
+
+        // 2차 시도(보조): 임시 ID였거나 ID로 찾지 못한 경우 나비 이름(name)으로 가장 최근 데이터 조회
+        if (!loadedData && butterflyName && butterflyName !== "빛의 나비") {
+          try {
+            const { data: nameRows, error: nameErr } = await supabaseClient
+              .from('butterflies')
+              .select('*')
+              .eq('name', butterflyName)
+              .order('id', { ascending: false })
+              .limit(1);
+
+            if (!nameErr && Array.isArray(nameRows) && nameRows.length > 0) {
+              loadedData = nameRows[0];
+            }
+          } catch (err2) {
+            console.warn("Supabase 이름 보조 조회 경고:", err2);
+          }
         }
       }
+
+      if (loadedData) {
+        applyDatabaseRow(loadedData);
+      } else {
+        updateUIElements();
+      }
+
       build3DModel(shape, antennaType, textureUrl, patternId, bodyColor);
     }
     loadButterflyData();

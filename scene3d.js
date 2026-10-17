@@ -834,6 +834,15 @@ function stopModal3DScene() {
   if (container) container.innerHTML = '';
 }
 
+function sanitizeSpecimenShareText(str) {
+  if (!str) return "";
+  return String(str)
+    .replace(/[\uD800-\uDBFF](?![\uDC00-\uDFFF])/g, '')
+    .replace(/(?:[^\uD800-\uDBFF]|^)[\uDC00-\uDFFF]/g, function(m) { return m.length > 1 ? m[0] : ''; })
+    .replace(/\uFFFD/g, '')
+    .trim();
+}
+
 // 🌟 나비 둘러보기 3D 모달: 360도 드래그 회전 탑재 (온기 보내기 제거 완료)
 function openSpecimen3DModal(item, textureUrl) {
   var modal = document.getElementById('specimen-detail-modal');
@@ -848,19 +857,22 @@ function openSpecimen3DModal(item, textureUrl) {
   var cleanAntId = parsedAntParts[0] || 'ball';
   var itemBodyColor = item.bodyColor || parsedAntParts[1] || 'white';
 
-  if (nameEl) nameEl.innerText = '‘' + item.name + '’';
+  var cleanItemName = sanitizeSpecimenShareText(item.name) || "나비";
+  var cleanItemMemo = sanitizeSpecimenShareText(item.memo || item.q6_memo);
+
+  if (nameEl) nameEl.innerText = '‘' + cleanItemName + '’';
   if (tagsEl) {
     var coreTag = item.core_concern || (item.tags && item.tags[item.tags.length - 1]);
     tagsEl.innerHTML = coreTag ? '<span class="specimen-glass-pill bg-white text-black font-bold border-white" style="box-shadow: 0 0 12px rgba(255, 255, 255, 0.45);">#' + coreTag + '</span>' : '';
   }
-  if (memoEl) memoEl.innerText = (item.memo || item.q6_memo) ? ('"' + (item.memo || item.q6_memo) + '"') : '"너의 찬란한 날갯짓을 응원해."';
+  if (memoEl) memoEl.innerText = cleanItemMemo ? ('"' + cleanItemMemo + '"') : '"너의 찬란한 날갯짓을 응원해."';
   if (dateEl) dateEl.innerText = item.date || "2026. 10. 24";
 
   if (shareBtn) {
     shareBtn.onclick = function(e) {
       e.stopPropagation();
-      var rawName = item.name ? String(item.name).trim() : "나비";
-      var rawMemo = (item.memo || item.q6_memo) ? String(item.memo || item.q6_memo).trim() : "너의 찬란한 날갯짓을 응원해.";
+      var rawName = cleanItemName || "나비";
+      var rawMemo = cleanItemMemo || "너의 찬란한 날갯짓을 응원해.";
       var rawShape = item.wingId || "crescent";
       var rawPattern = item.patternId || (rawShape + "_none");
       var rawAntenna = cleanAntId + (itemBodyColor && itemBodyColor !== 'white' ? ('__' + itemBodyColor) : '');
@@ -868,22 +880,58 @@ function openSpecimen3DModal(item, textureUrl) {
       var baseUrl = window.location.href.split('?')[0].replace(/index\.html$/, '');
       if (!baseUrl.endsWith('/')) baseUrl += '/';
 
-      var shareCardUrl = baseUrl + 'share.html?name=' + encodeURIComponent(rawName) +
-        '&memo=' + encodeURIComponent(rawMemo) +
-        '&shape=' + encodeURIComponent(rawShape) +
-        '&pattern=' + encodeURIComponent(rawPattern) +
-        '&antenna=' + encodeURIComponent(rawAntenna) +
-        '&body=' + encodeURIComponent(itemBodyColor) +
-        (item.id ? ('&id=' + encodeURIComponent(item.id)) : '');
+      function executeModalShare(resolvedId) {
+        var isRealDbId = resolvedId && !(typeof resolvedId === 'number' && resolvedId > 1000000000000);
+        var shareCardUrl = '';
+        if (isRealDbId) {
+          shareCardUrl = baseUrl + 'share.html?id=' + encodeURIComponent(resolvedId);
+        } else {
+          shareCardUrl = baseUrl + 'share.html?name=' + encodeURIComponent(rawName) +
+            '&memo=' + encodeURIComponent(rawMemo) +
+            '&shape=' + encodeURIComponent(rawShape) +
+            '&pattern=' + encodeURIComponent(rawPattern) +
+            '&antenna=' + encodeURIComponent(rawAntenna) +
+            '&body=' + encodeURIComponent(itemBodyColor);
+        }
 
-      var shareData = { title: '너울(Noul) - ' + rawName, text: "내가 빚은 나비 '" + rawName + "'(이)가 도착했습니다.", url: shareCardUrl };
-      if (navigator.share) {
-        navigator.share(shareData).catch(function() {});
-      } else if (navigator.clipboard) {
-        navigator.clipboard.writeText(shareCardUrl).then(function() { alert("나비 초대장 링크가 클립보드에 복사되었습니다!"); })
-          .catch(function() { alert("링크 복사에 실패했습니다."); });
+        var shareData = { text: "내가 빚은 나비 '" + rawName + "'이(가) 도착했습니다.", url: shareCardUrl };
+        if (typeof triggerShareOrCopyFallback === 'function') {
+          triggerShareOrCopyFallback(shareData, shareCardUrl);
+        } else if (navigator.share) {
+          navigator.share(shareData).catch(function(err) {
+            if (err && err.name !== 'AbortError' && navigator.clipboard) {
+              navigator.clipboard.writeText(shareCardUrl).then(function() { alert("나비 초대장 링크가 클립보드에 복사되었습니다!"); });
+            }
+          });
+        } else if (navigator.clipboard) {
+          navigator.clipboard.writeText(shareCardUrl).then(function() { alert("나비 초대장 링크가 클립보드에 복사되었습니다!"); })
+            .catch(function() { alert("링크 복사에 실패했습니다."); });
+        } else {
+          alert("공유를 지원하지 않는 브라우저입니다.");
+        }
+      }
+
+      var targetId = item.id;
+      var hasImmediateRealId = targetId && !(typeof targetId === 'number' && targetId > 1000000000000);
+
+      // 🌟 이미 실제 DB ID가 있으면 await 없이 즉시 동기적으로 실행하여 iOS 공유창 차단 완벽 방지
+      if (hasImmediateRealId) {
+        executeModalShare(targetId);
+        return;
+      }
+
+      if (typeof currentSavePromise !== 'undefined' && currentSavePromise) {
+        Promise.race([
+          currentSavePromise,
+          new Promise(function(resolve) { setTimeout(function() { resolve(null); }, 1200); })
+        ]).then(function(savedId) {
+          if (savedId) item.id = savedId;
+          executeModalShare(savedId || item.id);
+        }).catch(function() {
+          executeModalShare(item.id);
+        });
       } else {
-        alert("공유를 지원하지 않는 브라우저입니다.");
+        executeModalShare(targetId);
       }
     };
   }

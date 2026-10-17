@@ -60,6 +60,7 @@ var openingDelayTimer = null;
 var auxTimers = [];
 
 var lastSavedButterflyId = null;
+var currentSavePromise = null;
 
 function registerAuxTimer(fn, delay) {
   var tid = setTimeout(fn, delay);
@@ -200,6 +201,7 @@ function showScreen(screenId) {
         stopBubblePhysics(); stopLoading3DScene(); stopShare3DScene(); stopTop7PhysicsScene();
       } else if (screenId === 'screen-opening') {
         lastSavedButterflyId = null;
+        currentSavePromise = null;
         stopBubblePhysics(); stopLoading3DScene(); stopShare3DScene(); stopTop7PhysicsScene(); resetOpeningFlow();
       } else if (screenId === 'screen-survey') {
         stopLoading3DScene(); stopShare3DScene(); stopTop7PhysicsScene(); renderSurveyStep();
@@ -367,7 +369,7 @@ function playCompleteScreenSequence() {
   if (!titleEl) return;
   
   var rawName = userSelections.q7_name ? userSelections.q7_name.trim() : "나비";
-  typeWriterText(titleEl, "하늘로 '" + rawName + "'이<br>너울 속으로 날아 올랐습니다.<br><br>지금, 스크린을 확인해 보세요.", function() {
+  typeWriterText(titleEl, "하늘로 '" + rawName + "'이(가)<br>너울 속으로 날아 올랐습니다.<br><br>지금, 스크린을 확인해 보세요.", function() {
     if (btnNext) btnNext.innerHTML = "다음";
     if (nextGroup) {
       nextGroup.classList.remove('hidden');
@@ -394,11 +396,47 @@ function playShareScreenSequence() {
   });
 }
 
+// 🌟 글자수 제한 등으로 잘린 이모지(Surrogate Pair)나 깨진 문자를 안전하게 제거하는 헬퍼
+function sanitizeShareString(str) {
+  if (!str) return "";
+  return String(str)
+    .replace(/[\uD800-\uDBFF](?![\uDC00-\uDFFF])/g, '')
+    .replace(/(?:[^\uD800-\uDBFF]|^)[\uDC00-\uDFFF]/g, function(m) { return m.length > 1 ? m[0] : ''; })
+    .replace(/\uFFFD/g, '')
+    .trim();
+}
+
+// 🌟 iOS Safari 등에서 비동기 대기 후 navigator.share가 차단되었을 때 클립보드 복사로 안전하게 이어주는 헬퍼
+function triggerShareOrCopyFallback(shareData, shareCardUrl) {
+  function copyUrlToClipboard() {
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(shareCardUrl).then(function() {
+        alert("나비 초대장 링크가 클립보드에 복사되었습니다!");
+      }).catch(function() {
+        prompt("아래 나비 초대장 링크를 복사해 주세요:", shareCardUrl);
+      });
+    } else {
+      prompt("아래 나비 초대장 링크를 복사해 주세요:", shareCardUrl);
+    }
+  }
+
+  if (navigator.share) {
+    navigator.share(shareData).catch(function(err) {
+      // 사용자가 직접 공유창을 닫은 경우(AbortError)가 아니라면 클립보드 복사로 즉시 대체
+      if (err && err.name !== 'AbortError') {
+        copyUrlToClipboard();
+      }
+    });
+  } else {
+    copyUrlToClipboard();
+  }
+}
+
 var btnActionShare = document.getElementById('btn-action-share');
 if (btnActionShare) {
   btnActionShare.onclick = function() {
-    var rawName = userSelections.q7_name ? userSelections.q7_name.trim() : "나비";
-    var rawMemo = userSelections.q6_memo && userSelections.q6_memo.trim().length > 0 ? userSelections.q6_memo.trim() : "너의 찬란한 날갯짓을 응원해.";
+    var rawName = sanitizeShareString(userSelections.q7_name) || "나비";
+    var rawMemo = sanitizeShareString(userSelections.q6_memo) || "너의 찬란한 날갯짓을 응원해.";
     var rawShape = typeof selectedButterflyShape !== 'undefined' && selectedButterflyShape ? selectedButterflyShape : "crescent";
     var rawPattern = typeof selectedPatternId !== 'undefined' && selectedPatternId ? selectedPatternId : (rawShape + "_none");
     var rawAntenna = typeof selectedAntennaType !== 'undefined' && selectedAntennaType ? selectedAntennaType : "ball";
@@ -407,21 +445,42 @@ if (btnActionShare) {
 
     var baseUrl = window.location.href.split('?')[0].replace(/index\.html$/, '');
     if (!baseUrl.endsWith('/')) baseUrl += '/';
-    
-    var shareCardUrl = baseUrl + 'share.html?name=' + encodeURIComponent(rawName) + 
-      '&memo=' + encodeURIComponent(rawMemo) + 
-      '&shape=' + encodeURIComponent(rawShape) +
-      '&pattern=' + encodeURIComponent(rawPattern) +
-      '&antenna=' + encodeURIComponent(encodedAntenna) +
-      '&body=' + encodeURIComponent(rawBodyColor) +
-      (lastSavedButterflyId ? ('&id=' + encodeURIComponent(lastSavedButterflyId)) : '');
 
-    var shareData = { title: '너울(Noul) - ' + rawName, text: "내가 빚은 나비 '" + rawName + "'(이)가 도착했습니다.", url: shareCardUrl };
-    if (navigator.share) navigator.share(shareData).catch(function() {});
-    else if (navigator.clipboard) {
-      navigator.clipboard.writeText(shareCardUrl).then(function() { alert("나비 초대장 링크가 클립보드에 복사되었습니다!"); })
-        .catch(function() { alert("링크 복사에 실패했습니다."); });
-    } else alert("공유를 지원하지 않는 브라우저입니다.");
+    function buildAndShare(resolvedId) {
+      var shareCardUrl = '';
+      if (resolvedId) {
+        shareCardUrl = baseUrl + 'share.html?id=' + encodeURIComponent(resolvedId);
+      } else {
+        shareCardUrl = baseUrl + 'share.html?name=' + encodeURIComponent(rawName) + 
+          '&memo=' + encodeURIComponent(rawMemo) + 
+          '&shape=' + encodeURIComponent(rawShape) +
+          '&pattern=' + encodeURIComponent(rawPattern) +
+          '&antenna=' + encodeURIComponent(encodedAntenna) +
+          '&body=' + encodeURIComponent(rawBodyColor);
+      }
+      var shareData = { text: "내가 빚은 나비 '" + rawName + "'이(가) 도착했습니다.", url: shareCardUrl };
+      triggerShareOrCopyFallback(shareData, shareCardUrl);
+    }
+
+    // 🌟 이미 ID가 확보된 상태라면 await 없이 즉시 동기적으로 실행하여 iOS 공유창 차단 방지
+    if (lastSavedButterflyId) {
+      buildAndShare(lastSavedButterflyId);
+      return;
+    }
+
+    // 아직 저장이 진행 중일 때만 최대 1.2초 대기 후 실행
+    if (currentSavePromise) {
+      Promise.race([
+        currentSavePromise,
+        new Promise(function(resolve) { setTimeout(function() { resolve(null); }, 1200); })
+      ]).then(function(savedId) {
+        buildAndShare(savedId || lastSavedButterflyId);
+      }).catch(function() {
+        buildAndShare(lastSavedButterflyId);
+      });
+    } else {
+      buildAndShare(null);
+    }
   };
 }
 
@@ -1407,110 +1466,125 @@ if (btnConcernTop7Prev) {
   };
 }
 
-window.saveButterflyToSupabase = async function() {
-  try {
-    var client = getSupabaseClient();
-    
-    // 클라이언트가 준비될 때까지 최대 15회(약 4.5초) 대기 시도
-    if (!client) {
-      for (var attempt = 0; attempt < 15; attempt++) {
-        await new Promise(function(resolve) { setTimeout(resolve, 300); });
-        client = getSupabaseClient();
-        if (client) break;
-      }
-    }
+window.saveButterflyToSupabase = function() {
+  if (currentSavePromise) return currentSavePromise;
 
-    if (!client) {
-      console.error("❌ Supabase 클라이언트가 초기화되지 않았습니다. window.supabase를 확인해주세요.");
-      return;
-    }
-
-    var rawTex = window.currentExtractedTexture || currentExtractedTexture;
-    
-    function compressBase64(base64Str) {
-      return new Promise(function(resolve) {
-        if (!base64Str || !base64Str.startsWith('data:image')) {
-          resolve(base64Str);
-          return;
+  currentSavePromise = (async function() {
+    try {
+      var client = getSupabaseClient();
+      
+      // 클라이언트가 준비될 때까지 최대 15회(약 4.5초) 대기 시도
+      if (!client) {
+        for (var attempt = 0; attempt < 15; attempt++) {
+          await new Promise(function(resolve) { setTimeout(resolve, 300); });
+          client = getSupabaseClient();
+          if (client) break;
         }
-        var img = new Image();
-        img.onload = function() {
-          var cvs = document.createElement('canvas');
-          cvs.width = 512;
-          cvs.height = 512;
-          var c = cvs.getContext('2d');
-          c.drawImage(img, 0, 0, 512, 512);
-          resolve(cvs.toDataURL('image/jpeg', 0.6));
-        };
-        img.onerror = function() { resolve(base64Str); };
-        img.src = base64Str;
+      }
+
+      if (!client) {
+        console.error("❌ Supabase 클라이언트가 초기화되지 않았습니다. window.supabase를 확인해주세요.");
+        return null;
+      }
+
+      var rawTex = window.currentExtractedTexture || currentExtractedTexture;
+      
+      function compressBase64(base64Str) {
+        return new Promise(function(resolve) {
+          if (!base64Str || !base64Str.startsWith('data:image')) {
+            resolve(base64Str);
+            return;
+          }
+          var img = new Image();
+          img.onload = function() {
+            var cvs = document.createElement('canvas');
+            cvs.width = 512;
+            cvs.height = 512;
+            var c = cvs.getContext('2d');
+            c.drawImage(img, 0, 0, 512, 512);
+            resolve(cvs.toDataURL('image/jpeg', 0.6));
+          };
+          img.onerror = function() { resolve(base64Str); };
+          img.src = base64Str;
+        });
+      }
+
+      var finalTex = await compressBase64(rawTex);
+      var tempId = Date.now();
+
+      var safeQ1 = Array.isArray(userSelections.q1) ? JSON.parse(JSON.stringify(userSelections.q1)) : [];
+      // 🌟 관람객이 입력한 핵심 고민 선택 이유(concern_reason)를 기존 q1 배열 컬럼에 담아 전송하여 display.html과 완벽 연동
+      if (safeQ1.length === 0 && userSelections.concern_reason && userSelections.concern_reason.trim().length > 0) {
+        safeQ1 = [userSelections.concern_reason.trim()];
+      }
+      var safeQ2 = Array.isArray(userSelections.q2) ? JSON.parse(JSON.stringify(userSelections.q2)) : [];
+
+      var curBodyColor = (typeof selectedBodyColor !== 'undefined' && selectedBodyColor) ? selectedBodyColor : 'blur';
+      var baseAnt = (typeof selectedAntennaType !== 'undefined' && selectedAntennaType) ? String(selectedAntennaType).split('__')[0] : 'ball';
+      var combinedAntForDB = baseAnt + (curBodyColor !== 'white' ? ('__' + curBodyColor) : '');
+
+      var cleanName = sanitizeShareString(userSelections.q7_name) || '나비';
+      var cleanMemo = sanitizeShareString(userSelections.q6_memo) || '';
+
+      specimenButterfliesData.unshift({
+        id: tempId, name: cleanName,
+        wingId: selectedButterflyShape, antId: baseAnt, bodyColor: curBodyColor, patternId: selectedPatternId, q1: safeQ1,
+        core_concern: userSelections.core_concern || (userSelections.q2 && userSelections.q2[0]) || "",
+        concern_reason: userSelections.concern_reason || "",
+        memo: cleanMemo, textureUrl: finalTex,
+        date: new Date().toISOString().slice(0, 10).replace(/-/g, '. ')
       });
-    }
 
-    var finalTex = await compressBase64(rawTex);
-    var tempId = Date.now();
+      var insertPayload = {
+        name: cleanName || '이름없는 나비',
+        wing_shape: selectedButterflyShape || 'crescent',
+        pattern_id: selectedPatternId || 'crescent_none',
+        antenna_type: combinedAntForDB,
+        body_color: curBodyColor,
+        q1: safeQ1,
+        q2: safeQ2,
+        core_concern: userSelections.core_concern || (safeQ2.length > 0 ? safeQ2[0] : ""),
+        memo: cleanMemo,
+        texture_url: finalTex
+      };
 
-    var safeQ1 = Array.isArray(userSelections.q1) ? JSON.parse(JSON.stringify(userSelections.q1)) : [];
-    // 🌟 관람객이 입력한 핵심 고민 선택 이유(concern_reason)를 기존 q1 배열 컬럼에 담아 전송하여 display.html과 완벽 연동
-    if (safeQ1.length === 0 && userSelections.concern_reason && userSelections.concern_reason.trim().length > 0) {
-      safeQ1 = [userSelections.concern_reason.trim()];
-    }
-    var safeQ2 = Array.isArray(userSelections.q2) ? JSON.parse(JSON.stringify(userSelections.q2)) : [];
+      console.log("🚀 Supabase INSERT 요청 전송 시작. 데이터:", insertPayload);
 
-    var curBodyColor = (typeof selectedBodyColor !== 'undefined' && selectedBodyColor) ? selectedBodyColor : 'blur';
-    var baseAnt = (typeof selectedAntennaType !== 'undefined' && selectedAntennaType) ? String(selectedAntennaType).split('__')[0] : 'ball';
-    var combinedAntForDB = baseAnt + (curBodyColor !== 'white' ? ('__' + curBodyColor) : '');
+      var { data, error } = await client.from('butterflies').insert([insertPayload]).select();
 
-    specimenButterfliesData.unshift({
-      id: tempId, name: userSelections.q7_name || '나비',
-      wingId: selectedButterflyShape, antId: baseAnt, bodyColor: curBodyColor, patternId: selectedPatternId, q1: safeQ1,
-      core_concern: userSelections.core_concern || (userSelections.q2 && userSelections.q2[0]) || "",
-      concern_reason: userSelections.concern_reason || "",
-      memo: userSelections.q6_memo || '', textureUrl: finalTex,
-      date: new Date().toISOString().slice(0, 10).replace(/-/g, '. ')
-    });
+      // 🌟 혹시라도 Supabase 테이블에 아직 body_color 컬럼을 추가하기 전이라면, body_color만 제외하고 즉시 재시도하여 저장 실패를 방지
+      if (error && String(error.message || '').indexOf('body_color') > -1) {
+        console.warn("⚠️ butterflies 테이블에 body_color 컬럼이 아직 없어 기본 컬럼으로 재시도합니다.");
+        var fallbackPayload = Object.assign({}, insertPayload);
+        delete fallbackPayload.body_color;
+        var retryRes = await client.from('butterflies').insert([fallbackPayload]).select();
+        data = retryRes.data;
+        error = retryRes.error;
+      }
 
-    var insertPayload = {
-      name: userSelections.q7_name || '이름없는 나비',
-      wing_shape: selectedButterflyShape || 'crescent',
-      pattern_id: selectedPatternId || 'crescent_none',
-      antenna_type: combinedAntForDB,
-      body_color: curBodyColor,
-      q1: safeQ1,
-      q2: safeQ2,
-      core_concern: userSelections.core_concern || (safeQ2.length > 0 ? safeQ2[0] : ""),
-      memo: userSelections.q6_memo || '',
-      texture_url: finalTex
-    };
-
-    console.log("🚀 Supabase INSERT 요청 전송 시작. 데이터:", insertPayload);
-
-    var { data, error } = await client.from('butterflies').insert([insertPayload]).select();
-
-    // 🌟 혹시라도 Supabase 테이블에 아직 body_color 컬럼을 추가하기 전이라면, body_color만 제외하고 즉시 재시도하여 저장 실패를 방지
-    if (error && String(error.message || '').indexOf('body_color') > -1) {
-      console.warn("⚠️ butterflies 테이블에 body_color 컬럼이 아직 없어 기본 컬럼으로 재시도합니다.");
-      var fallbackPayload = Object.assign({}, insertPayload);
-      delete fallbackPayload.body_color;
-      var retryRes = await client.from('butterflies').insert([fallbackPayload]).select();
-      data = retryRes.data;
-      error = retryRes.error;
-    }
-
-    if (error) {
-      console.error("❌ Supabase 저장 실패 (상세 내용):", error);
-    } else {
-      console.log("✅ Supabase 저장 성공 (결과 데이터):", data);
-      if (data && data.length > 0 && data[0].id) {
-        lastSavedButterflyId = data[0].id;
-        if (specimenButterfliesData.length > 0 && specimenButterfliesData[0].id === tempId) {
-          specimenButterfliesData[0].id = data[0].id;
+      if (error) {
+        console.error("❌ Supabase 저장 실패 (상세 내용):", error);
+      } else {
+        console.log("✅ Supabase 저장 성공 (결과 데이터):", data);
+        if (data && data.length > 0 && data[0].id) {
+          lastSavedButterflyId = data[0].id;
+          for (var sIdx = 0; sIdx < specimenButterfliesData.length; sIdx++) {
+            if (specimenButterfliesData[sIdx].id === tempId) {
+              specimenButterfliesData[sIdx].id = data[0].id;
+              break;
+            }
+          }
+          return data[0].id;
         }
       }
+      return null;
+    } catch (err) { 
+      console.error("❌ Supabase 나비 저장 예외 발생:", err); 
+      return null;
     }
-  } catch (err) { 
-    console.error("❌ Supabase 나비 저장 예외 발생:", err); 
-  }
+  })();
+
+  return currentSavePromise;
 };
 var saveButterflyToSupabase = window.saveButterflyToSupabase;
 
@@ -1776,14 +1850,14 @@ async function initSpecimenGallery() {
           var antParts = rawAntStr.split('__');
           return {
             id: item.id,
-            name: item.name || "나비",
+            name: sanitizeShareString(item.name) || "나비",
             wingId: item.wing_shape || "crescent",
             antId: antParts[0] || "ball",
             bodyColor: item.body_color || antParts[1] || "white",
             patternId: item.pattern_id || (item.wing_shape ? item.wing_shape + '_none' : 'crescent_none'),
             q1: Array.isArray(item.q1) ? item.q1 : [],
             core_concern: item.core_concern || "",
-            memo: item.memo || "",
+            memo: sanitizeShareString(item.memo) || "",
             textureUrl: item.texture_url || null,
             date: item.created_at ? new Date(item.created_at).toISOString().slice(0, 10).replace(/-/g, '. ') : "2026. 10. 24"
           };
