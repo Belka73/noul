@@ -183,7 +183,10 @@
     let memoText = urlParams.get('memo') || "너의 찬란한 날갯짓을 응원해.";
     let shape = urlParams.get('shape') || "crescent";
     let patternId = urlParams.get('pattern') || null;
-    let antennaType = urlParams.get('antenna') || "ball";
+    let rawAntennaParam = urlParams.get('antenna') || "ball";
+    let parsedAntParts = String(rawAntennaParam).split('__');
+    let antennaType = parsedAntParts[0] || "ball";
+    let bodyColor = urlParams.get('body') || parsedAntParts[1] || "white";
     let textureUrl = urlParams.get('texture') || null;
 
     function escapeHtmlSafe(str) {
@@ -300,6 +303,71 @@
       return { matL: createCustomWingShader(), matR: createCustomWingShader() };
     }
 
+    function createBodyMaterial(texUrl, mode) {
+      const targetMode = mode || 'white';
+
+      if (targetMode === 'black') {
+        return new THREE.MeshStandardMaterial({
+          color: 0x18181b,
+          roughness: 0.42,
+          metalness: 0.15,
+          emissive: 0x09090b,
+          side: THREE.DoubleSide
+        });
+      }
+
+      if (targetMode === 'blur') {
+        const texLoader = new THREE.TextureLoader();
+        texLoader.setCrossOrigin('anonymous');
+        const photoTex = texLoader.load(texUrl || createFallbackTexture());
+        photoTex.flipY = false;
+        photoTex.generateMipmaps = true;
+        photoTex.minFilter = THREE.LinearMipmapLinearFilter;
+        photoTex.magFilter = THREE.LinearFilter;
+        if (THREE.sRGBEncoding) photoTex.encoding = THREE.sRGBEncoding;
+
+        return new THREE.ShaderMaterial({
+          uniforms: {
+            photoMap: { value: photoTex }
+          },
+          vertexShader: [
+            'varying vec2 vProjectedUv;',
+            'varying vec3 vNormal;',
+            'void main() {',
+            '  vNormal = normalize(normalMatrix * normal);',
+            '  float u = (position.x + 2.4) / 4.8;',
+            '  float v = (position.y + 2.4) / 4.8;',
+            '  vProjectedUv = vec2(clamp(u, 0.0, 1.0), clamp(1.0 - v, 0.0, 1.0));',
+            '  gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);',
+            '}'
+          ].join('\n'),
+          fragmentShader: [
+            'uniform sampler2D photoMap;',
+            'varying vec2 vProjectedUv;',
+            'varying vec3 vNormal;',
+            'void main() {',
+            '  vec4 sum = vec4(0.0);',
+            '  float stepSize = 0.032;',
+            '  sum += texture2D(photoMap, clamp(vProjectedUv + vec2(-stepSize, -stepSize), 0.0, 1.0)) * 0.0625;',
+            '  sum += texture2D(photoMap, clamp(vProjectedUv + vec2(0.0, -stepSize), 0.0, 1.0)) * 0.125;',
+            '  sum += texture2D(photoMap, clamp(vProjectedUv + vec2(stepSize, -stepSize), 0.0, 1.0)) * 0.0625;',
+            '  sum += texture2D(photoMap, clamp(vProjectedUv + vec2(-stepSize, 0.0), 0.0, 1.0)) * 0.125;',
+            '  sum += texture2D(photoMap, clamp(vProjectedUv, 0.0, 1.0)) * 0.25;',
+            '  sum += texture2D(photoMap, clamp(vProjectedUv + vec2(stepSize, 0.0), 0.0, 1.0)) * 0.125;',
+            '  sum += texture2D(photoMap, clamp(vProjectedUv + vec2(-stepSize, stepSize), 0.0, 1.0)) * 0.0625;',
+            '  sum += texture2D(photoMap, clamp(vProjectedUv + vec2(0.0, stepSize), 0.0, 1.0)) * 0.125;',
+            '  sum += texture2D(photoMap, clamp(vProjectedUv + vec2(stepSize, stepSize), 0.0, 1.0)) * 0.0625;',
+            '  float light = 0.82 + 0.18 * abs(vNormal.z);',
+            '  gl_FragColor = vec4(clamp(sum.rgb * light, 0.0, 1.0), 1.0);',
+            '}'
+          ].join('\n'),
+          side: THREE.DoubleSide
+        });
+      }
+
+      return new THREE.MeshBasicMaterial({ color: 0xffffff, side: THREE.DoubleSide });
+    }
+
     // 3D 뷰어 셋업
     const container = document.getElementById('share-three-container');
     const loadingIndicator = document.getElementById('loading-indicator');
@@ -374,17 +442,19 @@
 
     let wingL = null, wingR = null;
 
-    function build3DModel(targetShape, targetAnt, curTexUrl, curPatId) {
+    function build3DModel(targetShape, targetAnt, curTexUrl, curPatId, curBodyColor) {
       while (group.children.length > 0) {
         group.remove(group.children[0]);
       }
       wingL = null;
       wingR = null;
 
+      const finalTex = curTexUrl || createFallbackTexture();
       const pat3DPath = get3DPatternPath(targetShape, curPatId);
-      const wingMats = createWingMaterials(curTexUrl || createFallbackTexture(), pat3DPath);
-      const whiteMat = new THREE.MeshBasicMaterial({ color: 0xffffff, side: THREE.DoubleSide });
-      const targetAntPrefix = 'Antenna_' + (targetAnt || 'ball');
+      const wingMats = createWingMaterials(finalTex, pat3DPath);
+      const bodyMat = createBodyMaterial(finalTex, curBodyColor);
+      const cleanAnt = String(targetAnt || 'ball').split('__')[0] || 'ball';
+      const targetAntPrefix = 'Antenna_' + cleanAnt;
 
       const gltfLoader = new THREE.GLTFLoader();
       const modelPath = './3DButterfly/' + targetShape + '.glb';
@@ -410,9 +480,9 @@
                 wingR.userData.baseRotZ = child.rotation.z;
                 child.material = wingMats.matR;
               } else if (n.indexOf('Body') === 0 || n.startsWith('Body')) {
-                child.material = whiteMat;
+                child.material = bodyMat;
               } else if (n.indexOf('Antenna_') === 0 || n.startsWith('Antenna_')) {
-                child.material = whiteMat;
+                child.material = bodyMat;
                 // 선택된 안테나 타입만 보이도록 처리
                 child.visible = n.startsWith(targetAntPrefix);
               }
@@ -446,7 +516,10 @@
             memoText = data.memo || memoText;
             shape = data.wing_shape || data.shape || shape;
             patternId = data.pattern_id || data.pattern || patternId;
-            antennaType = data.antenna_type || data.antenna || antennaType;
+            const dbAntStr = String(data.antenna_type || data.antenna || antennaType);
+            const dbAntParts = dbAntStr.split('__');
+            antennaType = dbAntParts[0] || antennaType;
+            bodyColor = data.body_color || dbAntParts[1] || bodyColor;
             textureUrl = data.texture_url || data.texture || null;
             updateUIElements();
           }
@@ -454,7 +527,7 @@
           console.error("Supabase 나비 조회 실패:", err);
         }
       }
-      build3DModel(shape, antennaType, textureUrl, patternId);
+      build3DModel(shape, antennaType, textureUrl, patternId, bodyColor);
     }
     loadButterflyData();
 

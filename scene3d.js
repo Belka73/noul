@@ -33,10 +33,80 @@ function disposeThreeRenderer(renderer) {
   } catch (e) {}
 }
 
+function createBodyMaterial(textureURL, bodyColorMode) {
+  var mode = bodyColorMode || (typeof selectedBodyColor !== 'undefined' ? selectedBodyColor : 'white');
+
+  if (mode === 'black') {
+    return new THREE.MeshStandardMaterial({
+      color: 0x18181b,
+      roughness: 0.42,
+      metalness: 0.15,
+      emissive: 0x09090b,
+      side: THREE.DoubleSide
+    });
+  }
+
+  if (mode === 'blur') {
+    var texUrl = textureURL || (typeof currentExtractedTexture !== 'undefined' && currentExtractedTexture) || createFallbackDummyTexture('#ffffff', '#cfcfcf');
+    var texLoader = new THREE.TextureLoader();
+    texLoader.setCrossOrigin('anonymous');
+    var photoTex = texLoader.load(texUrl);
+    photoTex.flipY = false;
+    photoTex.generateMipmaps = true;
+    photoTex.minFilter = THREE.LinearMipmapLinearFilter;
+    photoTex.magFilter = THREE.LinearFilter;
+    if (THREE.sRGBEncoding) photoTex.encoding = THREE.sRGBEncoding;
+
+    return new THREE.ShaderMaterial({
+      uniforms: {
+        photoMap: { value: photoTex }
+      },
+      vertexShader: [
+        'varying vec2 vProjectedUv;',
+        'varying vec3 vNormal;',
+        'void main() {',
+        '  vNormal = normalize(normalMatrix * normal);',
+        '  float u = (position.x + 2.4) / 4.8;',
+        '  float v = (position.y + 2.4) / 4.8;',
+        '  vProjectedUv = vec2(clamp(u, 0.0, 1.0), clamp(1.0 - v, 0.0, 1.0));',
+        '  gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);',
+        '}'
+      ].join('\n'),
+      fragmentShader: [
+        'uniform sampler2D photoMap;',
+        'varying vec2 vProjectedUv;',
+        'varying vec3 vNormal;',
+        'void main() {',
+        '  vec4 sum = vec4(0.0);',
+        '  float stepSize = 0.032;',
+        '  sum += texture2D(photoMap, clamp(vProjectedUv + vec2(-stepSize, -stepSize), 0.0, 1.0)) * 0.0625;',
+        '  sum += texture2D(photoMap, clamp(vProjectedUv + vec2(0.0, -stepSize), 0.0, 1.0)) * 0.125;',
+        '  sum += texture2D(photoMap, clamp(vProjectedUv + vec2(stepSize, -stepSize), 0.0, 1.0)) * 0.0625;',
+        '  sum += texture2D(photoMap, clamp(vProjectedUv + vec2(-stepSize, 0.0), 0.0, 1.0)) * 0.125;',
+        '  sum += texture2D(photoMap, clamp(vProjectedUv, 0.0, 1.0)) * 0.25;',
+        '  sum += texture2D(photoMap, clamp(vProjectedUv + vec2(stepSize, 0.0), 0.0, 1.0)) * 0.125;',
+        '  sum += texture2D(photoMap, clamp(vProjectedUv + vec2(-stepSize, stepSize), 0.0, 1.0)) * 0.0625;',
+        '  sum += texture2D(photoMap, clamp(vProjectedUv + vec2(0.0, stepSize), 0.0, 1.0)) * 0.125;',
+        '  sum += texture2D(photoMap, clamp(vProjectedUv + vec2(stepSize, stepSize), 0.0, 1.0)) * 0.0625;',
+        '  float light = 0.82 + 0.18 * abs(vNormal.z);',
+        '  gl_FragColor = vec4(clamp(sum.rgb * light, 0.0, 1.0), 1.0);',
+        '}'
+      ].join('\n'),
+      side: THREE.DoubleSide
+    });
+  }
+
+  return new THREE.MeshBasicMaterial({
+    color: 0xffffff,
+    side: THREE.DoubleSide
+  });
+}
+
 function loadButterflyModel(group, shapeId, antId, wingMaterials, whiteMat, scale, onLoaded) {
   if (!window.THREE || !THREE.GLTFLoader) return;
   var modelPath = '3DButterfly/' + (shapeId || 'crescent') + '.glb';
-  var targetAnt = 'Antenna_' + (antId || 'ball');
+  var cleanAntId = String(antId || 'ball').split('__')[0] || 'ball';
+  var targetAnt = 'Antenna_' + cleanAntId;
 
   var matL = wingMaterials && wingMaterials.matL ? wingMaterials.matL : wingMaterials;
   var matR = wingMaterials && wingMaterials.matR ? wingMaterials.matR : wingMaterials;
@@ -228,7 +298,7 @@ function initShare3DScene() {
 
   var texUrl = currentExtractedTexture || createFallbackDummyTexture('#ffffff', '#cfcfcf');
   var wingMats = createWingMaterials(texUrl, currentSelected3DPatternPath);
-  var whiteMat = new THREE.MeshBasicMaterial({ color: 0xffffff, side: THREE.DoubleSide });
+  var bodyMat = createBodyMaterial(texUrl, typeof selectedBodyColor !== 'undefined' ? selectedBodyColor : 'white');
 
   shareGroup = new THREE.Group();
   // 🌟 오른쪽으로 기울어지도록 Z축 각도를 +0.35에서 -0.35로 수정
@@ -236,7 +306,7 @@ function initShare3DScene() {
   shareGroup.position.set(0, 0.45, 0);
 
   var currentGroup = shareGroup;
-  loadButterflyModel(currentGroup, selectedButterflyShape, selectedAntennaType, wingMats, whiteMat, 0.48, function(l, r) {
+  loadButterflyModel(currentGroup, selectedButterflyShape, selectedAntennaType, wingMats, bodyMat, 0.48, function(l, r) {
     if (shareGroup !== currentGroup) return;
     shareWingL = l; shareWingR = r;
   });
@@ -399,8 +469,8 @@ function initFullButterflyViewer(textureURL) {
   isFlyingAway = false; isFlyingTransitionTriggered = false; hasTriggeredDBSave = false; resetChargeState();
   flyStartPhase = 0; flyStartTime = 0;
 
-  var whiteMat = new THREE.MeshBasicMaterial({ color: 0xffffff, side: THREE.DoubleSide });
-  var targetAnt = 'Antenna_' + selectedAntennaType;
+  var bodyMat = createBodyMaterial(textureURL, typeof selectedBodyColor !== 'undefined' ? selectedBodyColor : 'white');
+  var targetAnt = 'Antenna_' + String(selectedAntennaType || 'ball').split('__')[0];
   var currentFullGroup = fullGroup;
 
   if (window.THREE && THREE.GLTFLoader) {
@@ -422,10 +492,10 @@ function initFullButterflyViewer(textureURL) {
               initialRotR = { x: child.rotation.x, y: child.rotation.y, z: child.rotation.z }; 
             }
             else if (n.indexOf('Body') === 0 || n.startsWith('Body')) { 
-              child.material = whiteMat; 
+              child.material = bodyMat; 
             }
             else if (n.indexOf('Antenna_') === 0 || n.startsWith('Antenna_')) { 
-              child.material = whiteMat; 
+              child.material = bodyMat; 
               child.visible = n.startsWith(targetAnt); 
               if (child.visible) antennaMesh = child; 
             }
@@ -764,6 +834,10 @@ function openSpecimen3DModal(item, textureUrl) {
   var shareBtn = document.getElementById('btn-share-specimen-modal');
   var container = document.getElementById('specimen-three-container');
 
+  var parsedAntParts = String(item.antId || 'ball').split('__');
+  var cleanAntId = parsedAntParts[0] || 'ball';
+  var itemBodyColor = item.bodyColor || parsedAntParts[1] || 'white';
+
   if (nameEl) nameEl.innerText = '‘' + item.name + '’';
   if (tagsEl) {
     var coreTag = item.core_concern || (item.tags && item.tags[item.tags.length - 1]);
@@ -779,7 +853,7 @@ function openSpecimen3DModal(item, textureUrl) {
       var rawMemo = (item.memo || item.q6_memo) ? String(item.memo || item.q6_memo).trim() : "너의 찬란한 날갯짓을 응원해.";
       var rawShape = item.wingId || "crescent";
       var rawPattern = item.patternId || (rawShape + "_none");
-      var rawAntenna = item.antId || "ball";
+      var rawAntenna = cleanAntId + (itemBodyColor && itemBodyColor !== 'white' ? ('__' + itemBodyColor) : '');
 
       var baseUrl = window.location.href.split('?')[0].replace(/index\.html$/, '');
       if (!baseUrl.endsWith('/')) baseUrl += '/';
@@ -789,6 +863,7 @@ function openSpecimen3DModal(item, textureUrl) {
         '&shape=' + encodeURIComponent(rawShape) +
         '&pattern=' + encodeURIComponent(rawPattern) +
         '&antenna=' + encodeURIComponent(rawAntenna) +
+        '&body=' + encodeURIComponent(itemBodyColor) +
         (item.id ? ('&id=' + encodeURIComponent(item.id)) : '');
 
       var shareData = { title: '너울(Noul) - ' + rawName, text: "내가 빚은 나비 '" + rawName + "'(이)가 도착했습니다.", url: shareCardUrl };
@@ -825,13 +900,13 @@ function openSpecimen3DModal(item, textureUrl) {
   }
 
   var wingMats = createWingMaterials(textureUrl, itemPattern3DPath);
-  var whiteMat = new THREE.MeshBasicMaterial({ color: 0xffffff, side: THREE.DoubleSide });
+  var bodyMat = createBodyMaterial(textureUrl, itemBodyColor);
 
   modalGroup = new THREE.Group();
   modalGroup.position.set(0, -0.35, 0);
 
   var currentModalGroup = modalGroup;
-  loadButterflyModel(currentModalGroup, item.wingId, item.antId, wingMats, whiteMat, 1.15, function(l, r) {
+  loadButterflyModel(currentModalGroup, item.wingId, cleanAntId, wingMats, bodyMat, 1.15, function(l, r) {
     if (modalGroup !== currentModalGroup) return;
     modalWingL = l; modalWingR = r;
   });

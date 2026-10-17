@@ -145,6 +145,28 @@
       depthWrite: true 
     });
 
+    // 🌟 조명이 없는 씬에서도 검은색 몸통/더듬이의 입체적인 실루엣이 은은하게 드러나는 공유 블랙 셰이더 재질
+    const sharedBlackMat = new THREE.ShaderMaterial({
+      vertexShader: [
+        'varying vec3 vNormal;',
+        'void main() {',
+        '  vNormal = normalize(normalMatrix * normal);',
+        '  gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);',
+        '}'
+      ].join('\n'),
+      fragmentShader: [
+        'varying vec3 vNormal;',
+        'void main() {',
+        '  float rim = 1.0 - abs(vNormal.z);',
+        '  float shade = 0.08 + 0.14 * abs(vNormal.z) + 0.16 * pow(rim, 2.0);',
+        '  gl_FragColor = vec4(vec3(shade), 1.0);',
+        '}'
+      ].join('\n'),
+      side: THREE.DoubleSide,
+      transparent: false,
+      depthWrite: true
+    });
+
     function createStableWingGeom(isRight) {
       const shape = new THREE.Shape();
       const s = isRight ? 1 : -1;
@@ -382,6 +404,84 @@
       return mat;
     }
 
+    const BODY_BLUR_VERTEX_SHADER = [
+      'varying vec2 vProjectedUv;',
+      'varying vec3 vNormal;',
+      'void main() {',
+      '  vNormal = normalize(normalMatrix * normal);',
+      '  float u = (position.x + 2.4) / 4.8;',
+      '  float v = (position.y + 2.4) / 4.8;',
+      '  vProjectedUv = vec2(clamp(u, 0.0, 1.0), clamp(1.0 - v, 0.0, 1.0));',
+      '  gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);',
+      '}'
+    ].join('\n');
+
+    const BODY_BLUR_FRAGMENT_SHADER = [
+      'uniform sampler2D photoMap;',
+      'varying vec2 vProjectedUv;',
+      'varying vec3 vNormal;',
+      'void main() {',
+      '  vec4 sum = vec4(0.0);',
+      '  float stepSize = 0.032;',
+      '  sum += texture2D(photoMap, clamp(vProjectedUv + vec2(-stepSize, -stepSize), 0.0, 1.0)) * 0.0625;',
+      '  sum += texture2D(photoMap, clamp(vProjectedUv + vec2(0.0, -stepSize), 0.0, 1.0)) * 0.125;',
+      '  sum += texture2D(photoMap, clamp(vProjectedUv + vec2(stepSize, -stepSize), 0.0, 1.0)) * 0.0625;',
+      '  sum += texture2D(photoMap, clamp(vProjectedUv + vec2(-stepSize, 0.0), 0.0, 1.0)) * 0.125;',
+      '  sum += texture2D(photoMap, clamp(vProjectedUv, 0.0, 1.0)) * 0.25;',
+      '  sum += texture2D(photoMap, clamp(vProjectedUv + vec2(stepSize, 0.0), 0.0, 1.0)) * 0.125;',
+      '  sum += texture2D(photoMap, clamp(vProjectedUv + vec2(-stepSize, stepSize), 0.0, 1.0)) * 0.0625;',
+      '  sum += texture2D(photoMap, clamp(vProjectedUv + vec2(0.0, stepSize), 0.0, 1.0)) * 0.125;',
+      '  sum += texture2D(photoMap, clamp(vProjectedUv + vec2(stepSize, stepSize), 0.0, 1.0)) * 0.0625;',
+      '  float light = 0.82 + 0.18 * abs(vNormal.z);',
+      '  gl_FragColor = vec4(clamp(sum.rgb * light, 0.0, 1.0), 1.0);',
+      '}'
+    ].join('\n');
+
+    function createStandardBodyMaterial(textureURL, bodyColorMode) {
+      const mode = bodyColorMode || 'white';
+      if (mode === 'black') {
+        return sharedBlackMat;
+      }
+      if (mode === 'blur') {
+        let photoTex = sharedDummyWhiteTexture;
+        let mat = null;
+        if (textureURL) {
+          photoTex = textureCache[textureURL];
+          if (!photoTex) {
+            photoTex = textureLoader.load(
+              textureURL,
+              undefined,
+              undefined,
+              () => {
+                delete textureCache[textureURL];
+                if (mat && mat.uniforms && mat.uniforms.photoMap) {
+                  mat.uniforms.photoMap.value = sharedDummyWhiteTexture;
+                  mat.needsUpdate = true;
+                }
+              }
+            );
+            photoTex.flipY = false;
+            photoTex.generateMipmaps = false;
+            photoTex.minFilter = THREE.LinearFilter;
+            if (THREE.sRGBEncoding) photoTex.encoding = THREE.sRGBEncoding;
+            textureCache[textureURL] = photoTex;
+          }
+        }
+        mat = new THREE.ShaderMaterial({
+          uniforms: {
+            photoMap: { value: photoTex }
+          },
+          vertexShader: BODY_BLUR_VERTEX_SHADER,
+          fragmentShader: BODY_BLUR_FRAGMENT_SHADER,
+          side: THREE.DoubleSide,
+          transparent: false,
+          depthWrite: true
+        });
+        return mat;
+      }
+      return sharedWhiteMat;
+    }
+
     function applyProjectedUVsToGeometry(geometry) {
       if (!geometry || !geometry.attributes || !geometry.attributes.position) return;
       const pos = geometry.attributes.position;
@@ -547,7 +647,7 @@
           if (child.geometry && child.geometry.userData && child.geometry.userData.isClonedWing === true) {
             child.geometry.dispose();
           }
-          if (child.material && child.material !== sharedWhiteMat && child.material !== sharedHaloMat) {
+          if (child.material && child.material !== sharedWhiteMat && child.material !== sharedBlackMat && child.material !== sharedHaloMat) {
             child.material.dispose();
           }
         }
@@ -733,10 +833,11 @@
     const MAX_RECENT_USER_DATA = 45; // 🌟 VRAM 점유율 최적화를 위해 최근 사용자 나비 보관 개수를 45개로 제한
     const rawUserDataList = [];
 
-    function attachClonedGLTFModel(sceneTemplate, innerGroup, wingMat, targetAntennaPrefix) {
+    function attachClonedGLTFModel(sceneTemplate, innerGroup, wingMat, bodyMat, targetAntennaPrefix) {
       const model = sceneTemplate.clone(true);
       let newWingL = null, newWingR = null;
       const meshesToRemove = [];
+      const activeBodyMat = bodyMat || sharedWhiteMat;
 
       model.traverse(function(child) {
         if (child.isMesh) {
@@ -752,11 +853,11 @@
             child.material = wingMat; 
           }
           else if (name.startsWith('Body')) { 
-            child.material = sharedWhiteMat; 
+            child.material = activeBodyMat; 
           }
           else if (name.startsWith('Antenna_')) { 
             if (name.startsWith(targetAntennaPrefix)) {
-              child.material = sharedWhiteMat;
+              child.material = activeBodyMat;
             } else {
               meshesToRemove.push(child);
             }
@@ -790,7 +891,10 @@
       }
 
       const shapeId = data.wing_shape || DEFAULT_BUTTERFLY_SHAPES[Math.floor(Math.random() * DEFAULT_BUTTERFLY_SHAPES.length)];
-      const antId = data.antenna_type || 'ball';
+      const rawAntStr = String(data.antenna_type || 'ball');
+      const antParts = rawAntStr.split('__');
+      const antId = antParts[0] || 'ball';
+      const bodyColorMode = data.body_color || antParts[1] || 'white';
       const patId = data.pattern_id || data.pattern || null;
       const targetAntennaPrefix = 'Antenna_' + antId;
 
@@ -799,6 +903,7 @@
       const hasCustomWing = !!(isUser && (textureURL || patternFileName));
 
       const wingMat = hasCustomWing ? createStandardWingMaterial(textureURL, patternFileName) : sharedWhiteMat;
+      const bodyMat = isUser ? createStandardBodyMaterial(textureURL, bodyColorMode) : sharedWhiteMat;
 
       let leftWing = null;
       let rightWing = null;
@@ -808,7 +913,7 @@
 
       // 🌟 이미 모델 캐시에 로드된 경우 불필요한 임시 메쉬 5개를 생성·삭제하지 않고 즉시 장착
       if (modelCache[shapeId]) {
-        const attached = attachClonedGLTFModel(modelCache[shapeId], innerGroup, wingMat, targetAntennaPrefix);
+        const attached = attachClonedGLTFModel(modelCache[shapeId], innerGroup, wingMat, bodyMat, targetAntennaPrefix);
         if (attached) {
           leftWing = attached.newWingL;
           rightWing = attached.newWingR;
@@ -818,19 +923,19 @@
       if (!leftWing || !rightWing) {
         leftWing = new THREE.Mesh(leftGeom, sharedWhiteMat);
         rightWing = new THREE.Mesh(rightGeom, sharedWhiteMat);
-        defaultBody = new THREE.Mesh(bodyGeom, sharedWhiteMat);
+        defaultBody = new THREE.Mesh(bodyGeom, bodyMat);
 
         innerGroup.add(leftWing);
         innerGroup.add(rightWing);
         innerGroup.add(defaultBody);
         
-        aL = createAntenna(false, sharedWhiteMat); aL.position.set(-0.05, 0.7, 0.15); innerGroup.add(aL);
-        aR = createAntenna(true, sharedWhiteMat); aR.position.set(0.05, 0.7, 0.15); innerGroup.add(aR);
+        aL = createAntenna(false, bodyMat); aL.position.set(-0.05, 0.7, 0.15); innerGroup.add(aL);
+        aR = createAntenna(true, bodyMat); aR.position.set(0.05, 0.7, 0.15); innerGroup.add(aR);
 
         if (gltfLoader) {
           getOrLoadModel(shapeId).then((sceneTemplate) => {
             if (!sceneTemplate || butterflyRecord.isDisposed) return;
-            const attached = attachClonedGLTFModel(sceneTemplate, innerGroup, wingMat, targetAntennaPrefix);
+            const attached = attachClonedGLTFModel(sceneTemplate, innerGroup, wingMat, bodyMat, targetAntennaPrefix);
             if (attached) {
               innerGroup.remove(leftWing);
               innerGroup.remove(rightWing);

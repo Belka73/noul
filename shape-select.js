@@ -18,6 +18,7 @@ var activeCustomTab = 'wing';
 var selectedButterflyShape = 'crescent';
 var selectedAntennaType = 'ball';
 var selectedPatternId = 'crescent_none';
+var selectedBodyColor = 'white';
 
 window.currentSelected3DPatternPath = null;
 var currentSelected3DPatternPath = null;
@@ -94,6 +95,21 @@ if (typeof wingDataset !== 'undefined') {
   wingDataset.forEach(function(w) { butterflyPathData[w.id] = w; });
 }
 
+var bodyBlurSyncRafId = null;
+function syncHeroBodyBlurImage() {
+  if (selectedBodyColor !== 'blur') return;
+  if (bodyBlurSyncRafId) return;
+  bodyBlurSyncRafId = requestAnimationFrame(function() {
+    bodyBlurSyncRafId = null;
+    var blurImgEl = document.getElementById('hero-body-blur-img');
+    if (blurImgEl && typeof alignCanvas !== 'undefined' && alignCanvas) {
+      try {
+        blurImgEl.setAttribute('href', alignCanvas.toDataURL('image/jpeg', 0.72));
+      } catch (e) {}
+    }
+  });
+}
+
 function updateHeroPreview() {
   var heroSvg = document.getElementById('hero-butterfly-svg');
   var heroPathContainer = document.getElementById('hero-path-container');
@@ -118,6 +134,45 @@ function updateHeroPreview() {
       '</g>';
   }
 
+  var bodyExtraDefs = "";
+  var bodySvgEl = "";
+  var antennaColor = "#ffffff";
+
+  if (bodyD) {
+    if (selectedBodyColor === 'black') {
+      bodySvgEl = '<path d="' + bodyD + '" fill="#1a1a1a" stroke="rgba(255, 255, 255, 0.28)" stroke-width="2.5"/>';
+      antennaColor = "#262626";
+    } else if (selectedBodyColor === 'blur') {
+      var canvasDataUrl = "";
+      if (typeof alignCanvas !== 'undefined' && alignCanvas && typeof rawImage !== 'undefined' && rawImage && rawImage.width) {
+        try {
+          canvasDataUrl = alignCanvas.toDataURL('image/jpeg', 0.72);
+        } catch (e) {
+          canvasDataUrl = createFallbackDummyTexture();
+        }
+      } else {
+        canvasDataUrl = createFallbackDummyTexture();
+      }
+      bodyExtraDefs =
+        '<clipPath id="hero-body-exact-clip">' +
+          '<path d="' + bodyD + '" fill-rule="nonzero"/>' +
+        '</clipPath>' +
+        '<filter id="hero-body-blur-filter" x="-30%" y="-30%" width="160%" height="160%">' +
+          '<feGaussianBlur stdDeviation="18" />' +
+        '</filter>';
+      bodySvgEl =
+        '<g clip-path="url(#hero-body-exact-clip)">' +
+          '<path d="' + bodyD + '" fill="#d4d4d8"/>' +
+          '<image id="hero-body-blur-img" href="' + canvasDataUrl + '" x="0" y="0" width="1000" height="1000" preserveAspectRatio="none" filter="url(#hero-body-blur-filter)"/>' +
+          '<path d="' + bodyD + '" fill="rgba(255, 255, 255, 0.14)" stroke="rgba(255, 255, 255, 0.35)" stroke-width="2"/>' +
+        '</g>';
+      antennaColor = "#e5e5e5";
+    } else {
+      bodySvgEl = '<path d="' + bodyD + '" fill="#ffffff"/>';
+      antennaColor = "#ffffff";
+    }
+  }
+
   heroPathContainer.innerHTML = 
     '<defs>' +
       '<mask id="butterfly-outside-mask" maskUnits="userSpaceOnUse" x="-200" y="-200" width="1400" height="1400">' +
@@ -127,13 +182,14 @@ function updateHeroPreview() {
       '<clipPath id="hero-wing-exact-clip">' +
         '<path d="' + wingD + '" fill-rule="nonzero"/>' +
       '</clipPath>' +
+      bodyExtraDefs +
     '</defs>' +
     '<rect x="-200" y="-200" width="1400" height="1400" fill="rgba(0, 0, 0, 0.72)" mask="url(#butterfly-outside-mask)"/>' +
     '<g clip-path="url(#hero-wing-exact-clip)">' +
       patternSvgEl +
     '</g>' +
-    (bodyD ? '<path d="' + bodyD + '" fill="#ffffff"/>' : '') +
-    '<g transform="translate(' + currentWing.headX + ', ' + currentWing.headY + ')" filter="url(#antenna-subtle-contrast)" color="#ffffff">' +
+    bodySvgEl +
+    '<g transform="translate(' + currentWing.headX + ', ' + currentWing.headY + ')" filter="url(#antenna-subtle-contrast)" color="' + antennaColor + '">' +
       ant.render(10.5) +
     '</g>';
 }
@@ -426,6 +482,59 @@ var currentBlurPx = 0, isSymmetryEnabled = false;
 
 var blurSlider = document.getElementById('blur-slider');
 var toggleSymmetryBtn = document.getElementById('toggle-symmetry-btn');
+var bodyColorBtns = document.querySelectorAll('.body-color-btn');
+
+// 🌟 사진이 겹쳐지지 않는 빈 날개 영역을 선택된 몸통 색상(흰색 / 검은색 / 사진 블러)으로 채우는 헬퍼
+function fillUnoccupiedWingSpace(ctx, width, height) {
+  if (!ctx) return;
+  if (selectedBodyColor === 'black') {
+    ctx.fillStyle = '#1a1a1a';
+    ctx.fillRect(0, 0, width, height);
+  } else if (selectedBodyColor === 'blur') {
+    if (rawImage && rawImage.width && rawImage.height) {
+      var bgCanvas = document.createElement('canvas');
+      bgCanvas.width = 128;
+      bgCanvas.height = 128;
+      var bgCtx = bgCanvas.getContext('2d', { willReadFrequently: true });
+      var coverScale = Math.max(128 / rawImage.width, 128 / rawImage.height);
+      var cw = rawImage.width * coverScale;
+      var ch = rawImage.height * coverScale;
+      var cx = (128 - cw) / 2;
+      var cy = (128 - ch) / 2;
+      bgCtx.fillStyle = '#d4d4d8';
+      bgCtx.fillRect(0, 0, 128, 128);
+      bgCtx.drawImage(rawImage, cx, cy, cw, ch);
+      executeReliableFastBlur(bgCanvas, 14);
+      ctx.drawImage(bgCanvas, 0, 0, width, height);
+    } else {
+      ctx.fillStyle = '#d4d4d8';
+      ctx.fillRect(0, 0, width, height);
+    }
+  } else {
+    ctx.fillStyle = '#ffffff';
+    ctx.fillRect(0, 0, width, height);
+  }
+}
+
+function setBodyColorMode(mode) {
+  selectedBodyColor = mode || 'white';
+  if (bodyColorBtns && bodyColorBtns.length > 0) {
+    bodyColorBtns.forEach(function(btn) {
+      btn.classList.toggle('active', btn.getAttribute('data-body-color') === selectedBodyColor);
+    });
+  }
+  drawAlignCanvas();
+  updateHeroPreview();
+}
+
+if (bodyColorBtns && bodyColorBtns.length > 0) {
+  bodyColorBtns.forEach(function(btn) {
+    btn.onclick = function() {
+      var mode = btn.getAttribute('data-body-color') || 'white';
+      setBodyColorMode(mode);
+    };
+  });
+}
 
 function updateSliderProgress(val, min, max) {
   if (!blurSlider) return;
@@ -465,6 +574,7 @@ function handleFile(file) {
       if (blurSlider) { blurSlider.value = 0; currentBlurPx = 0; updateSliderProgress(0); }
       isSymmetryEnabled = false;
       if (toggleSymmetryBtn) { toggleSymmetryBtn.classList.remove('toggle-active'); toggleSymmetryBtn.setAttribute('aria-pressed', 'false'); }
+      setBodyColorMode('white');
       initAlignUI();
       showScreen('screen-shape-select');
     };
@@ -495,13 +605,18 @@ function initAlignUI() {
 function drawAlignCanvas() {
   if (!alignCanvas || !actx) return;
   actx.clearRect(0, 0, alignCanvas.width, alignCanvas.height);
-  if (!rawImage || !rawImage.width) return;
 
   var midX = alignCanvas.width / 2;
   var tempCanvas = document.createElement('canvas');
   tempCanvas.width = alignCanvas.width; tempCanvas.height = alignCanvas.height;
   var tctx = tempCanvas.getContext('2d', { willReadFrequently: true });
-  tctx.drawImage(rawImage, imgX, imgY, rawImage.width * imgScale, rawImage.height * imgScale);
+
+  // 🌟 사진이 겹쳐지지 않는 영역을 선택된 몸통 색상(흰색/검은색/사진 블러)으로 먼저 채움
+  fillUnoccupiedWingSpace(tctx, alignCanvas.width, alignCanvas.height);
+
+  if (rawImage && rawImage.width) {
+    tctx.drawImage(rawImage, imgX, imgY, rawImage.width * imgScale, rawImage.height * imgScale);
+  }
 
   if (currentBlurPx > 0) executeReliableFastBlur(tempCanvas, currentBlurPx * 0.9);
 
@@ -514,6 +629,8 @@ function drawAlignCanvas() {
     actx.drawImage(tempCanvas, 0, 0, midX, alignCanvas.height, 0, 0, midX, alignCanvas.height);
     actx.restore();
   }
+
+  syncHeroBodyBlurImage();
 }
 
 var interactiveFrame = document.getElementById('interactive-align-frame');
@@ -570,7 +687,9 @@ function exportAlignedTexture() {
     window.currentSelected3DPatternPath = currentSelected3DPatternPath;
 
     if (!rawImage || !rawImage.width || !alignCanvas) {
-      currentExtractedTexture = createFallbackDummyTexture();
+      var fallbackColor1 = selectedBodyColor === 'black' ? '#1a1a1a' : '#ffffff';
+      var fallbackColor2 = selectedBodyColor === 'black' ? '#1a1a1a' : '#e5e7eb';
+      currentExtractedTexture = createFallbackDummyTexture(fallbackColor1, fallbackColor2);
       window.currentExtractedTexture = currentExtractedTexture;
       resolve(currentExtractedTexture);
       return;
@@ -583,6 +702,9 @@ function exportAlignedTexture() {
     finalCanvas.width = 1024;
     finalCanvas.height = 1024;
     var fctx = finalCanvas.getContext('2d', { willReadFrequently: true });
+
+    // 🌟 사진이 닿지 않는 빈 날개 영역을 선택된 몸통 색상(흰색/검은색/사진 블러)으로 먼저 채움
+    fillUnoccupiedWingSpace(fctx, 1024, 1024);
 
     var scaledImgX = imgX * scaleRatio;
     var scaledImgY = imgY * scaleRatio;

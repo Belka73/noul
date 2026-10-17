@@ -568,7 +568,7 @@ html, body {
 
 .blur-slider-wrapper {
   width: min(250px, 80vw);
-  margin: 14px auto 0;
+  margin: 10px auto 0;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -587,7 +587,7 @@ html, body {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 6px;
+  gap: 4px;
 }
 
 .adjust-section-label {
@@ -1751,9 +1751,30 @@ html, body {
     padding-top: 10px !important;
   }
   .reference-square-frame {
-    width: 220px;
-    height: 220px;
-    margin-top: 8px;
+    width: 195px;
+    height: 195px;
+    margin-top: 6px;
+  }
+  .blur-slider-wrapper {
+    margin-top: 6px;
+  }
+  .adjust-control-item {
+    gap: 2px;
+  }
+  .minimal-pill-toggle {
+    height: 26px;
+    width: 48px;
+  }
+  .minimal-pill-toggle .toggle-knob {
+    width: 20px;
+    height: 20px;
+  }
+  .minimal-pill-toggle.toggle-active .toggle-knob {
+    transform: translateX(22px);
+  }
+  .body-color-btn {
+    padding: 3.5px 10px;
+    font-size: 10.5px;
   }
   .glass-input-card-v2 {
     height: 150px !important;
@@ -1857,4 +1878,38 @@ html, body {
 @keyframes logoFloat {
   0%   { opacity: 1; transform: translateY(0px); }
   100% { opacity: 1; transform: translateY(-7px); }
+}
+
+/* ==========================================================================
+   🌟 조정 탭 - 나비 몸통 색상 선택 버튼 스타일 (흰색 / 검은색 / 사진 블러)
+   ========================================================================== */
+.body-color-selector-group {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 9999px;
+  padding: 3px;
+}
+
+.body-color-btn {
+  padding: 5px 12px;
+  border-radius: 9999px;
+  font-size: 11px;
+  font-weight: 500;
+  color: #a3a3a3;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+
+.body-color-btn.active {
+  background: #ffffff;
+  color: #000000;
+  font-weight: 700;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.35);
 }

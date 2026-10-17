@@ -402,6 +402,8 @@ if (btnActionShare) {
     var rawShape = typeof selectedButterflyShape !== 'undefined' && selectedButterflyShape ? selectedButterflyShape : "crescent";
     var rawPattern = typeof selectedPatternId !== 'undefined' && selectedPatternId ? selectedPatternId : (rawShape + "_none");
     var rawAntenna = typeof selectedAntennaType !== 'undefined' && selectedAntennaType ? selectedAntennaType : "ball";
+    var rawBodyColor = typeof selectedBodyColor !== 'undefined' && selectedBodyColor ? selectedBodyColor : "white";
+    var encodedAntenna = rawAntenna + (rawBodyColor !== 'white' ? ('__' + rawBodyColor) : '');
 
     var baseUrl = window.location.href.split('?')[0].replace(/index\.html$/, '');
     if (!baseUrl.endsWith('/')) baseUrl += '/';
@@ -410,7 +412,8 @@ if (btnActionShare) {
       '&memo=' + encodeURIComponent(rawMemo) + 
       '&shape=' + encodeURIComponent(rawShape) +
       '&pattern=' + encodeURIComponent(rawPattern) +
-      '&antenna=' + encodeURIComponent(rawAntenna) +
+      '&antenna=' + encodeURIComponent(encodedAntenna) +
+      '&body=' + encodeURIComponent(rawBodyColor) +
       (lastSavedButterflyId ? ('&id=' + encodeURIComponent(lastSavedButterflyId)) : '');
 
     var shareData = { title: '너울(Noul) - ' + rawName, text: "내가 빚은 나비 '" + rawName + "'(이)가 도착했습니다.", url: shareCardUrl };
@@ -1454,9 +1457,13 @@ window.saveButterflyToSupabase = async function() {
     }
     var safeQ2 = Array.isArray(userSelections.q2) ? JSON.parse(JSON.stringify(userSelections.q2)) : [];
 
+    var curBodyColor = (typeof selectedBodyColor !== 'undefined' && selectedBodyColor) ? selectedBodyColor : 'white';
+    var baseAnt = (typeof selectedAntennaType !== 'undefined' && selectedAntennaType) ? String(selectedAntennaType).split('__')[0] : 'ball';
+    var combinedAntForDB = baseAnt + (curBodyColor !== 'white' ? ('__' + curBodyColor) : '');
+
     specimenButterfliesData.unshift({
       id: tempId, name: userSelections.q7_name || '나비',
-      wingId: selectedButterflyShape, antId: selectedAntennaType, patternId: selectedPatternId, q1: safeQ1,
+      wingId: selectedButterflyShape, antId: baseAnt, bodyColor: curBodyColor, patternId: selectedPatternId, q1: safeQ1,
       core_concern: userSelections.core_concern || (userSelections.q2 && userSelections.q2[0]) || "",
       concern_reason: userSelections.concern_reason || "",
       memo: userSelections.q6_memo || '', textureUrl: finalTex,
@@ -1467,7 +1474,8 @@ window.saveButterflyToSupabase = async function() {
       name: userSelections.q7_name || '이름없는 나비',
       wing_shape: selectedButterflyShape || 'crescent',
       pattern_id: selectedPatternId || 'crescent_none',
-      antenna_type: selectedAntennaType || 'ball',
+      antenna_type: combinedAntForDB,
+      body_color: curBodyColor,
       q1: safeQ1,
       q2: safeQ2,
       core_concern: userSelections.core_concern || (safeQ2.length > 0 ? safeQ2[0] : ""),
@@ -1478,6 +1486,16 @@ window.saveButterflyToSupabase = async function() {
     console.log("🚀 Supabase INSERT 요청 전송 시작. 데이터:", insertPayload);
 
     var { data, error } = await client.from('butterflies').insert([insertPayload]).select();
+
+    // 🌟 혹시라도 Supabase 테이블에 아직 body_color 컬럼을 추가하기 전이라면, body_color만 제외하고 즉시 재시도하여 저장 실패를 방지
+    if (error && String(error.message || '').indexOf('body_color') > -1) {
+      console.warn("⚠️ butterflies 테이블에 body_color 컬럼이 아직 없어 기본 컬럼으로 재시도합니다.");
+      var fallbackPayload = Object.assign({}, insertPayload);
+      delete fallbackPayload.body_color;
+      var retryRes = await client.from('butterflies').insert([fallbackPayload]).select();
+      data = retryRes.data;
+      error = retryRes.error;
+    }
 
     if (error) {
       console.error("❌ Supabase 저장 실패 (상세 내용):", error);
@@ -1609,10 +1627,16 @@ function renderFilteredGallery(searchQuery) {
 
   var cardElements = [];
   filteredData.forEach(function(item, itemIdx) {
+    var parsedAnt = String(item.antId || 'ball').split('__');
+    var cleanAntId = parsedAnt[0] || 'ball';
+    var itemBodyColor = item.bodyColor || parsedAnt[1] || 'white';
+
     var wing = butterflyPathData[item.wingId] || wingDataset[0];
-    var ant = antennaDataset.find(function(a) { return a.id === item.antId; }) || antennaDataset[0];
+    var ant = antennaDataset.find(function(a) { return a.id === cleanAntId; }) || antennaDataset[0];
     var pat = getPatternObjectForSpecimen(item.wingId, item.patternId);
-    var tex = item.textureUrl || createFallbackDummyTexture('#ffffff', '#e5e7eb');
+    var defaultTexColor1 = itemBodyColor === 'black' ? '#1a1a1a' : '#ffffff';
+    var defaultTexColor2 = itemBodyColor === 'black' ? '#1a1a1a' : '#e5e7eb';
+    var tex = item.textureUrl || createFallbackDummyTexture(defaultTexColor1, defaultTexColor2);
     var card = document.createElement('div');
     card.className = 'specimen-card-item';
     card.setAttribute('data-specimen-id', item.id);
@@ -1620,12 +1644,43 @@ function renderFilteredGallery(searchQuery) {
     var displayName = rawName.length > 10 ? rawName.slice(0, 10) + '...' : rawName;
 
     var clipId = 'specimen-wing-clip-' + item.id;
+    var bodyClipId = 'specimen-body-clip-' + item.id;
+    var bodyBlurId = 'specimen-body-blur-' + item.id;
     var wingPath = wing.wingD || wing.d;
     var bodyPath = wing.bodyD || "";
 
     var patternSvg = "";
     if (pat && pat.path) {
       patternSvg = '<image href="' + pat.path + '" x="0" y="0" width="' + wing.w + '" height="' + wing.h + '" preserveAspectRatio="none" style="mix-blend-mode: multiply;" opacity="0.95"/>';
+    }
+
+    var wingBaseFill = itemBodyColor === 'black' ? '#1a1a1a' : (itemBodyColor === 'blur' ? '#d4d4d8' : '#ffffff');
+    var wingBaseBgSvg = '<path d="' + wingPath + '" fill="' + wingBaseFill + '"/>';
+    var wingOutlineStrokeSvg = itemBodyColor === 'black' ? '<path d="' + wingPath + '" fill="none" stroke="rgba(255,255,255,0.22)" stroke-width="2.5"/>' : '';
+
+    var extraBodyDefs = "";
+    var bodyElementSvg = "";
+    var antColor = "#ffffff";
+
+    if (bodyPath) {
+      if (itemBodyColor === 'black') {
+        bodyElementSvg = '<path d="' + bodyPath + '" fill="#1a1a1a" stroke="rgba(255,255,255,0.28)" stroke-width="2.5"/>';
+        antColor = "#262626";
+      } else if (itemBodyColor === 'blur') {
+        extraBodyDefs =
+          '<clipPath id="' + bodyClipId + '"><path d="' + bodyPath + '" fill-rule="nonzero"/></clipPath>' +
+          '<filter id="' + bodyBlurId + '" x="-30%" y="-30%" width="160%" height="160%"><feGaussianBlur stdDeviation="18"/></filter>';
+        bodyElementSvg =
+          '<g clip-path="url(#' + bodyClipId + ')">' +
+            '<path d="' + bodyPath + '" fill="#d4d4d8"/>' +
+            '<image href="' + tex + '" x="0" y="0" width="' + wing.w + '" height="' + wing.h + '" preserveAspectRatio="none" filter="url(#' + bodyBlurId + ')"/>' +
+            '<path d="' + bodyPath + '" fill="rgba(255,255,255,0.14)" stroke="rgba(255,255,255,0.35)" stroke-width="2"/>' +
+          '</g>';
+        antColor = "#e5e5e5";
+      } else {
+        bodyElementSvg = '<path d="' + bodyPath + '" fill="#ffffff"/>';
+        antColor = "#ffffff";
+      }
     }
 
     // 🌟 각 나비마다 서로 다른 호흡 딜레이와 미세 주기를 부여하여 자연스럽게 숨 쉬는 연출
@@ -1640,13 +1695,16 @@ function renderFilteredGallery(searchQuery) {
           '<clipPath id="' + clipId + '">' +
             '<path d="' + wingPath + '" fill-rule="nonzero"/>' +
           '</clipPath>' +
+          extraBodyDefs +
         '</defs>' +
         '<g clip-path="url(#' + clipId + ')">' +
+          wingBaseBgSvg +
           '<image href="' + tex + '" x="0" y="0" width="' + wing.w + '" height="' + wing.h + '" preserveAspectRatio="none"/>' +
           patternSvg +
         '</g>' +
-        (bodyPath ? '<path d="' + bodyPath + '" fill="#ffffff"/>' : '') +
-        (ant ? '<g transform="translate(' + wing.headX + ',' + wing.headY + ')" color="#ffffff">' + ant.render(10.5) + '</g>' : '') +
+        wingOutlineStrokeSvg +
+        bodyElementSvg +
+        (ant ? '<g transform="translate(' + wing.headX + ',' + wing.headY + ')" color="' + antColor + '">' + ant.render(10.5) + '</g>' : '') +
       '</svg></div>' +
       '<div class="specimen-pill-label"><span class="label-text" title="' + rawName + '">' + displayName + '</span></div>';
 
@@ -1656,7 +1714,7 @@ function renderFilteredGallery(searchQuery) {
       var curLbl = card.querySelector('.specimen-pill-label');
       if (curLbl) curLbl.classList.add('active-touched');
       if (typeof openSpecimen3DModal === 'function') {
-        openSpecimen3DModal(item, item.textureUrl || createFallbackDummyTexture('#ffffff', '#e0e0e0'));
+        openSpecimen3DModal(item, item.textureUrl || createFallbackDummyTexture(defaultTexColor1, defaultTexColor2));
       }
     };
     specimenContainer.appendChild(card);
@@ -1716,11 +1774,14 @@ async function initSpecimenGallery() {
       var res = await client.from('butterflies').select('*').order('id', { ascending: false }).limit(24);
       if (res.data && res.data.length > 0) {
         specimenButterfliesData = res.data.map(function(item) {
+          var rawAntStr = String(item.antenna_type || "ball");
+          var antParts = rawAntStr.split('__');
           return {
             id: item.id,
             name: item.name || "나비",
             wingId: item.wing_shape || "crescent",
-            antId: item.antenna_type || "ball",
+            antId: antParts[0] || "ball",
+            bodyColor: item.body_color || antParts[1] || "white",
             patternId: item.pattern_id || (item.wing_shape ? item.wing_shape + '_none' : 'crescent_none'),
             q1: Array.isArray(item.q1) ? item.q1 : [],
             core_concern: item.core_concern || "",
